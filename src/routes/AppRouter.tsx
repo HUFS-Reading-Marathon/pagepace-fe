@@ -1,22 +1,30 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import Header from '../components/layout/Header';
-import MainPage from '../pages/main';
+import Footer from '../components/layout/Footer';
 import { LoginPage, SignUpPage } from '../pages/auth';
 import NotFoundPage from '../pages/error';
+import MainPage from '../pages/main';
+import { MyReadingLogsPage, ReadingLogWritePage } from '../pages/logs';
+import MarathonStatusPage from '../pages/status';
 
 function AppRouter() {
   return (
     <BrowserRouter>
       <Header />
 
-      <main className="page-container">
-        <Routes>
-          <Route path="/" element={<MainPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignUpPage />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </main>
+      <Routes>
+        <Route path="/" element={<MainPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignUpPage />} />
+
+        <Route path="/logs/new" element={<ReadingLogWritePage />} />
+        <Route path="/logs" element={<MyReadingLogsPage />} />
+        <Route path="/status" element={<MarathonStatusPage />} />
+
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+
+      <Footer />
     </BrowserRouter>
   );
 }
