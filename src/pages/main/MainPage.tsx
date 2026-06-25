@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import type { ReactNode } from 'react';
-import Footer from '../../components/layout/Footer';
 
 type ExternalLink = {
   eyebrow: string;

@@ -1,0 +1,465 @@
+.my-page {
+  width: min(1120px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 56px 0 84px;
+}
+
+.my-hero {
+  max-width: 780px;
+}
+
+.my-label,
+.my-section-kicker {
+  margin: 0 0 12px;
+  color: #1f4f82;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+
+.my-hero h1 {
+  margin: 0;
+  color: #172838;
+  font-size: clamp(34px, 4vw, 48px);
+  line-height: 1.16;
+  letter-spacing: -0.055em;
+  font-weight: 750;
+}
+
+.my-hero p {
+  margin: 18px 0 0;
+  color: #536271;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.my-course-board {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 34px;
+  margin-top: 36px;
+  padding: 34px;
+  border: 1px solid #d9e2ec;
+  border-top: 2px solid #1f4f82;
+  background: #ffffff;
+}
+
+.my-course-info {
+  padding-right: 30px;
+  border-right: 1px solid #d9e2ec;
+}
+
+.my-course-info span {
+  color: #7c8996;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.my-course-info h2 {
+  margin: 10px 0 12px;
+  color: #1f4f82;
+  font-size: 34px;
+  letter-spacing: -0.055em;
+}
+
+.my-course-info p {
+  margin: 0;
+  color: #536271;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.my-progress-area {
+  --progress-position: 0%;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.my-progress-summary {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.my-progress-summary span {
+  display: block;
+  margin-bottom: 7px;
+  color: #7c8996;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.my-progress-summary strong {
+  color: #172838;
+  font-size: 18px;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+
+.my-progress-summary b {
+  color: #1f4f82;
+  font-size: 30px;
+  line-height: 1;
+  letter-spacing: -0.045em;
+}
+
+.marathon-track {
+  position: relative;
+  padding-top: 10px;
+}
+
+.marathon-track-labels {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  color: #7c8996;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+/* 트랙 라인 높이 확보 및 아래 정렬 */
+.marathon-track-line {
+  position: relative;
+  height: 48px;
+}
+
+.marathon-track-line::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: #d9e2ec;
+  border-radius: 999px;
+}
+
+.marathon-track-fill {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: var(--progress-position);
+  height: 3px;
+  background: #1f4f82;
+  border-radius: 999px;
+  transition: width 1.75s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 러너 마커를 트랙 선 위에 안착 */
+.marathon-runner-marker {
+  position: absolute;
+  left: var(--progress-position);
+  bottom: 3px; /* 트랙(3px) 바로 위에 배치 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translateX(-50%);
+  transition: left 1.75s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 10;
+}
+
+/* 퍼센테이지 말풍선 크기/여백 대폭 축소 */
+.runner-percent {
+  position: absolute;
+  bottom: 100%;
+  margin-bottom: 4px;
+  min-width: 34px;
+  padding: 3px 6px;
+  border: 1px solid #cddded;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #1f4f82;
+  font-size: 11px; /* 폰트 사이즈 감소 */
+  font-weight: 750;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(26, 72, 115, 0.08);
+}
+
+.runner-percent::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 6px;
+  height: 6px;
+  border-right: 1px solid #cddded;
+  border-bottom: 1px solid #cddded;
+  background: #ffffff;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.runner-icon {
+  width: 22px;
+  height: 22px;
+  color: #1f4f82;
+}
+
+/* 러너 아래 작은 점(Pivot)도 트랙 정중앙에 맞춰 조정 */
+.marathon-runner-marker::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -5px; 
+  width: 7px;
+  height: 7px;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  background: #1f4f82;
+  box-shadow: 0 0 0 1px rgba(31, 79, 130, 0.28);
+  transform: translateX(-50%);
+}
+
+/* 깃발을 트랙 선 우측 상단에 안착 */
+.marathon-finish-marker {
+  position: absolute;
+  right: -4px; /* 깃대가 정확히 끝지점(100%)에 떨어지도록 미세조정 */
+  bottom: 3px; /* 트랙(3px) 바로 위 */
+  width: 24px;
+  height: 24px;
+  color: #1f4f82;
+}
+
+.finish-icon {
+  width: 100%;
+  height: 100%;
+}
+
+.my-progress-caption {
+  margin: 16px 0 0;
+  color: #7c8996;
+  font-size: 14px;
+}
+
+.my-progress-caption strong {
+  color: #536271;
+  font-weight: 700;
+}
+
+.my-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin-top: 24px;
+  border: 1px solid #d9e2ec;
+  background: #ffffff;
+}
+
+.my-stat-grid article {
+  padding: 26px 28px;
+  border-right: 1px solid #edf2f7;
+}
+
+.my-stat-grid article:last-child {
+  border-right: 0;
+}
+
+.my-stat-grid span {
+  display: block;
+  margin-bottom: 10px;
+  color: #7c8996;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.my-stat-grid strong {
+  display: block;
+  color: #172838;
+  font-size: 24px;
+  letter-spacing: -0.045em;
+}
+
+.my-stat-grid p {
+  margin: 12px 0 0;
+  color: #536271;
+  font-size: 14px;
+}
+
+.my-latest-section {
+  margin-top: 46px;
+}
+
+.my-section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.my-section-head h2 {
+  margin: 0;
+  color: #172838;
+  font-size: 25px;
+  letter-spacing: -0.045em;
+}
+
+.my-outline-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 18px;
+  border: 1px solid #1f4f82;
+  border-radius: 4px;
+  color: #1f4f82;
+  background: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.my-outline-link:hover {
+  background: #f7fbff;
+}
+
+.my-latest-card {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 28px;
+  padding: 30px;
+  border: 1px solid #d9e2ec;
+  background: #ffffff;
+}
+
+.my-status-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.status-인정 {
+  color: #1f4f82;
+  background: #eef5fc;
+  border: 1px solid #c5d7ea;
+}
+
+.status-검토중 {
+  color: #8a6a29;
+  background: #fff8e6;
+  border: 1px solid #ead8a8;
+}
+
+.status-반려 {
+  color: #8c3d3d;
+  background: #fff1f1;
+  border: 1px solid #edc5c5;
+}
+
+.my-latest-card h3 {
+  margin: 18px 0 10px;
+  color: #172838;
+  font-size: 28px;
+  letter-spacing: -0.05em;
+}
+
+.my-latest-card p {
+  margin: 0;
+  color: #536271;
+  font-size: 15px;
+}
+
+.my-latest-card dl {
+  margin: 0;
+  padding-left: 28px;
+  border-left: 1px solid #edf2f7;
+}
+
+.my-latest-card dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+}
+
+.my-latest-card dt {
+  color: #7c8996;
+  font-size: 14px;
+}
+
+.my-latest-card dd {
+  margin: 0;
+  color: #1d2733;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+@media (max-width: 960px) {
+  .my-course-board,
+  .my-latest-card {
+    grid-template-columns: 1fr;
+  }
+
+  .my-course-info {
+    padding-right: 0;
+    padding-bottom: 24px;
+    border-right: 0;
+    border-bottom: 1px solid #d9e2ec;
+  }
+
+  .my-stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .my-stat-grid article:nth-child(2) {
+    border-right: 0;
+  }
+
+  .my-stat-grid article:nth-child(-n + 2) {
+    border-bottom: 1px solid #edf2f7;
+  }
+
+  .my-latest-card dl {
+    padding-left: 0;
+    padding-top: 20px;
+    border-left: 0;
+    border-top: 1px solid #edf2f7;
+  }
+}
+
+@media (max-width: 720px) {
+  .my-page {
+    width: min(100% - 28px, 1120px);
+    padding-top: 42px;
+  }
+
+  .my-course-board,
+  .my-latest-card {
+    padding: 24px;
+  }
+
+  .my-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .my-stat-grid article {
+    border-right: 0;
+    border-bottom: 1px solid #edf2f7;
+  }
+
+  .my-stat-grid article:last-child {
+    border-bottom: 0;
+  }
+
+  .my-section-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .my-outline-link {
+    width: 100%;
+  }
+
+  .my-progress-summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
