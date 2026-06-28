@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 
 type ExternalLink = {
   eyebrow: string;
@@ -376,6 +377,7 @@ function MainPage() {
                 <p>Marathon Status</p>
                 <h2 id="statusTitle">대회 현황</h2>
               </div>
+
               <p className="section-desc">
                 운영 시작 후 참가자의 독서일지 제출 내역을 기준으로 누적 거리,
                 달성률, 완주 여부가 집계됩니다.
@@ -390,6 +392,12 @@ function MainPage() {
                   <p>{item.desc}</p>
                 </article>
               ))}
+            </div>
+
+            <div className="status-detail-row fade-up">
+              <Link to="/status" className="status-detail-link">
+                대회 현황 보러가기
+              </Link>
             </div>
           </div>
         </section>

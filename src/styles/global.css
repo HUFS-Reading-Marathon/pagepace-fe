@@ -596,6 +596,11 @@ img {
   padding: 82px 0;
 }
 
+.section[id],
+#notice {
+  scroll-margin-top: 112px;
+}
+
 .section.compact {
   padding-top: 18px;
 }
@@ -1201,6 +1206,11 @@ img {
     font-weight: 600;
   }
 
+  .mobile-panel a[aria-current="page"] {
+    color: var(--navy-strong);
+    font-weight: 750;
+  }
+
   .hero-content {
     padding: 42px 32px;
   }
@@ -1389,3 +1399,37 @@ img {
   letter-spacing: -0.04em;
 }
 
+.status-detail-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 22px;
+}
+
+.status-detail-link {
+  display: inline-flex;
+  align-items: center;
+  color: #1f4f82;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.status-detail-link::after {
+  content: '→';
+  margin-left: 6px;
+  transition: transform 0.18s ease;
+}
+
+.status-detail-link:hover {
+  text-decoration: underline;
+}
+
+.status-detail-link:hover::after {
+  transform: translateX(3px);
+}
+
+@media (max-width: 720px) {
+  .status-detail-row {
+    justify-content: flex-start;
+  }
+}
