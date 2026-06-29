@@ -24,7 +24,9 @@ function LoginPage() {
     localStorage.setItem('isLoggedIn', 'true');
     localStorage.setItem('loginId', loginId);
 
-    navigate('/my');
+    window.dispatchEvent(new Event('auth-change'));
+
+    navigate('/');
   };
 
   return (

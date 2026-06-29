@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 type HeaderLink = {
   label: string;
@@ -20,7 +20,6 @@ const NAV_ITEMS: HeaderLink[] = [
   { label: '대회 현황', href: '/#status' },
   { label: '공지사항', href: '/#notice' },
   { label: 'My Library', href: '/my' },
-  { label: '로그인', href: '/login' },
 ];
 
 const DEFAULT_HASH = '#about';
@@ -88,17 +87,18 @@ function isActiveNavItem(href: string, pathname: string, activeHash: string) {
     return pathname === '/my' || pathname.startsWith('/logs');
   }
 
-  if (href === '/login') {
-    return pathname === '/login';
-  }
-
   return pathname === href;
 }
 
 function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSectionHash, setActiveSectionHash] = useState(DEFAULT_HASH);
+  const [isLoggedIn, setIsLoggedIn] = useState(
+    () => localStorage.getItem('isLoggedIn') === 'true',
+  );
+
   const location = useLocation();
+  const navigate = useNavigate();
 
   const activeHash =
     location.pathname === '/'
@@ -113,6 +113,34 @@ function Header() {
     setActiveSectionHash(hashFromHref(href));
     closeMobileMenu();
   };
+
+  const handleLogout = () => {
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('loginId');
+
+    setIsLoggedIn(false);
+    closeMobileMenu();
+
+    window.dispatchEvent(new Event('auth-change'));
+
+    navigate('/');
+  };
+
+  useEffect(() => {
+    const syncLoginState = () => {
+      setIsLoggedIn(localStorage.getItem('isLoggedIn') === 'true');
+    };
+
+    syncLoginState();
+
+    window.addEventListener('auth-change', syncLoginState);
+    window.addEventListener('storage', syncLoginState);
+
+    return () => {
+      window.removeEventListener('auth-change', syncLoginState);
+      window.removeEventListener('storage', syncLoginState);
+    };
+  }, []);
 
   useEffect(() => {
     if (location.pathname !== '/') {
@@ -196,12 +224,7 @@ function Header() {
                 activeHash,
               );
 
-              const className = [
-                isActive ? 'is-active' : '',
-                item.label === '로그인' ? 'nav-login-link' : '',
-              ]
-                .filter(Boolean)
-                .join(' ');
+              const className = isActive ? 'is-active' : undefined;
 
               if (isHashLink(item.href)) {
                 return (
@@ -228,6 +251,29 @@ function Header() {
                 </Link>
               );
             })}
+
+            {isLoggedIn ? (
+              <button
+                type="button"
+                className="nav-auth-button nav-login-link"
+                onClick={handleLogout}
+              >
+                로그아웃
+              </button>
+            ) : (
+              <Link
+                to="/login"
+                aria-current={location.pathname === '/login' ? 'page' : undefined}
+                className={[
+                  location.pathname === '/login' ? 'is-active' : '',
+                  'nav-login-link',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              >
+                로그인
+              </Link>
+            )}
           </nav>
 
           <button
@@ -289,6 +335,25 @@ function Header() {
                 </Link>
               );
             })}
+
+            {isLoggedIn ? (
+              <button
+                type="button"
+                className="mobile-auth-button"
+                onClick={handleLogout}
+              >
+                로그아웃
+              </button>
+            ) : (
+              <Link
+                to="/login"
+                onClick={closeMobileMenu}
+                aria-current={location.pathname === '/login' ? 'page' : undefined}
+                className={location.pathname === '/login' ? 'is-active' : undefined}
+              >
+                로그인
+              </Link>
+            )}
           </div>
         </nav>
       </header>
