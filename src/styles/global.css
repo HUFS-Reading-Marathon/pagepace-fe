@@ -142,7 +142,13 @@ img {
   height: auto;
   object-fit: contain;
 }
+.brand img {
+  height: 42px;
+  width: auto;
+  display: block;
+  transform: translateX(-5px);
 
+}
 .brand-text {
   color: var(--navy-strong);
   font-size: 20px;

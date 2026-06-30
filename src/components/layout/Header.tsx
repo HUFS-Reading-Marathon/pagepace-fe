@@ -184,7 +184,7 @@ function Header() {
       <div className="topbar" role="region" aria-label="도서관 바로가기">
         <div className="wrap topbar-inner">
           <div className="topbar-title">
-            한국외국어대학교 글로벌캠퍼스 도서관 독서마라톤
+            Hankuk University of Foreign Studies · Global Campus Library
           </div>
 
           <nav className="topbar-links" aria-label="상단 유틸리티">
@@ -211,7 +211,7 @@ function Header() {
             aria-label="한국외국어대학교 글로벌캠퍼스 도서관 독서마라톤 홈"
           >
             <img
-              src="/hufs-logo.png?v=2"
+              src="/hufs_global_library_logo.png"
               alt="한국외국어대학교 글로벌캠퍼스 도서관"
             />
           </Link>
