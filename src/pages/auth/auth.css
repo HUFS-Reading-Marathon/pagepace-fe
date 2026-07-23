@@ -261,7 +261,7 @@
   width: 650px !important;
   max-width: 900px !important;
 
-  opacity: 0.3 !important;
+  opacity: 0.26 !important;
 
   pointer-events: none !important;
   user-select: none !important;
@@ -336,6 +336,74 @@
   line-height: 1.45;
 }
 
+.auth-affiliation-group {
+  padding: 0;
+  border: 0;
+}
+
+.auth-affiliation-group legend {
+  margin-bottom: 8px;
+  color: #4b5563;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.auth-affiliation-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.auth-affiliation-option {
+  min-width: 0;
+  cursor: pointer;
+}
+
+.auth-affiliation-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.auth-affiliation-option span {
+  display: flex;
+  min-height: 44px;
+  padding: 8px 10px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--body);
+  font-size: 13px;
+  line-height: 1.35;
+  text-align: center;
+  word-break: keep-all;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.auth-affiliation-option:hover span {
+  border-color: var(--navy);
+}
+
+.auth-affiliation-option input:checked + span {
+  border-color: var(--navy-strong);
+  background: var(--navy-strong);
+  color: #fff;
+}
+
+.auth-affiliation-option input:focus-visible + span {
+  box-shadow: 0 0 0 3px rgba(31, 79, 130, 0.14);
+}
+
 .auth-agreement {
   align-items: flex-start;
   margin-top: 4px;
@@ -354,10 +422,45 @@
   flex-wrap: wrap;
 }
 
+.auth-shell-pending {
+  text-align: center;
+}
+
+.auth-pending-content {
+  margin-top: 28px;
+  color: var(--body);
+  font-size: 13px;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+.auth-pending-content p {
+  margin: 0;
+}
+
+.auth-pending-content p + p {
+  margin-top: 10px;
+}
+
+.auth-pending-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+main.auth-page.auth-page-pending {
+  min-height: calc(100vh - 80px);
+  padding: 120px 20px 190px;
+}
+
 @media (max-width: 560px) {
   .auth-shell-apply {
     width: 100% !important;
     max-width: 400px !important;
+  }
+
+  .auth-affiliation-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .auth-form-row {
@@ -396,7 +499,7 @@ main.auth-page.auth-page-apply .auth-shell-apply {
 /* 로그인 페이지와 동일한 워터마크 */
 main.auth-page.auth-page-apply > .auth-watermark {
   z-index: 1 !important;
-  opacity: 0.3 !important;
+  opacity: 0.26 !important;
   pointer-events: none !important;
   user-select: none !important;
 }
@@ -405,13 +508,57 @@ main.auth-page.auth-page-apply > .auth-watermark img {
   filter: none !important;
 }
 
-/* ApplyPage에서만 footer 위 흰 여백 제거 */
-main.auth-page.auth-page-apply {
+/* 로그인, 참가신청, 승인대기 페이지의 footer 위 여백 통일 */
+main.auth-page {
   margin-bottom: 0 !important;
-  padding-bottom: 96px !important;
+  padding-bottom: 100px !important;
 }
 
-/* main 바로 다음 footer라면 footer 위 여백 제거 */
-main.auth-page.auth-page-apply + .site-footer {
+main.auth-page + .site-footer {
   margin-top: 0 !important;
+}
+
+main.auth-page.auth-page-pending > .auth-watermark {
+  display: none !important;
+}
+
+.auth-pending-logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 22px;
+}
+
+.auth-pending-logo img {
+  display: block;
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+}
+
+.auth-shell-pending .auth-pending-content {
+  margin-top: 32px;
+}
+
+.auth-shell-pending .auth-pending-button {
+  display: flex;
+  width: 210px !important;
+  min-width: 210px;
+  height: 48px;
+  margin: 34px auto 0;
+  padding: 0 20px;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+@media (max-width: 520px) {
+  .auth-pending-logo img {
+    width: 64px;
+    height: 64px;
+  }
+
+  .auth-shell-pending .auth-pending-button {
+    width: 200px !important;
+    min-width: 200px;
+  }
 }

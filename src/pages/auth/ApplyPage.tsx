@@ -4,18 +4,30 @@ import './auth.css';
 
 type CourseType = 'short' | 'half' | 'full';
 
-type GradeType = '1' | '2' | '3' | '4' | 'staff' | 'etc';
+type AffiliationType =
+  | 'undergraduate'
+  | 'graduate'
+  | 'professor'
+  | 'lecturer'
+  | 'staff';
+
+type GradeType = '1' | '2' | '3' | '4';
 
 type GenderType = 'female' | 'male' | 'none';
+
+type ApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 type StoredApplicant = {
   name: string;
   loginId: string;
+  email: string;
   department: string;
-  grade: GradeType;
+  affiliation: AffiliationType;
+  grade: GradeType | null;
   gender: GenderType;
   course: CourseType;
-  password: string;
+  applicationStatus: ApplicationStatus;
+  appliedAt: string;
 };
 
 const COURSE_OPTIONS: { label: string; value: CourseType }[] = [
@@ -24,13 +36,19 @@ const COURSE_OPTIONS: { label: string; value: CourseType }[] = [
   { label: '풀코스', value: 'full' },
 ];
 
+const AFFILIATION_OPTIONS: { label: string; value: AffiliationType }[] = [
+  { label: '학부생', value: 'undergraduate' },
+  { label: '대학원생', value: 'graduate' },
+  { label: '교수', value: 'professor' },
+  { label: '강사', value: 'lecturer' },
+  { label: '직원(연구원 포함)', value: 'staff' },
+];
+
 const GRADE_OPTIONS: { label: string; value: GradeType }[] = [
   { label: '1학년', value: '1' },
   { label: '2학년', value: '2' },
   { label: '3학년', value: '3' },
   { label: '4학년', value: '4' },
-  { label: '교직원', value: 'staff' },
-  { label: '기타', value: 'etc' },
 ];
 
 const GENDER_OPTIONS: { label: string; value: GenderType }[] = [
@@ -44,14 +62,20 @@ function ApplyPage() {
 
   const [name, setName] = useState('');
   const [studentNumber, setStudentNumber] = useState('');
+  const [email, setEmail] = useState('');
   const [department, setDepartment] = useState('');
-  const [grade, setGrade] = useState<GradeType>('1');
+  const [affiliation, setAffiliation] =
+    useState<AffiliationType>('undergraduate');
+  const [grade, setGrade] = useState<GradeType | null>('1');
   const [gender, setGender] = useState<GenderType>('none');
   const [course, setCourse] = useState<CourseType>('half');
-  const [password, setPassword] = useState('');
-  const [passwordConfirm, setPasswordConfirm] = useState('');
   const [isAgreed, setIsAgreed] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  const handleAffiliationChange = (nextAffiliation: AffiliationType) => {
+    setAffiliation(nextAffiliation);
+    setGrade(nextAffiliation === 'undergraduate' ? '1' : null);
+  };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -59,9 +83,11 @@ function ApplyPage() {
     if (
       !name.trim() ||
       !studentNumber.trim() ||
+      !email.trim() ||
+      !affiliation ||
       !department.trim() ||
-      !password.trim() ||
-      !passwordConfirm.trim()
+      !course ||
+      !gender
     ) {
       setErrorMessage('필수 정보를 모두 입력해 주세요.');
       return;
@@ -72,13 +98,16 @@ function ApplyPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setErrorMessage('비밀번호는 6자 이상으로 입력해 주세요.');
+    const normalizedEmail = email.trim();
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailPattern.test(normalizedEmail)) {
+      setErrorMessage('학교 이메일을 정확히 입력해 주세요.');
       return;
     }
 
-    if (password !== passwordConfirm) {
-      setErrorMessage('비밀번호가 일치하지 않습니다.');
+    if (affiliation === 'undergraduate' && !grade) {
+      setErrorMessage('학부생은 학년을 선택해 주세요.');
       return;
     }
 
@@ -106,31 +135,23 @@ function ApplyPage() {
     const newApplicant: StoredApplicant = {
       name: name.trim(),
       loginId,
+      email: normalizedEmail,
       department: department.trim(),
-      grade,
+      affiliation,
+      grade: affiliation === 'undergraduate' ? grade : null,
       gender,
       course,
-      password,
+      applicationStatus: 'PENDING',
+      appliedAt: new Date().toISOString(),
     };
 
-    /*
-      API 연동 전 임시 처리:
-      참가신청 완료 = 계정 생성 + 참가 완료 + 자동 로그인
-    */
     localStorage.setItem(
       'applicants',
       JSON.stringify([...applicants, newApplicant]),
     );
-    localStorage.setItem('isLoggedIn', 'true');
-    localStorage.setItem('isApplied', 'true');
-    localStorage.setItem('loginId', newApplicant.loginId);
-    localStorage.setItem('userName', newApplicant.name);
-    localStorage.setItem('userCourse', newApplicant.course);
 
     setErrorMessage('');
-    window.dispatchEvent(new Event('auth-change'));
-
-    navigate('/');
+    navigate('/apply/pending', { state: { email: newApplicant.email } });
   };
 
   return (
@@ -143,7 +164,7 @@ function ApplyPage() {
         <div className="auth-heading">
           <h1>참가신청</h1>
           <p className="auth-description">
-            학번 또는 사번으로 계정을 만들고 독서마라톤 참가를 신청합니다.
+            독서마라톤 참가를 위한 정보를 입력해 주세요.
           </p>
         </div>
 
@@ -176,26 +197,77 @@ function ApplyPage() {
           </div>
 
           <div className="auth-form-group">
-            <label htmlFor="department">소속학과</label>
+            <label htmlFor="email">학교 이메일</label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              onInvalid={(event) => {
+                event.preventDefault();
+                setErrorMessage('학교 이메일을 정확히 입력해 주세요.');
+              }}
+              placeholder="학교 이메일"
+              autoComplete="email"
+            />
+          </div>
+
+          <fieldset className="auth-form-group auth-affiliation-group">
+            <legend>신분</legend>
+            <div className="auth-affiliation-options">
+              {AFFILIATION_OPTIONS.map((option) => (
+                <label className="auth-affiliation-option" key={option.value}>
+                  <input
+                    type="radio"
+                    name="affiliation"
+                    value={option.value}
+                    checked={affiliation === option.value}
+                    onChange={() => handleAffiliationChange(option.value)}
+                  />
+                  <span>{option.label}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          {affiliation === 'undergraduate' && (
+            <div className="auth-form-group">
+              <label htmlFor="grade">학년</label>
+              <select
+                id="grade"
+                value={grade ?? ''}
+                onChange={(event) => setGrade(event.target.value as GradeType)}
+              >
+                {GRADE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div className="auth-form-group">
+            <label htmlFor="department">소속 학과/부서</label>
             <input
               id="department"
               type="text"
               value={department}
               onChange={(event) => setDepartment(event.target.value)}
-              placeholder="예: 컴퓨터공학부"
+              placeholder="예: 컴퓨터공학부 또는 도서관"
               autoComplete="organization"
             />
           </div>
 
           <div className="auth-form-row">
             <div className="auth-form-group">
-              <label htmlFor="grade">학년</label>
+              <label htmlFor="course">참가 코스</label>
               <select
-                id="grade"
-                value={grade}
-                onChange={(event) => setGrade(event.target.value as GradeType)}
+                id="course"
+                value={course}
+                onChange={(event) => setCourse(event.target.value as CourseType)}
               >
-                {GRADE_OPTIONS.map((option) => (
+                {COURSE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
@@ -216,47 +288,6 @@ function ApplyPage() {
                   </option>
                 ))}
               </select>
-            </div>
-          </div>
-
-          <div className="auth-form-group">
-            <label htmlFor="course">참가 코스</label>
-            <select
-              id="course"
-              value={course}
-              onChange={(event) => setCourse(event.target.value as CourseType)}
-            >
-              {COURSE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="auth-form-row">
-            <div className="auth-form-group">
-              <label htmlFor="password">비밀번호</label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="6자 이상"
-                autoComplete="new-password"
-              />
-            </div>
-
-            <div className="auth-form-group">
-              <label htmlFor="passwordConfirm">비밀번호 확인</label>
-              <input
-                id="passwordConfirm"
-                type="password"
-                value={passwordConfirm}
-                onChange={(event) => setPasswordConfirm(event.target.value)}
-                placeholder="비밀번호 재입력"
-                autoComplete="new-password"
-              />
             </div>
           </div>
 
@@ -283,7 +314,7 @@ function ApplyPage() {
 
         <div className="auth-footer-info">
           <p className="auth-note">
-            이미 참가신청을 완료했다면 학번/사번과 비밀번호로 로그인할 수 있습니다.
+            신청 완료 후 관리자 승인 및 로그인 안내를 확인해 주세요.
           </p>
 
           <div className="auth-footer-links">

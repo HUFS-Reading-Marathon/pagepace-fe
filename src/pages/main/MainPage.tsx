@@ -321,14 +321,9 @@ function MainPage() {
                     독서일지 작성하기
                   </Link>
                 ) : (
-                  <a
-                    className="btn btn-primary"
-                    href={APPLY_FORM_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
+                  <Link className="btn btn-primary" to="/apply">
                     참가신청 바로가기
-                  </a>
+                  </Link>
                 )}
 
                 <div className="hero-text-links">
