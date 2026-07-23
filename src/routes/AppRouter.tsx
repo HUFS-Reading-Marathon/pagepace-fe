@@ -1,7 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
-import { LoginPage, SignUpPage } from '../pages/auth';
+import { LoginPage, ApplyPage } from '../pages/auth';
 import NotFoundPage from '../pages/error';
 import MainPage from '../pages/main';
 import MyPage from '../pages/my';
@@ -20,7 +20,8 @@ function AppRouter() {
       <Routes>
         <Route path="/" element={<MainPage />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignUpPage />} />
+        <Route path="/signup" element={<ApplyPage />} />
+        <Route path="/apply" element={<ApplyPage />} />
 
         <Route path="/my" element={<MyPage />} />
         <Route path="/logs" element={<MyReadingLogsPage />} />

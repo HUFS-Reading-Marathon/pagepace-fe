@@ -1,12 +1,12 @@
 .auth-page {
   position: relative;
-  min-height: calc(100vh - 180px); 
-  padding: 80px 20px 140px; 
+  min-height: calc(100vh - 180px);
+  padding: 80px 20px 140px;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  isolation: isolate; 
+  isolation: isolate;
   background: #ffffff;
   font-family:
     'Pretendard',
@@ -33,9 +33,9 @@
 .auth-heading h1 {
   margin: 0;
   color: #1f2937;
-  font-size: 32px; 
+  font-size: 32px;
   line-height: 1.25;
-  font-weight: 600; 
+  font-weight: 600;
   letter-spacing: -0.03em;
 }
 
@@ -56,7 +56,7 @@
 
 .auth-form-group label {
   display: block;
-  margin-bottom: 6px; 
+  margin-bottom: 6px;
   color: #4b5563;
   font-size: 13px;
   font-weight: 500;
@@ -240,29 +240,29 @@
   }
 }
 
-/* 
-워터마크 & 로그인 폼 컨테이너 
+/*
+워터마크 & 로그인 폼 컨테이너
 */
 
 .auth-shell {
   position: relative !important;
-  z-index: 10 !important; 
+  z-index: 10 !important;
   width: min(100%, 400px) !important;
   margin: 0 auto !important;
 }
 
 .auth-watermark {
   position: absolute !important;
-  z-index: 0 !important; 
-  
+  z-index: 0 !important;
+
   left: 48% !important;
   bottom: -100px !important;
-  margin-left: 90px !important; 
+  margin-left: 90px !important;
   width: 650px !important;
   max-width: 900px !important;
-  
+
   opacity: 0.3 !important;
-  
+
   pointer-events: none !important;
   user-select: none !important;
 }
@@ -276,7 +276,7 @@
 
 @media (max-width: 768px) {
   .auth-watermark {
-    display: none !important; 
+    display: none !important;
   }
 }
 
@@ -290,10 +290,128 @@
 
 @media (max-width: 768px) {
   .auth-watermark {
-    display: none !important; 
+    display: none !important;
   }
+
   .auth-shell {
     width: 100% !important;
     max-width: 400px !important;
   }
+}
+
+/* ===== Apply page ===== */
+
+.auth-shell-apply {
+  width: min(100%, 540px) !important;
+  max-width: 540px !important;
+}
+
+.auth-form-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.auth-form-group select {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--ink);
+  font-size: 15px;
+  outline: none;
+}
+
+.auth-form-group select:focus {
+  border-color: var(--navy-strong);
+  box-shadow: 0 0 0 3px rgba(31, 79, 130, 0.08);
+}
+
+.auth-field-help {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.auth-agreement {
+  align-items: flex-start;
+  margin-top: 4px;
+  color: var(--body);
+  line-height: 1.55;
+}
+
+.auth-agreement input {
+  margin-top: 4px;
+}
+
+.auth-footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 560px) {
+  .auth-shell-apply {
+    width: 100% !important;
+    max-width: 400px !important;
+  }
+
+  .auth-form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-footer-links {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+/* ===== Apply page visual refinement ===== */
+
+main.auth-page.auth-page-apply {
+  position: relative !important;
+  overflow: hidden !important;
+  isolation: isolate !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+}
+
+main.auth-page.auth-page-apply::before {
+  display: none !important;
+}
+
+/* 폼은 배경 위에 */
+main.auth-page.auth-page-apply .auth-shell-apply {
+  position: relative !important;
+  z-index: 2 !important;
+  width: min(100%, 480px) !important;
+  max-width: 480px !important;
+}
+
+/* 로그인 페이지와 동일한 워터마크 */
+main.auth-page.auth-page-apply > .auth-watermark {
+  z-index: 1 !important;
+  opacity: 0.3 !important;
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+main.auth-page.auth-page-apply > .auth-watermark img {
+  filter: none !important;
+}
+
+/* ApplyPage에서만 footer 위 흰 여백 제거 */
+main.auth-page.auth-page-apply {
+  margin-bottom: 0 !important;
+  padding-bottom: 96px !important;
+}
+
+/* main 바로 다음 footer라면 footer 위 여백 제거 */
+main.auth-page.auth-page-apply + .site-footer {
+  margin-top: 0 !important;
 }
