@@ -1,0 +1,257 @@
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  background: var(--blue-10);
+  color: var(--ink);
+}
+
+.admin-layout__body {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  align-items: stretch;
+}
+
+.admin-layout__main {
+  min-width: 0;
+  flex: 1;
+  padding: 32px;
+  overflow-wrap: anywhere;
+}
+
+.admin-header {
+  flex: 0 0 auto;
+}
+
+/* 크기와 정렬은 global.css의 .header-main을 그대로 사용 */
+.admin-header__inner {
+  gap: 28px;
+}
+
+.admin-header__brand {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 20px;
+}
+
+.admin-header__logo {
+  display: block;
+  width: auto;
+  height: 42px;
+  flex: 0 0 auto;
+  object-fit: contain;
+  transform: translateX(-5px);
+}
+
+.admin-header__title {
+  display: flex;
+  min-width: 0;
+  padding-left: 20px;
+  align-items: center;
+  gap: 10px;
+  border-left: 1px solid var(--line);
+  color: var(--navy-deep);
+  font-size: 18px;
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  white-space: nowrap;
+}
+
+.admin-header__mode-badge {
+  display: inline-flex;
+  min-height: 24px;
+  padding: 3px 8px;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--blue-20);
+  color: var(--navy-strong);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.admin-header__user-link {
+  display: inline-flex;
+  min-height: 42px;
+  padding: 9px 16px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--navy-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--navy-strong);
+  font-size: 14px;
+  font-weight: 700;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.admin-header__user-link:hover {
+  background: var(--navy-strong);
+  color: #fff;
+}
+
+.admin-header__brand:focus-visible,
+.admin-header__user-link:focus-visible,
+.admin-sidebar__link:focus-visible {
+  outline: 3px solid rgba(31, 79, 130, 0.2);
+  outline-offset: 2px;
+}
+
+.admin-sidebar {
+  width: 232px;
+  flex: 0 0 232px;
+  padding: 24px 16px;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+}
+
+.admin-sidebar__menu {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+}
+
+.admin-sidebar__item {
+  min-width: 0;
+}
+
+.admin-sidebar__link {
+  display: flex;
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 0;
+  border-left: 3px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--body);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.admin-sidebar__link:not(.admin-sidebar__link--disabled):hover {
+  background: var(--blue-10);
+  color: var(--navy-strong);
+}
+
+.admin-sidebar__link--active {
+  border-left-color: var(--navy-strong);
+  background: var(--blue-20);
+  color: var(--navy-strong);
+}
+
+.admin-sidebar__link--disabled {
+  color: var(--muted);
+  opacity: 0.68;
+  cursor: default;
+}
+
+.admin-sidebar__status {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.admin-page {
+  width: 100%;
+}
+
+.admin-page__header {
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-page__header h1 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 28px;
+  font-weight: 750;
+  line-height: 1.35;
+  letter-spacing: -0.04em;
+}
+
+.admin-page__header p {
+  margin: 9px 0 0;
+  color: var(--body);
+  font-size: 14px;
+}
+
+@media (max-width: 900px) {
+  .admin-header__inner {
+    gap: 18px;
+  }
+
+  .admin-header__brand {
+    gap: 14px;
+  }
+
+  .admin-header__title {
+    padding-left: 14px;
+    font-size: 16px;
+  }
+
+  .admin-sidebar {
+    width: 196px;
+    flex-basis: 196px;
+    padding-inline: 12px;
+  }
+
+  .admin-layout__main {
+    padding: 28px 24px;
+  }
+}
+
+@media (max-width: 700px) {
+  .admin-header__inner {
+    gap: 12px;
+  }
+
+  .admin-header__title {
+    padding-left: 10px;
+    font-size: 14px;
+  }
+
+  .admin-header__mode-badge {
+    display: none;
+  }
+
+  .admin-header__user-link {
+    min-height: 40px;
+    padding-inline: 12px;
+    font-size: 13px;
+  }
+
+  .admin-sidebar {
+    width: 168px;
+    flex-basis: 168px;
+    padding: 18px 10px;
+  }
+
+  .admin-sidebar__link {
+    padding-inline: 9px;
+    font-size: 13px;
+  }
+
+  .admin-sidebar__status {
+    display: none;
+  }
+
+  .admin-layout__main {
+    padding: 24px 18px;
+  }
+}
