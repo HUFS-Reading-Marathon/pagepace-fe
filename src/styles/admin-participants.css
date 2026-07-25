@@ -1,0 +1,645 @@
+.admin-participants {
+  min-width: 0;
+}
+
+.admin-participants__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+
+.admin-participants__summary {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  align-items: stretch;
+  gap: 1px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--line);
+  overflow: hidden;
+}
+
+.admin-participants__summary button {
+  display: grid;
+  min-width: 76px;
+  padding: 9px 12px;
+  gap: 3px;
+  border: 0;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+
+.admin-participants__summary button:hover {
+  background: var(--blue-10);
+}
+
+.admin-participants__summary button[aria-pressed='true'] {
+  position: relative;
+  z-index: 1;
+  background: var(--blue-20);
+  box-shadow: inset 0 0 0 1px var(--navy-strong);
+}
+
+.admin-participants__summary span {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.admin-participants__summary strong {
+  color: var(--navy-strong);
+  font-size: 18px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+.admin-participants__summary button:focus-visible {
+  position: relative;
+  z-index: 2;
+  outline: 3px solid rgba(31, 79, 130, 0.22);
+  outline-offset: -3px;
+}
+
+.admin-participants__toolbar {
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.admin-participants__filter-grid {
+  display: grid;
+  grid-template-columns:
+    minmax(240px, 2fr)
+    repeat(3, minmax(150px, 1fr));
+  gap: 14px;
+}
+
+.admin-participants__field {
+  min-width: 0;
+}
+
+.admin-participants__field label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--body);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-participants__field input,
+.admin-participants__field select {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.admin-participants__field input::placeholder {
+  color: var(--muted);
+}
+
+.admin-participants__field input:focus,
+.admin-participants__field select:focus {
+  border-color: var(--navy-strong);
+  box-shadow: 0 0 0 3px rgba(31, 79, 130, 0.08);
+}
+
+.admin-participants__toolbar-footer {
+  display: flex;
+  margin-top: 16px;
+  padding-top: 16px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.admin-participants__result-count {
+  margin: 0;
+  color: var(--body);
+  font-size: 13px;
+}
+
+.admin-participants__result-count strong {
+  color: var(--navy-strong);
+  font-size: 15px;
+}
+
+.admin-participants__toolbar-actions,
+.admin-participants__row-actions,
+.admin-participant-dialog__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-participants__button,
+.admin-participants__table-button,
+.admin-participant-dialog__button {
+  display: inline-flex;
+  min-height: 38px;
+  padding: 7px 13px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--body);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+  cursor: pointer;
+}
+
+.admin-participants__button:hover,
+.admin-participants__table-button:hover,
+.admin-participant-dialog__button:hover {
+  border-color: var(--navy);
+  color: var(--navy-strong);
+}
+
+.admin-participants__button--primary,
+.admin-participant-dialog__button--primary {
+  border-color: var(--navy-strong);
+  background: var(--navy-strong);
+  color: #fff;
+}
+
+.admin-participants__button--primary:hover,
+.admin-participant-dialog__button--primary:hover {
+  border-color: var(--navy-dark);
+  background: var(--navy-dark);
+  color: #fff;
+}
+
+.admin-participants__button:disabled,
+.admin-participant-dialog__button:disabled {
+  border-color: var(--line);
+  background: var(--line-soft);
+  color: var(--muted);
+  cursor: default;
+  opacity: 0.75;
+}
+
+.admin-participants__button:focus-visible,
+.admin-participants__table-button:focus-visible,
+.admin-participant-dialog__button:focus-visible,
+.admin-participant-dialog__close:focus-visible,
+.admin-participant-dialog__form input:focus-visible,
+.admin-participant-dialog__form select:focus-visible,
+.admin-participant-dialog__form textarea:focus-visible {
+  outline: 3px solid rgba(31, 79, 130, 0.18);
+  outline-offset: 2px;
+}
+
+.admin-participants__feedback {
+  min-height: 34px;
+  padding: 9px 2px 7px;
+  color: var(--navy-strong);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.admin-participants__table-wrapper {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.admin-participants__table {
+  width: 100%;
+  min-width: 1180px;
+  border-collapse: collapse;
+  color: var(--body);
+  font-size: 13px;
+}
+
+.admin-participants__table th,
+.admin-participants__table td {
+  padding: 13px 12px;
+  border-bottom: 1px solid var(--line-soft);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.admin-participants__table th {
+  background: var(--blue-10);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.admin-participants__table tbody tr:hover {
+  background: rgba(238, 245, 252, 0.45);
+}
+
+.admin-participants__table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.admin-participants__name {
+  color: var(--ink);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.admin-participants__nowrap {
+  white-space: nowrap;
+}
+
+.admin-participants__department {
+  max-width: 180px;
+  overflow-wrap: anywhere;
+}
+
+.admin-participants__row-actions {
+  min-width: 205px;
+  flex-wrap: nowrap;
+}
+
+.admin-participants__table-button {
+  min-height: 32px;
+  padding: 5px 9px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.admin-participants__table-button--approve {
+  border-color: rgba(61, 121, 105, 0.35);
+  color: var(--green);
+}
+
+.admin-participants__table-button--reject,
+.admin-participant-dialog__button--danger {
+  border-color: rgba(159, 48, 48, 0.3);
+  color: #9f3030;
+}
+
+.admin-participants__table-button--reject:hover,
+.admin-participant-dialog__button--danger:hover {
+  border-color: #9f3030;
+  background: rgba(159, 48, 48, 0.06);
+  color: #842525;
+}
+
+.admin-participants__empty {
+  padding: 72px 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+.admin-participant-status {
+  display: inline-flex;
+  min-height: 26px;
+  padding: 4px 9px;
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.admin-participant-status--pending {
+  border-color: rgba(169, 139, 75, 0.25);
+  background: rgba(169, 139, 75, 0.11);
+  color: #755f2f;
+}
+
+.admin-participant-status--approved {
+  border-color: rgba(61, 121, 105, 0.22);
+  background: rgba(61, 121, 105, 0.1);
+  color: var(--green);
+}
+
+.admin-participant-status--rejected {
+  border-color: rgba(159, 48, 48, 0.2);
+  background: rgba(159, 48, 48, 0.07);
+  color: #9f3030;
+}
+
+.admin-participant-status--cancelled {
+  border-color: var(--line);
+  background: var(--line-soft);
+  color: var(--muted);
+}
+
+.admin-participant-dialog__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  padding: 24px 16px;
+  align-items: center;
+  justify-content: center;
+  background: rgba(16, 47, 81, 0.34);
+}
+
+.admin-participant-dialog__panel {
+  width: min(740px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.admin-participant-dialog__header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  padding: 20px 24px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.admin-participant-dialog__eyebrow {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.admin-participant-dialog__title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-participant-dialog__title-row h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 22px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.admin-participant-dialog__close {
+  display: inline-grid;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--body);
+  font: inherit;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.admin-participant-dialog__content {
+  padding: 24px;
+}
+
+.admin-participant-dialog__section + .admin-participant-dialog__section {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.admin-participant-dialog__section h3 {
+  margin: 0 0 14px;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 750;
+}
+
+.admin-participant-dialog__details {
+  display: grid;
+  margin: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 24px;
+}
+
+.admin-participant-dialog__details div {
+  display: grid;
+  min-width: 0;
+  padding: 11px 0;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 10px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.admin-participant-dialog__details dt {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.admin-participant-dialog__details dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.admin-participant-dialog__break-text {
+  overflow-wrap: anywhere;
+}
+
+.admin-participant-dialog__note-block {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-left: 3px solid var(--blue-30);
+  background: var(--blue-10);
+}
+
+.admin-participant-dialog__note-block strong {
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.admin-participant-dialog__note-block p {
+  margin: 5px 0 0;
+  color: var(--body);
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+
+.admin-participant-dialog__note-block small {
+  display: block;
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.admin-participant-dialog__actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding: 16px 24px;
+  justify-content: flex-end;
+  border-top: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.admin-participant-dialog__form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.admin-participant-dialog__form-grid label,
+.admin-participant-dialog__textarea-field,
+.admin-participant-dialog__select-field {
+  display: block;
+  min-width: 0;
+}
+
+.admin-participant-dialog__form label > span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--body);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-participant-dialog__form input,
+.admin-participant-dialog__form select,
+.admin-participant-dialog__form textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.admin-participant-dialog__form input,
+.admin-participant-dialog__form select {
+  height: 42px;
+}
+
+.admin-participant-dialog__form textarea {
+  resize: vertical;
+  line-height: 1.55;
+}
+
+.admin-participant-dialog__memo-field {
+  grid-column: 1 / -1;
+}
+
+.admin-participant-dialog__memo-field small {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: right;
+}
+
+.admin-participant-dialog__mode-description {
+  margin: 0 0 18px;
+  color: var(--body);
+  font-size: 14px;
+}
+
+.admin-participant-dialog__textarea-field,
+.admin-participant-dialog__select-field {
+  max-width: 520px;
+}
+
+.admin-participant-dialog__error {
+  margin: 10px 0 0;
+  color: #9f3030;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+@media (max-width: 1240px) {
+  .admin-participants__filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .admin-participants__summary {
+    width: 100%;
+  }
+
+  .admin-participants__summary button {
+    min-width: 0;
+    flex: 1;
+  }
+}
+
+@media (max-width: 700px) {
+  .admin-participants__filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-participants__toolbar-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-participants__summary {
+    flex-wrap: wrap;
+  }
+
+  .admin-participants__summary button {
+    min-width: calc(33.333% - 1px);
+  }
+
+  .admin-participant-dialog__backdrop {
+    padding: 12px;
+  }
+
+  .admin-participant-dialog__panel {
+    max-height: calc(100vh - 24px);
+  }
+
+  .admin-participant-dialog__header,
+  .admin-participant-dialog__content,
+  .admin-participant-dialog__actions {
+    padding-inline: 18px;
+  }
+
+  .admin-participant-dialog__details,
+  .admin-participant-dialog__form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-participant-dialog__memo-field {
+    grid-column: auto;
+  }
+}
