@@ -263,3 +263,17 @@
     padding: 24px 18px;
   }
 }
+
+.admin-sidebar {
+  position: sticky;
+  top: 82px;
+  align-self: flex-start;
+  height: calc(100vh - 82px);
+  overflow-y: auto;
+
+  width: 232px;
+  flex: 0 0 232px;
+  padding: 24px 16px;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+}
