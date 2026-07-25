@@ -66,33 +66,50 @@ function readEventSettings() {
   }
 }
 
+function readDashboardSources(now = new Date()) {
+  return {
+    participants: [...ADMIN_PARTICIPANTS],
+    logs: [...ADMIN_READING_LOGS],
+    eventSettings: readEventSettings(),
+    now,
+  };
+}
+
 function getSubmissionComparison(todayCount: number, yesterdayCount: number) {
   const difference = todayCount - yesterdayCount;
-
-  if (difference === 0) {
-    return '전일과 동일';
-  }
 
   return `전일 대비 ${difference > 0 ? '+' : ''}${difference}건`;
 }
 
 function AdminDashboardPage() {
-  const [eventSettings] = useState(readEventSettings);
-  const [dashboardNow] = useState(() => new Date());
+  const [dashboardSources, setDashboardSources] = useState(
+    readDashboardSources,
+  );
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<string | null>(
+    null,
+  );
+  const [refreshVersion, setRefreshVersion] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const {
+    participants,
+    logs,
+    eventSettings,
+    now: dashboardNow,
+  } = dashboardSources;
   const analytics = useMemo(
     () =>
       getDashboardAnalytics(
-        ADMIN_PARTICIPANTS,
-        ADMIN_READING_LOGS,
+        participants,
+        logs,
         dashboardNow,
       ),
-    [dashboardNow],
+    [dashboardNow, logs, participants],
   );
   const statusSnapshot = useMemo(
     () =>
       buildStatusSnapshot(
-        ADMIN_PARTICIPANTS,
-        ADMIN_READING_LOGS,
+        participants,
+        logs,
         getLocalDateKey(dashboardNow),
         eventSettings.courseStandards,
         {
@@ -100,7 +117,12 @@ function AdminDashboardPage() {
           showRanks: true,
         },
       ),
-    [dashboardNow, eventSettings.courseStandards],
+    [
+      dashboardNow,
+      eventSettings.courseStandards,
+      logs,
+      participants,
+    ],
   );
   const courseSummaries = useMemo(
     () => getStatusCourseSummaries(statusSnapshot.participants),
@@ -116,15 +138,38 @@ function AdminDashboardPage() {
           analytics.totalApplicants) *
         100
       : 0;
-  const latestDataLabel = analytics.latestDataTimestamp
-    ? formatParticipantDateTime(analytics.latestDataTimestamp)
+  const reflectedAt = lastRefreshedAt ?? analytics.latestDataTimestamp;
+  const latestDataLabel = reflectedAt
+    ? formatParticipantDateTime(reflectedAt)
     : '반영 데이터 없음';
   const hasNoOperationData =
-    analytics.totalApplicants === 0 && ADMIN_READING_LOGS.length === 0;
+    analytics.totalApplicants === 0 && logs.length === 0;
+  const refreshAnnouncement =
+    refreshVersion > 0 && lastRefreshedAt
+      ? `대시보드 데이터를 새로 반영했습니다. ${formatParticipantDateTime(
+          lastRefreshedAt,
+        )}`
+      : '';
+
+  const handleRefresh = () => {
+    if (isRefreshing) {
+      return;
+    }
+
+    const refreshedSources = readDashboardSources();
+    const shouldAnimate = !window.matchMedia(
+      '(prefers-reduced-motion: reduce)',
+    ).matches;
+
+    setDashboardSources(refreshedSources);
+    setLastRefreshedAt(refreshedSources.now.toISOString());
+    setRefreshVersion((version) => version + 1);
+    setIsRefreshing(shouldAnimate);
+  };
 
   return (
     <section className="admin-page admin-dashboard">
-      <header className="admin-page__header admin-dashboard__header">
+      <header className="admin-page__header admin-dashboard__header admin-dashboard__enter admin-dashboard__enter--header">
         <div className="admin-dashboard__heading">
           <h1>관리자 대시보드</h1>
           <p>
@@ -134,7 +179,42 @@ function AdminDashboardPage() {
         </div>
         <div className="admin-dashboard__header-meta">
           <span>최근 반영</span>
-          <strong>{latestDataLabel}</strong>
+          <div className="admin-dashboard__header-meta-row">
+            <strong>{latestDataLabel}</strong>
+            <button
+              type="button"
+              className="admin-dashboard__refresh"
+              aria-label="대시보드 데이터 새로고침"
+              aria-busy={isRefreshing}
+              title="최신 데이터 다시 반영"
+              disabled={isRefreshing}
+              onClick={handleRefresh}
+            >
+              <svg
+                className={
+                  isRefreshing
+                    ? 'admin-dashboard__refresh-icon admin-dashboard__refresh-icon--spinning'
+                    : 'admin-dashboard__refresh-icon'
+                }
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                onAnimationEnd={(event) => {
+                  if (
+                    event.animationName ===
+                    'admin-dashboard-refresh-spin'
+                  ) {
+                    setIsRefreshing(false);
+                  }
+                }}
+              >
+                <path d="M20 11a8 8 0 0 0-14.9-4M4 4v5h5" />
+                <path d="M4 13a8 8 0 0 0 14.9 4M20 20v-5h-5" />
+              </svg>
+            </button>
+          </div>
+          <span className="sr-only" aria-live="polite" aria-atomic="true">
+            {refreshAnnouncement}
+          </span>
         </div>
       </header>
 
@@ -147,9 +227,6 @@ function AdminDashboardPage() {
       <DashboardEventOverview
         settings={eventSettings}
         approvedParticipantCount={analytics.approvedParticipants.length}
-        approvedPageTotal={analytics.approvedPageTotal}
-        approvedDistanceMeters={analytics.approvedDistanceMeters}
-        latestDataTimestamp={analytics.latestDataTimestamp}
       />
 
       <section
@@ -169,7 +246,7 @@ function AdminDashboardPage() {
           label="승인 참가자"
           value={analytics.approvedParticipants.length}
           unit="명"
-          description={`전체 신청 대비 ${approvedRate.toFixed(1)}%`}
+          description={`승인율 ${approvedRate.toFixed(1)}%`}
           to="/admin/participants"
           linkLabel="승인 현황 보기"
           tone="green"
@@ -215,7 +292,7 @@ function AdminDashboardPage() {
 
       <div className="admin-dashboard__grid admin-dashboard__grid--primary">
         <DashboardReadingTrend
-          logs={ADMIN_READING_LOGS}
+          logs={logs}
           now={dashboardNow}
         />
         <DashboardCourseCompletion summaries={courseSummaries} />
@@ -234,15 +311,10 @@ function AdminDashboardPage() {
 
       <div className="admin-dashboard__grid admin-dashboard__grid--operations">
         <DashboardRecentParticipants
-          participants={analytics.recentParticipants}
+          participants={analytics.recentParticipants.slice(0, 4)}
         />
-        <DashboardPendingLogs logs={analytics.pendingLogs.slice(0, 5)} />
+        <DashboardPendingLogs logs={analytics.pendingLogs.slice(0, 4)} />
       </div>
-
-      <p className="admin-dashboard__data-note admin-dashboard__enter">
-        대시보드는 관리자 참가자·독서일지 원본 mock을 읽기 전용으로
-        집계합니다. 승인 누적은 제출·반려 일지를 제외합니다.
-      </p>
     </section>
   );
 }

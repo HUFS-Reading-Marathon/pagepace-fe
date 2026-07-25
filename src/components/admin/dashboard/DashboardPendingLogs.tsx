@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
 import {
   formatReadingLogDate,
-  formatReadingLogDateTime,
   getReadingLogTotalPages,
   validateReadingLog,
   type AdminReadingLog,
@@ -27,10 +26,7 @@ function DashboardPendingLogs({ logs }: DashboardPendingLogsProps) {
   return (
     <section className="admin-dashboard__card admin-dashboard__operations-card admin-dashboard__enter">
       <header className="admin-dashboard__card-header">
-        <div>
-          <h2>검토 대기 독서일지</h2>
-          <p>제출 시각이 가장 최근인 검토 대기 5건입니다.</p>
-        </div>
+        <h2>검토 대기 독서일지</h2>
       </header>
 
       {logs.length === 0 ? (
@@ -47,7 +43,6 @@ function DashboardPendingLogs({ logs }: DashboardPendingLogsProps) {
                 <th scope="col">도서</th>
                 <th scope="col">페이지</th>
                 <th scope="col">자동 검증</th>
-                <th scope="col">제출 시각</th>
               </tr>
             </thead>
             <tbody>
@@ -73,10 +68,9 @@ function DashboardPendingLogs({ logs }: DashboardPendingLogsProps) {
                       >
                         {hasWarning
                           ? '확인 필요'
-                          : '자동 검증 이상 없음'}
+                          : '이상 없음'}
                       </span>
                     </td>
-                    <td>{formatReadingLogDateTime(log.submittedAt)}</td>
                   </tr>
                 );
               })}

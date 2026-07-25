@@ -17,9 +17,9 @@ const PERIOD_OPTIONS: ReadonlyArray<{
   value: TrendPeriod;
   label: string;
 }> = [
-  { value: 7, label: '최근 7일' },
-  { value: 14, label: '최근 14일' },
-  { value: 30, label: '최근 30일' },
+  { value: 7, label: '7일' },
+  { value: 14, label: '14일' },
+  { value: 30, label: '30일' },
 ];
 
 const METRIC_OPTIONS: ReadonlyArray<{
@@ -65,16 +65,13 @@ function DashboardReadingTrend({
   const plotHeight = 180;
   const plotBottom = plotTop + plotHeight;
   const slotWidth = plotWidth / activities.length;
-  const barWidth = Math.max(4, slotWidth * 0.62);
+  const barWidth = Math.max(5, slotWidth * 0.68);
   const labelInterval = period === 7 ? 1 : period === 14 ? 2 : 5;
 
   return (
     <section className="admin-dashboard__card admin-dashboard__trend admin-dashboard__enter">
       <header className="admin-dashboard__card-header">
-        <div>
-          <h2>최근 독서 활동</h2>
-          <p>독서 날짜와 제출 시각을 기준으로 일별 활동을 집계합니다.</p>
-        </div>
+        <h2>최근 독서 활동</h2>
         <div className="admin-dashboard__trend-controls">
           <div role="group" aria-label="독서 활동 지표">
             {METRIC_OPTIONS.map((option) => (
@@ -94,6 +91,7 @@ function DashboardReadingTrend({
                 key={option.value}
                 type="button"
                 aria-pressed={period === option.value}
+                aria-label={`최근 ${option.label}`}
                 onClick={() => setPeriod(option.value)}
               >
                 {option.label}
@@ -199,46 +197,45 @@ function DashboardReadingTrend({
         )}
 
         <figcaption>
-          <span>
-            최근 {period}일 합계{' '}
-            <strong>
-              {total.toLocaleString('ko-KR')}
-              {selectedMetric.unit}
-            </strong>
-          </span>
-          <span>
-            하루 평균{' '}
-            <strong>
-              {average.toLocaleString('ko-KR', {
-                maximumFractionDigits: 1,
-              })}
-              {selectedMetric.unit}
-            </strong>
-          </span>
+          최근 {period}일{' '}
+          <strong>
+            {total.toLocaleString('ko-KR')}
+            {selectedMetric.unit}
+          </strong>
+          <span aria-hidden="true">·</span>
+          하루 평균{' '}
+          <strong>
+            {average.toLocaleString('ko-KR', {
+              maximumFractionDigits: 1,
+            })}
+            {selectedMetric.unit}
+          </strong>
         </figcaption>
 
-        <table className="sr-only">
-          <caption>
-            최근 {period}일 {selectedMetric.label} 데이터
-          </caption>
-          <thead>
-            <tr>
-              <th scope="col">날짜</th>
-              <th scope="col">{selectedMetric.label}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {activities.map((activity) => (
-              <tr key={activity.date}>
-                <th scope="row">{activity.date}</th>
-                <td>
-                  {getMetricValue(activity, metric)}
-                  {selectedMetric.unit}
-                </td>
+        <div className="sr-only">
+          <table>
+            <caption>
+              최근 {period}일 {selectedMetric.label} 데이터
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">날짜</th>
+                <th scope="col">{selectedMetric.label}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {activities.map((activity) => (
+                <tr key={activity.date}>
+                  <th scope="row">{activity.date}</th>
+                  <td>
+                    {getMetricValue(activity, metric)}
+                    {selectedMetric.unit}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </figure>
     </section>
   );
