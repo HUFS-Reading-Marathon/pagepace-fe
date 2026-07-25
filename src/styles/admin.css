@@ -191,6 +191,14 @@
   font-size: 14px;
 }
 
+.admin-dashboard__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 900px) {
   .admin-header__inner {
     gap: 18px;

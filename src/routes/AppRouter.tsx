@@ -4,6 +4,10 @@ import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import { LoginPage, ApplyPage, ApplyPendingPage } from '../pages/auth';
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
+import AdminParticipantsPage from '../pages/admin/AdminParticipantsPage';
+import AdminReadingLogsPage from '../pages/admin/AdminReadingLogsPage';
+import AdminEventSettingsPage from '../pages/admin/AdminEventSettingsPage';
+import AdminStatusPage from '../pages/admin/AdminStatusPage';
 import NotFoundPage from '../pages/error';
 import MainPage from '../pages/main';
 import MyPage from '../pages/my';
@@ -30,6 +34,10 @@ function AppRouter() {
       <Routes>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboardPage />} />
+          <Route path="participants" element={<AdminParticipantsPage />} />
+          <Route path="logs" element={<AdminReadingLogsPage />} />
+          <Route path="event" element={<AdminEventSettingsPage />} />
+          <Route path="status" element={<AdminStatusPage />} />
         </Route>
 
         <Route element={<UserLayout />}>

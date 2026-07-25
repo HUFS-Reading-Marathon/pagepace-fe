@@ -9,22 +9,22 @@ const ADMIN_MENUS = [
   {
     label: '참가자 관리',
     path: '/admin/participants',
-    enabled: false,
+    enabled: true,
   },
   {
     label: '독서일지 검토',
     path: '/admin/logs',
-    enabled: false,
+    enabled: true,
   },
   {
     label: '행사/코스 설정',
     path: '/admin/event',
-    enabled: false,
+    enabled: true,
   },
   {
     label: '대회 현황 관리',
     path: '/admin/status',
-    enabled: false,
+    enabled: true,
   },
 ] as const;
 
@@ -38,7 +38,7 @@ function AdminSidebar() {
               {menu.enabled ? (
                 <NavLink
                   to={menu.path}
-                  end
+                  end={menu.path === '/admin'}
                   className={({ isActive }) =>
                     [
                       'admin-sidebar__link',
