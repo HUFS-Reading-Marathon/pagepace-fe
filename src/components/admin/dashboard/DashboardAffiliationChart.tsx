@@ -12,10 +12,7 @@ function DashboardAffiliationChart({
   return (
     <section className="admin-dashboard__card admin-dashboard__affiliation admin-dashboard__enter">
       <header className="admin-dashboard__card-header">
-        <div>
-          <h2>참가자 소속 분포</h2>
-          <p>승인 참가자의 신청서 소속 값을 그대로 집계했습니다.</p>
-        </div>
+        <h2>참가자 소속 분포</h2>
       </header>
 
       {participantCount === 0 ? (
@@ -46,9 +43,6 @@ function DashboardAffiliationChart({
               </div>
             ))}
           </div>
-          <figcaption>
-            소속 미입력과 상위 항목 외 인원도 전체 합계에 포함됩니다.
-          </figcaption>
         </figure>
       )}
     </section>

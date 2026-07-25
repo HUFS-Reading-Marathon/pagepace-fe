@@ -16,10 +16,7 @@ function DashboardRecentParticipants({
   return (
     <section className="admin-dashboard__card admin-dashboard__operations-card admin-dashboard__enter">
       <header className="admin-dashboard__card-header">
-        <div>
-          <h2>최근 참가 신청</h2>
-          <p>신청일이 가장 최근인 참가 신청 5건입니다.</p>
-        </div>
+        <h2>최근 참가 신청</h2>
       </header>
 
       {participants.length === 0 ? (

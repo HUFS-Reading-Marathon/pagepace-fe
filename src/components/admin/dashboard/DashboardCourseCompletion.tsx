@@ -20,10 +20,7 @@ function DashboardCourseCompletion({
   return (
     <section className="admin-dashboard__card admin-dashboard__course-progress admin-dashboard__enter">
       <header className="admin-dashboard__card-header">
-        <div>
-          <h2>코스별 완주 현황</h2>
-          <p>승인 참가자와 연결된 승인 독서일지를 기준으로 계산합니다.</p>
-        </div>
+        <h2>코스별 완주 현황</h2>
         <strong>
           {totalCompleted} / {totalParticipants}명
         </strong>
@@ -41,13 +38,16 @@ function DashboardCourseCompletion({
               className="admin-dashboard__course-item"
               key={summary.courseId}
             >
-              <div>
+              <div className="admin-dashboard__course-heading">
                 <strong>{summary.courseName}</strong>
-                <span>
-                  {summary.participantCount > 0
-                    ? `${summary.participantCount}명 중 ${summary.completedCount}명 완주`
-                    : '참가자 없음'}
-                </span>
+                <div>
+                  <strong>
+                    {summary.completedCount} / {summary.participantCount}명
+                  </strong>
+                  {summary.participantCount === 0 && (
+                    <span>참가자 없음</span>
+                  )}
+                </div>
               </div>
               <div className="admin-dashboard__progress-row">
                 <progress

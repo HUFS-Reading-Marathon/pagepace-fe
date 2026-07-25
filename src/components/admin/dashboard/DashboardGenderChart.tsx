@@ -9,6 +9,8 @@ function DashboardGenderChart({
   distribution,
   participantCount,
 }: DashboardGenderChartProps) {
+  const hasOnlyUnanswered =
+    distribution.length === 1 && distribution[0].label === '미응답';
   const segments = distribution.map((item, index) => ({
     ...item,
     offset: distribution
@@ -19,15 +21,33 @@ function DashboardGenderChart({
   return (
     <section className="admin-dashboard__card admin-dashboard__demographics admin-dashboard__enter">
       <header className="admin-dashboard__card-header">
-        <div>
-          <h2>참가자 성별 분포</h2>
-          <p>승인 참가자 기준이며 개인 정보는 표시하지 않습니다.</p>
-        </div>
+        <h2>참가자 성별 분포</h2>
       </header>
 
       {participantCount === 0 ? (
         <div className="admin-dashboard__empty">
           승인 참가자의 성별 정보가 없습니다.
+        </div>
+      ) : hasOnlyUnanswered ? (
+        <div
+          className="admin-dashboard__gender-unanswered"
+          role="status"
+        >
+          <span className="admin-dashboard__gender-unanswered-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="8" r="3" />
+              <path d="M6 19c.7-4 2.7-6 6-6s5.3 2 6 6" />
+            </svg>
+          </span>
+          <strong>성별 응답 데이터가 없습니다.</strong>
+          <p>
+            승인 참가자 {participantCount.toLocaleString('ko-KR')}명 모두
+            미응답
+          </p>
+          <div className="admin-dashboard__gender-unanswered-rate">
+            <span>미응답</span>
+            <strong>{distribution[0].rate.toFixed(1)}%</strong>
+          </div>
         </div>
       ) : (
         <figure

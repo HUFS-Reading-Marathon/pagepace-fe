@@ -1,16 +1,9 @@
 import type { EventSettings } from '../../../types/adminEventSettings';
-import { formatParticipantDateTime } from '../../../types/adminParticipant';
-import {
-  formatStatusDate,
-  formatStatusDistance,
-} from '../../../utils/statusAggregation';
+import { formatStatusDate } from '../../../utils/statusAggregation';
 
 type DashboardEventOverviewProps = {
   settings: EventSettings;
   approvedParticipantCount: number;
-  approvedPageTotal: number;
-  approvedDistanceMeters: number;
-  latestDataTimestamp: string | null;
 };
 
 function formatPeriod(startDate: string, endDate: string) {
@@ -73,38 +66,29 @@ function getEventState(settings: EventSettings) {
 function DashboardEventOverview({
   settings,
   approvedParticipantCount,
-  approvedPageTotal,
-  approvedDistanceMeters,
-  latestDataTimestamp,
 }: DashboardEventOverviewProps) {
   const eventState = getEventState(settings);
-  const hasEventSettings =
-    Boolean(settings.eventStartDate) || Boolean(settings.eventEndDate);
 
   return (
     <section
       className="admin-dashboard__event-overview admin-dashboard__enter"
       aria-labelledby="dashboardEventOverviewTitle"
     >
-      <div className="admin-dashboard__event-title">
-        <div>
-          <span>행사 운영 요약</span>
-          <strong id="dashboardEventOverviewTitle">
-            {hasEventSettings
-              ? '독서마라톤 운영 정보'
-              : '행사 설정 정보가 없습니다.'}
-          </strong>
-        </div>
+      <div className="admin-dashboard__event-primary">
         <span
           className={`admin-dashboard__event-state admin-dashboard__event-state--${eventState.tone}`}
         >
           {eventState.label}
         </span>
+        <div>
+          <span>행사 운영</span>
+          <strong id="dashboardEventOverviewTitle">행사명 미설정</strong>
+        </div>
       </div>
 
-      <dl className="admin-dashboard__event-details">
+      <dl className="admin-dashboard__event-periods">
         <div>
-          <dt>신청 기간</dt>
+          <dt>신청</dt>
           <dd>
             {formatPeriod(
               settings.applyStartDate,
@@ -113,7 +97,7 @@ function DashboardEventOverview({
           </dd>
         </div>
         <div>
-          <dt>운영 기간</dt>
+          <dt>운영</dt>
           <dd>
             {formatPeriod(
               settings.eventStartDate,
@@ -121,26 +105,15 @@ function DashboardEventOverview({
             )}
           </dd>
         </div>
-        <div>
-          <dt>승인 참가자</dt>
-          <dd>{approvedParticipantCount.toLocaleString('ko-KR')}명</dd>
-        </div>
-        <div>
-          <dt>승인 누적 독서량</dt>
-          <dd>
-            {approvedPageTotal.toLocaleString('ko-KR')}쪽 ·{' '}
-            {formatStatusDistance(approvedDistanceMeters)}
-          </dd>
-        </div>
-        <div>
-          <dt>최근 데이터 반영</dt>
-          <dd>
-            {latestDataTimestamp
-              ? formatParticipantDateTime(latestDataTimestamp)
-              : '반영 데이터 없음'}
-          </dd>
-        </div>
       </dl>
+
+      <div className="admin-dashboard__event-approved">
+        <span>승인 참가자</span>
+        <p>
+          <strong>{approvedParticipantCount.toLocaleString('ko-KR')}</strong>
+          <small>명</small>
+        </p>
+      </div>
     </section>
   );
 }
