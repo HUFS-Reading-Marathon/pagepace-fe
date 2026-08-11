@@ -6,6 +6,16 @@ import type {
 
 const ADMIN_APPLICATIONS_PATH = '/api/admin/applications';
 
+function validateEventId(eventId: number) {
+  if (!Number.isInteger(eventId) || eventId <= 0) {
+    throw new ApiError(
+      '행사 ID가 올바르지 않습니다.',
+      0,
+      'INVALID_EVENT_ID',
+    );
+  }
+}
+
 function validateApplicationId(applicationId: number) {
   if (!Number.isInteger(applicationId) || applicationId <= 0) {
     throw new ApiError(
@@ -16,9 +26,13 @@ function validateApplicationId(applicationId: number) {
   }
 }
 
-export async function getAdminApplications() {
+export async function getAdminApplications(eventId: number) {
+  validateEventId(eventId);
+  const searchParams = new URLSearchParams({
+    eventId: String(eventId),
+  });
   const applications = await apiRequest<AdminApplicationListItem[]>(
-    ADMIN_APPLICATIONS_PATH,
+    `${ADMIN_APPLICATIONS_PATH}?${searchParams.toString()}`,
     { method: 'GET' },
   );
 

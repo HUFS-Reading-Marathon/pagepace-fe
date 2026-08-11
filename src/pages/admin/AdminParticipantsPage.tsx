@@ -5,6 +5,7 @@ import {
   getAdminApplications,
 } from '../../api/adminApplicationApi';
 import { ApiError } from '../../api/apiClient';
+import { getCurrentEvent } from '../../api/eventApi';
 import ParticipantDetailDialog from '../../components/admin/participants/ParticipantDetailDialog';
 import ParticipantFilters from '../../components/admin/participants/ParticipantFilters';
 import ParticipantTable from '../../components/admin/participants/ParticipantTable';
@@ -55,8 +56,12 @@ function AdminParticipantsPage() {
   >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentEventId, setCurrentEventId] = useState<number | null>(null);
   const initialListRequestRef = useRef<
-    Promise<AdminApplicationListItem[]> | null
+    Promise<{
+      eventId: number;
+      applications: AdminApplicationListItem[];
+    }> | null
   >(null);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [statusFilter, setStatusFilter] =
@@ -88,15 +93,24 @@ function AdminParticipantsPage() {
     let isActive = true;
 
     if (initialListRequestRef.current === null) {
-      initialListRequestRef.current = getAdminApplications();
+      initialListRequestRef.current = (async () => {
+        const currentEvent = await getCurrentEvent();
+        const applications = await getAdminApplications(currentEvent.eventId);
+
+        return {
+          eventId: currentEvent.eventId,
+          applications,
+        };
+      })();
     }
 
     initialListRequestRef.current
-      .then((applications) => {
+      .then(({ eventId, applications }) => {
         if (!isActive) {
           return;
         }
 
+        setCurrentEventId(eventId);
         setParticipants(applications);
         setError(null);
       })
@@ -105,6 +119,7 @@ function AdminParticipantsPage() {
           return;
         }
 
+        setCurrentEventId(null);
         setParticipants([]);
         setError(
           getApiErrorMessage(
@@ -265,6 +280,12 @@ function AdminParticipantsPage() {
       return;
     }
 
+    if (currentEventId === null) {
+      setFeedbackMessage('현재 관리할 행사 정보를 확인할 수 없습니다.');
+      setFeedbackIsError(true);
+      return;
+    }
+
     const participantName =
       participants.find(
         (participant) => participant.applicationId === applicationId,
@@ -297,7 +318,7 @@ function AdminParticipantsPage() {
     }
 
     try {
-      const nextParticipants = await getAdminApplications();
+      const nextParticipants = await getAdminApplications(currentEventId);
 
       setParticipants(nextParticipants);
       setError(null);
