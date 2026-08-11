@@ -9,12 +9,18 @@ import {
 import { useNavigate } from 'react-router-dom';
 import {
   confirmApplicationEmailVerification,
+  createApplication,
   sendApplicationEmailVerification,
+  type ApplicationAffiliationType,
 } from '../../api/applicationApi';
 import { ApiError } from '../../api/apiClient';
+import {
+  getCurrentEvent,
+  getEventCourses,
+  type CurrentEvent,
+  type EventCourse,
+} from '../../api/eventApi';
 import './auth.css';
-
-type CourseType = 'short' | 'half' | 'full';
 
 type AffiliationType =
   | 'undergraduate'
@@ -26,27 +32,6 @@ type AffiliationType =
 type GradeType = '1' | '2' | '3' | '4';
 
 type GenderType = 'female' | 'male' | 'none';
-
-type ApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
-
-type StoredApplicant = {
-  name: string;
-  loginId: string;
-  email: string;
-  department: string;
-  affiliation: AffiliationType;
-  grade: GradeType | null;
-  gender: GenderType;
-  course: CourseType;
-  applicationStatus: ApplicationStatus;
-  appliedAt: string;
-};
-
-const COURSE_OPTIONS: { label: string; value: CourseType }[] = [
-  { label: '단축코스', value: 'short' },
-  { label: '하프코스', value: 'half' },
-  { label: '풀코스', value: 'full' },
-];
 
 const AFFILIATION_OPTIONS: { label: string; value: AffiliationType }[] = [
   { label: '학부생', value: 'undergraduate' },
@@ -69,6 +54,15 @@ const GENDER_OPTIONS: { label: string; value: GenderType }[] = [
   { label: '선택 안 함', value: 'none' },
 ];
 
+const APPLICATION_AFFILIATION_BY_FORM: Partial<
+  Record<AffiliationType, ApplicationAffiliationType>
+> = {
+  undergraduate: 'UNDERGRADUATE',
+  graduate: 'GRADUATE',
+  professor: 'PROFESSOR',
+  staff: 'STAFF',
+};
+
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const VERIFICATION_CODE_PATTERN = /^\d{6}$/;
 const VERIFICATION_CODE_LENGTH = 6;
@@ -87,6 +81,7 @@ function ApplyPage() {
   const [name, setName] = useState('');
   const [studentNumber, setStudentNumber] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [isSendingVerification, setIsSendingVerification] = useState(false);
   const [isCodeSent, setIsCodeSent] = useState(false);
@@ -108,8 +103,17 @@ function ApplyPage() {
     useState<AffiliationType>('undergraduate');
   const [grade, setGrade] = useState<GradeType | null>('1');
   const [gender, setGender] = useState<GenderType>('none');
-  const [course, setCourse] = useState<CourseType>('half');
+  const [currentEvent, setCurrentEvent] = useState<CurrentEvent | null>(null);
+  const [courses, setCourses] = useState<EventCourse[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
+  const [isEventCourseLoading, setIsEventCourseLoading] = useState(true);
+  const [eventCourseError, setEventCourseError] = useState('');
+  const eventCourseRequestRef = useRef<
+    Promise<{ currentEvent: CurrentEvent; courses: EventCourse[] }> | null
+  >(null);
   const [isAgreed, setIsAgreed] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [errorMessage, setErrorMessage] = useState('');
   const normalizedEmail = email.trim();
   const isEmailVerified =
@@ -122,6 +126,66 @@ function ApplyPage() {
     (isVerificationExpired
       ? '인증 시간이 만료되었습니다. 인증번호를 다시 요청해 주세요.'
       : verificationMessage);
+
+  useEffect(() => {
+    let isActive = true;
+
+    if (eventCourseRequestRef.current === null) {
+      eventCourseRequestRef.current = (async () => {
+        const nextCurrentEvent = await getCurrentEvent();
+        const nextCourses = await getEventCourses(nextCurrentEvent.eventId);
+
+        return {
+          currentEvent: nextCurrentEvent,
+          courses: [...nextCourses].sort(
+            (first, second) => first.displayOrder - second.displayOrder,
+          ),
+        };
+      })();
+    }
+
+    eventCourseRequestRef.current
+      .then(({ currentEvent: nextCurrentEvent, courses: nextCourses }) => {
+        if (!isActive) {
+          return;
+        }
+
+        const defaultCourse =
+          nextCourses.find(
+            (course) => course.name.replace(/\s/g, '') === '하프코스',
+          ) ?? nextCourses[0];
+
+        setCurrentEvent(nextCurrentEvent);
+        setCourses(nextCourses);
+        setSelectedCourseId(defaultCourse?.courseId ?? null);
+        setEventCourseError(
+          nextCourses.length === 0 ? '신청 가능한 코스가 없습니다.' : '',
+        );
+      })
+      .catch((error: unknown) => {
+        if (!isActive) {
+          return;
+        }
+
+        setCurrentEvent(null);
+        setCourses([]);
+        setSelectedCourseId(null);
+        setEventCourseError(
+          error instanceof ApiError
+            ? error.message
+            : '행사와 코스 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
+        );
+      })
+      .finally(() => {
+        if (isActive) {
+          setIsEventCourseLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (verificationExpiresAt === null || isEmailVerified) {
@@ -388,8 +452,12 @@ function ApplyPage() {
     }
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    if (isSubmittingRef.current) {
+      return;
+    }
 
     if (
       !name.trim() ||
@@ -397,7 +465,6 @@ function ApplyPage() {
       !email.trim() ||
       !affiliation ||
       !department.trim() ||
-      !course ||
       !gender
     ) {
       setErrorMessage('필수 정보를 모두 입력해 주세요.');
@@ -429,42 +496,56 @@ function ApplyPage() {
       return;
     }
 
-    const storedApplicants = localStorage.getItem('applicants');
-    const applicants: StoredApplicant[] = storedApplicants
-      ? JSON.parse(storedApplicants)
-      : [];
-
-    const loginId = studentNumber.trim();
-
-    const isDuplicated = applicants.some(
-      (applicant) => applicant.loginId === loginId,
-    );
-
-    if (isDuplicated) {
-      setErrorMessage('이미 참가신청이 완료된 학번 또는 사번입니다.');
+    if (!currentEvent) {
+      setErrorMessage(
+        eventCourseError || '현재 신청 가능한 행사가 없습니다.',
+      );
       return;
     }
 
-    const newApplicant: StoredApplicant = {
-      name: name.trim(),
-      loginId,
-      email: normalizedEmail,
-      department: department.trim(),
-      affiliation,
-      grade: affiliation === 'undergraduate' ? grade : null,
-      gender,
-      course,
-      applicationStatus: 'PENDING',
-      appliedAt: new Date().toISOString(),
-    };
+    if (
+      selectedCourseId === null ||
+      !courses.some((course) => course.courseId === selectedCourseId)
+    ) {
+      setErrorMessage('신청 가능한 코스를 선택해 주세요.');
+      return;
+    }
 
-    localStorage.setItem(
-      'applicants',
-      JSON.stringify([...applicants, newApplicant]),
-    );
+    const applicationAffiliation =
+      APPLICATION_AFFILIATION_BY_FORM[affiliation];
+
+    if (!applicationAffiliation) {
+      setErrorMessage(
+        '강사의 서버 소속 유형 정책이 확인되지 않아 현재 참가신청할 수 없습니다.',
+      );
+      return;
+    }
 
     setErrorMessage('');
-    navigate('/apply/pending', { state: { email: newApplicant.email } });
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
+
+    try {
+      await createApplication({
+        eventId: currentEvent.eventId,
+        courseId: selectedCourseId,
+        name: name.trim(),
+        studentNo: studentNumber.trim(),
+        email: normalizedEmail,
+        phone: phone.trim(),
+        affiliationType: applicationAffiliation,
+        department: department.trim(),
+      });
+      navigate('/apply/pending', { state: { email: normalizedEmail } });
+    } catch (error) {
+      setErrorMessage(
+        error instanceof ApiError
+          ? error.message
+          : '참가신청에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+      );
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -634,6 +715,18 @@ function ApplyPage() {
             </p>
           </div>
 
+          <div className="auth-form-group">
+            <label htmlFor="phone">연락처</label>
+            <input
+              id="phone"
+              type="tel"
+              value={phone}
+              onChange={(event) => setPhone(event.target.value)}
+              placeholder="예: 010-1234-5678"
+              autoComplete="tel"
+            />
+          </div>
+
           <fieldset className="auth-form-group auth-affiliation-group">
             <legend>신분</legend>
             <div className="auth-affiliation-options">
@@ -686,15 +779,34 @@ function ApplyPage() {
               <label htmlFor="course">참가 코스</label>
               <select
                 id="course"
-                value={course}
-                onChange={(event) => setCourse(event.target.value as CourseType)}
+                value={selectedCourseId ?? ''}
+                onChange={(event) =>
+                  setSelectedCourseId(Number(event.target.value))
+                }
+                disabled={
+                  isEventCourseLoading ||
+                  currentEvent === null ||
+                  courses.length === 0
+                }
               >
-                {COURSE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
+                <option value="" disabled>
+                  {isEventCourseLoading
+                    ? '코스 정보를 불러오는 중입니다'
+                    : courses.length === 0
+                      ? '신청 가능한 코스 없음'
+                      : '코스를 선택해 주세요'}
+                </option>
+                {courses.map((course) => (
+                  <option key={course.courseId} value={course.courseId}>
+                    {course.name}
                   </option>
                 ))}
               </select>
+              {eventCourseError && (
+                <p className="auth-error" role="alert">
+                  {eventCourseError}
+                </p>
+              )}
             </div>
 
             <div className="auth-form-group">
@@ -730,9 +842,17 @@ function ApplyPage() {
           <button
             type="submit"
             className="auth-submit-button"
-            disabled={!isEmailVerified || isVerificationPending}
+            disabled={
+              !isEmailVerified ||
+              isVerificationPending ||
+              isSubmitting ||
+              isEventCourseLoading ||
+              currentEvent === null ||
+              selectedCourseId === null
+            }
+            aria-busy={isSubmitting}
           >
-            참가신청하기
+            {isSubmitting ? '신청 중...' : '참가신청하기'}
           </button>
         </form>
       </section>
