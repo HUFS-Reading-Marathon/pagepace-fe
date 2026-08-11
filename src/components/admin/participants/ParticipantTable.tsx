@@ -1,19 +1,18 @@
 import {
-  AFFILIATION_LABELS,
-  COURSE_LABELS,
-  formatParticipantDate,
-  type AdminParticipant,
-} from '../../../types/adminParticipant';
+  ADMIN_APPLICATION_AFFILIATION_LABELS,
+  formatAdminApplicationDate,
+  type AdminApplicationListItem,
+} from '../../../types/adminApplication';
 import ParticipantStatusBadge from './ParticipantStatusBadge';
 
 type ParticipantTableProps = {
-  participants: AdminParticipant[];
+  participants: AdminApplicationListItem[];
   hasParticipants: boolean;
   isLoading: boolean;
   error: string | null;
-  onOpenDetails: (participantId: string) => void;
-  onApprove: (participantId: string) => void;
-  onReject: (participantId: string) => void;
+  processingApplicationId: number | null;
+  onOpenDetails: (applicationId: number) => void;
+  onApprove: (applicationId: number) => void;
 };
 
 function ParticipantTable({
@@ -21,9 +20,9 @@ function ParticipantTable({
   hasParticipants,
   isLoading,
   error,
+  processingApplicationId,
   onOpenDetails,
   onApprove,
-  onReject,
 }: ParticipantTableProps) {
   if (isLoading) {
     return (
@@ -36,7 +35,7 @@ function ParticipantTable({
   if (error) {
     return (
       <div className="admin-participants__empty" role="alert">
-        참가자 목록을 불러오지 못했습니다.
+        {error}
       </div>
     );
   }
@@ -70,54 +69,67 @@ function ParticipantTable({
         </thead>
         <tbody>
           {participants.map((participant) => (
-            <tr key={participant.id}>
+            <tr key={participant.applicationId}>
               <td>
-                <ParticipantStatusBadge
-                  status={participant.applicationStatus}
-                />
+                <ParticipantStatusBadge status={participant.status} />
               </td>
               <td className="admin-participants__name">
                 {participant.name}
               </td>
               <td className="admin-participants__nowrap">
-                {participant.loginId}
+                {participant.studentNo || '-'}
               </td>
               <td className="admin-participants__department">
-                {participant.department}
+                {participant.department || '-'}
               </td>
-              <td>{AFFILIATION_LABELS[participant.affiliation]}</td>
-              <td className="admin-participants__nowrap">
-                {COURSE_LABELS[participant.course]}
-              </td>
-              <td className="admin-participants__nowrap">
-                {participant.phone}
+              <td>
+                {ADMIN_APPLICATION_AFFILIATION_LABELS[
+                  participant.affiliationType
+                ] ?? participant.affiliationType}
               </td>
               <td className="admin-participants__nowrap">
-                {formatParticipantDate(participant.appliedAt)}
+                {participant.courseName || '-'}
+              </td>
+              <td className="admin-participants__nowrap">
+                {participant.phone || '-'}
+              </td>
+              <td className="admin-participants__nowrap">
+                {formatAdminApplicationDate(participant.appliedAt)}
               </td>
               <td>
                 <div className="admin-participants__row-actions">
                   <button
                     type="button"
                     className="admin-participants__table-button"
-                    onClick={() => onOpenDetails(participant.id)}
+                    onClick={() =>
+                      onOpenDetails(participant.applicationId)
+                    }
                   >
                     상세 보기
                   </button>
 
-                  {participant.applicationStatus === 'PENDING' && (
+                  {participant.status === 'APPLIED' && (
                     <>
                       <button
                         type="button"
                         className="admin-participants__table-button admin-participants__table-button--approve"
-                        onClick={() => onApprove(participant.id)}
+                        onClick={() =>
+                          onApprove(participant.applicationId)
+                        }
+                        disabled={
+                          processingApplicationId ===
+                          participant.applicationId
+                        }
                       >
-                        승인
+                        {processingApplicationId === participant.applicationId
+                          ? '처리 중...'
+                          : '승인'}
                       </button>
                       <button
                         type="button"
                         className="admin-participants__table-button admin-participants__table-button--reject"
-                        onClick={() => onReject(participant.id)}
+                        disabled
+                        title="백엔드 반려 API 확인이 필요합니다."
                       >
                         반려
                       </button>
