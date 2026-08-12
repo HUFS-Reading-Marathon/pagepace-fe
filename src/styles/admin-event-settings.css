@@ -46,6 +46,46 @@
   gap: 18px;
 }
 
+.admin-event-settings__selector {
+  display: flex;
+  margin-top: 24px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.admin-event-settings__selector h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 17px;
+}
+
+.admin-event-settings__selector p {
+  margin: 5px 0 0;
+  color: var(--body);
+  font-size: 12px;
+}
+
+.admin-event-settings__selector-controls {
+  display: flex;
+  min-width: min(100%, 460px);
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-event-settings__selector-controls select {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  padding: 0 36px 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+
 .admin-event-settings__panel {
   min-width: 0;
   padding: 22px;
@@ -106,6 +146,60 @@
   gap: 24px;
 }
 
+.admin-event-settings__basic-grid,
+.admin-event-settings__contact-grid {
+  display: grid;
+  min-width: 0;
+  margin: 20px 0 0;
+  padding: 0;
+  border: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.admin-event-settings__basic-grid label,
+.admin-event-settings__contact-grid label,
+.admin-event-settings__course-fields label {
+  display: block;
+  min-width: 0;
+}
+
+.admin-event-settings__basic-grid label > span,
+.admin-event-settings__contact-grid label > span,
+.admin-event-settings__course-fields label > span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--body);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-event-settings__wide-field {
+  grid-column: 1 / -1;
+}
+
+.admin-event-settings__visibility-field {
+  display: flex !important;
+  min-height: 42px;
+  padding: 0 12px;
+  align-items: center;
+  align-self: end;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  background: var(--blue-10);
+  gap: 9px;
+}
+
+.admin-event-settings__visibility-field input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--navy-strong);
+}
+
+.admin-event-settings__visibility-field span {
+  margin: 0 !important;
+}
+
 .admin-event-settings__period-group {
   min-width: 0;
   margin: 0;
@@ -147,7 +241,12 @@
 
 .admin-event-settings__date-range input,
 .admin-event-settings__number-control input,
-.admin-event-settings__reward-field textarea {
+.admin-event-settings__reward-field textarea,
+.admin-event-settings__basic-grid input:not([type='checkbox']),
+.admin-event-settings__basic-grid select,
+.admin-event-settings__contact-grid input,
+.admin-event-settings__contact-grid textarea,
+.admin-event-settings__course-fields input {
   width: 100%;
   min-width: 0;
   border: 1px solid var(--line);
@@ -159,18 +258,32 @@
 }
 
 .admin-event-settings__date-range input,
-.admin-event-settings__number-control input {
+.admin-event-settings__number-control input,
+.admin-event-settings__basic-grid input:not([type='checkbox']),
+.admin-event-settings__basic-grid select,
+.admin-event-settings__contact-grid input,
+.admin-event-settings__course-fields > label > input {
   height: 42px;
   padding: 0 12px;
 }
 
-.admin-event-settings__date-range input {
+.admin-event-settings__date-range input,
+.admin-event-settings__basic-grid input:not([type='checkbox']),
+.admin-event-settings__basic-grid select,
+.admin-event-settings__contact-grid input,
+.admin-event-settings__course-fields > label > input {
   border-radius: var(--radius);
 }
 
 .admin-event-settings__date-range input:focus,
 .admin-event-settings__number-control input:focus,
-.admin-event-settings__reward-field textarea:focus {
+.admin-event-settings__reward-field textarea:focus,
+.admin-event-settings__basic-grid input:focus,
+.admin-event-settings__basic-grid select:focus,
+.admin-event-settings__contact-grid input:focus,
+.admin-event-settings__contact-grid textarea:focus,
+.admin-event-settings__course-fields input:focus,
+.admin-event-settings__selector-controls select:focus {
   border-color: var(--navy-strong);
   box-shadow: 0 0 0 3px rgba(31, 79, 130, 0.08);
 }
@@ -192,8 +305,34 @@
 .admin-event-settings__course-grid {
   display: grid;
   margin-top: 20px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
   gap: 16px;
+}
+
+.admin-event-settings__courses-panel {
+  margin-top: 18px;
+}
+
+.admin-event-settings__course-card {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  background: var(--blue-10);
+}
+
+.admin-event-settings__course-card--new {
+  border-color: rgba(31, 79, 130, 0.35);
+}
+
+.admin-event-settings__course-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+}
+
+.admin-event-settings__course-name {
+  grid-column: 1 / -1;
 }
 
 .admin-event-settings__course-field {
@@ -247,6 +386,15 @@
   line-height: 1.55;
 }
 
+.admin-event-settings__contact-grid textarea {
+  display: block;
+  min-height: 104px;
+  padding: 11px 12px;
+  resize: vertical;
+  border-radius: var(--radius);
+  line-height: 1.55;
+}
+
 .admin-event-settings__reward-field textarea::placeholder {
   color: var(--muted);
 }
@@ -275,6 +423,18 @@
   min-width: 0;
 }
 
+.admin-event-settings__event-actions,
+.admin-event-settings__course-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-event-settings__course-actions {
+  margin-top: 16px;
+  justify-content: flex-end;
+}
+
 .admin-event-settings__error,
 .admin-event-settings__feedback {
   margin: 0;
@@ -288,7 +448,40 @@
 }
 
 .admin-event-settings__feedback {
+  min-height: 20px;
+  margin-top: 14px;
   color: var(--green);
+}
+
+.admin-event-settings__feedback--error,
+.admin-event-settings__load-error {
+  color: #9f3030;
+}
+
+.admin-event-settings__load-error {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(159, 48, 48, 0.2);
+  border-radius: var(--radius);
+  background: rgba(159, 48, 48, 0.04);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.admin-event-settings__empty {
+  grid-column: 1 / -1;
+  margin-top: 18px;
+  padding: 32px 20px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.admin-event-settings__empty p {
+  margin: 0 0 12px;
 }
 
 .admin-event-settings__save-button {
@@ -308,6 +501,47 @@
   cursor: pointer;
 }
 
+.admin-event-settings__secondary-button,
+.admin-event-settings__danger-button {
+  display: inline-flex;
+  min-height: 42px;
+  padding: 8px 15px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--navy-strong);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.admin-event-settings__danger-button {
+  border-color: rgba(159, 48, 48, 0.3);
+  color: #9f3030;
+}
+
+.admin-event-settings__secondary-button:hover {
+  border-color: var(--navy-strong);
+  background: var(--blue-10);
+}
+
+.admin-event-settings__danger-button:hover {
+  background: rgba(159, 48, 48, 0.04);
+}
+
+.admin-event-settings__save-button:disabled,
+.admin-event-settings__secondary-button:disabled,
+.admin-event-settings__danger-button:disabled,
+.admin-event-settings select:disabled,
+.admin-event-settings fieldset:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
 .admin-event-settings__save-button:hover {
   border-color: var(--navy-dark);
   background: var(--navy-dark);
@@ -316,7 +550,15 @@
 .admin-event-settings__date-range input:focus-visible,
 .admin-event-settings__number-control input:focus-visible,
 .admin-event-settings__reward-field textarea:focus-visible,
-.admin-event-settings__save-button:focus-visible {
+.admin-event-settings__save-button:focus-visible,
+.admin-event-settings__secondary-button:focus-visible,
+.admin-event-settings__danger-button:focus-visible,
+.admin-event-settings__basic-grid input:focus-visible,
+.admin-event-settings__basic-grid select:focus-visible,
+.admin-event-settings__contact-grid input:focus-visible,
+.admin-event-settings__contact-grid textarea:focus-visible,
+.admin-event-settings__course-fields input:focus-visible,
+.admin-event-settings__selector-controls select:focus-visible {
   outline: 3px solid rgba(31, 79, 130, 0.18);
   outline-offset: 2px;
 }
@@ -341,6 +583,28 @@
 
   .admin-event-settings__date-range {
     grid-template-columns: 1fr;
+  }
+
+  .admin-event-settings__selector,
+  .admin-event-settings__selector-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-event-settings__selector-controls {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .admin-event-settings__basic-grid,
+  .admin-event-settings__contact-grid,
+  .admin-event-settings__course-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-event-settings__wide-field,
+  .admin-event-settings__course-name {
+    grid-column: auto;
   }
 
   .admin-event-settings__range-mark {
