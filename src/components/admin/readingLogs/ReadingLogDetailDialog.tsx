@@ -24,14 +24,20 @@ import ReadingLogStatusBadge from './ReadingLogStatusBadge';
 type ReadingLogDetailDialogProps = {
   log: AdminReadingLog;
   initialMode: ReadingLogDialogMode;
+  isLoading?: boolean;
+  error?: string | null;
+  isProcessing?: boolean;
   onClose: () => void;
-  onApprove: (logId: string) => void;
-  onReject: (logId: string, reason: string) => void;
+  onApprove: (logId: string) => Promise<boolean>;
+  onReject: (logId: string, reason: string) => Promise<boolean>;
 };
 
 function ReadingLogDetailDialog({
   log,
   initialMode,
+  isLoading = false,
+  error = null,
+  isProcessing = false,
   onClose,
   onApprove,
   onReject,
@@ -86,7 +92,7 @@ function ReadingLogDetailDialog({
     setMode('reject');
   };
 
-  const handleRejectSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleRejectSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const normalizedReason = rejectionReason.trim();
 
@@ -95,9 +101,12 @@ function ReadingLogDetailDialog({
       return;
     }
 
-    onReject(log.id, normalizedReason);
-    setRejectionError('');
-    setMode('detail');
+    const succeeded = await onReject(log.id, normalizedReason);
+
+    if (succeeded) {
+      setRejectionError('');
+      setMode('detail');
+    }
   };
 
   const handleSuggestedReasonChange = (value: string) => {
@@ -239,7 +248,7 @@ function ReadingLogDetailDialog({
         <button
           type="button"
           className="admin-reading-log-dialog__button admin-reading-log-dialog__button--primary"
-          disabled={hasValidationIssue}
+          disabled={hasValidationIssue || isProcessing}
           title={
             hasValidationIssue
               ? '자동 검증 문제를 먼저 확인해 주세요.'
@@ -252,6 +261,7 @@ function ReadingLogDetailDialog({
         <button
           type="button"
           className="admin-reading-log-dialog__button admin-reading-log-dialog__button--danger"
+          disabled={isProcessing}
           onClick={openRejectMode}
         >
           반려
@@ -321,7 +331,12 @@ function ReadingLogDetailDialog({
                     }
                   >
                     <option value="">사유를 선택해 주세요</option>
-                    {READING_LOG_REJECTION_REASONS.map((reason) => (
+                    {[
+                      ...new Set([
+                        ...(log.recommendedRejectReasons ?? []),
+                        ...READING_LOG_REJECTION_REASONS,
+                      ]),
+                    ].map((reason) => (
                       <option key={reason} value={reason}>
                         {reason}
                       </option>
@@ -363,6 +378,11 @@ function ReadingLogDetailDialog({
                     {rejectionError}
                   </p>
                 )}
+                {error && (
+                  <p className="admin-reading-log-dialog__error" role="alert">
+                    {error}
+                  </p>
+                )}
               </section>
             </div>
 
@@ -370,12 +390,14 @@ function ReadingLogDetailDialog({
               <button
                 type="submit"
                 className="admin-reading-log-dialog__button admin-reading-log-dialog__button--danger"
+                disabled={isProcessing}
               >
-                반려하기
+                {isProcessing ? '반려 중…' : '반려하기'}
               </button>
               <button
                 type="button"
                 className="admin-reading-log-dialog__button"
+                disabled={isProcessing}
                 onClick={() => {
                   setRejectionError('');
                   setMode('detail');
@@ -388,6 +410,16 @@ function ReadingLogDetailDialog({
         ) : (
           <>
             <div className="admin-reading-log-dialog__content">
+              {isLoading && (
+                <p className="admin-reading-log-dialog__notice" role="status">
+                  독서일지 상세를 불러오는 중입니다.
+                </p>
+              )}
+              {error && (
+                <p className="admin-reading-log-dialog__error" role="alert">
+                  {error}
+                </p>
+              )}
               {mode === 'approve-confirm' && (
                 <section className="admin-reading-log-dialog__section">
                   <h3>이 독서일지를 승인하시겠습니까?</h3>
@@ -420,6 +452,18 @@ function ReadingLogDetailDialog({
                     <dt>독서 날짜</dt>
                     <dd>{formatReadingLogDate(log.readingDate)}</dd>
                   </div>
+                  {log.eventTitle && (
+                    <div>
+                      <dt>행사</dt>
+                      <dd>{log.eventTitle}</dd>
+                    </div>
+                  )}
+                  {log.courseName && (
+                    <div>
+                      <dt>코스</dt>
+                      <dd>{log.courseName}</dd>
+                    </div>
+                  )}
                   <div>
                     <dt>제출 시각</dt>
                     <dd>{formatReadingLogDateTime(log.submittedAt)}</dd>
@@ -446,7 +490,11 @@ function ReadingLogDetailDialog({
                   </div>
                   <div>
                     <dt>환산 거리</dt>
-                    <dd>{formatReadingDistance(distanceMeters)}</dd>
+                    <dd>
+                      {formatReadingDistance(
+                        log.convertedDistanceMeter ?? distanceMeters,
+                      )}
+                    </dd>
                   </div>
                   <div>
                     <dt>일일 제한</dt>
@@ -525,17 +573,21 @@ function ReadingLogDetailDialog({
                   <button
                     type="button"
                     className="admin-reading-log-dialog__button admin-reading-log-dialog__button--primary"
-                    disabled={hasValidationIssue}
-                    onClick={() => {
-                      onApprove(log.id);
-                      setMode('detail');
+                    disabled={hasValidationIssue || isProcessing}
+                    onClick={async () => {
+                      const succeeded = await onApprove(log.id);
+
+                      if (succeeded) {
+                        setMode('detail');
+                      }
                     }}
                   >
-                    승인하기
+                    {isProcessing ? '승인 중…' : '승인하기'}
                   </button>
                   <button
                     type="button"
                     className="admin-reading-log-dialog__button"
+                    disabled={isProcessing}
                     onClick={() => setMode('detail')}
                   >
                     돌아가기

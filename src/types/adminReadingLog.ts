@@ -13,7 +13,12 @@ export type ReadingLogBookEntry = {
   totalPages: number;
   previouslyApprovedPages: number;
   readPages: number;
-  reviewWritten: boolean;
+  reviewWritten?: boolean;
+  expectedApprovedPages?: number;
+  remainingPagesAfterApproval?: number;
+  completedAfterApproval?: boolean;
+  pageExceeded?: boolean;
+  warningMessage?: string;
 };
 
 export type AdminReadingLog = {
@@ -29,6 +34,11 @@ export type AdminReadingLog = {
   rejectionReason?: string;
   adminMemo?: string;
   reviewFlags?: string[];
+  totalReadPages?: number;
+  convertedDistanceMeter?: number;
+  eventTitle?: string;
+  courseName?: string;
+  recommendedRejectReasons?: string[];
 };
 
 export type ReadingLogValidationCode =
@@ -83,7 +93,10 @@ export const DAILY_READING_PAGE_LIMIT = 400;
 export const METERS_PER_PAGE = 5;
 
 export function getReadingLogTotalPages(log: AdminReadingLog) {
-  return log.books.reduce((sum, book) => sum + book.readPages, 0);
+  return (
+    log.totalReadPages ??
+    log.books.reduce((sum, book) => sum + book.readPages, 0)
+  );
 }
 
 export function getReadingDistanceMeters(readPages: number) {
@@ -91,11 +104,17 @@ export function getReadingDistanceMeters(readPages: number) {
 }
 
 export function getExpectedApprovedPages(book: ReadingLogBookEntry) {
-  return book.previouslyApprovedPages + book.readPages;
+  return (
+    book.expectedApprovedPages ??
+    book.previouslyApprovedPages + book.readPages
+  );
 }
 
 export function getRemainingPages(book: ReadingLogBookEntry) {
-  return book.totalPages - getExpectedApprovedPages(book);
+  return (
+    book.remainingPagesAfterApproval ??
+    book.totalPages - getExpectedApprovedPages(book)
+  );
 }
 
 export function validateReadingLog(
@@ -147,6 +166,24 @@ export function validateReadingLog(
         code: 'book-total-overflow',
         label: '책 전체 페이지 초과',
         detail: `${book.title || '제목 없는 책'}의 승인 예상 누적이 전체 페이지를 초과합니다.`,
+        bookEntryId: book.id,
+      });
+    }
+
+    if (
+      book.pageExceeded &&
+      !issues.some(
+        (issue) =>
+          issue.code === 'book-total-overflow' &&
+          issue.bookEntryId === book.id,
+      )
+    ) {
+      issues.push({
+        code: 'book-total-overflow',
+        label: '책 전체 페이지 초과',
+        detail:
+          book.warningMessage ||
+          `${book.title || '제목 없는 책'}의 승인 예상 누적이 전체 페이지를 초과합니다.`,
         bookEntryId: book.id,
       });
     }
