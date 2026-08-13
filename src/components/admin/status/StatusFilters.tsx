@@ -1,41 +1,37 @@
 import {
   STATUS_ACTIVITY_FILTER_OPTIONS,
-  STATUS_COMPLETION_FILTER_OPTIONS,
-  STATUS_COURSE_FILTER_OPTIONS,
-  STATUS_SORT_OPTIONS,
+  ADMIN_COMPETITION_SORT_OPTIONS,
+  type AdminCompetitionCourseFilter,
+  type AdminCompetitionSortOption,
   type StatusActivityFilter,
-  type StatusCompletionFilter,
-  type StatusCourseFilter,
-  type StatusSortOption,
 } from '../../../types/adminStatus';
+import type { AdminCourse } from '../../../types/adminEvent';
 
 type StatusFiltersProps = {
   searchKeyword: string;
-  courseFilter: StatusCourseFilter;
-  completionFilter: StatusCompletionFilter;
+  courseFilter: AdminCompetitionCourseFilter;
+  courses: AdminCourse[];
   activityFilter: StatusActivityFilter;
-  sortOption: StatusSortOption;
+  sortOption: AdminCompetitionSortOption;
   resultCount: number;
   totalCount: number;
   onSearchKeywordChange: (value: string) => void;
-  onCourseFilterChange: (value: StatusCourseFilter) => void;
-  onCompletionFilterChange: (value: StatusCompletionFilter) => void;
+  onCourseFilterChange: (value: AdminCompetitionCourseFilter) => void;
   onActivityFilterChange: (value: StatusActivityFilter) => void;
-  onSortOptionChange: (value: StatusSortOption) => void;
+  onSortOptionChange: (value: AdminCompetitionSortOption) => void;
   onReset: () => void;
 };
 
 function StatusFilters({
   searchKeyword,
   courseFilter,
-  completionFilter,
+  courses,
   activityFilter,
   sortOption,
   resultCount,
   totalCount,
   onSearchKeywordChange,
   onCourseFilterChange,
-  onCompletionFilterChange,
   onActivityFilterChange,
   onSortOptionChange,
   onReset,
@@ -61,13 +57,16 @@ function StatusFilters({
             value={courseFilter}
             onChange={(event) =>
               onCourseFilterChange(
-                event.target.value as StatusCourseFilter,
+                event.target.value === 'ALL'
+                  ? 'ALL'
+                  : Number(event.target.value),
               )
             }
           >
-            {STATUS_COURSE_FILTER_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
+            <option value="ALL">전체 코스</option>
+            {courses.map((course) => (
+              <option key={course.courseId} value={course.courseId}>
+                {course.name}
               </option>
             ))}
           </select>
@@ -77,18 +76,10 @@ function StatusFilters({
           <label htmlFor="statusCompletionFilter">완주 상태</label>
           <select
             id="statusCompletionFilter"
-            value={completionFilter}
-            onChange={(event) =>
-              onCompletionFilterChange(
-                event.target.value as StatusCompletionFilter,
-              )
-            }
+            value="unsupported"
+            disabled
           >
-            {STATUS_COMPLETION_FILTER_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
+            <option value="unsupported">서버 판정 미지원</option>
           </select>
         </div>
 
@@ -117,10 +108,12 @@ function StatusFilters({
             id="statusSortOption"
             value={sortOption}
             onChange={(event) =>
-              onSortOptionChange(event.target.value as StatusSortOption)
+              onSortOptionChange(
+                event.target.value as AdminCompetitionSortOption,
+              )
             }
           >
-            {STATUS_SORT_OPTIONS.map((option) => (
+            {ADMIN_COMPETITION_SORT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>

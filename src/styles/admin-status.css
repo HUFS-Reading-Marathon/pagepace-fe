@@ -14,6 +14,13 @@
   max-width: 650px;
 }
 
+.admin-status__header-controls {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .admin-status__date-control {
   display: grid;
   min-width: 252px;
@@ -28,6 +35,7 @@
 }
 
 .admin-status__date-control input,
+.admin-status__date-control select,
 .admin-status__field input,
 .admin-status__field select {
   width: 100%;
@@ -44,6 +52,7 @@
 }
 
 .admin-status__date-control input:focus,
+.admin-status__date-control select:focus,
 .admin-status__field input:focus,
 .admin-status__field select:focus {
   border-color: var(--navy-strong);
@@ -835,6 +844,7 @@
 }
 
 .admin-status__date-control input:focus-visible,
+.admin-status__date-control select:focus-visible,
 .admin-status__field input:focus-visible,
 .admin-status__field select:focus-visible,
 .admin-status__visibility-settings input:focus-visible,
@@ -879,6 +889,10 @@
 }
 
 @media (max-width: 700px) {
+  .admin-status__header-controls {
+    width: 100%;
+  }
+
   .admin-status__date-control {
     width: 100%;
   }

@@ -14,6 +14,13 @@ import type {
   StatusVisibilitySettings,
 } from '../types/adminStatus';
 import type { EventSettings } from '../types/adminEventSettings';
+import type { AdminApplicationListItem } from '../types/adminApplication';
+import type { AdminCourse } from '../types/adminEvent';
+import type { AdminReadingLogResponse } from '../types/adminReadingLogApi';
+import type {
+  AdminCompetitionCourseSummary,
+  AdminCompetitionParticipantRow,
+} from '../types/adminStatus';
 
 const METERS_PER_PAGE = 5;
 
@@ -294,5 +301,127 @@ export function formatStatusDateTime(value: string) {
     minute: '2-digit',
     hour12: false,
   }).format(new Date(value));
+}
+
+function getCompetitionJoinKey(studentNo: string, courseId: number) {
+  return `${studentNo.trim().toLowerCase()}::${courseId}`;
+}
+
+export function buildAdminCompetitionRows(
+  applications: ReadonlyArray<AdminApplicationListItem>,
+  logs: ReadonlyArray<AdminReadingLogResponse>,
+  courses: ReadonlyArray<AdminCourse>,
+  baseDate: string,
+): AdminCompetitionParticipantRow[] {
+  const coursesById = new Map(
+    courses.map((course) => [course.courseId, course]),
+  );
+  const approvedLogsByParticipant = logs
+    .filter(
+      (log) => log.status === 'APPROVED' && log.readingDate <= baseDate,
+    )
+    .reduce<Map<string, AdminReadingLogResponse[]>>((result, log) => {
+      const key = getCompetitionJoinKey(log.studentNo, log.courseId);
+      const currentLogs = result.get(key) ?? [];
+
+      currentLogs.push(log);
+      result.set(key, currentLogs);
+      return result;
+    }, new Map());
+
+  return applications
+    .filter((application) => application.status === 'APPROVED')
+    .map((application) => {
+      const participantLogs =
+        approvedLogsByParticipant.get(
+          getCompetitionJoinKey(application.studentNo, application.courseId),
+        ) ?? [];
+      const course = coursesById.get(application.courseId);
+      const cumulativePages = participantLogs.reduce(
+        (sum, log) => sum + log.totalReadPages,
+        0,
+      );
+      const cumulativeDistanceMeters = participantLogs.reduce(
+        (sum, log) => sum + log.convertedDistanceMeter,
+        0,
+      );
+      const dailyLogs = participantLogs.filter(
+        (log) => log.readingDate === baseDate,
+      );
+      const latestLog = [...participantLogs].sort(
+        (left, right) =>
+          right.readingDate.localeCompare(left.readingDate) ||
+          right.updatedAt.localeCompare(left.updatedAt),
+      )[0];
+      const targetDistanceMeters = course?.targetDistanceMeter ?? null;
+
+      return {
+        applicationId: application.applicationId,
+        participationId: latestLog?.participationId ?? null,
+        userId: latestLog?.userId ?? null,
+        name: application.name,
+        studentNumber: application.studentNo,
+        department: application.department,
+        affiliationType: application.affiliationType,
+        applicationStatus: application.status,
+        courseId: application.courseId,
+        courseName: course?.name ?? application.courseName,
+        targetDistanceMeters,
+        cumulativePages,
+        cumulativeDistanceMeters,
+        progressRate:
+          targetDistanceMeters && targetDistanceMeters > 0
+            ? Math.min(
+                (cumulativeDistanceMeters / targetDistanceMeters) * 100,
+                100,
+              )
+            : null,
+        dailyIncreasePages: dailyLogs.reduce(
+          (sum, log) => sum + log.totalReadPages,
+          0,
+        ),
+        dailyIncreaseDistanceMeters: dailyLogs.reduce(
+          (sum, log) => sum + log.convertedDistanceMeter,
+          0,
+        ),
+        approvedLogCount: participantLogs.length,
+        completionStatus: null,
+        completedAt: null,
+        lastReadingDate: latestLog?.readingDate ?? null,
+        lastProgressAt: latestLog?.reviewedAt || latestLog?.updatedAt || null,
+      };
+    });
+}
+
+export function getAdminCompetitionCourseSummaries(
+  rows: ReadonlyArray<AdminCompetitionParticipantRow>,
+  courses: ReadonlyArray<AdminCourse>,
+): AdminCompetitionCourseSummary[] {
+  return courses.map((course) => {
+    const courseRows = rows.filter((row) => row.courseId === course.courseId);
+    const progressValues = courseRows
+      .map((row) => row.progressRate)
+      .filter((value): value is number => value !== null);
+
+    return {
+      courseId: course.courseId,
+      courseName: course.name,
+      participantCount: courseRows.length,
+      completedCount: null,
+      averageProgressRate:
+        progressValues.length > 0
+          ? progressValues.reduce((sum, value) => sum + value, 0) /
+            progressValues.length
+          : null,
+      totalPages: courseRows.reduce(
+        (sum, row) => sum + row.cumulativePages,
+        0,
+      ),
+      totalDistanceMeters: courseRows.reduce(
+        (sum, row) => sum + row.cumulativeDistanceMeters,
+        0,
+      ),
+    };
+  });
 }
 

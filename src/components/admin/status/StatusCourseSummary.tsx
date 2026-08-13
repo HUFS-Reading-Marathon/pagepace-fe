@@ -1,4 +1,4 @@
-import type { StatusCourseSummary as CourseSummary } from '../../../types/adminStatus';
+import type { AdminCompetitionCourseSummary as CourseSummary } from '../../../types/adminStatus';
 import { formatStatusDistance } from '../../../utils/statusAggregation';
 
 type StatusCourseSummaryProps = {
@@ -35,8 +35,16 @@ function StatusCourseSummary({ summaries }: StatusCourseSummaryProps) {
               <tr key={summary.courseId}>
                 <th scope="row">{summary.courseName}</th>
                 <td>{summary.participantCount}명</td>
-                <td>{summary.completedCount}명</td>
-                <td>{summary.averageProgressRate.toFixed(1)}%</td>
+                <td>
+                  {summary.completedCount === null
+                    ? '판정 미지원'
+                    : `${summary.completedCount}명`}
+                </td>
+                <td>
+                  {summary.averageProgressRate === null
+                    ? '—'
+                    : `${summary.averageProgressRate.toFixed(1)}%`}
+                </td>
                 <td>{summary.totalPages.toLocaleString('ko-KR')}쪽</td>
                 <td>
                   {formatStatusDistance(summary.totalDistanceMeters)}
