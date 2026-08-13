@@ -35,6 +35,30 @@
   gap: 8px;
 }
 
+.admin-dashboard__event-select {
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+}
+
+.admin-dashboard__event-select select {
+  max-width: 260px;
+  min-height: 32px;
+  padding: 5px 28px 5px 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--body);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-dashboard__event-select select:focus-visible {
+  outline: 3px solid rgba(31, 79, 130, 0.2);
+  outline-offset: 2px;
+}
+
 .admin-dashboard__refresh {
   display: inline-grid;
   width: 32px;
@@ -74,8 +98,8 @@
   stroke-width: 1.8;
 }
 
-.admin-dashboard__refresh-icon--active {
-  animation: admin-dashboard-refresh 420ms ease-out both;
+.admin-dashboard__refresh-icon--spinning {
+  animation: admin-dashboard-refresh-spin 550ms ease-in-out;
 }
 
 .admin-dashboard__event-overview {
@@ -223,6 +247,12 @@
   color: var(--body);
   font-size: 12px;
   font-weight: 700;
+}
+
+.admin-dashboard__event-approved > small {
+  display: block;
+  margin-top: 5px;
+  white-space: nowrap;
 }
 
 .admin-dashboard__metrics {
@@ -1126,7 +1156,7 @@
   }
 }
 
-@keyframes admin-dashboard-refresh {
+@keyframes admin-dashboard-refresh-spin {
   from {
     transform: rotate(0);
   }
@@ -1179,6 +1209,10 @@
     width: 100%;
     justify-items: start;
     text-align: left;
+  }
+
+  .admin-dashboard__event-select {
+    justify-items: start;
   }
 
   .admin-dashboard__card-header {
@@ -1258,7 +1292,7 @@
   .admin-dashboard__trend-point rect,
   .admin-dashboard__donut svg,
   .admin-dashboard__affiliation-list progress::-webkit-progress-value,
-  .admin-dashboard__refresh-icon--active {
+  .admin-dashboard__refresh-icon--spinning {
     animation: none;
     transform: none;
   }

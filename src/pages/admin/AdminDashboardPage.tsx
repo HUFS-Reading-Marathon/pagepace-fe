@@ -1,4 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { getAdminApplications } from '../../api/adminApplicationApi';
+import { ApiError } from '../../api/apiClient';
+import { getAdminEvents } from '../../api/adminEventApi';
+import { getAdminReadingLogs } from '../../api/adminReadingLogApi';
 import DashboardAffiliationChart from '../../components/admin/dashboard/DashboardAffiliationChart';
 import DashboardCourseCompletion from '../../components/admin/dashboard/DashboardCourseCompletion';
 import DashboardEventOverview from '../../components/admin/dashboard/DashboardEventOverview';
@@ -7,72 +11,46 @@ import DashboardMetricCard from '../../components/admin/dashboard/DashboardMetri
 import DashboardPendingLogs from '../../components/admin/dashboard/DashboardPendingLogs';
 import DashboardReadingTrend from '../../components/admin/dashboard/DashboardReadingTrend';
 import DashboardRecentParticipants from '../../components/admin/dashboard/DashboardRecentParticipants';
-import { ADMIN_PARTICIPANTS } from '../../mocks/adminParticipants';
-import { ADMIN_READING_LOGS } from '../../mocks/adminReadingLogs';
-import {
-  DEFAULT_EVENT_SETTINGS,
-  EVENT_SETTINGS_STORAGE_KEY,
-  type EventSettings,
-} from '../../types/adminEventSettings';
+import type { AdminApplicationListItem } from '../../types/adminApplication';
+import type { AdminEvent, EventStatus } from '../../types/adminEvent';
+import type { AdminReadingLogResponse } from '../../types/adminReadingLogApi';
 import { formatParticipantDateTime } from '../../types/adminParticipant';
-import {
-  getDashboardAnalytics,
-  getLocalDateKey,
-} from '../../utils/dashboardAnalytics';
-import {
-  buildStatusSnapshot,
-  getStatusCourseSummaries,
-} from '../../utils/statusAggregation';
+import { getDashboardAnalytics } from '../../utils/dashboardAnalytics';
 import '../../styles/admin-dashboard.css';
 
-function isEventSettings(value: unknown): value is EventSettings {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
+type DashboardData = {
+  applications: AdminApplicationListItem[];
+  logs: AdminReadingLogResponse[];
+  fetchedAt: Date;
+};
 
-  const settings = value as Partial<EventSettings>;
-  const standards = settings.courseStandards;
+const EVENT_SELECTION_ORDER: EventStatus[] = [
+  'IN_PROGRESS',
+  'APPLICATION_OPEN',
+  'APPLICATION_CLOSED',
+  'READY',
+  'DRAFT',
+  'ENDED',
+  'FINALIZED',
+  'ARCHIVED',
+];
 
-  return (
-    typeof settings.eventStartDate === 'string' &&
-    typeof settings.eventEndDate === 'string' &&
-    typeof settings.applyStartDate === 'string' &&
-    typeof settings.applyEndDate === 'string' &&
-    typeof settings.rewardStandard === 'string' &&
-    Boolean(standards) &&
-    typeof standards?.short === 'number' &&
-    typeof standards.half === 'number' &&
-    typeof standards.full === 'number'
-  );
-}
+function chooseEventId(events: AdminEvent[]) {
+  for (const status of EVENT_SELECTION_ORDER) {
+    const event = events.find((item) => item.status === status);
 
-function readEventSettings() {
-  try {
-    const storedValue = window.localStorage.getItem(
-      EVENT_SETTINGS_STORAGE_KEY,
-    );
-
-    if (!storedValue) {
-      return DEFAULT_EVENT_SETTINGS;
+    if (event) {
+      return event.eventId;
     }
-
-    const parsedValue: unknown = JSON.parse(storedValue);
-
-    return isEventSettings(parsedValue)
-      ? parsedValue
-      : DEFAULT_EVENT_SETTINGS;
-  } catch {
-    return DEFAULT_EVENT_SETTINGS;
   }
+
+  return events[0]?.eventId ?? null;
 }
 
-function readDashboardSources(now = new Date()) {
-  return {
-    participants: [...ADMIN_PARTICIPANTS],
-    logs: [...ADMIN_READING_LOGS],
-    eventSettings: readEventSettings(),
-    now,
-  };
+function getApiErrorMessage(error: unknown) {
+  return error instanceof ApiError
+    ? error.message
+    : '대시보드 데이터를 불러오지 못했습니다.';
 }
 
 function getSubmissionComparison(todayCount: number, yesterdayCount: number) {
@@ -81,90 +59,197 @@ function getSubmissionComparison(todayCount: number, yesterdayCount: number) {
   return `전일 대비 ${difference > 0 ? '+' : ''}${difference}건`;
 }
 
-function AdminDashboardPage() {
-  const [dashboardSources, setDashboardSources] = useState(
-    readDashboardSources,
-  );
-  const [lastRefreshedAt, setLastRefreshedAt] = useState<string | null>(
-    null,
-  );
-  const [refreshVersion, setRefreshVersion] = useState(0);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const {
-    participants,
+function requestDashboardData(eventId: number) {
+  return Promise.all([
+    getAdminApplications(eventId),
+    getAdminReadingLogs({ eventId }),
+  ]).then(([applications, logs]) => ({
+    applications,
     logs,
-    eventSettings,
-    now: dashboardNow,
-  } = dashboardSources;
-  const analytics = useMemo(
-    () =>
-      getDashboardAnalytics(
-        participants,
-        logs,
-        dashboardNow,
-      ),
-    [dashboardNow, logs, participants],
-  );
-  const statusSnapshot = useMemo(
-    () =>
-      buildStatusSnapshot(
-        participants,
-        logs,
-        getLocalDateKey(dashboardNow),
-        eventSettings.courseStandards,
-        {
-          maskNames: true,
-          showRanks: true,
-        },
-      ),
-    [
-      dashboardNow,
-      eventSettings.courseStandards,
-      logs,
-      participants,
-    ],
-  );
-  const courseSummaries = useMemo(
-    () => getStatusCourseSummaries(statusSnapshot.participants),
-    [statusSnapshot.participants],
-  );
-  const totalFinisherCount = courseSummaries.reduce(
-    (sum, summary) => sum + summary.completedCount,
-    0,
-  );
-  const approvedRate =
-    analytics.totalApplicants > 0
-      ? (analytics.approvedParticipants.length /
-          analytics.totalApplicants) *
-        100
-      : 0;
-  const reflectedAt = lastRefreshedAt ?? analytics.latestDataTimestamp;
-  const latestDataLabel = reflectedAt
-    ? formatParticipantDateTime(reflectedAt)
-    : '반영 데이터 없음';
-  const hasNoOperationData =
-    analytics.totalApplicants === 0 && logs.length === 0;
-  const refreshAnnouncement =
-    refreshVersion > 0 && lastRefreshedAt
-      ? `대시보드 데이터를 새로 반영했습니다. ${formatParticipantDateTime(
-          lastRefreshedAt,
-        )}`
-      : '';
+    fetchedAt: new Date(),
+  }));
+}
 
-  const handleRefresh = () => {
-    if (isRefreshing) {
+function AdminDashboardPage() {
+  const [events, setEvents] = useState<AdminEvent[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [isEventsLoading, setIsEventsLoading] = useState(true);
+  const [isDataLoading, setIsDataLoading] = useState(false);
+  const [isRefreshIconSpinning, setIsRefreshIconSpinning] = useState(false);
+  const [pageError, setPageError] = useState('');
+  const [refreshAnnouncement, setRefreshAnnouncement] = useState('');
+  const initialEventsRequestRef = useRef<Promise<AdminEvent[]> | null>(null);
+  const dataRequestRef = useRef<{
+    eventId: number;
+    promise: Promise<DashboardData>;
+  } | null>(null);
+  const requestSequenceRef = useRef(0);
+
+  useEffect(() => {
+    let isActive = true;
+
+    if (initialEventsRequestRef.current === null) {
+      initialEventsRequestRef.current = getAdminEvents();
+    }
+
+    initialEventsRequestRef.current
+      .then((nextEvents) => {
+        if (!isActive) {
+          return;
+        }
+
+        const nextEventId = chooseEventId(nextEvents);
+
+        setEvents(nextEvents);
+        setDashboardData(null);
+        setIsDataLoading(nextEventId !== null);
+        setSelectedEventId(nextEventId);
+        setPageError('');
+      })
+      .catch((error: unknown) => {
+        if (isActive) {
+          setPageError(getApiErrorMessage(error));
+        }
+      })
+      .finally(() => {
+        if (isActive) {
+          setIsEventsLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (selectedEventId === null) {
       return;
     }
 
-    const refreshedSources = readDashboardSources();
+    let isActive = true;
+    const sequence = ++requestSequenceRef.current;
+
+    if (
+      dataRequestRef.current === null ||
+      dataRequestRef.current.eventId !== selectedEventId
+    ) {
+      dataRequestRef.current = {
+        eventId: selectedEventId,
+        promise: requestDashboardData(selectedEventId),
+      };
+    }
+
+    const request = dataRequestRef.current;
+
+    request.promise
+      .then((data) => {
+        if (isActive && requestSequenceRef.current === sequence) {
+          setDashboardData(data);
+          setPageError('');
+        }
+      })
+      .catch((error: unknown) => {
+        if (isActive && requestSequenceRef.current === sequence) {
+          setDashboardData(null);
+          setPageError(getApiErrorMessage(error));
+        }
+      })
+      .finally(() => {
+        if (dataRequestRef.current === request) {
+          dataRequestRef.current = null;
+        }
+
+        if (isActive && requestSequenceRef.current === sequence) {
+          setIsDataLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [selectedEventId]);
+
+  const selectedEvent = useMemo(
+    () =>
+      events.find((event) => event.eventId === selectedEventId) ?? null,
+    [events, selectedEventId],
+  );
+  const analytics = useMemo(
+    () =>
+      dashboardData
+        ? getDashboardAnalytics(
+            dashboardData.applications,
+            dashboardData.logs,
+            dashboardData.fetchedAt,
+          )
+        : null,
+    [dashboardData],
+  );
+  const approvedRate =
+    analytics && analytics.totalApplicants > 0
+      ? (analytics.approvedApplications.length / analytics.totalApplicants) *
+        100
+      : 0;
+  const latestDataLabel = dashboardData
+    ? formatParticipantDateTime(dashboardData.fetchedAt.toISOString())
+    : isDataLoading
+      ? '불러오는 중'
+      : '반영 데이터 없음';
+  const isBusy =
+    isEventsLoading || isDataLoading || isRefreshIconSpinning;
+  const hasNoOperationData =
+    Boolean(analytics) &&
+    analytics?.totalApplicants === 0 &&
+    dashboardData?.logs.length === 0;
+
+  const handleRefresh = async () => {
+    if (selectedEventId === null || isBusy) {
+      return;
+    }
+
+    const eventId = selectedEventId;
+    const sequence = ++requestSequenceRef.current;
     const shouldAnimate = !window.matchMedia(
       '(prefers-reduced-motion: reduce)',
     ).matches;
 
-    setDashboardSources(refreshedSources);
-    setLastRefreshedAt(refreshedSources.now.toISOString());
-    setRefreshVersion((version) => version + 1);
-    setIsRefreshing(shouldAnimate);
+    setIsDataLoading(true);
+    setIsRefreshIconSpinning(shouldAnimate);
+    setPageError('');
+    setRefreshAnnouncement('');
+
+    try {
+      const data = await requestDashboardData(eventId);
+
+      if (requestSequenceRef.current !== sequence) {
+        return;
+      }
+
+      setDashboardData(data);
+      setRefreshAnnouncement(
+        `대시보드 데이터를 새로 반영했습니다. ${formatParticipantDateTime(
+          data.fetchedAt.toISOString(),
+        )}`,
+      );
+    } catch (error: unknown) {
+      if (requestSequenceRef.current === sequence) {
+        const message = getApiErrorMessage(error);
+
+        setDashboardData(null);
+        setPageError(message);
+        setRefreshAnnouncement(`새로고침에 실패했습니다. ${message}`);
+      }
+    } finally {
+      if (requestSequenceRef.current === sequence) {
+        setIsDataLoading(false);
+      }
+
+      if (!shouldAnimate) {
+        setIsRefreshIconSpinning(false);
+      }
+    }
   };
 
   return (
@@ -178,6 +263,30 @@ function AdminDashboardPage() {
           </p>
         </div>
         <div className="admin-dashboard__header-meta">
+          <label className="admin-dashboard__event-select">
+            <span>관리 행사</span>
+            <select
+              value={selectedEventId ?? ''}
+              disabled={isEventsLoading || events.length === 0}
+              onChange={(event) => {
+                const eventId = Number(event.target.value);
+
+                requestSequenceRef.current += 1;
+                setDashboardData(null);
+                setIsDataLoading(true);
+                setPageError('');
+                setRefreshAnnouncement('');
+                setSelectedEventId(eventId);
+              }}
+            >
+              {events.length === 0 && <option value="">등록된 행사 없음</option>}
+              {events.map((event) => (
+                <option key={event.eventId} value={event.eventId}>
+                  {event.roundNo}회 · {event.title}
+                </option>
+              ))}
+            </select>
+          </label>
           <span>최근 반영</span>
           <div className="admin-dashboard__header-meta-row">
             <strong>{latestDataLabel}</strong>
@@ -185,14 +294,14 @@ function AdminDashboardPage() {
               type="button"
               className="admin-dashboard__refresh"
               aria-label="대시보드 데이터 새로고침"
-              aria-busy={isRefreshing}
+              aria-busy={isBusy}
               title="최신 데이터 다시 반영"
-              disabled={isRefreshing}
+              disabled={isBusy || selectedEventId === null}
               onClick={handleRefresh}
             >
               <svg
                 className={
-                  isRefreshing
+                  isRefreshIconSpinning
                     ? 'admin-dashboard__refresh-icon admin-dashboard__refresh-icon--spinning'
                     : 'admin-dashboard__refresh-icon'
                 }
@@ -200,10 +309,9 @@ function AdminDashboardPage() {
                 aria-hidden="true"
                 onAnimationEnd={(event) => {
                   if (
-                    event.animationName ===
-                    'admin-dashboard-refresh-spin'
+                    event.animationName === 'admin-dashboard-refresh-spin'
                   ) {
-                    setIsRefreshing(false);
+                    setIsRefreshIconSpinning(false);
                   }
                 }}
               >
@@ -218,72 +326,95 @@ function AdminDashboardPage() {
         </div>
       </header>
 
+      {pageError && (
+        <div className="admin-dashboard__empty admin-dashboard__empty--page" role="alert">
+          {pageError}
+        </div>
+      )}
+
+      {isDataLoading && (
+        <div
+          className="admin-dashboard__empty admin-dashboard__empty--page"
+          role="status"
+        >
+          선택한 행사의 운영 데이터를 불러오는 중입니다.
+        </div>
+      )}
+
+      {!isEventsLoading && events.length === 0 && !pageError && (
+        <div className="admin-dashboard__empty admin-dashboard__empty--page">
+          관리할 행사가 없습니다. 행사/코스 설정에서 행사를 등록해 주세요.
+        </div>
+      )}
+
       {hasNoOperationData && (
         <div className="admin-dashboard__empty admin-dashboard__empty--page">
-          아직 집계할 운영 데이터가 없습니다.
+          선택한 행사에 아직 집계할 운영 데이터가 없습니다.
         </div>
       )}
 
       <DashboardEventOverview
-        settings={eventSettings}
-        approvedParticipantCount={analytics.approvedParticipants.length}
+        event={selectedEvent}
+        approvedParticipantCount={
+          analytics?.approvedApplications.length ?? null
+        }
+        approvedPageTotal={analytics?.approvedPageTotal ?? null}
+        approvedDistanceMeters={analytics?.approvedDistanceMeters ?? null}
       />
 
-      <section
-        className="admin-dashboard__metrics"
-        aria-label="핵심 운영 지표"
-      >
+      <section className="admin-dashboard__metrics" aria-label="핵심 운영 지표">
         <DashboardMetricCard
           label="총 신청자"
-          value={analytics.totalApplicants}
+          value={analytics?.totalApplicants ?? null}
           unit="명"
-          description={`승인 대기 ${analytics.pendingApplicantCount}명`}
+          description={
+            analytics ? `승인 대기 ${analytics.pendingApplicantCount}명` : '서버 집계 대기'
+          }
           to="/admin/participants"
           linkLabel="참가자 관리"
           tone="navy"
         />
         <DashboardMetricCard
           label="승인 참가자"
-          value={analytics.approvedParticipants.length}
+          value={analytics?.approvedApplications.length ?? null}
           unit="명"
-          description={`승인율 ${approvedRate.toFixed(1)}%`}
+          description={analytics ? `승인율 ${approvedRate.toFixed(1)}%` : '서버 집계 대기'}
           to="/admin/participants"
           linkLabel="승인 현황 보기"
           tone="green"
         />
         <DashboardMetricCard
           label="오늘 제출"
-          value={analytics.todaySubmissionCount}
+          value={analytics?.todaySubmissionCount ?? null}
           unit="건"
-          description={getSubmissionComparison(
-            analytics.todaySubmissionCount,
-            analytics.yesterdaySubmissionCount,
-          )}
+          description={
+            analytics
+              ? getSubmissionComparison(
+                  analytics.todaySubmissionCount,
+                  analytics.yesterdaySubmissionCount,
+                )
+              : '서버 집계 대기'
+          }
           to="/admin/logs"
           linkLabel="독서일지 검토"
           tone="blue"
         />
         <DashboardMetricCard
           label="검토 대기"
-          value={analytics.pendingLogs.length}
+          value={analytics?.pendingLogs.length ?? null}
           unit="건"
-          description={`확인 필요 ${analytics.warningPendingCount}건`}
+          description={
+            analytics ? `서버 경고 ${analytics.warningPendingCount}건` : '서버 집계 대기'
+          }
           to="/admin/logs"
           linkLabel="대기 목록 보기"
           tone="gold"
         />
         <DashboardMetricCard
           label="총 완주자"
-          value={totalFinisherCount}
+          value={null}
           unit="명"
-          description={courseSummaries
-            .map(
-              (summary) =>
-                `${summary.courseName.replace('코스', '')} ${
-                  summary.completedCount
-                }`,
-            )
-            .join(' · ')}
+          description="백엔드 완주 집계 API 필요"
           to="/admin/status"
           linkLabel="대회 현황 보기"
           tone="teal"
@@ -292,29 +423,31 @@ function AdminDashboardPage() {
 
       <div className="admin-dashboard__grid admin-dashboard__grid--primary">
         <DashboardReadingTrend
-          logs={logs}
-          now={dashboardNow}
+          logs={dashboardData?.logs ?? []}
+          now={dashboardData?.fetchedAt ?? new Date()}
         />
-        <DashboardCourseCompletion summaries={courseSummaries} />
+        <DashboardCourseCompletion summaries={[]} isSupported={false} />
       </div>
 
       <div className="admin-dashboard__grid admin-dashboard__grid--distribution">
         <DashboardGenderChart
-          distribution={analytics.genderDistribution}
-          participantCount={analytics.approvedParticipants.length}
+          distribution={[]}
+          participantCount={analytics?.approvedApplications.length ?? 0}
+          isSupported={false}
         />
         <DashboardAffiliationChart
-          distribution={analytics.affiliationDistribution}
-          participantCount={analytics.approvedParticipants.length}
+          distribution={analytics?.affiliationDistribution ?? []}
+          participantCount={analytics?.approvedApplications.length ?? 0}
         />
       </div>
 
       <div className="admin-dashboard__grid admin-dashboard__grid--operations">
         <DashboardRecentParticipants
-          participants={analytics.recentParticipants.slice(0, 4)}
+          participants={analytics?.recentApplications.slice(0, 4) ?? []}
         />
-        <DashboardPendingLogs logs={analytics.pendingLogs.slice(0, 4)} />
+        <DashboardPendingLogs logs={analytics?.pendingLogs.slice(0, 4) ?? []} />
       </div>
+
     </section>
   );
 }

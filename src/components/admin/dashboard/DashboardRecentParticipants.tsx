@@ -1,13 +1,12 @@
 import { Link } from 'react-router-dom';
 import {
-  COURSE_LABELS,
-  PARTICIPANT_STATUS_LABELS,
-  formatParticipantDate,
-  type AdminParticipant,
-} from '../../../types/adminParticipant';
+  ADMIN_APPLICATION_STATUS_LABELS,
+  formatAdminApplicationDate,
+  type AdminApplicationListItem,
+} from '../../../types/adminApplication';
 
 type DashboardRecentParticipantsProps = {
-  participants: AdminParticipant[];
+  participants: AdminApplicationListItem[];
 };
 
 function DashboardRecentParticipants({
@@ -37,26 +36,28 @@ function DashboardRecentParticipants({
             </thead>
             <tbody>
               {participants.map((participant) => (
-                <tr key={participant.id}>
+                <tr key={participant.applicationId}>
                   <td>
                     <Link to="/admin/participants">{participant.name}</Link>
                   </td>
                   <td title={participant.department}>
                     {participant.department || '미입력'}
                   </td>
-                  <td>{COURSE_LABELS[participant.course]}</td>
+                  <td>{participant.courseName}</td>
                   <td>
                     <span
-                      className={`admin-dashboard__status admin-dashboard__status--${participant.applicationStatus.toLowerCase()}`}
+                      className={`admin-dashboard__status admin-dashboard__status--${
+                        participant.status === 'APPLIED'
+                          ? 'pending'
+                          : participant.status.toLowerCase()
+                      }`}
                     >
                       {
-                        PARTICIPANT_STATUS_LABELS[
-                          participant.applicationStatus
-                        ]
+                        ADMIN_APPLICATION_STATUS_LABELS[participant.status]
                       }
                     </span>
                   </td>
-                  <td>{formatParticipantDate(participant.appliedAt)}</td>
+                  <td>{formatAdminApplicationDate(participant.appliedAt)}</td>
                 </tr>
               ))}
             </tbody>

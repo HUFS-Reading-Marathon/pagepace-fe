@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { AdminReadingLog } from '../../../types/adminReadingLog';
+import type { AdminReadingLogResponse } from '../../../types/adminReadingLogApi';
 import {
   getDailyActivity,
   type DashboardDailyActivity,
@@ -9,7 +9,7 @@ type TrendPeriod = 7 | 14 | 30;
 type TrendMetric = 'approvedPages' | 'submissionCount';
 
 type DashboardReadingTrendProps = {
-  logs: ReadonlyArray<AdminReadingLog>;
+  logs: ReadonlyArray<AdminReadingLogResponse>;
   now: Date;
 };
 
