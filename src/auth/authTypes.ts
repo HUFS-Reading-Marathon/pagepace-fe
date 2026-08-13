@@ -25,18 +25,17 @@ export type AffiliationType =
   | 'STAFF'
   | 'OTHER';
 
-// 로그인 응답에는 사용자 정보가 없으므로 로그인만으로 이 타입을 채우지 않습니다.
 export type AuthUser = {
-  userId?: number;
-  studentNo?: string;
-  name?: string;
-  email?: string;
-  phone?: string;
-  affiliationType?: AffiliationType;
-  department?: string;
-  role?: UserRole;
-  status?: UserStatus;
-  active?: boolean;
+  userId: number;
+  studentNo: string;
+  name: string;
+  email: string;
+  phone: string;
+  affiliationType: AffiliationType;
+  department: string;
+  role: UserRole;
+  status: UserStatus;
+  active: boolean;
 };
 
 export type AuthState = {
@@ -44,6 +43,7 @@ export type AuthState = {
   isAuthenticated: boolean;
   isInitializing: boolean;
   isLoading: boolean;
+  authError: string | null;
 };
 
 export type AuthContextValue = AuthState & {

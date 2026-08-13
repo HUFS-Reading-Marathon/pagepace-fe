@@ -1,6 +1,6 @@
 export const AUTH_CHANGE_EVENT = 'auth-change';
 
-const ACCESS_TOKEN_STORAGE_KEY = 'pagepaceAccessToken';
+export const ACCESS_TOKEN_STORAGE_KEY = 'pagepaceAccessToken';
 const LOGIN_STATE_STORAGE_KEY = 'isLoggedIn';
 const LOGIN_ID_STORAGE_KEY = 'loginId';
 const LEGACY_USER_NAME_STORAGE_KEY = 'userName';

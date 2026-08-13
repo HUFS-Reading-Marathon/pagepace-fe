@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../auth';
 
 type HeaderLink = {
   label: string;
@@ -107,12 +108,10 @@ function Header() {
   const [activeSectionHash, setActiveSectionHash] = useState(DEFAULT_HASH);
   const [isMyLibraryDropdownHidden, setIsMyLibraryDropdownHidden] =
     useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(
-    () => localStorage.getItem('isLoggedIn') === 'true',
-  );
-
   const location = useLocation();
   const navigate = useNavigate();
+  const { isAuthenticated, isInitializing, logout } = useAuth();
+  const hasAuthSession = isAuthenticated || isInitializing;
 
   const activeHash =
     location.pathname === '/'
@@ -134,32 +133,10 @@ function Header() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('loginId');
-
-    setIsLoggedIn(false);
+    logout();
     closeMobileMenu();
-
-    window.dispatchEvent(new Event('auth-change'));
-
     navigate('/');
   };
-
-  useEffect(() => {
-    const syncLoginState = () => {
-      setIsLoggedIn(localStorage.getItem('isLoggedIn') === 'true');
-    };
-
-    syncLoginState();
-
-    window.addEventListener('auth-change', syncLoginState);
-    window.addEventListener('storage', syncLoginState);
-
-    return () => {
-      window.removeEventListener('auth-change', syncLoginState);
-      window.removeEventListener('storage', syncLoginState);
-    };
-  }, []);
 
   useEffect(() => {
     if (location.pathname !== '/') {
@@ -312,7 +289,7 @@ function Header() {
               </div>
             </div>
 
-            {isLoggedIn ? (
+            {hasAuthSession ? (
               <button
                 type="button"
                 className="nav-auth-button nav-login-link"
@@ -429,7 +406,7 @@ function Header() {
               })}
             </div>
 
-            {isLoggedIn ? (
+            {hasAuthSession ? (
               <button
                 type="button"
                 className="mobile-auth-button"

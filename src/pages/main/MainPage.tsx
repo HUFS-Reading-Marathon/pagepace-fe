@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../auth';
 import './MainPage.css'
 
 type ExternalLink = {
@@ -185,61 +186,17 @@ function formatDistance(distance: number) {
     : `${distance.toLocaleString()}m`;
 }
 
-function getDisplayName() {
-  const storedName = localStorage.getItem('userName');
-  const loginId = localStorage.getItem('loginId');
-
-  if (storedName?.trim()) {
-    return storedName.trim();
-  }
-
-  if (loginId?.trim()) {
-    return loginId.includes('@') ? loginId.split('@')[0] : loginId;
-  }
-
-  return '참가자';
-}
-
 function MainPage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(
-    () => localStorage.getItem('isLoggedIn') === 'true',
-  );
-
-  const [isApplied, setIsApplied] = useState(
-    () =>
-      localStorage.getItem('isApplied') === 'true' ||
-      localStorage.getItem('isLoggedIn') === 'true',
-  );
-
-  const [displayName, setDisplayName] = useState(() => getDisplayName());
+  const { user, isAuthenticated, isInitializing } = useAuth();
+  const isApplied =
+    localStorage.getItem('isApplied') === 'true' || isAuthenticated;
+  const displayName = user?.name || '참가자';
 
   const progressRate = useMemo(() => {
     return Math.min(
       Math.round((MY_RECORD.totalDistance / MY_RECORD.targetDistance) * 100),
       100,
     );
-  }, []);
-
-  useEffect(() => {
-    const syncAuthState = () => {
-      const nextIsLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-
-      setIsLoggedIn(nextIsLoggedIn);
-      setIsApplied(
-        localStorage.getItem('isApplied') === 'true' || nextIsLoggedIn,
-      );
-      setDisplayName(getDisplayName());
-    };
-
-    syncAuthState();
-
-    window.addEventListener('auth-change', syncAuthState);
-    window.addEventListener('storage', syncAuthState);
-
-    return () => {
-      window.removeEventListener('auth-change', syncAuthState);
-      window.removeEventListener('storage', syncAuthState);
-    };
   }, []);
 
   useEffect(() => {
@@ -267,7 +224,7 @@ function MainPage() {
     return () => observer.disconnect();
   }, []);
 
-  const showMyRecord = isLoggedIn && isApplied;
+  const showMyRecord = (isAuthenticated || isInitializing) && isApplied;
 
   return (
     <>
