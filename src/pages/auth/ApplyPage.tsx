@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { GENERAL_AFFILIATIONS, STUDENT_DEPARTMENT_GROUPS } from '../../constants/departments';
 import {
   confirmApplicationEmailVerification,
   createApplication,
@@ -222,6 +223,7 @@ function ApplyPage() {
   const handleAffiliationChange = (nextAffiliation: AffiliationType) => {
     setAffiliation(nextAffiliation);
     setGrade(nextAffiliation === 'undergraduate' ? '1' : null);
+    setDepartment('');
   };
 
   const resetEmailVerification = () => {
@@ -763,15 +765,25 @@ function ApplyPage() {
           )}
 
           <div className="auth-form-group">
-            <label htmlFor="department">소속 학과/부서</label>
-            <input
+            <label htmlFor="department">{affiliation === 'undergraduate' ? '소속 학과' : '소속 학과/부서'}</label>
+            <select
               id="department"
-              type="text"
               value={department}
               onChange={(event) => setDepartment(event.target.value)}
-              placeholder="예: 컴퓨터공학부 또는 도서관"
-              autoComplete="organization"
-            />
+            >
+              <option value="" disabled>소속을 선택해 주세요</option>
+              {STUDENT_DEPARTMENT_GROUPS.map((group) => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.departments.map((item) => <option key={item} value={item}>{item}</option>)}
+                </optgroup>
+              ))}
+              {affiliation !== 'undergraduate' && (
+                <optgroup label="교직원·대학원·기타">
+                  {GENERAL_AFFILIATIONS.map((item) => <option key={item} value={item}>{item}</option>)}
+                </optgroup>
+              )}
+            </select>
+            <small className="auth-department-guide">목록에 없는 소속은 도서관 담당자에게 문의해 주세요.</small>
           </div>
 
           <div className="auth-form-row">

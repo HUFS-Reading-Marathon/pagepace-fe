@@ -1,7 +1,12 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth';
+import { getCurrentEvent, getEventCourses, type CurrentEvent } from '../../api/eventApi';
+import { getCurrentParticipation } from '../../api/participationApi';
+import { getMyReadingLogs } from '../../api/readingLogApi';
+import { getNotices, type Notice } from '../../api/noticeApi';
+import type { MyParticipation } from '../../types/participation';
 import './MainPage.css'
 
 type ExternalLink = {
@@ -191,13 +196,78 @@ function MainPage() {
   const isApplied =
     localStorage.getItem('isApplied') === 'true' || isAuthenticated;
   const displayName = user?.name || '참가자';
+  const [currentEvent, setCurrentEvent] = useState<CurrentEvent | null>(null);
+  const [eventCourses, setEventCourses] = useState<Course[]>(COURSES);
+  const [myParticipation, setMyParticipation] = useState<MyParticipation | null>(null);
+  const [approvedLogs, setApprovedLogs] = useState(0);
+  const [lastSubmittedAt, setLastSubmittedAt] = useState('-');
+  const [notices, setNotices] = useState<Notice[]>([]);
+
+  useEffect(() => {
+    getNotices().then(setNotices).catch(() => setNotices([]));
+  }, []);
+
+  useEffect(() => {
+    getCurrentEvent()
+      .then(async (event) => {
+        setCurrentEvent(event);
+        const courses = await getEventCourses(event.eventId);
+        setEventCourses(courses.map((course) => ({
+          name: course.name,
+          distance: `${course.targetDistanceMeter.toLocaleString()}m`,
+          pages: `${Math.ceil(course.targetDistanceMeter / 5).toLocaleString()}쪽`,
+          books: `${course.standardBookCount}권`,
+          monthly: `${course.avgMonthlyReadingCount}권`,
+          reward: course.rewardAmount > 0
+            ? `${course.rewardType} ${course.rewardAmount.toLocaleString()}원`
+            : course.rewardType,
+          loan: `${course.extraLoanCount}권`,
+          people: `${course.maxWinners}명`,
+        })));
+      })
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    getCurrentParticipation()
+      .then(async (participation) => {
+        setMyParticipation(participation);
+        const logs = await getMyReadingLogs(participation.participationId);
+        setApprovedLogs(logs.filter((log) => log.status === 'APPROVED').length);
+        setLastSubmittedAt(
+          [...logs].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
+            ?.readingDate ?? '-',
+        );
+      })
+      .catch(() => undefined);
+  }, [isAuthenticated]);
+
+  const eventTitle = currentEvent?.title ?? '제5회 독서마라톤';
+  const heroInfo: [string, string][] = currentEvent
+    ? [
+        ['운영기간', `${currentEvent.eventStartDate} — ${currentEvent.eventEndDate}`],
+        ['신청기간', `${currentEvent.applicationStartDate} — ${currentEvent.applicationEndDate}`],
+        ['문의', currentEvent.contactPhone || currentEvent.contactEmail],
+      ]
+    : HERO_INFO;
+  const myRecord = myParticipation
+    ? {
+        course: myParticipation.courseName,
+        targetDistance: myParticipation.targetDistanceMeter,
+        totalDistance: myParticipation.totalDistanceMeter,
+        totalPages: myParticipation.totalPages,
+        approvedLogs,
+        lastSubmittedAt,
+      }
+    : MY_RECORD;
 
   const progressRate = useMemo(() => {
     return Math.min(
-      Math.round((MY_RECORD.totalDistance / MY_RECORD.targetDistance) * 100),
+      Math.round((myRecord.totalDistance / myRecord.targetDistance) * 100),
       100,
     );
-  }, []);
+  }, [myRecord.targetDistance, myRecord.totalDistance]);
 
   useEffect(() => {
     const elements = document.querySelectorAll('.fade-up');
@@ -245,18 +315,18 @@ function MainPage() {
               {showMyRecord ? (
                 <div className="personal-hero-message">
                   <h1 id="heroTitle">
-                    제5회 독서마라톤
+                    {eventTitle}
                     <span>{displayName}님, 환영합니다.</span>
                   </h1>
 
                   <p className="hero-copy hero-copy-personal">
-                    {MY_RECORD.course} 완주를 향해 오늘도 한 걸음 더 달려볼까요?
+                    {myRecord.course} 완주를 향해 오늘도 한 걸음 더 달려볼까요?
                   </p>
                 </div>
               ) : (
                 <>
                   <h1 id="heroTitle">
-                    제5회 독서마라톤
+                    {eventTitle}
                     <span>읽은 페이지를 거리로 환산하는 독서기록 프로그램</span>
                   </h1>
 
@@ -300,14 +370,14 @@ function MainPage() {
                       <span>My Record</span>
                       <h2>나의 기록</h2>
                     </div>
-                    <b>{MY_RECORD.course}</b>
+                    <b>{myRecord.course}</b>
                   </div>
 
                   <div className="my-record-main">
                     <span>누적 독서 거리</span>
-                    <strong>{formatDistance(MY_RECORD.totalDistance)}</strong>
+                    <strong>{formatDistance(myRecord.totalDistance)}</strong>
                     <p>
-                      목표 거리 {formatDistance(MY_RECORD.targetDistance)} 중{' '}
+                      목표 거리 {formatDistance(myRecord.targetDistance)} 중{' '}
                       {progressRate}% 달성했습니다.
                     </p>
                   </div>
@@ -328,15 +398,15 @@ function MainPage() {
                   <dl className="my-record-meta">
                     <div>
                       <dt>인정 페이지</dt>
-                      <dd>{MY_RECORD.totalPages.toLocaleString()}쪽</dd>
+                      <dd>{myRecord.totalPages.toLocaleString()}쪽</dd>
                     </div>
                     <div>
                       <dt>독서일지</dt>
-                      <dd>{MY_RECORD.approvedLogs}건</dd>
+                      <dd>{myRecord.approvedLogs}건</dd>
                     </div>
                     <div>
                       <dt>최근 제출</dt>
-                      <dd>{MY_RECORD.lastSubmittedAt}</dd>
+                      <dd>{myRecord.lastSubmittedAt}</dd>
                     </div>
                   </dl>
 
@@ -352,7 +422,7 @@ function MainPage() {
                   </div>
 
                   <ul className="hero-info-list">
-                    {HERO_INFO.map(([label, value]) => (
+                    {heroInfo.map(([label, value]) => (
                       <li key={label}>
                         <span>{label}</span>
                         <strong>{value}</strong>
@@ -474,13 +544,13 @@ function MainPage() {
                   <a href="#contact">문의하기</a>
                 </div>
                 <ul className="notice-list">
-                  {NOTICES.map((notice) => (
-                    <li key={notice.title}>
-                      <a href={notice.href}>
-                        <span className="badge">{notice.badge}</span>
+                  {(notices.length > 0 ? notices.slice(0, 4) : NOTICES).map((notice) => (
+                    <li key={'noticeId' in notice ? notice.noticeId : notice.title}>
+                      <Link to={'noticeId' in notice ? `/notices/${notice.noticeId}` : notice.href}>
+                        <span className="badge">{'pinned' in notice ? (notice.pinned ? '중요' : '공지') : notice.badge}</span>
                         <strong>{notice.title}</strong>
-                        <time dateTime={notice.dateTime}>{notice.date}</time>
-                      </a>
+                        <time dateTime={'publishedAt' in notice ? notice.publishedAt ?? notice.updatedAt : notice.dateTime}>{'publishedAt' in notice ? new Date(notice.publishedAt ?? notice.updatedAt).toLocaleDateString('ko-KR') : notice.date}</time>
+                      </Link>
                     </li>
                   ))}
                 </ul>
@@ -558,7 +628,7 @@ function MainPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {COURSES.map((course) => (
+                  {eventCourses.map((course) => (
                     <tr key={course.name}>
                       <th scope="row">{course.name}</th>
                       <td>{course.distance}</td>

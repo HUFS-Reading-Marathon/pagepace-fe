@@ -20,9 +20,9 @@ export type AdminApplicationListItem = {
   name: string;
   studentNo: string;
   email: string;
-  phone: string;
+  phone: string | null;
   affiliationType: AdminApplicationAffiliationType;
-  department: string;
+  department: string | null;
   status: AdminApplicationStatus;
   appliedAt: string;
 };

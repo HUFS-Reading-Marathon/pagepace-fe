@@ -87,9 +87,10 @@ function getDistribution(labels: string[]): DashboardDistributionItem[] {
 
 function hasServerWarning(log: AdminReadingLogResponse) {
   return (
-    log.recommendedRejectReasons.length > 0 ||
+    (log.recommendedRejectReasons?.length ?? 0) > 0 ||
     log.books.some(
-      (book) => book.pageExceeded || Boolean(book.warningMessage.trim()),
+      (book) =>
+        book.pageExceeded || Boolean(book.warningMessage?.trim()),
     )
   );
 }
@@ -125,7 +126,9 @@ function getAffiliationDistribution(
   visibleLimit = 5,
 ) {
   const distribution = getDistribution(
-    applications.map((application) => application.department.trim() || '미입력'),
+    applications.map(
+      (application) => application.department?.trim() || '미입력',
+    ),
   );
   const safeLimit = Math.max(1, Math.floor(visibleLimit));
 

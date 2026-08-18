@@ -100,7 +100,7 @@ function toDisplayLog(log: AdminReadingLogResponse): AdminReadingLog {
       remainingPagesAfterApproval: book.remainingPagesAfterApproval,
       completedAfterApproval: book.completedAfterApproval,
       pageExceeded: book.pageExceeded,
-      warningMessage: book.warningMessage,
+      warningMessage: book.warningMessage || undefined,
     })),
   };
 }

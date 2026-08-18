@@ -29,10 +29,10 @@ export type AuthUser = {
   userId: number;
   studentNo: string;
   name: string;
-  email: string;
-  phone: string;
+  email: string | null;
+  phone: string | null;
   affiliationType: AffiliationType;
-  department: string;
+  department: string | null;
   role: UserRole;
   status: UserStatus;
   active: boolean;
@@ -47,7 +47,7 @@ export type AuthState = {
 };
 
 export type AuthContextValue = AuthState & {
-  login: (credentials: LoginRequest) => Promise<void>;
+  login: (credentials: LoginRequest) => Promise<AuthUser>;
   logout: () => void;
 };
 

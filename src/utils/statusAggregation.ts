@@ -361,7 +361,7 @@ export function buildAdminCompetitionRows(
         userId: latestLog?.userId ?? null,
         name: application.name,
         studentNumber: application.studentNo,
-        department: application.department,
+        department: application.department || '미입력',
         affiliationType: application.affiliationType,
         applicationStatus: application.status,
         courseId: application.courseId,
@@ -424,4 +424,3 @@ export function getAdminCompetitionCourseSummaries(
     };
   });
 }
-

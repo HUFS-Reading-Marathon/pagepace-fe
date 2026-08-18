@@ -256,7 +256,7 @@ function AdminDashboardPage() {
     <section className="admin-page admin-dashboard">
       <header className="admin-page__header admin-dashboard__header admin-dashboard__enter admin-dashboard__enter--header">
         <div className="admin-dashboard__heading">
-          <h1>관리자 대시보드</h1>
+          <h1>운영 통계</h1>
           <p>
             독서마라톤의 참가, 독서 기록, 완주 현황을 한눈에
             확인합니다.

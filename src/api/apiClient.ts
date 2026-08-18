@@ -1,9 +1,17 @@
-import { getAccessToken } from '../auth/authStorage';
+import {
+  clearAuthStorage,
+  emitAuthChange,
+  getAccessToken,
+  saveAccessToken,
+} from '../auth/authStorage';
 import type { ApiResponse } from '../auth/authTypes';
 
 type ApiRequestOptions = RequestInit & {
   skipAuth?: boolean;
+  skipRefresh?: boolean;
 };
+
+let refreshPromise: Promise<string> | null = null;
 
 export class ApiError extends Error {
   readonly status: number;
@@ -72,7 +80,12 @@ export async function apiRequest<T>(
   path: string,
   options: ApiRequestOptions = {},
 ): Promise<T | null> {
-  const { skipAuth = false, headers: initialHeaders, ...fetchOptions } = options;
+  const {
+    skipAuth = false,
+    skipRefresh = false,
+    headers: initialHeaders,
+    ...fetchOptions
+  } = options;
   const headers = new Headers(initialHeaders);
   const token = skipAuth ? null : getAccessToken();
 
@@ -100,6 +113,22 @@ export async function apiRequest<T>(
 
   const payload = await parseApiResponse<T>(response);
 
+  if (response.status === 401 && !skipAuth && !skipRefresh) {
+    try {
+      await refreshAccessToken();
+
+      return apiRequest<T>(path, {
+        ...options,
+        headers: initialHeaders,
+        skipRefresh: true,
+      });
+    } catch (refreshError) {
+      clearAuthStorage();
+      emitAuthChange();
+      throw refreshError;
+    }
+  }
+
   if (!response.ok || !payload?.success) {
     throw new ApiError(
       payload?.message || getHttpErrorMessage(response.status),
@@ -109,4 +138,33 @@ export async function apiRequest<T>(
   }
 
   return payload.data;
+}
+
+async function refreshAccessToken() {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      const response = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        headers: { Accept: 'application/json' },
+        credentials: 'include',
+      });
+      const payload = await parseApiResponse<{ accessToken: string }>(response);
+      const accessToken = payload?.data?.accessToken?.trim();
+
+      if (!response.ok || !payload?.success || !accessToken) {
+        throw new ApiError(
+          payload?.message || '로그인이 만료되었습니다.',
+          response.status,
+          payload?.code,
+        );
+      }
+
+      saveAccessToken(accessToken);
+      return accessToken;
+    })().finally(() => {
+      refreshPromise = null;
+    });
+  }
+
+  return refreshPromise;
 }
