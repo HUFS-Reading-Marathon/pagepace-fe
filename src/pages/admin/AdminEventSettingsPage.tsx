@@ -55,6 +55,12 @@ type CourseForm = {
 };
 
 type CourseNumberField = Exclude<keyof CourseForm, 'name' | 'rewardType'>;
+type CoursePresetKey = 'SHORT' | 'HALF' | 'FULL';
+
+const REWARD_TYPE_OPTIONS = [
+  { value: 'GIFT_CARD', label: '문화상품권' },
+  { value: 'CASH', label: '상금' },
+] as const;
 
 const EVENT_STATUS_LABELS: Record<EventStatus, string> = {
   DRAFT: '작성 중',
@@ -88,17 +94,25 @@ const EMPTY_EVENT_FORM: EventForm = {
   publicVisible: false,
 };
 
-const EMPTY_COURSE_FORM: CourseForm = {
-  name: '',
-  targetDistanceMeter: '',
-  standardBookCount: '',
-  avgMonthlyReadingCount: '0',
-  maxWinners: '0',
-  extraLoanCount: '0',
-  rewardType: '',
-  rewardAmount: '0',
-  displayOrder: '0',
+const COURSE_PRESETS: Record<CoursePresetKey, CourseForm> = {
+  SHORT: {
+    name: '단축 코스', targetDistanceMeter: '10000', standardBookCount: '7',
+    avgMonthlyReadingCount: '2.3', maxWinners: '15', extraLoanCount: '2',
+    rewardType: 'GIFT_CARD', rewardAmount: '30000', displayOrder: '1',
+  },
+  HALF: {
+    name: '하프 코스', targetDistanceMeter: '21100', standardBookCount: '14',
+    avgMonthlyReadingCount: '4.6', maxWinners: '20', extraLoanCount: '2',
+    rewardType: 'GIFT_CARD', rewardAmount: '50000', displayOrder: '2',
+  },
+  FULL: {
+    name: '풀 코스', targetDistanceMeter: '42195', standardBookCount: '28',
+    avgMonthlyReadingCount: '9.3', maxWinners: '3', extraLoanCount: '5',
+    rewardType: 'CASH', rewardAmount: '150000', displayOrder: '3',
+  },
 };
+
+const EMPTY_COURSE_FORM: CourseForm = { ...COURSE_PRESETS.SHORT };
 
 const COURSE_NUMBER_FIELDS: CourseNumberField[] = [
   'targetDistanceMeter',
@@ -287,6 +301,10 @@ function validateCourseForm(form: CourseForm) {
     Number(form.standardBookCount) <= 0
   ) {
     return '목표 거리와 기준 도서 수는 0보다 커야 합니다.';
+  }
+
+  if (!REWARD_TYPE_OPTIONS.some((option) => option.value === form.rewardType)) {
+    return '보상 유형을 선택해 주세요.';
   }
 
   return null;
@@ -615,14 +633,44 @@ function AdminEventSettingsPage() {
 
       if (isCreatingEvent) {
         const createdEvent = await createAdminEvent(request);
-        const nextEventId = await refreshEvents(createdEvent?.eventId);
+
+        if (!createdEvent) {
+          throw new ApiError('생성된 행사 정보를 확인할 수 없습니다.', 200);
+        }
+
+        try {
+          await Promise.all(
+            (Object.keys(COURSE_PRESETS) as CoursePresetKey[]).map((presetKey) =>
+              createAdminCourse(
+                createdEvent.eventId,
+                toCourseRequest(COURSE_PRESETS[presetKey]),
+              ),
+            ),
+          );
+        } catch (courseCreationError: unknown) {
+          const nextEventId = await refreshEvents(createdEvent.eventId);
+
+          if (nextEventId !== null) {
+            await refreshCourses(nextEventId);
+          }
+
+          showError(
+            getApiErrorMessage(
+              courseCreationError,
+              '행사는 생성되었지만 기본 코스 일부를 만들지 못했습니다. 생성된 코스를 확인해 주세요.',
+            ),
+          );
+          return;
+        }
+
+        const nextEventId = await refreshEvents(createdEvent.eventId);
 
         if (nextEventId !== null) {
           const latestEvent = await getAdminEvent(nextEventId);
           setEventForm(toEventForm(latestEvent));
         }
 
-        showSuccess('행사가 성공적으로 생성되었습니다.');
+        showSuccess('행사와 기본 코스 3개가 성공적으로 생성되었습니다.');
       } else if (selectedEventId !== null) {
         const updatedEvent = await updateAdminEvent(selectedEventId, request);
         await refreshEvents(selectedEventId);
@@ -875,12 +923,17 @@ function AdminEventSettingsPage() {
 
       <label>
         <span>보상 유형</span>
-        <input
-          type="text"
+        <select
           value={form.rewardType}
-          placeholder="서버 rewardType 값"
+          required
           onChange={(event) => updateField('rewardType', event.target.value)}
-        />
+        >
+          <option value="">보상 유형 선택</option>
+          {!REWARD_TYPE_OPTIONS.some((option) => option.value === form.rewardType) && form.rewardType && (
+            <option value={form.rewardType} disabled>지원하지 않는 기존 값 ({form.rewardType})</option>
+          )}
+          {REWARD_TYPE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
       </label>
 
       <label>
@@ -910,6 +963,8 @@ function AdminEventSettingsPage() {
       </label>
     </div>
   );
+
+  const editingEvent = events.find((event) => event.eventId === selectedEventId) ?? null;
 
   return (
     <section className="admin-page admin-event-settings">
@@ -959,6 +1014,14 @@ function AdminEventSettingsPage() {
           </button>
         </div>
       </section>
+
+      {(editingEvent || isCreatingEvent) && (
+        <div className={`admin-event-settings__editing-context ${isCreatingEvent ? 'is-new' : ''}`} aria-live="polite">
+          <span>{isCreatingEvent ? '새 행사 작성 중' : '현재 수정 중인 행사'}</span>
+          <strong>{isCreatingEvent ? '아직 저장되지 않은 새 행사' : `${editingEvent?.roundNo}회 · ${editingEvent?.title}`}</strong>
+          <small>{isCreatingEvent ? '저장하기 전까지 기존 행사에는 영향을 주지 않습니다.' : `${EVENT_STATUS_LABELS[editingEvent!.status]} · 행사와 아래 코스는 모두 이 행사에만 적용됩니다.`}</small>
+        </div>
+      )}
 
       {pageError && (
         <p className="admin-event-settings__load-error" role="alert">
@@ -1204,6 +1267,14 @@ function AdminEventSettingsPage() {
             </div>
           </section>
 
+          {isCreatingEvent && (
+            <div className="admin-event-settings__default-courses-notice">
+              <div><span>자동 생성</span><strong>행사를 저장하면 기본 코스 3개를 함께 만듭니다.</strong></div>
+              <ul><li>단축 코스 · 10,000m</li><li>하프 코스 · 21,100m</li><li>풀 코스 · 42,195m</li></ul>
+              <p>생성 후 각 코스의 거리, 보상, 인원은 코스 설정에서 수정할 수 있습니다.</p>
+            </div>
+          )}
+
           <div className="admin-event-settings__form-footer">
             <div className="admin-event-settings__event-actions">
               {!isCreatingEvent && selectedEventId !== null && (
@@ -1250,8 +1321,8 @@ function AdminEventSettingsPage() {
         >
           <div className="admin-event-settings__section-heading">
             <div>
-              <h2 id="courseStandardsTitle">코스 기준·보상 설정</h2>
-              <p>선택한 행사의 코스 기준과 보상 정보를 설정합니다.</p>
+              <h2 id="courseStandardsTitle">{editingEvent?.title} 코스 기준·보상 설정</h2>
+              <p>아래 변경사항은 현재 선택된 {editingEvent?.roundNo}회 행사에만 적용됩니다.</p>
             </div>
             <button
               type="button"
@@ -1319,6 +1390,23 @@ function AdminEventSettingsPage() {
                   className="admin-event-settings__course-card admin-event-settings__course-card--new"
                   onSubmit={handleNewCourseSubmit}
                 >
+                  <div className="admin-event-settings__preset-selector">
+                    <label>
+                      <span>코스 기본값</span>
+                      <select
+                        defaultValue="SHORT"
+                        onChange={(event) => {
+                          clearFeedback();
+                          setNewCourseForm({ ...COURSE_PRESETS[event.target.value as CoursePresetKey] });
+                        }}
+                      >
+                        <option value="SHORT">단축 코스 · 10,000m</option>
+                        <option value="HALF">하프 코스 · 21,100m</option>
+                        <option value="FULL">풀 코스 · 42,195m</option>
+                      </select>
+                    </label>
+                    <p>선택한 코스의 거리, 독서량, 보상과 인원 기본값을 자동으로 채웁니다.</p>
+                  </div>
                   {renderCourseFields(newCourseForm, (field, value) => {
                     clearFeedback();
                     setNewCourseForm((current) => ({
