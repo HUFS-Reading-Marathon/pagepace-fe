@@ -3,6 +3,7 @@ import {
   approveAdminApplication,
   getAdminApplicationDetail,
   getAdminApplications,
+  rejectAdminApplication,
 } from '../../api/adminApplicationApi';
 import { ApiError } from '../../api/apiClient';
 import { getCurrentEvent } from '../../api/eventApi';
@@ -188,7 +189,7 @@ function AdminParticipantsPage() {
       const matchesKeyword =
         !normalizedKeyword ||
         [participant.name, participant.studentNo, participant.email].some(
-          (value) => value.toLowerCase().includes(normalizedKeyword),
+          (value) => value?.toLowerCase().includes(normalizedKeyword),
         );
       const matchesStatus =
         statusFilter === 'ALL' || participant.status === statusFilter;
@@ -372,7 +373,7 @@ function AdminParticipantsPage() {
         participant.status,
       participant.name,
       participant.studentNo,
-      participant.department,
+      participant.department ?? '',
       ADMIN_APPLICATION_AFFILIATION_LABELS[participant.affiliationType] ??
         participant.affiliationType,
       participant.phone,
@@ -399,6 +400,37 @@ function AdminParticipantsPage() {
     setFeedbackMessage(
       `현재 검색 결과 ${filteredParticipants.length}명의 목록을 다운로드했습니다.`,
     );
+  };
+
+  const handleReject = async (applicationId: number) => {
+    if (processingApplicationIdRef.current !== null || currentEventId === null) {
+      return;
+    }
+
+    const reason = window.prompt('참가 신청 반려 사유를 입력해 주세요.');
+    if (reason === null || !reason.trim()) return;
+
+    processingApplicationIdRef.current = applicationId;
+    setProcessingApplicationId(applicationId);
+    setFeedbackMessage('');
+    setFeedbackIsError(false);
+    setDetailActionError(null);
+
+    try {
+      await rejectAdminApplication(applicationId, reason);
+      const nextParticipants = await getAdminApplications(currentEventId);
+      setParticipants(nextParticipants);
+      setDetailApplication(await getAdminApplicationDetail(applicationId));
+      setFeedbackMessage('참가 신청을 반려했습니다.');
+    } catch (error) {
+      const message = getApiErrorMessage(error, '참가 신청을 반려하지 못했습니다.');
+      setFeedbackMessage(message);
+      setFeedbackIsError(true);
+      setDetailActionError(message);
+    } finally {
+      processingApplicationIdRef.current = null;
+      setProcessingApplicationId(null);
+    }
   };
 
   return (
@@ -505,6 +537,7 @@ function AdminParticipantsPage() {
           }
           onClose={handleCloseDialog}
           onApprove={handleApprove}
+          onReject={handleReject}
         />
       )}
     </section>

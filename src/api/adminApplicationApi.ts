@@ -66,3 +66,24 @@ export async function approveAdminApplication(applicationId: number) {
     { method: 'PATCH' },
   );
 }
+
+export async function rejectAdminApplication(
+  applicationId: number,
+  reason: string,
+) {
+  validateApplicationId(applicationId);
+  const normalizedReason = reason.trim();
+
+  if (!normalizedReason) {
+    throw new ApiError('반려 사유를 입력해 주세요.', 0, 'INVALID_REASON');
+  }
+
+  return apiRequest<AdminApplicationDetail>(
+    `${ADMIN_APPLICATIONS_PATH}/${applicationId}/reject`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason: normalizedReason }),
+    },
+  );
+}

@@ -16,6 +16,7 @@ type ParticipantDetailDialogProps = {
   isProcessing: boolean;
   onClose: () => void;
   onApprove: (applicationId: number) => void;
+  onReject: (applicationId: number) => void;
 };
 
 function ParticipantDetailDialog({
@@ -27,6 +28,7 @@ function ParticipantDetailDialog({
   isProcessing,
   onClose,
   onApprove,
+  onReject,
 }: ParticipantDetailDialogProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const onCloseRef = useRef(onClose);
@@ -220,8 +222,8 @@ function ParticipantDetailDialog({
                 <button
                   type="button"
                   className="admin-participant-dialog__button admin-participant-dialog__button--danger"
-                  disabled
-                  title="백엔드 반려 API 확인이 필요합니다."
+                  onClick={() => onReject(displayedApplication.applicationId)}
+                  disabled={isProcessing}
                 >
                   반려
                 </button>

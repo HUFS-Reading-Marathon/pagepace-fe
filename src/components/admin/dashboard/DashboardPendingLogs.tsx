@@ -20,9 +20,10 @@ function getBookSummary(log: AdminReadingLogResponse) {
 
 function hasServerWarning(log: AdminReadingLogResponse) {
   return (
-    log.recommendedRejectReasons.length > 0 ||
+    (log.recommendedRejectReasons?.length ?? 0) > 0 ||
     log.books.some(
-      (book) => book.pageExceeded || Boolean(book.warningMessage.trim()),
+      (book) =>
+        book.pageExceeded || Boolean(book.warningMessage?.trim()),
     )
   );
 }

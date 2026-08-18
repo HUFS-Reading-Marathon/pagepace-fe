@@ -10,10 +10,10 @@ export type AdminReadingLogStatus =
 export type AdminReadingLogBookResponse = {
   readingLogBookId: number;
   bookTitle: string;
-  author: string;
-  publisher: string;
-  isbn: string;
-  coverImageUrl: string;
+  author: string | null;
+  publisher: string | null;
+  isbn: string | null;
+  coverImageUrl: string | null;
   totalBookPages: number;
   submittedReadPages: number;
   existingApprovedReadPages: number;
@@ -21,7 +21,7 @@ export type AdminReadingLogBookResponse = {
   remainingPagesAfterApproval: number;
   completedAfterApproval: boolean;
   pageExceeded: boolean;
-  warningMessage: string;
+  warningMessage: string | null;
   displayOrder: number;
 };
 
@@ -39,12 +39,12 @@ export type AdminReadingLogResponse = {
   totalReadPages: number;
   convertedDistanceMeter: number;
   status: AdminReadingLogStatus;
-  adminComment: string;
-  reviewedAt: string;
+  adminComment: string | null;
+  reviewedAt: string | null;
   createdAt: string;
   updatedAt: string;
   books: AdminReadingLogBookResponse[];
-  recommendedRejectReasons: string[];
+  recommendedRejectReasons: string[] | null;
 };
 
 export type AdminReadingLogListParams = {

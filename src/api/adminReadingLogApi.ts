@@ -7,6 +7,22 @@ import { ApiError, apiRequest } from './apiClient';
 
 const ADMIN_READING_LOGS_PATH = '/api/admin/reading-logs';
 
+export type AdminReviewTarget = {
+  participantBookId: number;
+  participationId: number;
+  userId: number;
+  userName: string;
+  studentNo: string;
+  bookTitle: string;
+  author: string | null;
+  approvedReadPages: number;
+  distanceToCreditMeter: number;
+  reviewSearchUrl: string | null;
+  reviewSubmittedAt: string;
+  reviewVerified: boolean;
+  reviewVerifiedAt: string | null;
+};
+
 function validateId(id: number, label: '행사' | '독서일지') {
   if (!Number.isInteger(id) || id <= 0) {
     throw new ApiError(
@@ -56,6 +72,23 @@ export async function getAdminReadingLogDetail(readingLogId: number) {
   }
 
   return log;
+}
+
+export async function getAdminReviewTargets(eventId: number) {
+  validateId(eventId, '행사');
+  const targets = await apiRequest<AdminReviewTarget[]>(
+    `${ADMIN_READING_LOGS_PATH}/review-targets?eventId=${eventId}`,
+    { method: 'GET' },
+  );
+  return targets ?? [];
+}
+
+export function verifyAdminReview(participantBookId: number) {
+  validateId(participantBookId, '독서일지');
+  return apiRequest<AdminReviewTarget>(
+    `${ADMIN_READING_LOGS_PATH}/review-targets/${participantBookId}/verify`,
+    { method: 'PATCH' },
+  );
 }
 
 export async function approveAdminReadingLog(readingLogId: number) {

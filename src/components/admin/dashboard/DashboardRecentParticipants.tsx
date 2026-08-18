@@ -40,7 +40,7 @@ function DashboardRecentParticipants({
                   <td>
                     <Link to="/admin/participants">{participant.name}</Link>
                   </td>
-                  <td title={participant.department}>
+                  <td title={participant.department ?? undefined}>
                     {participant.department || '미입력'}
                   </td>
                   <td>{participant.courseName}</td>
