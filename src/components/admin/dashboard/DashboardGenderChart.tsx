@@ -3,11 +3,13 @@ import type { DashboardDistributionItem } from '../../../utils/dashboardAnalytic
 type DashboardGenderChartProps = {
   distribution: DashboardDistributionItem[];
   participantCount: number;
+  isSupported?: boolean;
 };
 
 function DashboardGenderChart({
   distribution,
   participantCount,
+  isSupported = true,
 }: DashboardGenderChartProps) {
   const hasOnlyUnanswered =
     distribution.length === 1 && distribution[0].label === '미응답';
@@ -24,7 +26,11 @@ function DashboardGenderChart({
         <h2>참가자 성별 분포</h2>
       </header>
 
-      {participantCount === 0 ? (
+      {!isSupported ? (
+        <div className="admin-dashboard__empty">
+          현재 백엔드 응답에 성별 통계가 포함되어 있지 않습니다.
+        </div>
+      ) : participantCount === 0 ? (
         <div className="admin-dashboard__empty">
           승인 참가자의 성별 정보가 없습니다.
         </div>

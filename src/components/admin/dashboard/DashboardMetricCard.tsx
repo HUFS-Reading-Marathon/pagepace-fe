@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 
 type DashboardMetricCardProps = {
   label: string;
-  value: number;
+  value: number | null;
   unit: string;
   description: string;
   to: string;
@@ -77,8 +77,8 @@ function DashboardMetricCard({
         </span>
       </div>
       <p className="admin-dashboard__metric-value">
-        <strong>{value.toLocaleString('ko-KR')}</strong>
-        <span>{unit}</span>
+        <strong>{value === null ? '—' : value.toLocaleString('ko-KR')}</strong>
+        {value !== null && <span>{unit}</span>}
       </p>
       <p className="admin-dashboard__metric-description">{description}</p>
       <Link to={to} className="admin-dashboard__card-link">

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../auth';
 
 const ACCOUNT_POPOVER_ID = 'admin-account-popover';
 const ACCOUNT_POPOVER_TITLE_ID = 'admin-account-popover-title';
@@ -15,6 +16,7 @@ function AdminHeader() {
   const accountTriggerRef = useRef<HTMLButtonElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const accountLabel = loginId || '관리자';
 
@@ -25,11 +27,7 @@ function AdminHeader() {
   const handleLogout = () => {
     closeAccountPopover();
 
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('loginId');
-
-    window.dispatchEvent(new Event('auth-change'));
-
+    logout();
     navigate('/');
   };
 

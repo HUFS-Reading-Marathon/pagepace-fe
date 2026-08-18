@@ -1,32 +1,43 @@
 import { type FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { ApiError, useAuth } from '../../auth';
 import './auth.css';
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { isLoading, login } = useAuth();
 
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [isSaved, setIsSaved] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!loginId.trim() || !password.trim()) {
+    if (isLoading) {
+      return;
+    }
+
+    const studentNo = loginId.trim();
+
+    if (!studentNo || !password) {
       setErrorMessage('아이디와 비밀번호를 모두 입력해 주세요.');
       return;
     }
 
     setErrorMessage('');
 
-    // API 연동 전 임시 로그인 처리
-    localStorage.setItem('isLoggedIn', 'true');
-    localStorage.setItem('loginId', loginId);
-
-    window.dispatchEvent(new Event('auth-change'));
-
-    navigate('/');
+    try {
+      await login({ studentNo, password });
+      navigate('/');
+    } catch (error) {
+      setErrorMessage(
+        error instanceof ApiError
+          ? error.message
+          : '로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
+      );
+    }
   };
 
   return (
@@ -53,6 +64,7 @@ function LoginPage() {
               onChange={(event) => setLoginId(event.target.value)}
               placeholder="학번 또는 이메일"
               autoComplete="username"
+              disabled={isLoading}
             />
           </div>
 
@@ -65,6 +77,7 @@ function LoginPage() {
               onChange={(event) => setPassword(event.target.value)}
               placeholder="비밀번호"
               autoComplete="current-password"
+              disabled={isLoading}
             />
           </div>
 
@@ -85,8 +98,13 @@ function LoginPage() {
 
           {errorMessage && <p className="auth-error">{errorMessage}</p>}
 
-          <button type="submit" className="auth-submit-button">
-            로그인
+          <button
+            type="submit"
+            className="auth-submit-button"
+            disabled={isLoading}
+            aria-busy={isLoading}
+          >
+            {isLoading ? '로그인 중...' : '로그인'}
           </button>
         </form>
 

@@ -1,407 +1,374 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { getAdminApplications } from '../../api/adminApplicationApi';
+import { ApiError } from '../../api/apiClient';
+import {
+  getAdminEventCourses,
+  getAdminEvents,
+} from '../../api/adminEventApi';
+import { getAdminReadingLogs } from '../../api/adminReadingLogApi';
 import StatusCourseSummary from '../../components/admin/status/StatusCourseSummary';
 import StatusFilters from '../../components/admin/status/StatusFilters';
-import StatusPreviewToggle from '../../components/admin/status/StatusPreviewToggle';
-import StatusPublishConfirmDialog from '../../components/admin/status/StatusPublishConfirmDialog';
 import StatusPublishPanel from '../../components/admin/status/StatusPublishPanel';
 import StatusSummary from '../../components/admin/status/StatusSummary';
 import StatusTable from '../../components/admin/status/StatusTable';
-import {
-  STATUS_PARTICIPANTS,
-  STATUS_READING_LOGS,
-} from '../../mocks/adminStatus';
-import {
-  DEFAULT_EVENT_SETTINGS,
-  EVENT_SETTINGS_STORAGE_KEY,
-  type EventSettings,
-} from '../../types/adminEventSettings';
+import type { AdminApplicationListItem } from '../../types/adminApplication';
+import type { AdminCourse, AdminEvent, EventStatus } from '../../types/adminEvent';
+import type { AdminReadingLogResponse } from '../../types/adminReadingLogApi';
 import type {
+  AdminCompetitionCourseFilter,
+  AdminCompetitionSortOption,
   StatusActivityFilter,
-  StatusCompletionFilter,
-  StatusCourseFilter,
-  StatusDialogMode,
-  StatusSortOption,
-  StatusVisibilitySettings,
 } from '../../types/adminStatus';
 import {
-  buildStatusSnapshot,
-  cloneStatusSnapshot,
+  buildAdminCompetitionRows,
   formatStatusDate,
-  formatStatusDateTime,
-  getStatusCourseSummaries,
-  hasUnpublishedChanges,
-  STATUS_COURSE_ORDER,
+  getAdminCompetitionCourseSummaries,
 } from '../../utils/statusAggregation';
 import '../../styles/admin-status.css';
 
-const INITIAL_VISIBILITY_SETTINGS: StatusVisibilitySettings = {
-  maskNames: true,
-  showRanks: true,
+type CompetitionData = {
+  applications: AdminApplicationListItem[];
+  logs: AdminReadingLogResponse[];
+  courses: AdminCourse[];
+  fetchedAt: string;
 };
 
-function isEventSettings(value: unknown): value is EventSettings {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
+const EVENT_SELECTION_ORDER: EventStatus[] = [
+  'IN_PROGRESS',
+  'APPLICATION_OPEN',
+  'APPLICATION_CLOSED',
+  'READY',
+  'DRAFT',
+  'ENDED',
+  'FINALIZED',
+  'ARCHIVED',
+];
 
-  const settings = value as Partial<EventSettings>;
-  const standards = settings.courseStandards;
+function chooseEventId(events: AdminEvent[]) {
+  for (const status of EVENT_SELECTION_ORDER) {
+    const event = events.find((item) => item.status === status);
 
-  return (
-    typeof settings.eventStartDate === 'string' &&
-    typeof settings.eventEndDate === 'string' &&
-    typeof settings.applyStartDate === 'string' &&
-    typeof settings.applyEndDate === 'string' &&
-    typeof settings.rewardStandard === 'string' &&
-    Boolean(standards) &&
-    typeof standards?.short === 'number' &&
-    typeof standards.half === 'number' &&
-    typeof standards.full === 'number'
-  );
-}
-
-function readEventSettings() {
-  try {
-    const storedValue = window.localStorage.getItem(
-      EVENT_SETTINGS_STORAGE_KEY,
-    );
-
-    if (!storedValue) {
-      return DEFAULT_EVENT_SETTINGS;
+    if (event) {
+      return event.eventId;
     }
-
-    const parsedValue: unknown = JSON.parse(storedValue);
-
-    return isEventSettings(parsedValue)
-      ? parsedValue
-      : DEFAULT_EVENT_SETTINGS;
-  } catch {
-    return DEFAULT_EVENT_SETTINGS;
   }
+
+  return events[0]?.eventId ?? null;
 }
 
 function getLocalDateValue(date = new Date()) {
   const timezoneOffset = date.getTimezoneOffset() * 60_000;
 
-  return new Date(date.getTime() - timezoneOffset)
-    .toISOString()
-    .slice(0, 10);
+  return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 10);
 }
 
-function getDefaultSelectedDate(settings: EventSettings) {
+function getDefaultSelectedDate(event: AdminEvent) {
   const today = getLocalDateValue();
-  const { eventStartDate, eventEndDate } = settings;
 
-  if (eventStartDate && today < eventStartDate) {
-    return eventStartDate;
+  if (today < event.eventStartDate) {
+    return event.eventStartDate;
   }
 
-  if (eventEndDate && today > eventEndDate) {
-    return eventEndDate;
+  if (today > event.eventEndDate) {
+    return event.eventEndDate;
   }
 
   return today;
 }
 
-function escapeCsvCell(value: string | number) {
-  const stringValue = String(value);
+function getApiErrorMessage(error: unknown) {
+  return error instanceof ApiError
+    ? error.message
+    : '대회 현황 데이터를 불러오지 못했습니다.';
+}
 
-  return /[",\r\n]/.test(stringValue)
-    ? `"${stringValue.replaceAll('"', '""')}"`
-    : stringValue;
+function requestCompetitionData(eventId: number) {
+  return Promise.all([
+    getAdminApplications(eventId),
+    getAdminReadingLogs({ eventId }),
+    getAdminEventCourses(eventId),
+  ]).then(([applications, logs, courses]) => ({
+    applications,
+    logs,
+    courses,
+    fetchedAt: new Date().toISOString(),
+  }));
 }
 
 function AdminStatusPage() {
-  const [eventSettings] = useState(readEventSettings);
-  const [selectedDate, setSelectedDate] = useState(() =>
-    getDefaultSelectedDate(eventSettings),
-  );
-  const [publishSettings, setPublishSettings] =
-    useState<StatusVisibilitySettings>(INITIAL_VISIBILITY_SETTINGS);
-  const [draftSnapshot, setDraftSnapshot] = useState(() =>
-    buildStatusSnapshot(
-      STATUS_PARTICIPANTS,
-      STATUS_READING_LOGS,
-      selectedDate,
-      eventSettings.courseStandards,
-      INITIAL_VISIBILITY_SETTINGS,
-    ),
-  );
-  const [publishedSnapshot, setPublishedSnapshot] =
-    useState<ReturnType<typeof cloneStatusSnapshot> | null>(null);
-  const [isPublic, setIsPublic] = useState(false);
-  const [lastPublishedAt, setLastPublishedAt] = useState<string | null>(
-    null,
-  );
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [previewCourseFilter, setPreviewCourseFilter] =
-    useState<StatusCourseFilter>('ALL');
+  const [events, setEvents] = useState<AdminEvent[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [competitionData, setCompetitionData] =
+    useState<CompetitionData | null>(null);
+  const [isEventsLoading, setIsEventsLoading] = useState(true);
+  const [isDataLoading, setIsDataLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [feedbackMessage, setFeedbackMessage] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
   const [courseFilter, setCourseFilter] =
-    useState<StatusCourseFilter>('ALL');
-  const [completionFilter, setCompletionFilter] =
-    useState<StatusCompletionFilter>('ALL');
+    useState<AdminCompetitionCourseFilter>('ALL');
   const [activityFilter, setActivityFilter] =
     useState<StatusActivityFilter>('ALL');
   const [sortOption, setSortOption] =
-    useState<StatusSortOption>('course-rank');
-  const [dialogMode, setDialogMode] =
-    useState<StatusDialogMode>(null);
-  const [feedbackMessage, setFeedbackMessage] = useState('');
+    useState<AdminCompetitionSortOption>('distance-desc');
+  const initialEventsRequestRef = useRef<Promise<AdminEvent[]> | null>(null);
+  const dataRequestRef = useRef<{
+    eventId: number;
+    promise: Promise<CompetitionData>;
+  } | null>(null);
+  const requestSequenceRef = useRef(0);
 
-  const isLoading = false;
-  const error: string | null = null;
+  useEffect(() => {
+    let isActive = true;
 
-  const summary = useMemo(() => {
-    const rows = draftSnapshot.participants;
-    const totalPages = rows.reduce(
-      (sum, participant) => sum + participant.cumulativePages,
-      0,
-    );
+    if (initialEventsRequestRef.current === null) {
+      initialEventsRequestRef.current = getAdminEvents();
+    }
 
-    return {
-      participantCount: rows.length,
-      activeParticipantCount: rows.filter(
-        (participant) => participant.dailyIncreasePages > 0,
-      ).length,
-      completedCount: rows.filter((participant) => participant.isCompleted)
-        .length,
-      newlyCompletedCount: rows.filter(
-        (participant) => participant.completedAt === selectedDate,
-      ).length,
-      totalPages,
-      totalDistanceMeters: totalPages * 5,
+    initialEventsRequestRef.current
+      .then((nextEvents) => {
+        if (!isActive) {
+          return;
+        }
+
+        const nextEventId = chooseEventId(nextEvents);
+        const nextEvent =
+          nextEvents.find((event) => event.eventId === nextEventId) ?? null;
+
+        setEvents(nextEvents);
+        setSelectedEventId(nextEventId);
+        setSelectedDate(nextEvent ? getDefaultSelectedDate(nextEvent) : '');
+        setIsDataLoading(nextEventId !== null);
+        setError(
+          nextEventId === null
+            ? '관리할 행사가 없습니다. 행사/코스 설정에서 행사를 등록해 주세요.'
+            : null,
+        );
+      })
+      .catch((requestError: unknown) => {
+        if (isActive) {
+          setError(getApiErrorMessage(requestError));
+        }
+      })
+      .finally(() => {
+        if (isActive) {
+          setIsEventsLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
     };
-  }, [draftSnapshot.participants, selectedDate]);
+  }, []);
 
-  const courseSummaries = useMemo(
-    () => getStatusCourseSummaries(draftSnapshot.participants),
-    [draftSnapshot.participants],
+  useEffect(() => {
+    if (selectedEventId === null) {
+      return;
+    }
+
+    let isActive = true;
+    const sequence = ++requestSequenceRef.current;
+
+    if (
+      dataRequestRef.current === null ||
+      dataRequestRef.current.eventId !== selectedEventId
+    ) {
+      dataRequestRef.current = {
+        eventId: selectedEventId,
+        promise: requestCompetitionData(selectedEventId),
+      };
+    }
+
+    const request = dataRequestRef.current;
+
+    request.promise
+      .then((data) => {
+        if (isActive && requestSequenceRef.current === sequence) {
+          setCompetitionData(data);
+          setError(null);
+        }
+      })
+      .catch((requestError: unknown) => {
+        if (isActive && requestSequenceRef.current === sequence) {
+          setCompetitionData(null);
+          setError(getApiErrorMessage(requestError));
+        }
+      })
+      .finally(() => {
+        if (dataRequestRef.current === request) {
+          dataRequestRef.current = null;
+        }
+
+        if (isActive && requestSequenceRef.current === sequence) {
+          setIsDataLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [selectedEventId]);
+
+  const selectedEvent = useMemo(
+    () =>
+      events.find((event) => event.eventId === selectedEventId) ?? null,
+    [events, selectedEventId],
   );
-
+  const rows = useMemo(
+    () =>
+      competitionData && selectedDate
+        ? buildAdminCompetitionRows(
+            competitionData.applications,
+            competitionData.logs,
+            competitionData.courses,
+            selectedDate,
+          )
+        : [],
+    [competitionData, selectedDate],
+  );
+  const summary = useMemo(
+    () =>
+      competitionData
+        ? {
+            participantCount: rows.length,
+            activeParticipantCount: rows.filter(
+              (participant) => participant.dailyIncreasePages > 0,
+            ).length,
+            completedCount: null,
+            newlyCompletedCount: null,
+            totalPages: rows.reduce(
+              (sum, participant) => sum + participant.cumulativePages,
+              0,
+            ),
+            totalDistanceMeters: rows.reduce(
+              (sum, participant) =>
+                sum + participant.cumulativeDistanceMeters,
+              0,
+            ),
+          }
+        : {
+            participantCount: null,
+            activeParticipantCount: null,
+            completedCount: null,
+            newlyCompletedCount: null,
+            totalPages: null,
+            totalDistanceMeters: null,
+          },
+    [competitionData, rows],
+  );
+  const courseSummaries = useMemo(
+    () =>
+      getAdminCompetitionCourseSummaries(
+        rows,
+        competitionData?.courses ?? [],
+      ),
+    [competitionData?.courses, rows],
+  );
   const filteredParticipants = useMemo(() => {
     const normalizedKeyword = searchKeyword.trim().toLowerCase();
 
-    return draftSnapshot.participants
+    return rows
       .filter((participant) => {
         const matchesKeyword =
           !normalizedKeyword ||
           participant.name.toLowerCase().includes(normalizedKeyword) ||
-          participant.studentNumber
-            .toLowerCase()
-            .includes(normalizedKeyword);
+          participant.studentNumber.toLowerCase().includes(normalizedKeyword);
         const matchesCourse =
           courseFilter === 'ALL' || participant.courseId === courseFilter;
-        const matchesCompletion =
-          completionFilter === 'ALL' ||
-          (completionFilter === 'completed'
-            ? participant.isCompleted
-            : !participant.isCompleted);
         const matchesActivity =
           activityFilter === 'ALL' ||
           (activityFilter === 'active'
             ? participant.dailyIncreasePages > 0
             : participant.dailyIncreasePages === 0);
 
-        return (
-          matchesKeyword &&
-          matchesCourse &&
-          matchesCompletion &&
-          matchesActivity
-        );
+        return matchesKeyword && matchesCourse && matchesActivity;
       })
-      .sort((firstParticipant, secondParticipant) => {
-        if (sortOption === 'overall-rank') {
-          return (
-            firstParticipant.overallRank - secondParticipant.overallRank
-          );
-        }
-
+      .sort((left, right) => {
         if (sortOption === 'pages-desc') {
           return (
-            secondParticipant.cumulativePages -
-              firstParticipant.cumulativePages ||
-            firstParticipant.overallRank - secondParticipant.overallRank
+            right.cumulativePages - left.cumulativePages ||
+            left.name.localeCompare(right.name, 'ko-KR')
           );
         }
 
         if (sortOption === 'name-asc') {
-          return firstParticipant.name.localeCompare(
-            secondParticipant.name,
-            'ko-KR',
-          );
+          return left.name.localeCompare(right.name, 'ko-KR');
         }
 
         return (
-          STATUS_COURSE_ORDER.indexOf(firstParticipant.courseId) -
-            STATUS_COURSE_ORDER.indexOf(secondParticipant.courseId) ||
-          firstParticipant.courseRank - secondParticipant.courseRank
+          right.cumulativeDistanceMeters - left.cumulativeDistanceMeters ||
+          left.name.localeCompare(right.name, 'ko-KR')
         );
       });
-  }, [
-    activityFilter,
-    completionFilter,
-    courseFilter,
-    draftSnapshot.participants,
-    searchKeyword,
-    sortOption,
-  ]);
+  }, [activityFilter, courseFilter, rows, searchKeyword, sortOption]);
 
-  const draftHasUnpublishedChanges = useMemo(
-    () => hasUnpublishedChanges(draftSnapshot, publishedSnapshot),
-    [draftSnapshot, publishedSnapshot],
-  );
+  const handleEventSelection = (value: string) => {
+    const eventId = Number(value);
+    const nextEvent = events.find((event) => event.eventId === eventId);
 
-  const rebuildDraft = (
-    baseDate: string,
-    settings: StatusVisibilitySettings,
-  ) =>
-    buildStatusSnapshot(
-      STATUS_PARTICIPANTS,
-      STATUS_READING_LOGS,
-      baseDate,
-      eventSettings.courseStandards,
-      settings,
-    );
-
-  const handleSelectedDateChange = (value: string) => {
-    if (!value) {
+    if (!nextEvent || eventId === selectedEventId) {
       return;
     }
 
-    setSelectedDate(value);
-    setDraftSnapshot(rebuildDraft(value, publishSettings));
-    setFeedbackMessage(
-      `${formatStatusDate(value)} 기준 현황을 집계했습니다.`,
-    );
+    requestSequenceRef.current += 1;
+    setCompetitionData(null);
+    setIsDataLoading(true);
+    setError(null);
+    setFeedbackMessage('');
+    setSearchKeyword('');
+    setCourseFilter('ALL');
+    setActivityFilter('ALL');
+    setSortOption('distance-desc');
+    setSelectedDate(getDefaultSelectedDate(nextEvent));
+    setSelectedEventId(eventId);
   };
 
-  const handleSettingsChange = (
-    field: keyof StatusVisibilitySettings,
-    checked: boolean,
-  ) => {
-    const nextSettings = {
-      ...publishSettings,
-      [field]: checked,
-    };
+  const handleRefresh = async () => {
+    if (selectedEventId === null || isDataLoading) {
+      return;
+    }
 
-    setPublishSettings(nextSettings);
-    setDraftSnapshot((currentSnapshot) => ({
-      ...currentSnapshot,
-      settings: { ...nextSettings },
-    }));
-    setFeedbackMessage('공개 미리보기 설정을 변경했습니다.');
-  };
+    const eventId = selectedEventId;
+    const sequence = ++requestSequenceRef.current;
 
-  const handleRecalculate = () => {
-    setDraftSnapshot(rebuildDraft(selectedDate, publishSettings));
-    setFeedbackMessage(
-      '현재 원본 데이터로 초안을 다시 계산했습니다. 공개본은 변경되지 않았습니다.',
-    );
+    setIsDataLoading(true);
+    setError(null);
+    setFeedbackMessage('');
+
+    try {
+      const data = await requestCompetitionData(eventId);
+
+      if (requestSequenceRef.current !== sequence) {
+        return;
+      }
+
+      setCompetitionData(data);
+      setFeedbackMessage('선택한 행사의 서버 데이터를 다시 조회했습니다.');
+    } catch (requestError: unknown) {
+      if (requestSequenceRef.current === sequence) {
+        setCompetitionData(null);
+        setError(getApiErrorMessage(requestError));
+      }
+    } finally {
+      if (requestSequenceRef.current === sequence) {
+        setIsDataLoading(false);
+      }
+    }
   };
 
   const handleResetFilters = () => {
     setSearchKeyword('');
     setCourseFilter('ALL');
-    setCompletionFilter('ALL');
     setActivityFilter('ALL');
-    setSortOption('course-rank');
+    setSortOption('distance-desc');
   };
 
-  const handleDownload = () => {
-    if (draftSnapshot.participants.length === 0) {
-      return;
-    }
-
-    const headers = [
-      '기준 날짜',
-      '코스별 순위',
-      '전체 참고 순위',
-      '이름',
-      '학번',
-      '코스',
-      '목표 페이지',
-      '누적 페이지',
-      '누적 거리(m)',
-      '해당 날짜 증가 페이지',
-      '해당 날짜 증가 거리(m)',
-      '달성률(%)',
-      '완주 여부',
-      '완주일',
-      '마지막 반영 일시',
-    ];
-    const rows = draftSnapshot.participants.map((participant) => [
-      draftSnapshot.baseDate,
-      participant.courseRank,
-      participant.overallRank,
-      participant.name,
-      participant.studentNumber,
-      participant.courseName,
-      participant.targetPages,
-      participant.cumulativePages,
-      participant.cumulativeDistanceMeters,
-      participant.dailyIncreasePages,
-      participant.dailyIncreaseDistanceMeters,
-      participant.progressRate.toFixed(1),
-      participant.isCompleted ? '완주' : '미완주',
-      participant.completedAt ?? '',
-      participant.lastProgressAt
-        ? formatStatusDateTime(participant.lastProgressAt)
-        : '',
-    ]);
-    const csvContent = [headers, ...rows]
-      .map((row) => row.map(escapeCsvCell).join(','))
-      .join('\r\n');
-    const downloadBlob = new Blob([`\uFEFF${csvContent}`], {
-      type: 'text/csv;charset=utf-8',
-    });
-    const objectUrl = URL.createObjectURL(downloadBlob);
-    const downloadLink = document.createElement('a');
-
-    downloadLink.href = objectUrl;
-    downloadLink.download = `독서마라톤_대회현황_${draftSnapshot.baseDate}.csv`;
-    document.body.append(downloadLink);
-    downloadLink.click();
-    downloadLink.remove();
-    URL.revokeObjectURL(objectUrl);
-    setFeedbackMessage(
-      '현재 전체 초안 현황을 Excel 호환 CSV로 다운로드했습니다.',
-    );
-  };
-
-  const handleConfirmDialog = () => {
-    if (dialogMode === 'publish') {
-      const publishedAt = new Date().toISOString();
-      const nextPublishedSnapshot = cloneStatusSnapshot(
-        draftSnapshot,
-        `status-published-${publishedAt}`,
-        publishedAt,
-      );
-
-      setPublishedSnapshot(nextPublishedSnapshot);
-      setIsPublic(true);
-      setLastPublishedAt(publishedAt);
-      setFeedbackMessage(
-        isPublic
-          ? '현재 전체 초안으로 공개본을 업데이트했습니다.'
-          : '현재 전체 초안으로 대회 현황을 공개했습니다.',
-      );
-    } else if (dialogMode === 'unpublish') {
-      setIsPublic(false);
-      setFeedbackMessage(
-        '대회 현황을 비공개로 전환했습니다. 기존 공개본은 유지됩니다.',
-      );
-    }
-
-    setDialogMode(null);
-  };
-
-  const eventPeriodLabel =
-    eventSettings.eventStartDate && eventSettings.eventEndDate
-      ? `${formatStatusDate(
-          eventSettings.eventStartDate,
-        )} ~ ${formatStatusDate(eventSettings.eventEndDate)}`
-      : '행사 기간 미설정';
+  const eventPeriodLabel = selectedEvent
+    ? `${formatStatusDate(selectedEvent.eventStartDate)} ~ ${formatStatusDate(
+        selectedEvent.eventEndDate,
+      )}`
+    : '행사 기간 미설정';
 
   return (
     <section className="admin-page admin-status">
@@ -409,24 +376,46 @@ function AdminStatusPage() {
         <div className="admin-status__heading">
           <h1>대회 현황 관리</h1>
           <p>
-            승인된 참가자와 독서일지를 기준으로 현황을 집계하고 사용자
-            공개본을 관리합니다.
+            승인된 참가자와 독서일지를 기준으로 실제 서버 현황을
+            조회합니다.
           </p>
         </div>
 
-        <div className="admin-status__date-control">
-          <label htmlFor="statusSelectedDate">기준 날짜</label>
-          <input
-            id="statusSelectedDate"
-            type="date"
-            min={eventSettings.eventStartDate || undefined}
-            max={eventSettings.eventEndDate || undefined}
-            value={selectedDate}
-            onChange={(event) =>
-              handleSelectedDateChange(event.target.value)
-            }
-          />
-          <small>행사 운영 기간 {eventPeriodLabel}</small>
+        <div className="admin-status__header-controls">
+          <div className="admin-status__date-control">
+            <label htmlFor="statusEventSelect">관리 행사</label>
+            <select
+              id="statusEventSelect"
+              value={selectedEventId ?? ''}
+              disabled={isEventsLoading || events.length === 0}
+              onChange={(event) => handleEventSelection(event.target.value)}
+            >
+              {events.length === 0 && <option value="">등록된 행사 없음</option>}
+              {events.map((event) => (
+                <option key={event.eventId} value={event.eventId}>
+                  {event.roundNo}회 · {event.title}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="admin-status__date-control">
+            <label htmlFor="statusSelectedDate">기준 날짜</label>
+            <input
+              id="statusSelectedDate"
+              type="date"
+              min={selectedEvent?.eventStartDate}
+              max={selectedEvent?.eventEndDate}
+              value={selectedDate}
+              disabled={!selectedEvent}
+              onChange={(event) => {
+                setSelectedDate(event.target.value);
+                setFeedbackMessage(
+                  `${formatStatusDate(event.target.value)} 기준으로 표시합니다.`,
+                );
+              }}
+            />
+            <small>행사 운영 기간 {eventPeriodLabel}</small>
+          </div>
         </div>
       </header>
 
@@ -436,68 +425,40 @@ function AdminStatusPage() {
         <strong>집계 정책</strong>
         <span>승인 참가자만 포함</span>
         <span>승인된 독서일지만 반영</span>
-        <span>1쪽 = 5m</span>
-        <span>기준 날짜까지의 독서 날짜로 계산</span>
+        <span>서버 페이지·거리 값 사용</span>
+        <span>완주·순위는 서버 판정 API 필요</span>
       </aside>
 
       <StatusPublishPanel
-        isPublic={isPublic}
-        hasUnpublishedChanges={draftHasUnpublishedChanges}
-        settings={publishSettings}
-        lastCalculatedAt={draftSnapshot.generatedAt}
-        lastPublishedAt={lastPublishedAt}
-        publishedSnapshot={publishedSnapshot}
-        canDownload={draftSnapshot.participants.length > 0}
-        onSettingsChange={handleSettingsChange}
-        onRecalculate={handleRecalculate}
-        onDownload={handleDownload}
-        onPublish={() => setDialogMode('publish')}
-        onUnpublish={() => setDialogMode('unpublish')}
+        lastCalculatedAt={competitionData?.fetchedAt ?? null}
+        isRefreshing={isDataLoading}
+        canRefresh={selectedEventId !== null}
+        onRecalculate={handleRefresh}
       />
 
-      <div
-        className="admin-status__feedback"
-        role="status"
-        aria-live="polite"
-      >
+      <div className="admin-status__feedback" role="status" aria-live="polite">
         {feedbackMessage}
       </div>
-
-      <StatusPreviewToggle
-        isOpen={isPreviewOpen}
-        baseDate={draftSnapshot.baseDate}
-        participants={draftSnapshot.participants}
-        settings={publishSettings}
-        isPublic={isPublic}
-        hasUnpublishedChanges={draftHasUnpublishedChanges}
-        courseFilter={previewCourseFilter}
-        onToggle={() => setIsPreviewOpen((currentValue) => !currentValue)}
-        onCourseFilterChange={setPreviewCourseFilter}
-      />
 
       <StatusCourseSummary summaries={courseSummaries} />
 
       <div className="admin-status__section-heading admin-status__table-heading">
         <div>
           <h2>참가자별 현황</h2>
-          <p>
-            검색과 필터는 관리자 표에만 적용되며 공개본과 다운로드에는
-            영향을 주지 않습니다.
-          </p>
+          <p>검색과 필터는 조회된 전체 행사 데이터에 적용됩니다.</p>
         </div>
       </div>
 
       <StatusFilters
         searchKeyword={searchKeyword}
         courseFilter={courseFilter}
-        completionFilter={completionFilter}
+        courses={competitionData?.courses ?? []}
         activityFilter={activityFilter}
         sortOption={sortOption}
         resultCount={filteredParticipants.length}
-        totalCount={draftSnapshot.participants.length}
+        totalCount={rows.length}
         onSearchKeywordChange={setSearchKeyword}
         onCourseFilterChange={setCourseFilter}
-        onCompletionFilterChange={setCompletionFilter}
         onActivityFilterChange={setActivityFilter}
         onSortOptionChange={setSortOption}
         onReset={handleResetFilters}
@@ -505,20 +466,10 @@ function AdminStatusPage() {
 
       <StatusTable
         participants={filteredParticipants}
-        hasParticipants={draftSnapshot.participants.length > 0}
-        isLoading={isLoading}
+        hasParticipants={rows.length > 0}
+        isLoading={isEventsLoading || isDataLoading}
         error={error}
       />
-
-      {dialogMode && (
-        <StatusPublishConfirmDialog
-          mode={dialogMode}
-          snapshot={draftSnapshot}
-          isPublic={isPublic}
-          onClose={() => setDialogMode(null)}
-          onConfirm={handleConfirmDialog}
-        />
-      )}
     </section>
   );
 }

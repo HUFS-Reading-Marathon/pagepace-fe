@@ -336,6 +336,125 @@
   line-height: 1.45;
 }
 
+.auth-email-verification__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.auth-email-verification__code-row {
+  margin-top: 10px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.auth-email-verification__otp {
+  display: grid;
+  grid-template-columns: repeat(6, 42px);
+  gap: 6px;
+}
+
+.auth-email-verification .auth-email-verification__digit {
+  width: 42px;
+  height: 42px;
+  min-width: 0;
+  padding: 0;
+  border-color: #cbd5e1;
+  border-radius: 7px;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1;
+  text-align: center;
+  caret-color: var(--navy-strong);
+}
+
+.auth-email-verification .auth-email-verification__digit:focus {
+  border-color: var(--navy-strong);
+  box-shadow: none;
+}
+
+.auth-email-verification__timer {
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.auth-email-verification__button {
+  min-width: 88px;
+  height: 50px;
+  padding: 0 14px;
+  border: 1px solid var(--navy-strong);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--navy-strong);
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.auth-email-verification__button:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: var(--navy-strong);
+}
+
+.auth-email-verification__button:focus-visible {
+  outline: 3px solid rgba(31, 79, 130, 0.16);
+  outline-offset: 2px;
+}
+
+.auth-email-verification__button:disabled {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.auth-email-verification__button.is-verified {
+  border-color: #94a3b8;
+  background: #f1f5f9;
+  color: var(--navy-strong);
+}
+
+.auth-email-verification__confirm {
+  min-width: 72px;
+  height: 42px;
+  background: var(--navy-strong);
+  color: #fff;
+}
+
+.auth-email-verification__confirm:hover:not(:disabled) {
+  background: #163a60;
+  color: #fff;
+}
+
+.auth-email-verification__message {
+  min-height: 19px;
+  margin: 7px 0 0;
+  color: var(--navy-strong);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.auth-email-verification__message.is-error {
+  color: #b91c1c;
+}
+
+.auth-shell-apply .auth-submit-button:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+.auth-shell-apply .auth-submit-button:disabled:hover {
+  background: #94a3b8;
+}
+
 .auth-affiliation-group {
   padding: 0;
   border: 0;
@@ -415,13 +534,6 @@
   margin-top: 4px;
 }
 
-.auth-footer-links {
-  display: flex;
-  justify-content: center;
-  gap: 14px;
-  flex-wrap: wrap;
-}
-
 .auth-shell-pending {
   text-align: center;
 }
@@ -467,10 +579,32 @@ main.auth-page.auth-page-pending {
     grid-template-columns: 1fr;
   }
 
-  .auth-footer-links {
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
+  .auth-email-verification__button {
+    min-width: 80px;
+    padding: 0 11px;
+    font-size: 13px;
+  }
+
+  .auth-email-verification__code-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .auth-email-verification__otp {
+    width: 100%;
+    grid-template-columns: repeat(6, minmax(0, 42px));
+    gap: clamp(4px, 1.5vw, 6px);
+  }
+
+  .auth-email-verification .auth-email-verification__digit {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 1;
+  }
+
+  .auth-email-verification__confirm {
+    grid-column: 1 / -1;
+    justify-self: end;
   }
 }
 
@@ -560,5 +694,18 @@ main.auth-page.auth-page-pending > .auth-watermark {
   .auth-shell-pending .auth-pending-button {
     width: 200px !important;
     min-width: 200px;
+  }
+}
+
+@media (max-width: 560px) {
+  main.auth-page.auth-page-apply .auth-shell-apply {
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    min-width: 0 !important;
+  }
+
+  .auth-email-verification__row,
+  .auth-email-verification__row input {
+    min-width: 0;
   }
 }

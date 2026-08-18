@@ -3,10 +3,12 @@ import type { StatusCourseSummary } from '../../../types/adminStatus';
 
 type DashboardCourseCompletionProps = {
   summaries: StatusCourseSummary[];
+  isSupported?: boolean;
 };
 
 function DashboardCourseCompletion({
   summaries,
+  isSupported = true,
 }: DashboardCourseCompletionProps) {
   const totalParticipants = summaries.reduce(
     (sum, summary) => sum + summary.participantCount,
@@ -22,47 +24,55 @@ function DashboardCourseCompletion({
       <header className="admin-dashboard__card-header">
         <h2>코스별 완주 현황</h2>
         <strong>
-          {totalCompleted} / {totalParticipants}명
+          {isSupported
+            ? `${totalCompleted} / ${totalParticipants}명`
+            : '집계 미지원'}
         </strong>
       </header>
 
-      <div className="admin-dashboard__course-list">
-        {summaries.map((summary) => {
-          const completionRate =
-            summary.participantCount > 0
-              ? (summary.completedCount / summary.participantCount) * 100
-              : 0;
+      {!isSupported ? (
+        <div className="admin-dashboard__empty">
+          현재 백엔드 응답에 참가자별 완주 집계가 포함되어 있지 않습니다.
+        </div>
+      ) : (
+        <div className="admin-dashboard__course-list">
+          {summaries.map((summary) => {
+            const completionRate =
+              summary.participantCount > 0
+                ? (summary.completedCount / summary.participantCount) * 100
+                : 0;
 
-          return (
-            <div
-              className="admin-dashboard__course-item"
-              key={summary.courseId}
-            >
-              <div className="admin-dashboard__course-heading">
-                <strong>{summary.courseName}</strong>
-                <div>
-                  <strong>
-                    {summary.completedCount} / {summary.participantCount}명
-                  </strong>
-                  {summary.participantCount === 0 && (
-                    <span>참가자 없음</span>
-                  )}
+            return (
+              <div
+                className="admin-dashboard__course-item"
+                key={summary.courseId}
+              >
+                <div className="admin-dashboard__course-heading">
+                  <strong>{summary.courseName}</strong>
+                  <div>
+                    <strong>
+                      {summary.completedCount} / {summary.participantCount}명
+                    </strong>
+                    {summary.participantCount === 0 && (
+                      <span>참가자 없음</span>
+                    )}
+                  </div>
+                </div>
+                <div className="admin-dashboard__progress-row">
+                  <progress
+                    max="100"
+                    value={Math.min(completionRate, 100)}
+                    aria-label={`${summary.courseName} 완주율 ${completionRate.toFixed(
+                      1,
+                    )}%`}
+                  />
+                  <strong>{completionRate.toFixed(1)}%</strong>
                 </div>
               </div>
-              <div className="admin-dashboard__progress-row">
-                <progress
-                  max="100"
-                  value={Math.min(completionRate, 100)}
-                  aria-label={`${summary.courseName} 완주율 ${completionRate.toFixed(
-                    1,
-                  )}%`}
-                />
-                <strong>{completionRate.toFixed(1)}%</strong>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       <Link to="/admin/status" className="admin-dashboard__card-link">
         전체 현황 보기

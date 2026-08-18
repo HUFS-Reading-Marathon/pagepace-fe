@@ -1,12 +1,11 @@
-import type { ParticipantStatusRow } from '../../../types/adminStatus';
+import type { AdminCompetitionParticipantRow } from '../../../types/adminStatus';
 import {
   formatStatusDate,
-  formatStatusDateTime,
   formatStatusDistance,
 } from '../../../utils/statusAggregation';
 
 type StatusTableProps = {
-  participants: ParticipantStatusRow[];
+  participants: AdminCompetitionParticipantRow[];
   hasParticipants: boolean;
   isLoading: boolean;
   error: string | null;
@@ -29,7 +28,7 @@ function StatusTable({
   if (error) {
     return (
       <div className="admin-status__empty" role="alert">
-        대회 현황을 불러오지 못했습니다.
+        {error}
       </div>
     );
   }
@@ -54,8 +53,8 @@ function StatusTable({
         <caption className="sr-only">관리자용 참가자별 대회 현황</caption>
         <thead>
           <tr>
-            <th scope="col">코스 순위</th>
-            <th scope="col">전체 순위</th>
+            <th scope="col">소속</th>
+            <th scope="col">승인 일지</th>
             <th scope="col">이름</th>
             <th scope="col">학번</th>
             <th scope="col">코스</th>
@@ -70,12 +69,10 @@ function StatusTable({
         </thead>
         <tbody>
           {participants.map((participant) => (
-            <tr key={participant.participantId}>
-              <td className="admin-status__rank">
-                {participant.courseRank}위
-              </td>
-              <td className="admin-status__rank">
-                {participant.overallRank}위
+            <tr key={participant.applicationId}>
+              <td>{participant.department || '—'}</td>
+              <td className="admin-status__number">
+                {participant.approvedLogCount}건
               </td>
               <td className="admin-status__name">{participant.name}</td>
               <td className="admin-status__nowrap">
@@ -100,30 +97,21 @@ function StatusTable({
                   : '—'}
               </td>
               <td className="admin-status__nowrap">
-                {participant.progressRate.toFixed(1)}%
+                {participant.progressRate === null
+                  ? '—'
+                  : `${participant.progressRate.toFixed(1)}%`}
               </td>
               <td>
-                {participant.isCompleted ? (
-                  <span className="admin-status__completion admin-status__completion--complete">
-                    완주
-                    {participant.courseId === 'full' && (
-                      <small>FULL</small>
-                    )}
-                  </span>
-                ) : (
-                  <span className="admin-status__completion admin-status__completion--progress">
-                    진행 중
-                  </span>
-                )}
+                <span className="admin-status__completion admin-status__completion--progress">
+                  판정 미지원
+                </span>
               </td>
               <td className="admin-status__nowrap">
-                {participant.completedAt
-                  ? formatStatusDate(participant.completedAt)
-                  : '—'}
+                —
               </td>
               <td className="admin-status__last-progress">
-                {participant.lastProgressAt
-                  ? formatStatusDateTime(participant.lastProgressAt)
+                {participant.lastReadingDate
+                  ? formatStatusDate(participant.lastReadingDate)
                   : '승인 기록 없음'}
               </td>
             </tr>

@@ -16,6 +16,7 @@ type ReadingLogTableProps = {
   hasLogs: boolean;
   isLoading: boolean;
   error: string | null;
+  processingLogId?: string | null;
   selectedLogIds: string[];
   onToggleLog: (logId: string, checked: boolean) => void;
   onToggleAll: (checked: boolean) => void;
@@ -30,6 +31,7 @@ function ReadingLogTable({
   hasLogs,
   isLoading,
   error,
+  processingLogId = null,
   selectedLogIds,
   onToggleLog,
   onToggleAll,
@@ -64,7 +66,7 @@ function ReadingLogTable({
   if (error) {
     return (
       <div className="admin-reading-logs__empty" role="alert">
-        독서일지를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.
+        {error}
       </div>
     );
   }
@@ -72,7 +74,7 @@ function ReadingLogTable({
   if (!hasLogs) {
     return (
       <div className="admin-reading-logs__empty">
-        등록된 독서일지가 없습니다.
+        검토할 독서일지가 없습니다.
       </div>
     );
   }
@@ -166,7 +168,8 @@ function ReadingLogTable({
                 </td>
                 <td className="admin-reading-logs__nowrap">
                   {formatReadingDistance(
-                    getReadingDistanceMeters(totalReadPages),
+                    log.convertedDistanceMeter ??
+                      getReadingDistanceMeters(totalReadPages),
                   )}
                 </td>
                 <td>
@@ -191,6 +194,7 @@ function ReadingLogTable({
                     <button
                       type="button"
                       className="admin-reading-logs__table-button"
+                      disabled={processingLogId === log.id}
                       onClick={() => onOpenDialog(log.id, 'detail')}
                     >
                       {log.status === 'submit' ? '상세 검토' : '상세 보기'}
@@ -200,7 +204,10 @@ function ReadingLogTable({
                         <button
                           type="button"
                           className="admin-reading-logs__table-button admin-reading-logs__table-button--approve"
-                          disabled={validationIssues.length > 0}
+                          disabled={
+                            validationIssues.length > 0 ||
+                            processingLogId === log.id
+                          }
                           title={
                             validationIssues.length > 0
                               ? '자동 검증 문제를 먼저 확인해 주세요.'
@@ -209,12 +216,14 @@ function ReadingLogTable({
                           onClick={() =>
                             onOpenDialog(log.id, 'approve-confirm')
                           }
+                          aria-busy={processingLogId === log.id}
                         >
                           승인
                         </button>
                         <button
                           type="button"
                           className="admin-reading-logs__table-button admin-reading-logs__table-button--reject"
+                          disabled={processingLogId === log.id}
                           onClick={() => onOpenDialog(log.id, 'reject')}
                         >
                           반려

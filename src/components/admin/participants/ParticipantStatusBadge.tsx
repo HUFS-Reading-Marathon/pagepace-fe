@@ -1,14 +1,14 @@
 import {
-  PARTICIPANT_STATUS_LABELS,
-  type ParticipantApplicationStatus,
-} from '../../../types/adminParticipant';
+  ADMIN_APPLICATION_STATUS_LABELS,
+  type AdminApplicationStatus,
+} from '../../../types/adminApplication';
 
 type ParticipantStatusBadgeProps = {
-  status: ParticipantApplicationStatus;
+  status: AdminApplicationStatus;
 };
 
-const STATUS_CLASS_NAMES: Record<ParticipantApplicationStatus, string> = {
-  PENDING: 'pending',
+const STATUS_CLASS_NAMES: Record<AdminApplicationStatus, string> = {
+  APPLIED: 'pending',
   APPROVED: 'approved',
   REJECTED: 'rejected',
   CANCELLED: 'cancelled',
@@ -22,7 +22,7 @@ function ParticipantStatusBadge({ status }: ParticipantStatusBadgeProps) {
         `admin-participant-status--${STATUS_CLASS_NAMES[status]}`,
       ].join(' ')}
     >
-      {PARTICIPANT_STATUS_LABELS[status]}
+      {ADMIN_APPLICATION_STATUS_LABELS[status] ?? status}
     </span>
   );
 }

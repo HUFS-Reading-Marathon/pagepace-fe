@@ -1,26 +1,26 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  approveAdminApplication,
+  getAdminApplicationDetail,
+  getAdminApplications,
+} from '../../api/adminApplicationApi';
+import { ApiError } from '../../api/apiClient';
+import { getCurrentEvent } from '../../api/eventApi';
 import ParticipantDetailDialog from '../../components/admin/participants/ParticipantDetailDialog';
 import ParticipantFilters from '../../components/admin/participants/ParticipantFilters';
 import ParticipantTable from '../../components/admin/participants/ParticipantTable';
-import { ADMIN_PARTICIPANTS } from '../../mocks/adminParticipants';
 import {
-  COURSE_LABELS,
-  PARTICIPANT_STATUS_LABELS,
-  formatParticipantDateTime,
-  getAffiliationDisplay,
-  type AdminParticipant,
-  type AdminParticipantUpdate,
+  ADMIN_APPLICATION_AFFILIATION_LABELS,
+  ADMIN_APPLICATION_STATUS_LABELS,
+  formatAdminApplicationDateTime,
+  type AdminApplicationAffiliationType,
+  type AdminApplicationDetail,
+  type AdminApplicationListItem,
   type ParticipantAffiliationFilter,
   type ParticipantCourseFilter,
-  type ParticipantDialogMode,
   type ParticipantStatusFilter,
-} from '../../types/adminParticipant';
+} from '../../types/adminApplication';
 import '../../styles/admin-participants.css';
-
-type DialogRequest = {
-  participantId: string;
-  initialMode: ParticipantDialogMode;
-};
 
 const CSV_HEADERS = [
   '신청 상태',
@@ -32,9 +32,6 @@ const CSV_HEADERS = [
   '이메일',
   '선택 코스',
   '신청일',
-  '개인정보 동의 여부',
-  '반려 사유',
-  '관리자 메모',
 ];
 
 function escapeCsvValue(value: string) {
@@ -49,10 +46,23 @@ function getLocalDateStamp(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
+function getApiErrorMessage(error: unknown, fallback: string) {
+  return error instanceof ApiError ? error.message : fallback;
+}
+
 function AdminParticipantsPage() {
-  const [participants, setParticipants] = useState<AdminParticipant[]>(() => [
-    ...ADMIN_PARTICIPANTS,
-  ]);
+  const [participants, setParticipants] = useState<
+    AdminApplicationListItem[]
+  >([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentEventId, setCurrentEventId] = useState<number | null>(null);
+  const initialListRequestRef = useRef<
+    Promise<{
+      eventId: number;
+      applications: AdminApplicationListItem[];
+    }> | null
+  >(null);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [statusFilter, setStatusFilter] =
     useState<ParticipantStatusFilter>('ALL');
@@ -60,30 +70,114 @@ function AdminParticipantsPage() {
     useState<ParticipantCourseFilter>('ALL');
   const [affiliationFilter, setAffiliationFilter] =
     useState<ParticipantAffiliationFilter>('ALL');
-  const [dialogRequest, setDialogRequest] =
-    useState<DialogRequest | null>(null);
+  const [selectedApplicationId, setSelectedApplicationId] = useState<
+    number | null
+  >(null);
+  const [detailApplication, setDetailApplication] =
+    useState<AdminApplicationDetail | null>(null);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [detailActionError, setDetailActionError] = useState<string | null>(
+    null,
+  );
+  const detailRequestSequenceRef = useRef(0);
+  const [processingApplicationId, setProcessingApplicationId] = useState<
+    number | null
+  >(null);
+  const processingApplicationIdRef = useRef<number | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [feedbackIsError, setFeedbackIsError] = useState(false);
   const dialogOpenerRef = useRef<HTMLElement | null>(null);
 
-  const isLoading = false;
-  const error: string | null = null;
+  useEffect(() => {
+    let isActive = true;
+
+    if (initialListRequestRef.current === null) {
+      initialListRequestRef.current = (async () => {
+        const currentEvent = await getCurrentEvent();
+        const applications = await getAdminApplications(currentEvent.eventId);
+
+        return {
+          eventId: currentEvent.eventId,
+          applications,
+        };
+      })();
+    }
+
+    initialListRequestRef.current
+      .then(({ eventId, applications }) => {
+        if (!isActive) {
+          return;
+        }
+
+        setCurrentEventId(eventId);
+        setParticipants(applications);
+        setError(null);
+      })
+      .catch((requestError: unknown) => {
+        if (!isActive) {
+          return;
+        }
+
+        setCurrentEventId(null);
+        setParticipants([]);
+        setError(
+          getApiErrorMessage(
+            requestError,
+            '참가신청 목록을 불러오지 못했습니다.',
+          ),
+        );
+      })
+      .finally(() => {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   const statistics = useMemo(
     () => ({
       total: participants.length,
       pending: participants.filter(
-        (participant) => participant.applicationStatus === 'PENDING',
+        (participant) => participant.status === 'APPLIED',
       ).length,
       approved: participants.filter(
-        (participant) => participant.applicationStatus === 'APPROVED',
+        (participant) => participant.status === 'APPROVED',
       ).length,
       rejected: participants.filter(
-        (participant) => participant.applicationStatus === 'REJECTED',
+        (participant) => participant.status === 'REJECTED',
       ).length,
       cancelled: participants.filter(
-        (participant) => participant.applicationStatus === 'CANCELLED',
+        (participant) => participant.status === 'CANCELLED',
       ).length,
     }),
+    [participants],
+  );
+
+  const courseOptions = useMemo(
+    () =>
+      [...new Set(participants.map((participant) => participant.courseName))]
+        .filter(Boolean)
+        .sort((first, second) => first.localeCompare(second, 'ko')),
+    [participants],
+  );
+
+  const affiliationOptions = useMemo(
+    () =>
+      [
+        ...new Set(
+          participants.map((participant) => participant.affiliationType),
+        ),
+      ].sort((first, second) =>
+        ADMIN_APPLICATION_AFFILIATION_LABELS[first].localeCompare(
+          ADMIN_APPLICATION_AFFILIATION_LABELS[second],
+          'ko',
+        ),
+      ) as AdminApplicationAffiliationType[],
     [participants],
   );
 
@@ -93,17 +187,16 @@ function AdminParticipantsPage() {
     return participants.filter((participant) => {
       const matchesKeyword =
         !normalizedKeyword ||
-        [participant.name, participant.loginId, participant.email].some(
+        [participant.name, participant.studentNo, participant.email].some(
           (value) => value.toLowerCase().includes(normalizedKeyword),
         );
       const matchesStatus =
-        statusFilter === 'ALL' ||
-        participant.applicationStatus === statusFilter;
+        statusFilter === 'ALL' || participant.status === statusFilter;
       const matchesCourse =
-        courseFilter === 'ALL' || participant.course === courseFilter;
+        courseFilter === 'ALL' || participant.courseName === courseFilter;
       const matchesAffiliation =
         affiliationFilter === 'ALL' ||
-        participant.affiliation === affiliationFilter;
+        participant.affiliationType === affiliationFilter;
 
       return (
         matchesKeyword &&
@@ -120,11 +213,13 @@ function AdminParticipantsPage() {
     statusFilter,
   ]);
 
-  const selectedParticipant = dialogRequest
-    ? participants.find(
-        (participant) => participant.id === dialogRequest.participantId,
-      )
-    : undefined;
+  const selectedListApplication =
+    selectedApplicationId === null
+      ? undefined
+      : participants.find(
+          (participant) =>
+            participant.applicationId === selectedApplicationId,
+        );
 
   const handleResetFilters = () => {
     setSearchKeyword('');
@@ -133,99 +228,138 @@ function AdminParticipantsPage() {
     setAffiliationFilter('ALL');
   };
 
-  const handleOpenDialog = (
-    participantId: string,
-    initialMode: ParticipantDialogMode,
-  ) => {
+  const handleOpenDialog = async (applicationId: number) => {
+    const requestSequence = detailRequestSequenceRef.current + 1;
+    detailRequestSequenceRef.current = requestSequence;
     dialogOpenerRef.current =
       document.activeElement instanceof HTMLElement
         ? document.activeElement
         : null;
-    setDialogRequest({ participantId, initialMode });
+    setSelectedApplicationId(applicationId);
+    setDetailApplication(null);
+    setDetailError(null);
+    setDetailActionError(null);
+    setIsDetailLoading(true);
+
+    try {
+      const application = await getAdminApplicationDetail(applicationId);
+
+      if (detailRequestSequenceRef.current === requestSequence) {
+        setDetailApplication(application);
+      }
+    } catch (requestError) {
+      if (detailRequestSequenceRef.current === requestSequence) {
+        setDetailError(
+          getApiErrorMessage(
+            requestError,
+            '참가신청 상세를 불러오지 못했습니다.',
+          ),
+        );
+      }
+    } finally {
+      if (detailRequestSequenceRef.current === requestSequence) {
+        setIsDetailLoading(false);
+      }
+    }
   };
 
   const handleCloseDialog = useCallback(() => {
     const dialogOpener = dialogOpenerRef.current;
 
-    setDialogRequest(null);
+    detailRequestSequenceRef.current += 1;
+    setSelectedApplicationId(null);
+    setDetailApplication(null);
+    setDetailError(null);
+    setDetailActionError(null);
+    setIsDetailLoading(false);
     window.requestAnimationFrame(() => dialogOpener?.focus());
   }, []);
 
-  const handleApprove = (participantId: string) => {
+  const handleApprove = async (applicationId: number) => {
+    if (processingApplicationIdRef.current !== null) {
+      return;
+    }
+
+    if (currentEventId === null) {
+      setFeedbackMessage('현재 관리할 행사 정보를 확인할 수 없습니다.');
+      setFeedbackIsError(true);
+      return;
+    }
+
     const participantName =
-      participants.find((participant) => participant.id === participantId)
-        ?.name ?? '참가자';
+      participants.find(
+        (participant) => participant.applicationId === applicationId,
+      )?.name ?? '참가자';
 
-    setParticipants((currentParticipants) =>
-      currentParticipants.map((participant) =>
-        participant.id === participantId
-          ? {
-              ...participant,
-              applicationStatus: 'APPROVED',
-              rejectionReason: undefined,
-            }
-          : participant,
-      ),
-    );
-    setFeedbackMessage(`${participantName}님의 참가 신청을 승인했습니다.`);
-  };
+    processingApplicationIdRef.current = applicationId;
+    setProcessingApplicationId(applicationId);
+    setFeedbackMessage('');
+    setFeedbackIsError(false);
+    setDetailActionError(null);
 
-  const handleReject = (participantId: string, reason: string) => {
-    const participantName =
-      participants.find((participant) => participant.id === participantId)
-        ?.name ?? '참가자';
+    try {
+      await approveAdminApplication(applicationId);
+    } catch (requestError) {
+      const message = getApiErrorMessage(
+        requestError,
+        '참가 신청을 승인하지 못했습니다.',
+      );
 
-    setParticipants((currentParticipants) =>
-      currentParticipants.map((participant) =>
-        participant.id === participantId
-          ? {
-              ...participant,
-              applicationStatus: 'REJECTED',
-              rejectionReason: reason,
-            }
-          : participant,
-      ),
-    );
-    setFeedbackMessage(`${participantName}님의 참가 신청을 반려했습니다.`);
-  };
+      setFeedbackMessage(message);
+      setFeedbackIsError(true);
 
-  const handleUpdate = (
-    participantId: string,
-    updates: AdminParticipantUpdate,
-  ) => {
-    const participantName =
-      participants.find((participant) => participant.id === participantId)
-        ?.name ?? '참가자';
-    const isCourseOnlyUpdate =
-      Object.keys(updates).length === 1 && updates.course !== undefined;
+      if (selectedApplicationId === applicationId) {
+        setDetailActionError(message);
+      }
 
-    setParticipants((currentParticipants) =>
-      currentParticipants.map((participant) =>
-        participant.id === participantId
-          ? { ...participant, ...updates }
-          : participant,
-      ),
-    );
-    setFeedbackMessage(
-      isCourseOnlyUpdate
-        ? `${participantName}님의 참가 코스를 변경했습니다.`
-        : `${participantName}님의 정보를 수정했습니다.`,
-    );
-  };
+      processingApplicationIdRef.current = null;
+      setProcessingApplicationId(null);
+      return;
+    }
 
-  const handleCancelParticipation = (participantId: string) => {
-    const participantName =
-      participants.find((participant) => participant.id === participantId)
-        ?.name ?? '참가자';
+    try {
+      const nextParticipants = await getAdminApplications(currentEventId);
 
-    setParticipants((currentParticipants) =>
-      currentParticipants.map((participant) =>
-        participant.id === participantId
-          ? { ...participant, applicationStatus: 'CANCELLED' }
-          : participant,
-      ),
-    );
-    setFeedbackMessage(`${participantName}님의 참가를 취소했습니다.`);
+      setParticipants(nextParticipants);
+      setError(null);
+
+      if (selectedApplicationId === applicationId) {
+        try {
+          const nextDetailApplication =
+            await getAdminApplicationDetail(applicationId);
+
+          setDetailApplication(nextDetailApplication);
+          setDetailError(null);
+        } catch (detailRequestError) {
+          setDetailError(
+            getApiErrorMessage(
+              detailRequestError,
+              '승인은 완료됐지만 상세 정보를 다시 불러오지 못했습니다.',
+            ),
+          );
+        }
+      }
+
+      setFeedbackMessage(
+        `${participantName}님의 참가 신청을 승인했습니다.`,
+      );
+    } catch (refreshError) {
+      const message = getApiErrorMessage(
+        refreshError,
+        '승인은 완료됐지만 목록을 다시 불러오지 못했습니다.',
+      );
+
+      setFeedbackMessage(message);
+      setFeedbackIsError(true);
+      setError(message);
+
+      if (selectedApplicationId === applicationId) {
+        setDetailActionError(message);
+      }
+    } finally {
+      processingApplicationIdRef.current = null;
+      setProcessingApplicationId(null);
+    }
   };
 
   const handleDownload = () => {
@@ -234,24 +368,21 @@ function AdminParticipantsPage() {
     }
 
     const rows = filteredParticipants.map((participant) => [
-      PARTICIPANT_STATUS_LABELS[participant.applicationStatus],
+      ADMIN_APPLICATION_STATUS_LABELS[participant.status] ??
+        participant.status,
       participant.name,
-      participant.loginId,
+      participant.studentNo,
       participant.department,
-      getAffiliationDisplay(participant.affiliation, participant.grade),
+      ADMIN_APPLICATION_AFFILIATION_LABELS[participant.affiliationType] ??
+        participant.affiliationType,
       participant.phone,
       participant.email,
-      COURSE_LABELS[participant.course],
-      formatParticipantDateTime(participant.appliedAt),
-      participant.privacyAgreed ? '동의' : '미동의',
-      participant.rejectionReason ?? '',
-      participant.adminMemo ?? '',
+      participant.courseName,
+      formatAdminApplicationDateTime(participant.appliedAt),
     ]);
     const csv = [CSV_HEADERS, ...rows]
-      .map((row) => row.map(escapeCsvValue).join(','))
+      .map((row) => row.map((value) => escapeCsvValue(value ?? '')).join(','))
       .join('\r\n');
-
-    // 별도 xlsx 라이브러리 없이 Excel에서 열 수 있는 UTF-8 BOM CSV를 생성한다.
     const blob = new Blob([`\uFEFF${csv}`], {
       type: 'text/csv;charset=utf-8',
     });
@@ -264,6 +395,7 @@ function AdminParticipantsPage() {
     anchor.click();
     anchor.remove();
     URL.revokeObjectURL(objectUrl);
+    setFeedbackIsError(false);
     setFeedbackMessage(
       `현재 검색 결과 ${filteredParticipants.length}명의 목록을 다운로드했습니다.`,
     );
@@ -294,8 +426,8 @@ function AdminParticipantsPage() {
           </button>
           <button
             type="button"
-            aria-pressed={statusFilter === 'PENDING'}
-            onClick={() => setStatusFilter('PENDING')}
+            aria-pressed={statusFilter === 'APPLIED'}
+            onClick={() => setStatusFilter('APPLIED')}
           >
             <span>승인 대기</span>
             <strong>{statistics.pending}</strong>
@@ -332,6 +464,8 @@ function AdminParticipantsPage() {
         statusFilter={statusFilter}
         courseFilter={courseFilter}
         affiliationFilter={affiliationFilter}
+        courseOptions={courseOptions}
+        affiliationOptions={affiliationOptions}
         resultCount={filteredParticipants.length}
         onSearchKeywordChange={setSearchKeyword}
         onStatusFilterChange={setStatusFilter}
@@ -343,7 +477,7 @@ function AdminParticipantsPage() {
 
       <div
         className="admin-participants__feedback"
-        role="status"
+        role={feedbackIsError ? 'alert' : 'status'}
         aria-live="polite"
       >
         {feedbackMessage}
@@ -354,22 +488,23 @@ function AdminParticipantsPage() {
         hasParticipants={participants.length > 0}
         isLoading={isLoading}
         error={error}
-        onOpenDetails={(participantId) =>
-          handleOpenDialog(participantId, 'view')
-        }
+        processingApplicationId={processingApplicationId}
+        onOpenDetails={handleOpenDialog}
         onApprove={handleApprove}
-        onReject={(participantId) => handleOpenDialog(participantId, 'reject')}
       />
 
-      {selectedParticipant && dialogRequest && (
+      {selectedListApplication && selectedApplicationId !== null && (
         <ParticipantDetailDialog
-          participant={selectedParticipant}
-          initialMode={dialogRequest.initialMode}
+          application={detailApplication}
+          fallbackApplication={selectedListApplication}
+          isLoading={isDetailLoading}
+          error={detailError}
+          actionError={detailActionError}
+          isProcessing={
+            processingApplicationId === selectedApplicationId
+          }
           onClose={handleCloseDialog}
           onApprove={handleApprove}
-          onReject={handleReject}
-          onUpdate={handleUpdate}
-          onCancelParticipation={handleCancelParticipation}
         />
       )}
     </section>

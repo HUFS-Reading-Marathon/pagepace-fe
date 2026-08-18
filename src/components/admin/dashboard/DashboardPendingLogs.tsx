@@ -1,16 +1,12 @@
 import { Link } from 'react-router-dom';
-import {
-  formatReadingLogDate,
-  getReadingLogTotalPages,
-  validateReadingLog,
-  type AdminReadingLog,
-} from '../../../types/adminReadingLog';
+import type { AdminReadingLogResponse } from '../../../types/adminReadingLogApi';
+import { formatReadingLogDate } from '../../../types/adminReadingLog';
 
 type DashboardPendingLogsProps = {
-  logs: AdminReadingLog[];
+  logs: AdminReadingLogResponse[];
 };
 
-function getBookSummary(log: AdminReadingLog) {
+function getBookSummary(log: AdminReadingLogResponse) {
   const firstBook = log.books[0];
 
   if (!firstBook) {
@@ -18,8 +14,17 @@ function getBookSummary(log: AdminReadingLog) {
   }
 
   return log.books.length > 1
-    ? `${firstBook.title} 외 ${log.books.length - 1}권`
-    : firstBook.title;
+    ? `${firstBook.bookTitle} 외 ${log.books.length - 1}권`
+    : firstBook.bookTitle;
+}
+
+function hasServerWarning(log: AdminReadingLogResponse) {
+  return (
+    log.recommendedRejectReasons.length > 0 ||
+    log.books.some(
+      (book) => book.pageExceeded || Boolean(book.warningMessage.trim()),
+    )
+  );
 }
 
 function DashboardPendingLogs({ logs }: DashboardPendingLogsProps) {
@@ -47,17 +52,17 @@ function DashboardPendingLogs({ logs }: DashboardPendingLogsProps) {
             </thead>
             <tbody>
               {logs.map((log) => {
-                const hasWarning = validateReadingLog(log).length > 0;
+                const hasWarning = hasServerWarning(log);
 
                 return (
-                  <tr key={log.id}>
-                    <td>{log.participantName}</td>
+                  <tr key={log.readingLogId}>
+                    <td>{log.userName}</td>
                     <td>{formatReadingLogDate(log.readingDate)}</td>
                     <td title={getBookSummary(log)}>
                       {getBookSummary(log)}
                     </td>
                     <td>
-                      {getReadingLogTotalPages(log).toLocaleString('ko-KR')}
+                      {log.totalReadPages.toLocaleString('ko-KR')}
                       쪽
                     </td>
                     <td>

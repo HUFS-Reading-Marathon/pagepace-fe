@@ -1,17 +1,19 @@
 import {
-  AFFILIATION_OPTIONS,
-  COURSE_OPTIONS,
-  PARTICIPANT_STATUS_OPTIONS,
+  ADMIN_APPLICATION_AFFILIATION_LABELS,
+  ADMIN_APPLICATION_STATUS_OPTIONS,
+  type AdminApplicationAffiliationType,
   type ParticipantAffiliationFilter,
   type ParticipantCourseFilter,
   type ParticipantStatusFilter,
-} from '../../../types/adminParticipant';
+} from '../../../types/adminApplication';
 
 type ParticipantFiltersProps = {
   searchKeyword: string;
   statusFilter: ParticipantStatusFilter;
   courseFilter: ParticipantCourseFilter;
   affiliationFilter: ParticipantAffiliationFilter;
+  courseOptions: string[];
+  affiliationOptions: AdminApplicationAffiliationType[];
   resultCount: number;
   onSearchKeywordChange: (value: string) => void;
   onStatusFilterChange: (value: ParticipantStatusFilter) => void;
@@ -28,6 +30,8 @@ function ParticipantFilters({
   statusFilter,
   courseFilter,
   affiliationFilter,
+  courseOptions,
+  affiliationOptions,
   resultCount,
   onSearchKeywordChange,
   onStatusFilterChange,
@@ -65,7 +69,7 @@ function ParticipantFilters({
             }
           >
             <option value="ALL">전체</option>
-            {PARTICIPANT_STATUS_OPTIONS.map((option) => (
+            {ADMIN_APPLICATION_STATUS_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -85,9 +89,9 @@ function ParticipantFilters({
             }
           >
             <option value="ALL">전체</option>
-            {COURSE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
+            {courseOptions.map((courseName) => (
+              <option key={courseName} value={courseName}>
+                {courseName}
               </option>
             ))}
           </select>
@@ -105,9 +109,9 @@ function ParticipantFilters({
             }
           >
             <option value="ALL">전체</option>
-            {AFFILIATION_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
+            {affiliationOptions.map((affiliationType) => (
+              <option key={affiliationType} value={affiliationType}>
+                {ADMIN_APPLICATION_AFFILIATION_LABELS[affiliationType]}
               </option>
             ))}
           </select>
