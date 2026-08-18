@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../auth';
+import { isAdminRole, useAuth } from '../../auth';
 
 type HeaderLink = {
   label: string;
@@ -19,12 +19,14 @@ const NAV_ITEMS: HeaderLink[] = [
   { label: '코스 및 혜택', href: '/#courses' },
   { label: '참여방법', href: '/#process' },
   { label: '대회 현황', href: '/#status' },
+  { label: '랭킹', href: '/rankings' },
   { label: '공지사항', href: '/#notice' },
 ];
 
 const MY_LIBRARY_ITEMS: HeaderLink[] = [
   { label: '나의 현황', href: '/my' },
   { label: '독서기록', href: '/logs' },
+  { label: '계정 설정', href: '/my/settings' },
 ];
 
 const DEFAULT_HASH = '#about';
@@ -110,8 +112,9 @@ function Header() {
     useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated, isInitializing, logout } = useAuth();
+  const { user, isAuthenticated, isInitializing, logout } = useAuth();
   const hasAuthSession = isAuthenticated || isInitializing;
+  const hasAdminRole = isAdminRole(user?.role);
 
   const activeHash =
     location.pathname === '/'
@@ -247,47 +250,53 @@ function Header() {
               );
             })}
 
-            <div
-              className={[
-                'nav-dropdown',
-                isMyLibraryDropdownHidden ? 'is-hidden' : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-              onMouseLeave={() => setIsMyLibraryDropdownHidden(false)}
-            >
-              <button
-                type="button"
-                className="nav-dropdown-trigger"
-                aria-haspopup="true"
-                aria-current={isMyLibraryActive ? 'page' : undefined}
-                onClick={() => {
-                  hideMyLibraryDropdown();
-                  navigate('/my');
-                }}
+            {hasAdminRole ? (
+              <Link to="/admin" className="nav-login-link">
+                관리자
+              </Link>
+            ) : (
+              <div
+                className={[
+                  'nav-dropdown',
+                  isMyLibraryDropdownHidden ? 'is-hidden' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                onMouseLeave={() => setIsMyLibraryDropdownHidden(false)}
               >
-                My Library
-              </button>
-              <div className="nav-dropdown-menu" aria-label="My Library">
-                {MY_LIBRARY_ITEMS.map((item) => {
-                  const isActive = isMyLibraryItemActive(
-                    item.href,
-                    location.pathname,
-                  );
+                <button
+                  type="button"
+                  className="nav-dropdown-trigger"
+                  aria-haspopup="true"
+                  aria-current={isMyLibraryActive ? 'page' : undefined}
+                  onClick={() => {
+                    hideMyLibraryDropdown();
+                    navigate('/my');
+                  }}
+                >
+                  My Library
+                </button>
+                <div className="nav-dropdown-menu" aria-label="My Library">
+                  {MY_LIBRARY_ITEMS.map((item) => {
+                    const isActive = isMyLibraryItemActive(
+                      item.href,
+                      location.pathname,
+                    );
 
-                  return (
-                    <Link
-                      key={item.href}
-                      to={item.href}
-                      aria-current={isActive ? 'page' : undefined}
-                      onClick={hideMyLibraryDropdown}
-                    >
-                      {item.label}
-                    </Link>
-                  );
-                })}
+                    return (
+                      <Link
+                        key={item.href}
+                        to={item.href}
+                        aria-current={isActive ? 'page' : undefined}
+                        onClick={hideMyLibraryDropdown}
+                      >
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
             {hasAuthSession ? (
               <button
@@ -373,38 +382,44 @@ function Header() {
               );
             })}
 
-            <div className="mobile-library-group">
-              <Link
-                to="/my"
-                onClick={closeMobileMenu}
-                className={[
-                  'mobile-library-title',
-                  isMyLibraryActive ? 'is-active' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-              >
-                My Library
+            {hasAdminRole ? (
+              <Link to="/admin" onClick={closeMobileMenu}>
+                관리자 대시보드
               </Link>
-              {MY_LIBRARY_ITEMS.map((item) => {
-                const isActive = isMyLibraryItemActive(
-                  item.href,
-                  location.pathname,
-                );
+            ) : (
+              <div className="mobile-library-group">
+                <Link
+                  to="/my"
+                  onClick={closeMobileMenu}
+                  className={[
+                    'mobile-library-title',
+                    isMyLibraryActive ? 'is-active' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                >
+                  My Library
+                </Link>
+                {MY_LIBRARY_ITEMS.map((item) => {
+                  const isActive = isMyLibraryItemActive(
+                    item.href,
+                    location.pathname,
+                  );
 
-                return (
-                  <Link
-                    key={item.href}
-                    to={item.href}
-                    onClick={closeMobileMenu}
-                    aria-current={isActive ? 'page' : undefined}
-                    className="mobile-library-link"
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </div>
+                  return (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      onClick={closeMobileMenu}
+                      aria-current={isActive ? 'page' : undefined}
+                      className="mobile-library-link"
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
 
             {hasAuthSession ? (
               <button
