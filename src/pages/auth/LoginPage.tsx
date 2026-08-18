@@ -1,10 +1,11 @@
 import { type FormEvent, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ApiError, useAuth } from '../../auth';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ApiError, isAdminRole, useAuth } from '../../auth';
 import './auth.css';
 
 function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isLoading, login } = useAuth();
 
   const [loginId, setLoginId] = useState('');
@@ -29,8 +30,17 @@ function LoginPage() {
     setErrorMessage('');
 
     try {
-      await login({ studentNo, password });
-      navigate('/');
+      const authenticatedUser = await login({ studentNo, password });
+      const returnPath =
+        typeof location.state === 'object' &&
+        location.state !== null &&
+        'from' in location.state &&
+        typeof location.state.from === 'string'
+          ? location.state.from
+          : isAdminRole(authenticatedUser.role)
+            ? '/admin'
+            : '/';
+      navigate(returnPath, { replace: true });
     } catch (error) {
       setErrorMessage(
         error instanceof ApiError
@@ -62,7 +72,7 @@ function LoginPage() {
               type="text"
               value={loginId}
               onChange={(event) => setLoginId(event.target.value)}
-              placeholder="학번 또는 이메일"
+              placeholder="학번/교번/사번"
               autoComplete="username"
               disabled={isLoading}
             />
@@ -91,9 +101,9 @@ function LoginPage() {
               <span>아이디 저장</span>
             </label>
 
-            <button type="button" className="auth-text-link">
+            <Link to="/password-reset" className="auth-text-link">
               비밀번호 찾기
-            </button>
+            </Link>
           </div>
 
           {errorMessage && <p className="auth-error">{errorMessage}</p>}

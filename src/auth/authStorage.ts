@@ -38,6 +38,18 @@ export function saveAuthSession(accessToken: string, loginId: string) {
   return true;
 }
 
+export function saveAccessToken(accessToken: string) {
+  const normalizedToken = accessToken.trim();
+
+  if (!normalizedToken) {
+    return false;
+  }
+
+  localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, normalizedToken);
+  localStorage.setItem(LOGIN_STATE_STORAGE_KEY, 'true');
+  return true;
+}
+
 export function clearAuthStorage() {
   localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
   localStorage.removeItem(LOGIN_STATE_STORAGE_KEY);

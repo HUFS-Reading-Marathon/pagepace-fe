@@ -9,11 +9,13 @@ import {
 import {
   getCurrentUser,
   login as requestLogin,
+  logout as requestLogout,
 } from '../api/authApi';
 import { ApiError } from '../api/apiClient';
 import { AuthContext } from './AuthContext';
 import {
   ACCESS_TOKEN_STORAGE_KEY,
+  AUTH_CHANGE_EVENT,
   clearAuthStorage,
   emitAuthChange,
   getAccessToken,
@@ -33,7 +35,7 @@ function AuthProvider({ children }: PropsWithChildren) {
   const [isInitializing, setIsInitializing] = useState(Boolean(initialToken));
   const [isLoading, setIsLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const loginPromiseRef = useRef<Promise<void> | null>(null);
+  const loginPromiseRef = useRef<Promise<AuthUser> | null>(null);
   const currentUserRequestRef = useRef<CurrentUserRequest | null>(null);
   const authSequenceRef = useRef(0);
 
@@ -190,6 +192,20 @@ function AuthProvider({ children }: PropsWithChildren) {
     };
   }, [applyAuthenticatedUser, clearAuthentication, requestCurrentUser]);
 
+  useEffect(() => {
+    const syncAuthChange = () => {
+      if (!getAccessToken()) {
+        authSequenceRef.current += 1;
+        setUser(null);
+        setIsAuthenticated(false);
+        setIsInitializing(false);
+      }
+    };
+
+    window.addEventListener(AUTH_CHANGE_EVENT, syncAuthChange);
+    return () => window.removeEventListener(AUTH_CHANGE_EVENT, syncAuthChange);
+  }, []);
+
   const login = useCallback(
     (credentials: LoginRequest) => {
       if (loginPromiseRef.current) {
@@ -236,6 +252,7 @@ function AuthProvider({ children }: PropsWithChildren) {
 
           applyAuthenticatedUser(nextUser, accessToken);
           emitAuthChange();
+          return nextUser;
         } catch (error) {
           if (authSequenceRef.current === sequence) {
             const shouldClearSession =
@@ -272,6 +289,7 @@ function AuthProvider({ children }: PropsWithChildren) {
   const logout = useCallback(() => {
     authSequenceRef.current += 1;
     currentUserRequestRef.current = null;
+    void requestLogout().catch(() => undefined);
     clearAuthentication();
     setIsInitializing(false);
     emitAuthChange();

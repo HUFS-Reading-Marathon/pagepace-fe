@@ -10,6 +10,11 @@ import type {
 
 const LOGIN_PATH = '/api/auth/login';
 const CURRENT_USER_PATH = '/api/me';
+const LOGOUT_PATH = '/api/auth/logout';
+const PASSWORD_RESET_SEND_PATH =
+  '/api/auth/password-reset/email-verifications/send';
+const PASSWORD_RESET_CONFIRM_PATH =
+  '/api/auth/password-reset/email-verifications/confirm';
 
 const USER_ROLES: ReadonlyArray<UserRole> = [
   'USER',
@@ -42,9 +47,9 @@ function isCurrentUser(value: unknown): value is AuthUser {
     Number.isInteger(user.userId) &&
     typeof user.studentNo === 'string' &&
     typeof user.name === 'string' &&
-    typeof user.email === 'string' &&
-    typeof user.phone === 'string' &&
-    typeof user.department === 'string' &&
+    (typeof user.email === 'string' || user.email === null) &&
+    (typeof user.phone === 'string' || user.phone === null) &&
+    (typeof user.department === 'string' || user.department === null) &&
     typeof user.active === 'boolean' &&
     USER_ROLES.includes(user.role as UserRole) &&
     USER_STATUSES.includes(user.status as UserStatus) &&
@@ -88,4 +93,33 @@ export async function getCurrentUser() {
   }
 
   return response;
+}
+
+export async function logout() {
+  await apiRequest<null>(LOGOUT_PATH, {
+    method: 'POST',
+    skipRefresh: true,
+  });
+}
+
+export async function sendPasswordResetCode(studentNo: string, email: string) {
+  await apiRequest<null>(PASSWORD_RESET_SEND_PATH, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ studentNo, email }),
+    skipAuth: true,
+  });
+}
+
+export async function confirmPasswordReset(
+  studentNo: string,
+  email: string,
+  code: string,
+) {
+  await apiRequest<null>(PASSWORD_RESET_CONFIRM_PATH, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ studentNo, email, code }),
+    skipAuth: true,
+  });
 }
