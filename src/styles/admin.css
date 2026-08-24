@@ -234,6 +234,7 @@
 .admin-header__account-trigger:focus-visible,
 .admin-header__account-user-view:focus-visible,
 .admin-header__logout:focus-visible,
+.admin-sidebar__group:focus-visible,
 .admin-sidebar__link:focus-visible {
   outline: 3px solid rgba(31, 79, 130, 0.2);
   outline-offset: 2px;
@@ -257,7 +258,7 @@
   margin: 0;
   padding: 0;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   list-style: none;
 }
 
@@ -266,23 +267,47 @@
 }
 
 .admin-sidebar__group {
-  display: block;
-  margin: 18px 12px 7px;
+  display: flex;
+  width: 100%;
+  min-height: 20px;
+  margin: 14px 0 5px;
+  padding: 0 12px;
+  align-items: center;
+  justify-content: space-between;
+  border: 0;
+  background: transparent;
   color: var(--muted);
+  font-family: inherit;
   font-size: 10px;
   font-weight: 750;
   letter-spacing: 0.06em;
+  text-align: left;
+  cursor: pointer;
 }
 
 .admin-sidebar__item:first-child .admin-sidebar__group {
   margin-top: 0;
 }
 
+.admin-sidebar__group:hover {
+  color: var(--navy-strong);
+}
+
+.admin-sidebar__group-chevron {
+  flex: 0 0 auto;
+  transition: transform 0.15s ease;
+}
+
+.admin-sidebar__group[aria-expanded='true']
+  .admin-sidebar__group-chevron {
+  transform: rotate(180deg);
+}
+
 .admin-sidebar__link {
   display: flex;
   width: 100%;
-  min-height: 46px;
-  padding: 10px 12px;
+  min-height: 38px;
+  padding: 8px 12px;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -298,14 +323,16 @@
 }
 
 .admin-sidebar__link:not(.admin-sidebar__link--disabled):hover {
-  background: var(--blue-10);
+  background: transparent;
   color: var(--navy-strong);
+  font-weight: 700;
 }
 
 .admin-sidebar__link--active {
   border-left-color: var(--navy-strong);
-  background: var(--blue-20);
+  background: transparent;
   color: var(--navy-strong);
+  font-weight: 750;
 }
 
 .admin-sidebar__link--disabled {
@@ -437,7 +464,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .admin-header__account-chevron {
+  .admin-header__account-chevron,
+  .admin-sidebar__group-chevron {
     transition: none;
   }
 
