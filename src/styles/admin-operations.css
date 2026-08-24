@@ -34,7 +34,7 @@
 .admin-operations__queue-row>span { color:var(--navy-strong); }
 .admin-operations__queue-message { margin:0; padding:56px 10px; color:var(--muted); font-size:13px; text-align:center; }
 .admin-operations__queue-message.is-complete { color:#39705f; }
-.admin-operations__queue-action { display:flex; min-height:44px; margin-top:18px; padding:0 14px; align-items:center; justify-content:center; gap:8px; border:1px solid var(--navy-strong); border-radius:var(--radius); background:var(--navy-strong); color:#fff; font-size:13px; font-weight:750; }
+.admin-operations__queue-action { display:flex; width:max-content; min-height:40px; margin-top:18px; padding:0 15px; align-items:center; align-self:flex-start; justify-content:center; gap:8px; border:1px solid var(--navy-strong); border-radius:var(--radius); background:var(--navy-strong); color:#fff; font-size:13px; font-weight:750; }
 .admin-operations__queue-action:hover { background:var(--navy-deep); }
 .admin-operations__secondary { display:flex; margin-top:20px; padding:22px 24px; align-items:center; justify-content:space-between; gap:28px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); }
 .admin-operations__secondary h2 { margin:0; color:var(--ink); font-size:16px; }
