@@ -70,6 +70,42 @@
   line-height: 1.65;
 }
 
+.my-course-info p + p {
+  margin-top: 8px;
+}
+
+.my-state-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 120px;
+  margin-top: 36px;
+  padding: 30px;
+  border: 1px solid #d9e2ec;
+  border-top: 2px solid #1f4f82;
+  background: #ffffff;
+}
+
+.my-state-panel p {
+  margin: 0;
+  color: #536271;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.my-state-panel--error {
+  border-top-color: #8c3d3d;
+}
+
+.my-state-panel--error p {
+  color: #8c3d3d;
+}
+
+.my-state-panel .my-outline-link {
+  flex: 0 0 auto;
+}
+
 .my-progress-area {
   --progress-position: 0%;
 
@@ -284,6 +320,10 @@
   margin-top: 46px;
 }
 
+.my-latest-section .my-state-panel {
+  margin-top: 0;
+}
+
 .my-section-head {
   display: flex;
   align-items: flex-end;
@@ -461,5 +501,12 @@
   .my-progress-summary {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .my-state-panel {
+    align-items: stretch;
+    flex-direction: column;
+    min-height: 0;
+    padding: 24px;
   }
 }
