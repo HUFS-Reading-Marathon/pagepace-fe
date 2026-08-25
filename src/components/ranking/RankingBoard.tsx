@@ -9,20 +9,21 @@ function RankingAvatar({ name }: { name: string }) {
   return <span className="ranking-avatar" aria-hidden="true">{name.trim().slice(0, 1) || '?'}</span>;
 }
 
-function RankingBoard({ rankings, showIdentity = false }: { rankings: Ranking[]; showIdentity?: boolean }) {
+function RankingBoard({ rankings, showIdentity = false, simpleLayout = false }: { rankings: Ranking[]; showIdentity?: boolean; simpleLayout?: boolean }) {
   if (rankings.length === 0) return <div className="ranking-empty">아직 집계된 순위가 없습니다.<span>독서일지가 승인되면 순위가 표시됩니다.</span></div>;
+  const useSimpleLayout = showIdentity || simpleLayout;
 
   return (
     <>
-      <section className="ranking-race" aria-label="전체 참가자 독서 레이스">
+      <section className={simpleLayout ? 'ranking-race is-simple' : 'ranking-race'} aria-label="전체 참가자 독서 레이스">
         <header><div><span>LIVE MARATHON</span><h2>전체 독서 레이스</h2><small>책장을 넘길 때마다 결승선에 가까워집니다.</small></div><p><i /> 누적 거리 <i /> 승인 페이지</p></header>
         <div className="ranking-race-list">{rankings.map((ranking) => {
           const progress = Math.min(ranking.progressPercent, 100);
           const completed = ranking.progressPercent >= 100;
           const runnerPosition = Math.max(2, Math.min(progress, 96));
           return <article key={`${ranking.rank}-${ranking.studentNo}`} className={`${completed ? 'is-completed' : ''} ${ranking.rank <= 3 ? `is-top-rank is-rank-${ranking.rank}` : ''}`}>
-            <div className={`ranking-race-person ${showIdentity ? 'ranking-race-person--simple' : ''}`}><strong className="ranking-race-rank">{ranking.rank <= 3 && <span aria-hidden="true">★</span>}{ranking.rank}</strong>{!showIdentity && <RankingAvatar name={ranking.name} />}<span><b>{ranking.name}</b><small>{ranking.studentNo}</small></span>{completed && <em><span aria-hidden="true">✓</span> 완주</em>}</div>
-            {showIdentity ? (
+            <div className={`ranking-race-person ${useSimpleLayout ? 'ranking-race-person--simple' : ''}`}><strong className="ranking-race-rank">{ranking.rank <= 3 && <span aria-hidden="true">★</span>}{ranking.rank}</strong>{!useSimpleLayout && <RankingAvatar name={ranking.name} />}<span><b>{ranking.name}</b><small>{ranking.studentNo}</small></span>{completed && <em><span aria-hidden="true">✓</span> 완주</em>}</div>
+            {useSimpleLayout ? (
               <div className="ranking-race-tracks ranking-race-tracks--simple">
                 <div
                   className="ranking-race-progress-track"
