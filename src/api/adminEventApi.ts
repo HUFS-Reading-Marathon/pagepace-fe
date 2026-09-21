@@ -42,39 +42,23 @@ export async function getAdminEvents() {
 export async function getAdminEvent(eventId: number) {
   validateId(eventId, '행사');
 
-  const event = await apiRequest<AdminEvent>(
-    `${ADMIN_EVENTS_PATH}/${eventId}`,
-    { method: 'GET' },
-  );
+  const event = await apiRequest<AdminEvent>(`${ADMIN_EVENTS_PATH}/${eventId}`, { method: 'GET' });
 
   if (!event) {
-    throw new ApiError(
-      '행사 상세 응답을 확인할 수 없습니다.',
-      200,
-      'INVALID_ADMIN_EVENT_RESPONSE',
-    );
+    throw new ApiError('행사 상세 응답을 확인할 수 없습니다.', 200, 'INVALID_ADMIN_EVENT_RESPONSE');
   }
 
   return event;
 }
 
 export async function createAdminEvent(request: CreateEventRequest) {
-  return apiRequest<AdminEvent>(
-    ADMIN_EVENTS_PATH,
-    jsonOptions('POST', request),
-  );
+  return apiRequest<AdminEvent>(ADMIN_EVENTS_PATH, jsonOptions('POST', request));
 }
 
-export async function updateAdminEvent(
-  eventId: number,
-  request: UpdateEventRequest,
-) {
+export async function updateAdminEvent(eventId: number, request: UpdateEventRequest) {
   validateId(eventId, '행사');
 
-  return apiRequest<AdminEvent>(
-    `${ADMIN_EVENTS_PATH}/${eventId}`,
-    jsonOptions('PATCH', request),
-  );
+  return apiRequest<AdminEvent>(`${ADMIN_EVENTS_PATH}/${eventId}`, jsonOptions('PATCH', request));
 }
 
 export async function deleteAdminEvent(eventId: number) {
@@ -88,20 +72,14 @@ export async function deleteAdminEvent(eventId: number) {
 export async function getAdminEventCourses(eventId: number) {
   validateId(eventId, '행사');
 
-  const courses = await apiRequest<AdminCourse[]>(
-    `${ADMIN_EVENTS_PATH}/${eventId}/courses`,
-    { method: 'GET' },
-  );
+  const courses = await apiRequest<AdminCourse[]>(`${ADMIN_EVENTS_PATH}/${eventId}/courses`, {
+    method: 'GET',
+  });
 
-  return (courses ?? []).sort(
-    (left, right) => left.displayOrder - right.displayOrder,
-  );
+  return (courses ?? []).sort((left, right) => left.displayOrder - right.displayOrder);
 }
 
-export async function createAdminCourse(
-  eventId: number,
-  request: CreateCourseRequest,
-) {
+export async function createAdminCourse(eventId: number, request: CreateCourseRequest) {
   validateId(eventId, '행사');
 
   return apiRequest<AdminCourse>(
@@ -110,10 +88,7 @@ export async function createAdminCourse(
   );
 }
 
-export async function updateAdminCourse(
-  courseId: number,
-  request: UpdateCourseRequest,
-) {
+export async function updateAdminCourse(courseId: number, request: UpdateCourseRequest) {
   validateId(courseId, '코스');
 
   return apiRequest<AdminCourse>(

@@ -5,11 +5,7 @@ import { getApiErrorMessage } from '../../api/apiClient';
 import { getAdminEvents } from '../../api/adminEventApi';
 import { getAdminReadingLogs } from '../../api/adminReadingLogApi';
 import type { AdminApplicationListItem } from '../../types/adminApplication';
-import {
-  EVENT_STATUS_LABELS,
-  type AdminEvent,
-  type EventStatus,
-} from '../../types/adminEvent';
+import { EVENT_STATUS_LABELS, type AdminEvent, type EventStatus } from '../../types/adminEvent';
 import type { AdminReadingLogResponse } from '../../types/adminReadingLogApi';
 import { chooseEventIdByStatus } from '../../utils/adminEvent';
 import '../../styles/admin-operations.css';
@@ -45,9 +41,7 @@ function formatDateTime(value: string) {
 function AdminOperationsDashboardPage() {
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
-  const [applications, setApplications] = useState<AdminApplicationListItem[]>(
-    [],
-  );
+  const [applications, setApplications] = useState<AdminApplicationListItem[]>([]);
   const [logs, setLogs] = useState<AdminReadingLogResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -63,9 +57,7 @@ function AdminOperationsDashboardPage() {
         }
       })
       .catch((requestError: unknown) => {
-        setError(
-          getApiErrorMessage(requestError, '행사 목록을 불러오지 못했습니다.'),
-        );
+        setError(getApiErrorMessage(requestError, '행사 목록을 불러오지 못했습니다.'));
         setIsLoading(false);
       });
   }, []);
@@ -95,12 +87,7 @@ function AdminOperationsDashboardPage() {
           return;
         }
 
-        setError(
-          getApiErrorMessage(
-            requestError,
-            '오늘의 업무를 불러오지 못했습니다.',
-          ),
-        );
+        setError(getApiErrorMessage(requestError, '오늘의 업무를 불러오지 못했습니다.'));
       })
       .finally(() => {
         if (isActive) {
@@ -113,8 +100,7 @@ function AdminOperationsDashboardPage() {
     };
   }, [selectedEventId]);
 
-  const selectedEvent =
-    events.find((event) => event.eventId === selectedEventId) ?? null;
+  const selectedEvent = events.find((event) => event.eventId === selectedEventId) ?? null;
   const pendingApplications = useMemo(
     () =>
       applications
@@ -164,21 +150,16 @@ function AdminOperationsDashboardPage() {
       )}
       {!isLoading && !selectedEvent ? (
         <div className="admin-operations__empty">
-          운영할 행사가 없습니다.{' '}
-          <Link to="/admin/event">행사를 먼저 등록해 주세요.</Link>
+          운영할 행사가 없습니다. <Link to="/admin/event">행사를 먼저 등록해 주세요.</Link>
         </div>
       ) : (
         <>
           <section className="admin-operations__event-context">
             <div>
               <span>
-                {selectedEvent
-                  ? EVENT_STATUS_LABELS[selectedEvent.status]
-                  : '불러오는 중'}
+                {selectedEvent ? EVENT_STATUS_LABELS[selectedEvent.status] : '불러오는 중'}
               </span>
-              <strong>
-                {selectedEvent?.title ?? '행사 정보를 불러오고 있습니다.'}
-              </strong>
+              <strong>{selectedEvent?.title ?? '행사 정보를 불러오고 있습니다.'}</strong>
               <small>
                 {selectedEvent
                   ? `${selectedEvent.eventStartDate} ~ ${selectedEvent.eventEndDate}`
@@ -206,9 +187,7 @@ function AdminOperationsDashboardPage() {
               </header>
               <div className="admin-operations__queue-list">
                 {isLoading ? (
-                  <p className="admin-operations__queue-message">
-                    신청서를 불러오고 있습니다.
-                  </p>
+                  <p className="admin-operations__queue-message">신청서를 불러오고 있습니다.</p>
                 ) : pendingApplications.length === 0 ? (
                   <p className="admin-operations__queue-message is-complete">
                     처리할 참가 신청서가 없습니다.
@@ -232,10 +211,7 @@ function AdminOperationsDashboardPage() {
                   ))
                 )}
               </div>
-              <Link
-                to="/admin/participants"
-                className="admin-operations__queue-action"
-              >
+              <Link to="/admin/participants" className="admin-operations__queue-action">
                 참가 신청서 검수하기 <span>→</span>
               </Link>
             </section>
@@ -251,9 +227,7 @@ function AdminOperationsDashboardPage() {
               </header>
               <div className="admin-operations__queue-list">
                 {isLoading ? (
-                  <p className="admin-operations__queue-message">
-                    독서일지를 불러오고 있습니다.
-                  </p>
+                  <p className="admin-operations__queue-message">독서일지를 불러오고 있습니다.</p>
                 ) : pendingLogs.length === 0 ? (
                   <p className="admin-operations__queue-message is-complete">
                     검토할 독서일지가 없습니다.

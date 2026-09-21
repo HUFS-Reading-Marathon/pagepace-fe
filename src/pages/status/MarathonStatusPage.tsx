@@ -1,10 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getApiErrorMessage } from '../../api/apiClient';
-import {
-  getCurrentEvent,
-  getEventCourses,
-  type EventCourse,
-} from '../../api/eventApi';
+import { getCurrentEvent, getEventCourses, type EventCourse } from '../../api/eventApi';
 import { getRankings, type Ranking } from '../../api/rankingApi';
 import './status.css';
 
@@ -29,9 +25,7 @@ function MarathonStatusPage() {
         setCourses(nextCourses);
         setRankings(nextRankings);
       })
-      .catch((error: unknown) =>
-        setErrorMessage(getApiErrorMessage(error, STATUS_ERROR_MESSAGE)),
-      )
+      .catch((error: unknown) => setErrorMessage(getApiErrorMessage(error, STATUS_ERROR_MESSAGE)))
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -49,9 +43,7 @@ function MarathonStatusPage() {
     }
   };
 
-  const completedCount = rankings.filter(
-    (ranking) => ranking.progressPercent >= 100,
-  ).length;
+  const completedCount = rankings.filter((ranking) => ranking.progressPercent >= 100).length;
   const maxDistance = Math.max(0, ...rankings.map((ranking) => ranking.distance));
 
   return (
@@ -60,8 +52,7 @@ function MarathonStatusPage() {
         <p className="page-label">Marathon Status</p>
         <h1>대회 현황</h1>
         <p className="page-description">
-          승인된 독서일지를 기준으로 집계된 순위입니다. 개인정보는 일부
-          마스킹됩니다.
+          승인된 독서일지를 기준으로 집계된 순위입니다. 개인정보는 일부 마스킹됩니다.
         </p>
       </section>
       <section className="status-grid">
@@ -87,9 +78,7 @@ function MarathonStatusPage() {
           <select
             value={selectedCourseId ?? ''}
             onChange={(event) =>
-              handleCourseChange(
-                event.target.value ? Number(event.target.value) : undefined,
-              )
+              handleCourseChange(event.target.value ? Number(event.target.value) : undefined)
             }
           >
             <option value="">전체 코스</option>

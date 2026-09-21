@@ -1,7 +1,4 @@
-import type {
-  AdminApplicationAffiliationType,
-  AdminApplicationStatus,
-} from './adminApplication';
+import type { AdminApplicationAffiliationType, AdminApplicationStatus } from './adminApplication';
 
 export type CourseType = 'short' | 'half' | 'full';
 
@@ -53,10 +50,7 @@ export type AdminCompetitionCourseSummary = {
 };
 
 export type AdminCompetitionCourseFilter = 'ALL' | number;
-export type AdminCompetitionSortOption =
-  | 'distance-desc'
-  | 'pages-desc'
-  | 'name-asc';
+export type AdminCompetitionSortOption = 'distance-desc' | 'pages-desc' | 'name-asc';
 
 export const ADMIN_COMPETITION_SORT_OPTIONS: ReadonlyArray<{
   value: AdminCompetitionSortOption;

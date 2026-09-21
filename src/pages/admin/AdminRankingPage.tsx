@@ -1,11 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getApiErrorMessage } from '../../api/apiClient';
 import { getAdminEventCourses, getAdminEvents } from '../../api/adminEventApi';
-import {
-  getAdminRankings,
-  type Ranking,
-  type RankingSort,
-} from '../../api/rankingApi';
+import { getAdminRankings, type Ranking, type RankingSort } from '../../api/rankingApi';
 import RankingBoard from '../../components/ranking/RankingBoard';
 import type { AdminCourse, AdminEvent } from '../../types/adminEvent';
 import '../../styles/ranking.css';
@@ -27,9 +23,8 @@ function AdminRankingPage() {
       .then((nextEvents) => {
         setEvents(nextEvents);
         setEventId(
-          nextEvents.find((event) =>
-            ['IN_PROGRESS', 'APPLICATION_OPEN'].includes(event.status),
-          )?.eventId ??
+          nextEvents.find((event) => ['IN_PROGRESS', 'APPLICATION_OPEN'].includes(event.status))
+            ?.eventId ??
             nextEvents[0]?.eventId ??
             null,
         );
@@ -39,9 +34,7 @@ function AdminRankingPage() {
         }
       })
       .catch((requestError: unknown) => {
-        setError(
-          getApiErrorMessage(requestError, '행사를 불러오지 못했습니다.'),
-        );
+        setError(getApiErrorMessage(requestError, '행사를 불러오지 못했습니다.'));
         setIsLoading(false);
       });
   }, []);
@@ -81,10 +74,7 @@ function AdminRankingPage() {
     };
   }, [eventId]);
 
-  const reloadRankings = async (
-    nextCourseId: number | undefined,
-    nextSort: RankingSort,
-  ) => {
+  const reloadRankings = async (nextCourseId: number | undefined, nextSort: RankingSort) => {
     if (!eventId) {
       return;
     }
@@ -131,11 +121,7 @@ function AdminRankingPage() {
         <div className="ranking-admin-summary">
           <span>현재 1위</span>
           <strong>{rankings[0]?.name ?? '-'}</strong>
-          <small>
-            {rankings[0]
-              ? `${(rankings[0].distance / 1000).toFixed(2)}km`
-              : '집계 전'}
-          </small>
+          <small>{rankings[0] ? `${(rankings[0].distance / 1000).toFixed(2)}km` : '집계 전'}</small>
         </div>
       </header>
       <section className="ranking-toolbar is-admin">
@@ -160,9 +146,7 @@ function AdminRankingPage() {
           <select
             value={courseId ?? ''}
             onChange={(event) =>
-              filterCourse(
-                event.target.value ? Number(event.target.value) : undefined,
-              )
+              filterCourse(event.target.value ? Number(event.target.value) : undefined)
             }
           >
             <option value="">전체 코스</option>
@@ -175,10 +159,7 @@ function AdminRankingPage() {
         </label>
         <label>
           <span>정렬</span>
-          <select
-            value={sort}
-            onChange={(event) => changeSort(event.target.value as RankingSort)}
-          >
+          <select value={sort} onChange={(event) => changeSort(event.target.value as RankingSort)}>
             <option value="RANK">거리 순</option>
             <option value="NAME">이름 순</option>
           </select>

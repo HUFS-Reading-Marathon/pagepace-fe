@@ -17,9 +17,7 @@ function NoticeDetailPage() {
     getNotice(id)
       .then(setNotice)
       .catch((requestError: unknown) =>
-        setError(
-          getApiErrorMessage(requestError, '공지사항을 불러오지 못했습니다.'),
-        ),
+        setError(getApiErrorMessage(requestError, '공지사항을 불러오지 못했습니다.')),
       );
   }, [id]);
 
@@ -35,9 +33,7 @@ function NoticeDetailPage() {
             <h1>{notice.title}</h1>
             <p>
               {notice.authorName} ·{' '}
-              {new Date(notice.publishedAt ?? notice.updatedAt).toLocaleString(
-                'ko-KR',
-              )}
+              {new Date(notice.publishedAt ?? notice.updatedAt).toLocaleString('ko-KR')}
             </p>
           </header>
           <div>{notice.content}</div>

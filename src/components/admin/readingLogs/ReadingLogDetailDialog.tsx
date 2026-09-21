@@ -56,11 +56,7 @@ function ReadingLogDetailDialog({
   const renderDetailActions = () => {
     if (log.status !== 'submit') {
       return (
-        <button
-          type="button"
-          className="admin-reading-log-dialog__button"
-          onClick={onClose}
-        >
+        <button type="button" className="admin-reading-log-dialog__button" onClick={onClose}>
           닫기
         </button>
       );
@@ -72,11 +68,7 @@ function ReadingLogDetailDialog({
           type="button"
           className="admin-reading-log-dialog__button admin-reading-log-dialog__button--primary"
           disabled={hasValidationIssue || isProcessing}
-          title={
-            hasValidationIssue
-              ? '자동 검증 문제를 먼저 확인해 주세요.'
-              : undefined
-          }
+          title={hasValidationIssue ? '자동 검증 문제를 먼저 확인해 주세요.' : undefined}
           onClick={() => setMode('approve-confirm')}
         >
           승인
@@ -89,11 +81,7 @@ function ReadingLogDetailDialog({
         >
           반려
         </button>
-        <button
-          type="button"
-          className="admin-reading-log-dialog__button"
-          onClick={onClose}
-        >
+        <button type="button" className="admin-reading-log-dialog__button" onClick={onClose}>
           닫기
         </button>
       </>
@@ -101,10 +89,7 @@ function ReadingLogDetailDialog({
   };
 
   return (
-    <div
-      className="admin-reading-log-dialog__backdrop"
-      onMouseDown={handleBackdropMouseDown}
-    >
+    <div className="admin-reading-log-dialog__backdrop" onMouseDown={handleBackdropMouseDown}>
       <section
         className="admin-reading-log-dialog"
         role="dialog"
@@ -158,15 +143,13 @@ function ReadingLogDetailDialog({
                 <section className="admin-reading-log-dialog__section">
                   <h3>이 독서일지를 승인하시겠습니까?</h3>
                   <p className="admin-reading-log-dialog__confirm-message">
-                    총 <strong>{totalReadPages.toLocaleString('ko-KR')}쪽</strong>
-                    ,{' '}
+                    총 <strong>{totalReadPages.toLocaleString('ko-KR')}쪽</strong>,{' '}
                     <strong>{formatReadingDistance(distanceMeters)}</strong>,{' '}
                     <strong>{log.books.length}권</strong>의 기록입니다.
                   </p>
                   <div className="admin-reading-log-dialog__warning">
-                    자동 검증은 실제 책의 전체 페이지 수와 제외 도서 여부를
-                    확인할 수 없습니다. 외부 검색 결과를 직접 확인한 뒤
-                    승인해 주세요.
+                    자동 검증은 실제 책의 전체 페이지 수와 제외 도서 여부를 확인할 수 없습니다. 외부
+                    검색 결과를 직접 확인한 뒤 승인해 주세요.
                   </div>
                 </section>
               )}
@@ -203,11 +186,11 @@ function ReadingLogDetailDialog({
                     <dd>{formatKoDateTime24(log.submittedAt)}</dd>
                   </div>
                   {log.approvedAt && (
-                  <div>
-                    <dt>검토 시각</dt>
-                    <dd>{formatKoDateTime24(log.approvedAt)}</dd>
-                  </div>
-                )}
+                    <div>
+                      <dt>검토 시각</dt>
+                      <dd>{formatKoDateTime24(log.approvedAt)}</dd>
+                    </div>
+                  )}
                 </dl>
               </section>
 
@@ -224,11 +207,7 @@ function ReadingLogDetailDialog({
                   </div>
                   <div>
                     <dt>환산 거리</dt>
-                    <dd>
-                      {formatReadingDistance(
-                        log.convertedDistanceMeter ?? distanceMeters,
-                      )}
-                    </dd>
+                    <dd>{formatReadingDistance(log.convertedDistanceMeter ?? distanceMeters)}</dd>
                   </div>
                   <div>
                     <dt>일일 제한</dt>
@@ -260,22 +239,18 @@ function ReadingLogDetailDialog({
                 </section>
               ) : (
                 <div className="admin-reading-log-dialog__safe-note">
-                  자동 검증에서 형식·합계·누적 초과 문제는 발견되지 않았습니다.
-                  실제 도서 정보가 정확하다는 의미는 아닙니다.
+                  자동 검증에서 형식·합계·누적 초과 문제는 발견되지 않았습니다. 실제 도서 정보가
+                  정확하다는 의미는 아닙니다.
                 </div>
               )}
 
-              <ReadingLogBookDetails
-                books={log.books}
-                validationIssues={validationIssues}
-              />
+              <ReadingLogBookDetails books={log.books} validationIssues={validationIssues} />
 
               <div className="admin-reading-log-dialog__manual-check">
                 <strong>관리자 직접 확인 필요</strong>
                 <p>
-                  실제 책 전체 페이지 수와 책 제목·저자·출판사가 일치하는지
-                  검색해 주세요. 만화, 전공서적, 수험서·문제집, 원서,
-                  정기간행물은 제외 도서입니다.
+                  실제 책 전체 페이지 수와 책 제목·저자·출판사가 일치하는지 검색해 주세요. 만화,
+                  전공서적, 수험서·문제집, 원서, 정기간행물은 제외 도서입니다.
                 </p>
               </div>
 
@@ -286,8 +261,7 @@ function ReadingLogDetailDialog({
                     {log.rejectionReason}
                   </div>
                   <p className="admin-reading-log-dialog__mode-description">
-                    참가자는 이 사유를 확인한 뒤 기록을 수정해 다시 제출할 수
-                    있습니다.
+                    참가자는 이 사유를 확인한 뒤 기록을 수정해 다시 제출할 수 있습니다.
                   </p>
                 </section>
               )}

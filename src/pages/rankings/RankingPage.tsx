@@ -79,9 +79,7 @@ function RankingPage() {
         setUpdatedAt(new Date());
         setError('');
       } catch (requestError: unknown) {
-        setError(
-          getApiErrorMessage(requestError, '랭킹을 불러오지 못했습니다.'),
-        );
+        setError(getApiErrorMessage(requestError, '랭킹을 불러오지 못했습니다.'));
       } finally {
         setIsLoading(false);
       }
@@ -103,9 +101,7 @@ function RankingPage() {
       setUpdatedAt(new Date());
       setError('');
     } catch (requestError: unknown) {
-      setError(
-        getApiErrorMessage(requestError, '랭킹을 불러오지 못했습니다.'),
-      );
+      setError(getApiErrorMessage(requestError, '랭킹을 불러오지 못했습니다.'));
     } finally {
       setIsLoading(false);
     }
@@ -120,9 +116,7 @@ function RankingPage() {
           <h1>독서마라톤 랭킹</h1>
 
           <span>
-            {event
-              ? getEventDisplayTitle(event)
-              : '승인된 독서 기록으로 집계된 순위입니다.'}
+            {event ? getEventDisplayTitle(event) : '승인된 독서 기록으로 집계된 순위입니다.'}
           </span>
 
           <small className="ranking-privacy">
@@ -151,9 +145,7 @@ function RankingPage() {
           value={courseId ?? ''}
           onChange={(changeEvent) =>
             void changeCourse(
-              changeEvent.target.value
-                ? Number(changeEvent.target.value)
-                : undefined,
+              changeEvent.target.value ? Number(changeEvent.target.value) : undefined,
             )
           }
         >

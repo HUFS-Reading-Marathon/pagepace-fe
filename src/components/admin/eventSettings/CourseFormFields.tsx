@@ -1,7 +1,4 @@
-import {
-  REWARD_TYPE_OPTIONS,
-  type CourseForm,
-} from '../../../utils/adminEventForms';
+import { REWARD_TYPE_OPTIONS, type CourseForm } from '../../../utils/adminEventForms';
 
 type CourseFormFieldsProps = {
   form: CourseForm;
@@ -10,9 +7,7 @@ type CourseFormFieldsProps = {
 
 /** 코스 카드(기존 코스 수정·새 코스 생성)에서 공통으로 쓰는 입력 필드 묶음 */
 function CourseFormFields({ form, updateField }: CourseFormFieldsProps) {
-  const isKnownRewardType = REWARD_TYPE_OPTIONS.some(
-    (option) => option.value === form.rewardType,
-  );
+  const isKnownRewardType = REWARD_TYPE_OPTIONS.some((option) => option.value === form.rewardType);
 
   return (
     <div className="admin-event-settings__course-fields">
@@ -35,9 +30,7 @@ function CourseFormFields({ form, updateField }: CourseFormFieldsProps) {
             step="1"
             required
             value={form.targetDistanceMeter}
-            onChange={(event) =>
-              updateField('targetDistanceMeter', event.target.value)
-            }
+            onChange={(event) => updateField('targetDistanceMeter', event.target.value)}
           />
           <span>m</span>
         </div>
@@ -52,9 +45,7 @@ function CourseFormFields({ form, updateField }: CourseFormFieldsProps) {
             step="1"
             required
             value={form.standardBookCount}
-            onChange={(event) =>
-              updateField('standardBookCount', event.target.value)
-            }
+            onChange={(event) => updateField('standardBookCount', event.target.value)}
           />
           <span>권</span>
         </div>
@@ -67,9 +58,7 @@ function CourseFormFields({ form, updateField }: CourseFormFieldsProps) {
           min="0"
           step="1"
           value={form.avgMonthlyReadingCount}
-          onChange={(event) =>
-            updateField('avgMonthlyReadingCount', event.target.value)
-          }
+          onChange={(event) => updateField('avgMonthlyReadingCount', event.target.value)}
         />
       </label>
 
@@ -80,9 +69,7 @@ function CourseFormFields({ form, updateField }: CourseFormFieldsProps) {
           min="0"
           step="1"
           value={form.maxWinners}
-          onChange={(event) =>
-            updateField('maxWinners', event.target.value)
-          }
+          onChange={(event) => updateField('maxWinners', event.target.value)}
         />
       </label>
 
@@ -93,9 +80,7 @@ function CourseFormFields({ form, updateField }: CourseFormFieldsProps) {
           min="0"
           step="1"
           value={form.extraLoanCount}
-          onChange={(event) =>
-            updateField('extraLoanCount', event.target.value)
-          }
+          onChange={(event) => updateField('extraLoanCount', event.target.value)}
         />
       </label>
 
@@ -127,9 +112,7 @@ function CourseFormFields({ form, updateField }: CourseFormFieldsProps) {
           min="0"
           step="1"
           value={form.rewardAmount}
-          onChange={(event) =>
-            updateField('rewardAmount', event.target.value)
-          }
+          onChange={(event) => updateField('rewardAmount', event.target.value)}
         />
       </label>
 
@@ -140,9 +123,7 @@ function CourseFormFields({ form, updateField }: CourseFormFieldsProps) {
           min="0"
           step="1"
           value={form.displayOrder}
-          onChange={(event) =>
-            updateField('displayOrder', event.target.value)
-          }
+          onChange={(event) => updateField('displayOrder', event.target.value)}
         />
       </label>
     </div>

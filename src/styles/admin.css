@@ -136,8 +136,7 @@
   transition: transform 0.15s ease;
 }
 
-.admin-header__account-trigger[aria-expanded='true']
-  .admin-header__account-chevron {
+.admin-header__account-trigger[aria-expanded='true'] .admin-header__account-chevron {
   transform: rotate(180deg);
 }
 
@@ -298,8 +297,7 @@
   transition: transform 0.15s ease;
 }
 
-.admin-sidebar__group[aria-expanded='true']
-  .admin-sidebar__group-chevron {
+.admin-sidebar__group[aria-expanded='true'] .admin-sidebar__group-chevron {
   transform: rotate(180deg);
 }
 

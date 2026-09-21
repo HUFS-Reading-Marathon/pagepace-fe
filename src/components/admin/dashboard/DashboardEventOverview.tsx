@@ -89,20 +89,12 @@ function DashboardEventOverview({
         <div>
           <dt>신청</dt>
           <dd>
-            {formatPeriod(
-              event?.applicationStartDate ?? '',
-              event?.applicationEndDate ?? '',
-            )}
+            {formatPeriod(event?.applicationStartDate ?? '', event?.applicationEndDate ?? '')}
           </dd>
         </div>
         <div>
           <dt>운영</dt>
-          <dd>
-            {formatPeriod(
-              event?.eventStartDate ?? '',
-              event?.eventEndDate ?? '',
-            )}
-          </dd>
+          <dd>{formatPeriod(event?.eventStartDate ?? '', event?.eventEndDate ?? '')}</dd>
         </div>
       </dl>
 

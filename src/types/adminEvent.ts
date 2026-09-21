@@ -40,10 +40,7 @@ export type AdminEvent = {
   updatedAt?: string;
 };
 
-export type CreateEventRequest = Omit<
-  AdminEvent,
-  'eventId' | 'createdAt' | 'updatedAt'
->;
+export type CreateEventRequest = Omit<AdminEvent, 'eventId' | 'createdAt' | 'updatedAt'>;
 
 export type UpdateEventRequest = CreateEventRequest;
 

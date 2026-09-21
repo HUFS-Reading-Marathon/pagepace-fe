@@ -1,7 +1,4 @@
-import {
-  DAILY_READING_PAGE_LIMIT,
-  METERS_PER_PAGE,
-} from '../constants/reading';
+import { DAILY_READING_PAGE_LIMIT, METERS_PER_PAGE } from '../constants/reading';
 
 export type ReadingLogStatus = 'submit' | 'approve' | 'rejected';
 
@@ -43,10 +40,7 @@ export type AdminReadingLog = {
 };
 
 export type ReadingLogValidationCode =
-  | 'daily-limit'
-  | 'book-total-overflow'
-  | 'invalid-pages'
-  | 'missing-book-info';
+  'daily-limit' | 'book-total-overflow' | 'invalid-pages' | 'missing-book-info';
 
 export type ReadingLogValidationIssue = {
   code: ReadingLogValidationCode;
@@ -91,10 +85,7 @@ export const READING_LOG_REJECTION_REASONS = [
 ] as const;
 
 export function getReadingLogTotalPages(log: AdminReadingLog) {
-  return (
-    log.totalReadPages ??
-    log.books.reduce((sum, book) => sum + book.readPages, 0)
-  );
+  return log.totalReadPages ?? log.books.reduce((sum, book) => sum + book.readPages, 0);
 }
 
 export function getReadingDistanceMeters(readPages: number) {
@@ -102,22 +93,14 @@ export function getReadingDistanceMeters(readPages: number) {
 }
 
 export function getExpectedApprovedPages(book: ReadingLogBookEntry) {
-  return (
-    book.expectedApprovedPages ??
-    book.previouslyApprovedPages + book.readPages
-  );
+  return book.expectedApprovedPages ?? book.previouslyApprovedPages + book.readPages;
 }
 
 export function getRemainingPages(book: ReadingLogBookEntry) {
-  return (
-    book.remainingPagesAfterApproval ??
-    book.totalPages - getExpectedApprovedPages(book)
-  );
+  return book.remainingPagesAfterApproval ?? book.totalPages - getExpectedApprovedPages(book);
 }
 
-export function validateReadingLog(
-  log: AdminReadingLog,
-): ReadingLogValidationIssue[] {
+export function validateReadingLog(log: AdminReadingLog): ReadingLogValidationIssue[] {
   const issues: ReadingLogValidationIssue[] = [];
   const totalReadPages = getReadingLogTotalPages(log);
 
@@ -156,10 +139,7 @@ export function validateReadingLog(
       });
     }
 
-    if (
-      !hasInvalidPageValue &&
-      getExpectedApprovedPages(book) > book.totalPages
-    ) {
+    if (!hasInvalidPageValue && getExpectedApprovedPages(book) > book.totalPages) {
       issues.push({
         code: 'book-total-overflow',
         label: '책 전체 페이지 초과',
@@ -170,11 +150,7 @@ export function validateReadingLog(
 
     if (
       book.pageExceeded &&
-      !issues.some(
-        (issue) =>
-          issue.code === 'book-total-overflow' &&
-          issue.bookEntryId === book.id,
-      )
+      !issues.some((issue) => issue.code === 'book-total-overflow' && issue.bookEntryId === book.id)
     ) {
       issues.push({
         code: 'book-total-overflow',
@@ -186,11 +162,7 @@ export function validateReadingLog(
       });
     }
 
-    if (
-      !book.title.trim() ||
-      !book.author.trim() ||
-      !book.publisher.trim()
-    ) {
+    if (!book.title.trim() || !book.author.trim() || !book.publisher.trim()) {
       issues.push({
         code: 'missing-book-info',
         label: '도서 정보 누락',

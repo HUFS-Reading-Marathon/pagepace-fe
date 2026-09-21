@@ -48,10 +48,7 @@ function AdminHeader() {
     }
 
     const handlePointerDown = (event: PointerEvent) => {
-      if (
-        event.target instanceof Node &&
-        !accountRef.current?.contains(event.target)
-      ) {
+      if (event.target instanceof Node && !accountRef.current?.contains(event.target)) {
         closeAccountPopover();
       }
     };
@@ -93,19 +90,11 @@ function AdminHeader() {
           </div>
 
           <nav className="topbar-links" aria-label="상단 유틸리티">
-            <a
-              href="https://lib.hufs.ac.kr/global/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href="https://lib.hufs.ac.kr/global/" target="_blank" rel="noopener noreferrer">
               도서관 홈
             </a>
 
-            <a
-              href="https://www.hufs.ac.kr/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href="https://www.hufs.ac.kr/" target="_blank" rel="noopener noreferrer">
               학교 홈페이지
             </a>
 
@@ -151,14 +140,7 @@ function AdminHeader() {
                   viewBox="0 0 18 18"
                   aria-hidden="true"
                 >
-                  <circle
-                    cx="9"
-                    cy="6"
-                    r="3"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                  />
+                  <circle cx="9" cy="6" r="3" fill="none" stroke="currentColor" strokeWidth="1.5" />
                   <path
                     d="M3.75 15c.35-2.55 2.2-4.25 5.25-4.25s4.9 1.7 5.25 4.25"
                     fill="none"
@@ -196,19 +178,14 @@ function AdminHeader() {
                   aria-modal="false"
                   aria-labelledby={ACCOUNT_POPOVER_TITLE_ID}
                 >
-                  <h2
-                    id={ACCOUNT_POPOVER_TITLE_ID}
-                    className="admin-header__account-title"
-                  >
+                  <h2 id={ACCOUNT_POPOVER_TITLE_ID} className="admin-header__account-title">
                     관리자 계정
                   </h2>
 
                   <dl className="admin-header__account-details">
                     <div className="admin-header__account-row">
                       <dt className="admin-header__account-key">아이디</dt>
-                      <dd className="admin-header__account-value">
-                        {accountLabel}
-                      </dd>
+                      <dd className="admin-header__account-value">{accountLabel}</dd>
                     </div>
                     <div className="admin-header__account-row">
                       <dt className="admin-header__account-key">권한</dt>
@@ -222,12 +199,7 @@ function AdminHeader() {
                       className="admin-header__account-user-view"
                       onClick={closeAccountPopover}
                     >
-                      <svg
-                        width="17"
-                        height="17"
-                        viewBox="0 0 17 17"
-                        aria-hidden="true"
-                      >
+                      <svg width="17" height="17" viewBox="0 0 17 17" aria-hidden="true">
                         <rect
                           x="2"
                           y="2.5"

@@ -37,9 +37,7 @@ function MyPage() {
       })
       .catch((error: unknown) => {
         if (isActive) {
-          setErrorMessage(
-            getApiErrorMessage(error, '나의 현황을 불러오지 못했습니다.'),
-          );
+          setErrorMessage(getApiErrorMessage(error, '나의 현황을 불러오지 못했습니다.'));
         }
       })
       .finally(() => {
@@ -77,9 +75,7 @@ function MyPage() {
   const recentLog = [...logs].sort((left, right) =>
     right.createdAt.localeCompare(left.createdAt),
   )[0];
-  const recentLogStatusLabel = recentLog
-    ? READING_LOG_STATUS_LABELS[recentLog.status]
-    : null;
+  const recentLogStatusLabel = recentLog ? READING_LOG_STATUS_LABELS[recentLog.status] : null;
   const progressStyle = {
     '--progress-position': isProgressStarted ? `${progressRate}%` : '0%',
   } as CSSProperties;
@@ -97,8 +93,8 @@ function MyPage() {
           <span>현재 코스</span>
           <h2>{participation.courseName}</h2>
           <p>
-            {formatDistance(participation.targetDistanceMeter)} 완주를 목표로
-            독서기록을 누적하고 있습니다.
+            {formatDistance(participation.targetDistanceMeter)} 완주를 목표로 독서기록을 누적하고
+            있습니다.
           </p>
         </div>
         <div className="my-progress-area" style={progressStyle}>

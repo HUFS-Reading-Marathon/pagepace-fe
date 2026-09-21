@@ -8,11 +8,7 @@ import { ApiError, apiRequest } from './apiClient';
 
 function validateId(id: number, label: '참가' | '독서일지' | '도서') {
   if (!Number.isInteger(id) || id <= 0) {
-    throw new ApiError(
-      `${label} ID가 올바르지 않습니다.`,
-      0,
-      'INVALID_ID',
-    );
+    throw new ApiError(`${label} ID가 올바르지 않습니다.`, 0, 'INVALID_ID');
   }
 }
 
@@ -43,21 +39,15 @@ export async function getMyReadingLog(readingLogId: number) {
   return log;
 }
 
-export function createReadingLog(
-  participationId: number,
-  request: ReadingLogRequest,
-) {
+export function createReadingLog(participationId: number, request: ReadingLogRequest) {
   validateId(participationId, '참가');
-  return apiRequest<ReadingLog>(
-    `/api/participations/${participationId}/reading-logs`,
-    { method: 'POST', ...jsonOptions(request) },
-  );
+  return apiRequest<ReadingLog>(`/api/participations/${participationId}/reading-logs`, {
+    method: 'POST',
+    ...jsonOptions(request),
+  });
 }
 
-export function updateReadingLog(
-  readingLogId: number,
-  request: ReadingLogRequest,
-) {
+export function updateReadingLog(readingLogId: number, request: ReadingLogRequest) {
   validateId(readingLogId, '독서일지');
   return apiRequest<ReadingLog>(`/api/reading-logs/${readingLogId}`, {
     method: 'PATCH',
@@ -73,10 +63,9 @@ export async function deleteReadingLog(readingLogId: number) {
 }
 
 export async function getReviewTargetBooks() {
-  const books = await apiRequest<ReviewTargetBook[]>(
-    '/api/me/review-target-books',
-    { method: 'GET' },
-  );
+  const books = await apiRequest<ReviewTargetBook[]>('/api/me/review-target-books', {
+    method: 'GET',
+  });
   return books ?? [];
 }
 
@@ -89,8 +78,7 @@ export async function getMyReadingBooks() {
 
 export function completeReview(participantBookId: number) {
   validateId(participantBookId, '도서');
-  return apiRequest<ReviewTargetBook>(
-    `/api/me/review-target-books/${participantBookId}/complete`,
-    { method: 'PATCH' },
-  );
+  return apiRequest<ReviewTargetBook>(`/api/me/review-target-books/${participantBookId}/complete`, {
+    method: 'PATCH',
+  });
 }

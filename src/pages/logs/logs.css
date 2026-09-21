@@ -230,7 +230,11 @@
   border: 1px solid transparent;
   border-radius: 6px 6px 2px 2px;
   color: inherit;
-  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .my-library-book:hover {
@@ -1020,8 +1024,12 @@
 }
 
 @keyframes reading-book-search-spin {
-  from { transform: translateY(-50%) rotate(0deg); }
-  to { transform: translateY(-50%) rotate(360deg); }
+  from {
+    transform: translateY(-50%) rotate(0deg);
+  }
+  to {
+    transform: translateY(-50%) rotate(360deg);
+  }
 }
 
 .reading-log-number-input {
@@ -1295,7 +1303,6 @@
   .reading-log-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
 }
 
 @media (max-width: 520px) {
@@ -1352,7 +1359,6 @@
   .btn {
     width: 100%;
   }
-
 }
 
 .reading-detail-page {

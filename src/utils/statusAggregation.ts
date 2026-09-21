@@ -25,13 +25,9 @@ export function buildAdminCompetitionRows(
   courses: ReadonlyArray<AdminCourse>,
   baseDate: string,
 ): AdminCompetitionParticipantRow[] {
-  const coursesById = new Map(
-    courses.map((course) => [course.courseId, course]),
-  );
+  const coursesById = new Map(courses.map((course) => [course.courseId, course]));
   const approvedLogsByParticipant = logs
-    .filter(
-      (log) => log.status === 'APPROVED' && log.readingDate <= baseDate,
-    )
+    .filter((log) => log.status === 'APPROVED' && log.readingDate <= baseDate)
     .reduce<Map<string, AdminReadingLogResponse[]>>((result, log) => {
       const key = getCompetitionJoinKey(log.studentNo, log.courseId);
       const currentLogs = result.get(key) ?? [];
@@ -49,17 +45,12 @@ export function buildAdminCompetitionRows(
           getCompetitionJoinKey(application.studentNo, application.courseId),
         ) ?? [];
       const course = coursesById.get(application.courseId);
-      const cumulativePages = participantLogs.reduce(
-        (sum, log) => sum + log.totalReadPages,
-        0,
-      );
+      const cumulativePages = participantLogs.reduce((sum, log) => sum + log.totalReadPages, 0);
       const cumulativeDistanceMeters = participantLogs.reduce(
         (sum, log) => sum + log.convertedDistanceMeter,
         0,
       );
-      const dailyLogs = participantLogs.filter(
-        (log) => log.readingDate === baseDate,
-      );
+      const dailyLogs = participantLogs.filter((log) => log.readingDate === baseDate);
       const latestLog = [...participantLogs].sort(
         (left, right) =>
           right.readingDate.localeCompare(left.readingDate) ||
@@ -83,15 +74,9 @@ export function buildAdminCompetitionRows(
         cumulativeDistanceMeters,
         progressRate:
           targetDistanceMeters && targetDistanceMeters > 0
-            ? Math.min(
-                (cumulativeDistanceMeters / targetDistanceMeters) * 100,
-                100,
-              )
+            ? Math.min((cumulativeDistanceMeters / targetDistanceMeters) * 100, 100)
             : null,
-        dailyIncreasePages: dailyLogs.reduce(
-          (sum, log) => sum + log.totalReadPages,
-          0,
-        ),
+        dailyIncreasePages: dailyLogs.reduce((sum, log) => sum + log.totalReadPages, 0),
         dailyIncreaseDistanceMeters: dailyLogs.reduce(
           (sum, log) => sum + log.convertedDistanceMeter,
           0,
@@ -122,17 +107,10 @@ export function getAdminCompetitionCourseSummaries(
       completedCount: null,
       averageProgressRate:
         progressValues.length > 0
-          ? progressValues.reduce((sum, value) => sum + value, 0) /
-            progressValues.length
+          ? progressValues.reduce((sum, value) => sum + value, 0) / progressValues.length
           : null,
-      totalPages: courseRows.reduce(
-        (sum, row) => sum + row.cumulativePages,
-        0,
-      ),
-      totalDistanceMeters: courseRows.reduce(
-        (sum, row) => sum + row.cumulativeDistanceMeters,
-        0,
-      ),
+      totalPages: courseRows.reduce((sum, row) => sum + row.cumulativePages, 0),
+      totalDistanceMeters: courseRows.reduce((sum, row) => sum + row.cumulativeDistanceMeters, 0),
     };
   });
 }

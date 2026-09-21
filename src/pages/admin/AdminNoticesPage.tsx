@@ -38,9 +38,7 @@ function AdminNoticesPage() {
     getAdminNotices()
       .then(setNotices)
       .catch((requestError: unknown) =>
-        setError(
-          getApiErrorMessage(requestError, '공지사항을 불러오지 못했습니다.'),
-        ),
+        setError(getApiErrorMessage(requestError, '공지사항을 불러오지 못했습니다.')),
       )
       .finally(() => setLoading(false));
 
@@ -68,9 +66,7 @@ function AdminNoticesPage() {
       await load();
       setError('');
     } catch (requestError) {
-      setError(
-        getApiErrorMessage(requestError, '공지사항을 저장하지 못했습니다.'),
-      );
+      setError(getApiErrorMessage(requestError, '공지사항을 저장하지 못했습니다.'));
     } finally {
       setSaving(false);
     }
@@ -104,10 +100,7 @@ function AdminNoticesPage() {
             <p>불러오는 중입니다.</p>
           ) : (
             notices.map((notice) => (
-              <article
-                key={notice.noticeId}
-                className={!notice.visible ? 'is-hidden' : ''}
-              >
+              <article key={notice.noticeId} className={!notice.visible ? 'is-hidden' : ''}>
                 <div>
                   <span>{notice.pinned ? '중요' : '일반'}</span>
                   <strong>{notice.title}</strong>
@@ -142,9 +135,7 @@ function AdminNoticesPage() {
               required
               rows={10}
               value={form.content}
-              onChange={(event) =>
-                setForm({ ...form, content: event.target.value })
-              }
+              onChange={(event) => setForm({ ...form, content: event.target.value })}
             />
           </label>
           <div className="admin-notices__checks">
@@ -152,9 +143,7 @@ function AdminNoticesPage() {
               <input
                 type="checkbox"
                 checked={form.pinned}
-                onChange={(event) =>
-                  setForm({ ...form, pinned: event.target.checked })
-                }
+                onChange={(event) => setForm({ ...form, pinned: event.target.checked })}
               />{' '}
               중요 공지
             </label>
@@ -162,9 +151,7 @@ function AdminNoticesPage() {
               <input
                 type="checkbox"
                 checked={form.visible}
-                onChange={(event) =>
-                  setForm({ ...form, visible: event.target.checked })
-                }
+                onChange={(event) => setForm({ ...form, visible: event.target.checked })}
               />{' '}
               사용자에게 게시
             </label>

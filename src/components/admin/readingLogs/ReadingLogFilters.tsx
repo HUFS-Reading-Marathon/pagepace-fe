@@ -33,10 +33,7 @@ function ReadingLogFilters({
   onReset,
 }: ReadingLogFiltersProps) {
   return (
-    <section
-      className="admin-reading-logs__toolbar"
-      aria-label="독서일지 검색 및 필터"
-    >
+    <section className="admin-reading-logs__toolbar" aria-label="독서일지 검색 및 필터">
       <div className="admin-reading-logs__filters">
         <div className="admin-reading-logs__field admin-reading-logs__field--search">
           <label htmlFor="readingLogSearch">통합 검색</label>
@@ -54,11 +51,7 @@ function ReadingLogFilters({
           <select
             id="readingLogStatusFilter"
             value={statusFilter}
-            onChange={(event) =>
-              onStatusFilterChange(
-                event.target.value as ReadingLogStatusFilter,
-              )
-            }
+            onChange={(event) => onStatusFilterChange(event.target.value as ReadingLogStatusFilter)}
           >
             {READING_LOG_STATUS_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -73,11 +66,7 @@ function ReadingLogFilters({
           <select
             id="readingLogReviewFilter"
             value={reviewFilter}
-            onChange={(event) =>
-              onReviewFilterChange(
-                event.target.value as ReadingLogReviewFilter,
-              )
-            }
+            onChange={(event) => onReviewFilterChange(event.target.value as ReadingLogReviewFilter)}
           >
             {READING_LOG_REVIEW_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -103,11 +92,7 @@ function ReadingLogFilters({
           전체 {totalCount.toLocaleString('ko-KR')}건 중{' '}
           <strong>{resultCount.toLocaleString('ko-KR')}건</strong>
         </p>
-        <button
-          type="button"
-          className="admin-reading-logs__button"
-          onClick={onReset}
-        >
+        <button type="button" className="admin-reading-logs__button" onClick={onReset}>
           검색·필터 초기화
         </button>
       </div>
@@ -116,4 +101,3 @@ function ReadingLogFilters({
 }
 
 export default ReadingLogFilters;
-

@@ -27,14 +27,13 @@ import {
   type CourseRow,
   type MyRecordSummary,
 } from './mainPageContent';
-import './MainPage.css'
+import './MainPage.css';
 
 const NOTICE_PREVIEW_COUNT = 4;
 
 function MainPage() {
   const { user, isAuthenticated, isInitializing } = useAuth();
-  const isApplied =
-    localStorage.getItem('isApplied') === 'true' || isAuthenticated;
+  const isApplied = localStorage.getItem('isApplied') === 'true' || isAuthenticated;
   const displayName = user?.name || '참가자';
   const [currentEvent, setCurrentEvent] = useState<CurrentEvent | null>(null);
   const [eventCourses, setEventCourses] = useState<CourseRow[]>(FALLBACK_COURSES);
@@ -44,7 +43,9 @@ function MainPage() {
   const [notices, setNotices] = useState<Notice[]>([]);
 
   useEffect(() => {
-    getNotices().then(setNotices).catch(() => setNotices([]));
+    getNotices()
+      .then(setNotices)
+      .catch(() => setNotices([]));
   }, []);
 
   useEffect(() => {
@@ -65,8 +66,7 @@ function MainPage() {
         const logs = await getMyReadingLogs(participation.participationId);
         setApprovedLogs(logs.filter((log) => log.status === 'APPROVED').length);
         setLastSubmittedAt(
-          [...logs].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
-            ?.readingDate ?? '-',
+          [...logs].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]?.readingDate ?? '-',
         );
       })
       .catch(() => undefined);
@@ -152,18 +152,14 @@ function MainPage() {
                 </h1>
 
                 <p className="hero-copy-public">
-                  한국외국어대학교 글로벌캠퍼스 도서관은 구성원의 지속적인 독서
-                  활동을 지원하기 위해 제5회 독서마라톤을 운영합니다. 참가자는
-                  읽은 페이지 수를 기록하고 누적 거리에 따라 선택한 코스의 완주
-                  여부를 확인할 수 있습니다.
+                  한국외국어대학교 글로벌캠퍼스 도서관은 구성원의 지속적인 독서 활동을 지원하기 위해
+                  제5회 독서마라톤을 운영합니다. 참가자는 읽은 페이지 수를 기록하고 누적 거리에 따라
+                  선택한 코스의 완주 여부를 확인할 수 있습니다.
                 </p>
               </>
             )}
 
-            <div
-              className="hero-actions hero-actions-minimal"
-              aria-label="주요 이동 버튼"
-            >
+            <div className="hero-actions hero-actions-minimal" aria-label="주요 이동 버튼">
               {showMyRecord ? (
                 <Link className="btn btn-primary" to="/logs/new">
                   독서일지 작성하기
@@ -213,8 +209,8 @@ function MainPage() {
           <div className="library-search-card fade-up">
             <label htmlFor="libSearch">도서관 소장자료 검색</label>
             <p>
-              독서마라톤 참여 도서를 찾을 때 도서명, 저자명, 키워드로
-              도서관 자료를 검색할 수 있습니다.
+              독서마라톤 참여 도서를 찾을 때 도서명, 저자명, 키워드로 도서관 자료를 검색할 수
+              있습니다.
             </p>
             <form
               className="search-row"
@@ -253,8 +249,8 @@ function MainPage() {
               <h2 id="aboutTitle">행사 개요</h2>
             </div>
             <p className="section-desc">
-              독서마라톤은 독서량을 거리로 환산하여 목표 코스 완주를
-              지원하는 도서관 독서기록 프로그램입니다.
+              독서마라톤은 독서량을 거리로 환산하여 목표 코스 완주를 지원하는 도서관 독서기록
+              프로그램입니다.
             </p>
           </div>
 
@@ -262,10 +258,9 @@ function MainPage() {
             <article className="official-card about-card fade-up">
               <h3>독서마라톤이란?</h3>
               <p>
-                책 1쪽을 5m로 환산하여 누적 거리를 계산하고, 참가자가 선택한
-                코스의 목표 거리에 도달하면 완주로 인정하는 독서기록 행사입니다.
-                운영 기간 동안 독서일지를 제출하며, 도서관 안내 기준에 따라
-                기록 인정 여부가 결정됩니다.
+                책 1쪽을 5m로 환산하여 누적 거리를 계산하고, 참가자가 선택한 코스의 목표 거리에
+                도달하면 완주로 인정하는 독서기록 행사입니다. 운영 기간 동안 독서일지를 제출하며,
+                도서관 안내 기준에 따라 기록 인정 여부가 결정됩니다.
               </p>
 
               <div className="about-highlight" aria-label="독서마라톤 핵심 수치">
@@ -312,8 +307,8 @@ function MainPage() {
             </div>
 
             <p className="section-desc">
-              운영 시작 후 참가자의 독서일지 제출 내역을 기준으로 누적 거리,
-              달성률, 완주 여부가 집계됩니다.
+              운영 시작 후 참가자의 독서일지 제출 내역을 기준으로 누적 거리, 달성률, 완주 여부가
+              집계됩니다.
             </p>
           </div>
 
@@ -343,16 +338,16 @@ function MainPage() {
               <h2 id="coursesTitle">코스 및 혜택</h2>
             </div>
             <p className="section-desc">
-              각 코스는 목표 거리와 목표 페이지 수를 기준으로 운영됩니다.
-              완주 기준과 혜택은 코스별로 다릅니다.
+              각 코스는 목표 거리와 목표 페이지 수를 기준으로 운영됩니다. 완주 기준과 혜택은
+              코스별로 다릅니다.
             </p>
           </div>
 
           <CourseBenefitTable courses={eventCourses} />
 
           <p className="table-note fade-up">
-            추가대출기간: 2026. 3. 1. — 8. 31. / 상품 지급 기준은 도서관
-            공지사항 및 최종 운영 기준을 따릅니다.
+            추가대출기간: 2026. 3. 1. — 8. 31. / 상품 지급 기준은 도서관 공지사항 및 최종 운영
+            기준을 따릅니다.
           </p>
         </div>
       </section>
@@ -365,8 +360,8 @@ function MainPage() {
               <h2 id="processTitle">참여방법</h2>
             </div>
             <p className="section-desc">
-              참가 신청 후 안내에 따라 독서일지를 제출합니다. 제출된 기록은
-              페이지 수 기준으로 거리 환산 및 누적 집계됩니다.
+              참가 신청 후 안내에 따라 독서일지를 제출합니다. 제출된 기록은 페이지 수 기준으로 거리
+              환산 및 누적 집계됩니다.
             </p>
           </div>
 
@@ -387,8 +382,7 @@ function MainPage() {
           <aside className="check-card fade-up">
             <h2>참여 전 확인사항</h2>
             <p>
-              독서일지 제출 전 아래 항목을 확인해 주세요. 세부 기준은 도서관
-              공지사항을 우선합니다.
+              독서일지 제출 전 아래 항목을 확인해 주세요. 세부 기준은 도서관 공지사항을 우선합니다.
             </p>
             <ul className="check-list">
               {CHECK_ITEMS.map((item) => (
@@ -400,8 +394,8 @@ function MainPage() {
           <div className="contact-card fade-up">
             <h3 id="contactTitle">문의 및 운영 정보</h3>
             <p>
-              행사 관련 공지, 신청 확인, 기록 제출 및 서평 작성 문의는
-              도서관 안내 채널을 통해 확인해 주세요.
+              행사 관련 공지, 신청 확인, 기록 제출 및 서평 작성 문의는 도서관 안내 채널을 통해
+              확인해 주세요.
             </p>
 
             <div className="contact-grid">

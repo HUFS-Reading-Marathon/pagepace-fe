@@ -63,19 +63,37 @@ export const EMPTY_EVENT_FORM: EventForm = {
 
 export const COURSE_PRESETS: Record<CoursePresetKey, CourseForm> = {
   SHORT: {
-    name: '단축 코스', targetDistanceMeter: '10000', standardBookCount: '7',
-    avgMonthlyReadingCount: '2.3', maxWinners: '15', extraLoanCount: '2',
-    rewardType: 'GIFT_CARD', rewardAmount: '30000', displayOrder: '1',
+    name: '단축 코스',
+    targetDistanceMeter: '10000',
+    standardBookCount: '7',
+    avgMonthlyReadingCount: '2.3',
+    maxWinners: '15',
+    extraLoanCount: '2',
+    rewardType: 'GIFT_CARD',
+    rewardAmount: '30000',
+    displayOrder: '1',
   },
   HALF: {
-    name: '하프 코스', targetDistanceMeter: '21100', standardBookCount: '14',
-    avgMonthlyReadingCount: '4.6', maxWinners: '20', extraLoanCount: '2',
-    rewardType: 'GIFT_CARD', rewardAmount: '50000', displayOrder: '2',
+    name: '하프 코스',
+    targetDistanceMeter: '21100',
+    standardBookCount: '14',
+    avgMonthlyReadingCount: '4.6',
+    maxWinners: '20',
+    extraLoanCount: '2',
+    rewardType: 'GIFT_CARD',
+    rewardAmount: '50000',
+    displayOrder: '2',
   },
   FULL: {
-    name: '풀 코스', targetDistanceMeter: '42195', standardBookCount: '28',
-    avgMonthlyReadingCount: '9.3', maxWinners: '3', extraLoanCount: '5',
-    rewardType: 'CASH', rewardAmount: '150000', displayOrder: '3',
+    name: '풀 코스',
+    targetDistanceMeter: '42195',
+    standardBookCount: '28',
+    avgMonthlyReadingCount: '9.3',
+    maxWinners: '3',
+    extraLoanCount: '5',
+    rewardType: 'CASH',
+    rewardAmount: '150000',
+    displayOrder: '3',
   },
 };
 
@@ -122,7 +140,6 @@ export function toCourseForm(course: AdminCourse): CourseForm {
   };
 }
 
-
 function getDateUtcValue(value: string) {
   const [year, month, day] = value.split('-').map(Number);
 
@@ -147,9 +164,7 @@ export function getEventCountdown(startDate: string, endDate: string) {
   }
 
   const todayUtc = getTodayUtcValue();
-  const remainingDays = Math.ceil(
-    (startUtc - todayUtc) / (24 * 60 * 60 * 1000),
-  );
+  const remainingDays = Math.ceil((startUtc - todayUtc) / (24 * 60 * 60 * 1000));
 
   if (remainingDays > 0) {
     return `D-${remainingDays}`;
@@ -241,10 +256,7 @@ export function validateCourseForm(form: CourseForm) {
     }
   }
 
-  if (
-    Number(form.targetDistanceMeter) <= 0 ||
-    Number(form.standardBookCount) <= 0
-  ) {
+  if (Number(form.targetDistanceMeter) <= 0 || Number(form.standardBookCount) <= 0) {
     return '목표 거리와 기준 도서 수는 0보다 커야 합니다.';
   }
 

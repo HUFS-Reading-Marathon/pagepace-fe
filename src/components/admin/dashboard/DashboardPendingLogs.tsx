@@ -27,9 +27,7 @@ function DashboardPendingLogs({ logs }: DashboardPendingLogsProps) {
       </header>
 
       {logs.length === 0 ? (
-        <div className="admin-dashboard__empty">
-          검토 대기 중인 독서일지가 없습니다.
-        </div>
+        <div className="admin-dashboard__empty">검토 대기 중인 독서일지가 없습니다.</div>
       ) : (
         <div className="admin-dashboard__table-wrapper">
           <table className="admin-dashboard__table admin-dashboard__table--logs">
@@ -50,22 +48,15 @@ function DashboardPendingLogs({ logs }: DashboardPendingLogsProps) {
                   <tr key={log.readingLogId}>
                     <td>{log.userName}</td>
                     <td>{formatKoDateKey(log.readingDate)}</td>
-                    <td title={getBookSummary(log)}>
-                      {getBookSummary(log)}
-                    </td>
-                    <td>
-                      {log.totalReadPages.toLocaleString('ko-KR')}
-                      쪽
-                    </td>
+                    <td title={getBookSummary(log)}>{getBookSummary(log)}</td>
+                    <td>{log.totalReadPages.toLocaleString('ko-KR')}쪽</td>
                     <td>
                       <span
                         className={`admin-dashboard__review admin-dashboard__review--${
                           hasWarning ? 'warning' : 'safe'
                         }`}
                       >
-                        {hasWarning
-                          ? '확인 필요'
-                          : '이상 없음'}
+                        {hasWarning ? '확인 필요' : '이상 없음'}
                       </span>
                     </td>
                   </tr>

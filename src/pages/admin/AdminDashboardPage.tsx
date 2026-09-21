@@ -45,14 +45,13 @@ function getSubmissionComparison(todayCount: number, yesterdayCount: number) {
 }
 
 function requestDashboardData(eventId: number) {
-  return Promise.all([
-    getAdminApplications(eventId),
-    getAdminReadingLogs({ eventId }),
-  ]).then(([applications, logs]) => ({
-    applications,
-    logs,
-    fetchedAt: new Date(),
-  }));
+  return Promise.all([getAdminApplications(eventId), getAdminReadingLogs({ eventId })]).then(
+    ([applications, logs]) => ({
+      applications,
+      logs,
+      fetchedAt: new Date(),
+    }),
+  );
 }
 
 function AdminDashboardPage() {
@@ -84,10 +83,7 @@ function AdminDashboardPage() {
           return;
         }
 
-        const nextEventId = chooseEventIdByStatus(
-          nextEvents,
-          EVENT_SELECTION_ORDER,
-        );
+        const nextEventId = chooseEventIdByStatus(nextEvents, EVENT_SELECTION_ORDER);
 
         setEvents(nextEvents);
         setDashboardData(null);
@@ -119,10 +115,7 @@ function AdminDashboardPage() {
     let isActive = true;
     const sequence = ++requestSequenceRef.current;
 
-    if (
-      dataRequestRef.current === null ||
-      dataRequestRef.current.eventId !== selectedEventId
-    ) {
+    if (dataRequestRef.current === null || dataRequestRef.current.eventId !== selectedEventId) {
       dataRequestRef.current = {
         eventId: selectedEventId,
         promise: requestDashboardData(selectedEventId),
@@ -160,8 +153,7 @@ function AdminDashboardPage() {
   }, [selectedEventId]);
 
   const selectedEvent = useMemo(
-    () =>
-      events.find((event) => event.eventId === selectedEventId) ?? null,
+    () => events.find((event) => event.eventId === selectedEventId) ?? null,
     [events, selectedEventId],
   );
   const analytics = useMemo(
@@ -177,20 +169,16 @@ function AdminDashboardPage() {
   );
   const approvedRate =
     analytics && analytics.totalApplicants > 0
-      ? (analytics.approvedApplications.length / analytics.totalApplicants) *
-        100
+      ? (analytics.approvedApplications.length / analytics.totalApplicants) * 100
       : 0;
   const latestDataLabel = dashboardData
     ? formatKoDateTime(dashboardData.fetchedAt.toISOString())
     : isDataLoading
       ? '불러오는 중'
       : '반영 데이터 없음';
-  const isBusy =
-    isEventsLoading || isDataLoading || isRefreshIconSpinning;
+  const isBusy = isEventsLoading || isDataLoading || isRefreshIconSpinning;
   const hasNoOperationData =
-    Boolean(analytics) &&
-    analytics?.totalApplicants === 0 &&
-    dashboardData?.logs.length === 0;
+    Boolean(analytics) && analytics?.totalApplicants === 0 && dashboardData?.logs.length === 0;
 
   const handleRefresh = async () => {
     if (selectedEventId === null || isBusy) {
@@ -199,9 +187,7 @@ function AdminDashboardPage() {
 
     const eventId = selectedEventId;
     const sequence = ++requestSequenceRef.current;
-    const shouldAnimate = !window.matchMedia(
-      '(prefers-reduced-motion: reduce)',
-    ).matches;
+    const shouldAnimate = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     setIsDataLoading(true);
     setIsRefreshIconSpinning(shouldAnimate);
@@ -217,9 +203,7 @@ function AdminDashboardPage() {
 
       setDashboardData(data);
       setRefreshAnnouncement(
-        `대시보드 데이터를 새로 반영했습니다. ${formatKoDateTime(
-          data.fetchedAt.toISOString(),
-        )}`,
+        `대시보드 데이터를 새로 반영했습니다. ${formatKoDateTime(data.fetchedAt.toISOString())}`,
       );
     } catch (error: unknown) {
       if (requestSequenceRef.current === sequence) {
@@ -245,10 +229,7 @@ function AdminDashboardPage() {
       <header className="admin-page__header admin-dashboard__header admin-dashboard__enter admin-dashboard__enter--header">
         <div className="admin-dashboard__heading">
           <h1>운영 통계</h1>
-          <p>
-            독서마라톤의 참가, 독서 기록, 완주 현황을 한눈에
-            확인합니다.
-          </p>
+          <p>독서마라톤의 참가, 독서 기록, 완주 현황을 한눈에 확인합니다.</p>
         </div>
         <div className="admin-dashboard__header-meta">
           <label className="admin-dashboard__event-select">
@@ -296,9 +277,7 @@ function AdminDashboardPage() {
                 viewBox="0 0 24 24"
                 aria-hidden="true"
                 onAnimationEnd={(event) => {
-                  if (
-                    event.animationName === 'admin-dashboard-refresh-spin'
-                  ) {
+                  if (event.animationName === 'admin-dashboard-refresh-spin') {
                     setIsRefreshIconSpinning(false);
                   }
                 }}
@@ -321,10 +300,7 @@ function AdminDashboardPage() {
       )}
 
       {isDataLoading && (
-        <div
-          className="admin-dashboard__empty admin-dashboard__empty--page"
-          role="status"
-        >
+        <div className="admin-dashboard__empty admin-dashboard__empty--page" role="status">
           선택한 행사의 운영 데이터를 불러오는 중입니다.
         </div>
       )}
@@ -343,9 +319,7 @@ function AdminDashboardPage() {
 
       <DashboardEventOverview
         event={selectedEvent}
-        approvedParticipantCount={
-          analytics?.approvedApplications.length ?? null
-        }
+        approvedParticipantCount={analytics?.approvedApplications.length ?? null}
         approvedPageTotal={analytics?.approvedPageTotal ?? null}
         approvedDistanceMeters={analytics?.approvedDistanceMeters ?? null}
       />
@@ -435,7 +409,6 @@ function AdminDashboardPage() {
         />
         <DashboardPendingLogs logs={analytics?.pendingLogs.slice(0, 4) ?? []} />
       </div>
-
     </section>
   );
 }

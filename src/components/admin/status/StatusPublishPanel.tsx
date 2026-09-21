@@ -14,10 +14,7 @@ function StatusPublishPanel({
   onRecalculate,
 }: StatusPublishPanelProps) {
   return (
-    <section
-      className="admin-status__publish-panel"
-      aria-labelledby="statusPublishPanelTitle"
-    >
+    <section className="admin-status__publish-panel" aria-labelledby="statusPublishPanelTitle">
       <div className="admin-status__publish-heading">
         <div>
           <div className="admin-status__title-row">
@@ -26,10 +23,7 @@ function StatusPublishPanel({
               API 확인 필요
             </span>
           </div>
-          <p>
-            현황 공개와 Excel/CSV 내보내기는 확인된 백엔드 API가 없어
-            실행하지 않습니다.
-          </p>
+          <p>현황 공개와 Excel/CSV 내보내기는 확인된 백엔드 API가 없어 실행하지 않습니다.</p>
         </div>
       </div>
 
@@ -37,11 +31,7 @@ function StatusPublishPanel({
         <dl className="admin-status__publish-meta">
           <div>
             <dt>마지막 서버 조회</dt>
-            <dd>
-              {lastCalculatedAt
-                ? formatKoDateTime24(lastCalculatedAt)
-                : '조회 이력 없음'}
-            </dd>
+            <dd>{lastCalculatedAt ? formatKoDateTime24(lastCalculatedAt) : '조회 이력 없음'}</dd>
           </div>
           <div>
             <dt>완주 판정</dt>
@@ -78,11 +68,7 @@ function StatusPublishPanel({
       <div className="admin-status__actions">
         <p>선택한 행사의 실제 신청·독서일지·코스 데이터를 다시 조회합니다.</p>
         <div>
-          <button
-            type="button"
-            disabled={!canRefresh || isRefreshing}
-            onClick={onRecalculate}
-          >
+          <button type="button" disabled={!canRefresh || isRefreshing} onClick={onRecalculate}>
             {isRefreshing ? '조회 중…' : '집계 다시 계산'}
           </button>
           <button type="button" disabled title="백엔드 export API 필요">

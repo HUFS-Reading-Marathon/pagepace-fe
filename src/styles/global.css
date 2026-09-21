@@ -34,10 +34,10 @@ body {
   color: var(--ink);
   background: var(--bg);
   font-family:
-    "Pretendard",
-    "Noto Sans KR",
-    "Apple SD Gothic Neo",
-    "Malgun Gothic",
+    'Pretendard',
+    'Noto Sans KR',
+    'Apple SD Gothic Neo',
+    'Malgun Gothic',
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
@@ -165,9 +165,9 @@ img {
 }
 
 .global-nav a:hover,
-.global-nav a[aria-current="page"],
+.global-nav a[aria-current='page'],
 .global-nav .nav-dropdown-trigger:hover,
-.global-nav .nav-dropdown-trigger[aria-current="page"] {
+.global-nav .nav-dropdown-trigger[aria-current='page'] {
   color: var(--navy-strong);
   border-bottom-color: var(--navy-strong);
 }
@@ -231,7 +231,7 @@ img {
 }
 
 .nav-dropdown-menu a:hover,
-.nav-dropdown-menu a[aria-current="page"] {
+.nav-dropdown-menu a[aria-current='page'] {
   background: rgba(47, 96, 146, 0.05);
   color: var(--navy-strong);
 }
@@ -417,7 +417,7 @@ img {
     font-weight: 600;
   }
 
-  .mobile-panel a[aria-current="page"] {
+  .mobile-panel a[aria-current='page'] {
     color: var(--navy-strong);
     font-weight: 750;
   }
@@ -445,7 +445,7 @@ img {
   }
 
   .mobile-panel .mobile-library-link:hover,
-  .mobile-panel .mobile-library-link[aria-current="page"] {
+  .mobile-panel .mobile-library-link[aria-current='page'] {
     color: var(--navy-strong);
     background: var(--blue-10);
   }

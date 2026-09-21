@@ -1,0 +1,27 @@
+name: '✨ Feat'
+description: 새로운 기능 또는 UI 작업
+title: '[Feat] '
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: 작업 내용
+      description: 어떤 기능/UI를 추가하는지 간단히 적어주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: tasks
+    attributes:
+      label: 작업 목록
+      description: 세부 작업을 체크리스트로 적어주세요.
+      value: |
+        - [ ]
+    validations:
+      required: false
+  - type: textarea
+    id: notes
+    attributes:
+      label: 참고 사항
+      description: 디자인, 관련 이슈, 논의 사항 등이 있으면 적어주세요.
+    validations:
+      required: false
