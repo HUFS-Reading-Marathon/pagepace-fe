@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getAdminApplications } from '../../api/adminApplicationApi';
-import { ApiError } from '../../api/apiClient';
+import { getApiErrorMessage } from '../../api/apiClient';
 import {
   getAdminEventCourses,
   getAdminEvents,
@@ -21,9 +21,10 @@ import type {
 } from '../../types/adminStatus';
 import {
   buildAdminCompetitionRows,
-  formatStatusDate,
   getAdminCompetitionCourseSummaries,
 } from '../../utils/statusAggregation';
+import { chooseEventIdByStatus } from '../../utils/adminEvent';
+import { formatKoDateKey, getLocalDateKey } from '../../utils/date';
 import '../../styles/admin-status.css';
 
 type CompetitionData = {
@@ -44,26 +45,8 @@ const EVENT_SELECTION_ORDER: EventStatus[] = [
   'ARCHIVED',
 ];
 
-function chooseEventId(events: AdminEvent[]) {
-  for (const status of EVENT_SELECTION_ORDER) {
-    const event = events.find((item) => item.status === status);
-
-    if (event) {
-      return event.eventId;
-    }
-  }
-
-  return events[0]?.eventId ?? null;
-}
-
-function getLocalDateValue(date = new Date()) {
-  const timezoneOffset = date.getTimezoneOffset() * 60_000;
-
-  return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 10);
-}
-
 function getDefaultSelectedDate(event: AdminEvent) {
-  const today = getLocalDateValue();
+  const today = getLocalDateKey();
 
   if (today < event.eventStartDate) {
     return event.eventStartDate;
@@ -76,11 +59,7 @@ function getDefaultSelectedDate(event: AdminEvent) {
   return today;
 }
 
-function getApiErrorMessage(error: unknown) {
-  return error instanceof ApiError
-    ? error.message
-    : '대회 현황 데이터를 불러오지 못했습니다.';
-}
+const LOAD_ERROR_MESSAGE = '대회 현황 데이터를 불러오지 못했습니다.';
 
 function requestCompetitionData(eventId: number) {
   return Promise.all([
@@ -132,7 +111,10 @@ function AdminStatusPage() {
           return;
         }
 
-        const nextEventId = chooseEventId(nextEvents);
+        const nextEventId = chooseEventIdByStatus(
+          nextEvents,
+          EVENT_SELECTION_ORDER,
+        );
         const nextEvent =
           nextEvents.find((event) => event.eventId === nextEventId) ?? null;
 
@@ -148,7 +130,7 @@ function AdminStatusPage() {
       })
       .catch((requestError: unknown) => {
         if (isActive) {
-          setError(getApiErrorMessage(requestError));
+          setError(getApiErrorMessage(requestError, LOAD_ERROR_MESSAGE));
         }
       })
       .finally(() => {
@@ -192,7 +174,7 @@ function AdminStatusPage() {
       .catch((requestError: unknown) => {
         if (isActive && requestSequenceRef.current === sequence) {
           setCompetitionData(null);
-          setError(getApiErrorMessage(requestError));
+          setError(getApiErrorMessage(requestError, LOAD_ERROR_MESSAGE));
         }
       })
       .finally(() => {
@@ -348,7 +330,7 @@ function AdminStatusPage() {
     } catch (requestError: unknown) {
       if (requestSequenceRef.current === sequence) {
         setCompetitionData(null);
-        setError(getApiErrorMessage(requestError));
+        setError(getApiErrorMessage(requestError, LOAD_ERROR_MESSAGE));
       }
     } finally {
       if (requestSequenceRef.current === sequence) {
@@ -365,7 +347,7 @@ function AdminStatusPage() {
   };
 
   const eventPeriodLabel = selectedEvent
-    ? `${formatStatusDate(selectedEvent.eventStartDate)} ~ ${formatStatusDate(
+    ? `${formatKoDateKey(selectedEvent.eventStartDate)} ~ ${formatKoDateKey(
         selectedEvent.eventEndDate,
       )}`
     : '행사 기간 미설정';
@@ -410,7 +392,7 @@ function AdminStatusPage() {
               onChange={(event) => {
                 setSelectedDate(event.target.value);
                 setFeedbackMessage(
-                  `${formatStatusDate(event.target.value)} 기준으로 표시합니다.`,
+                  `${formatKoDateKey(event.target.value)} 기준으로 표시합니다.`,
                 );
               }}
             />

@@ -1,10 +1,11 @@
-import { type MouseEvent, useEffect, useRef } from 'react';
+import { useRef } from 'react';
+import { useModalDialog } from '../../../hooks/useModalDialog';
 import {
   ADMIN_APPLICATION_AFFILIATION_LABELS,
-  formatAdminApplicationDateTime,
   type AdminApplicationDetail,
   type AdminApplicationListItem,
 } from '../../../types/adminApplication';
+import { formatKoDateTime } from '../../../utils/date';
 import ParticipantStatusBadge from './ParticipantStatusBadge';
 
 type ParticipantDetailDialogProps = {
@@ -31,43 +32,12 @@ function ParticipantDetailDialog({
   onReject,
 }: ParticipantDetailDialogProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const onCloseRef = useRef(onClose);
   const displayedApplication = application ?? fallbackApplication;
-
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
-
-  useEffect(() => {
-    const previouslyFocused =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-    const previousBodyOverflow = document.body.style.overflow;
-
-    document.body.style.overflow = 'hidden';
-    closeButtonRef.current?.focus();
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onCloseRef.current();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = previousBodyOverflow;
-      previouslyFocused?.focus();
-    };
-  }, []);
-
-  const handleBackdropMouseDown = (event: MouseEvent<HTMLDivElement>) => {
-    if (event.target === event.currentTarget) {
-      onClose();
-    }
-  };
+  const { handleBackdropMouseDown } = useModalDialog({
+    onClose,
+    initialFocusRef: closeButtonRef,
+    restoreFocus: true,
+  });
 
   return (
     <div
@@ -161,7 +131,7 @@ function ParticipantDetailDialog({
                 <div>
                   <dt>신청일시</dt>
                   <dd>
-                    {formatAdminApplicationDateTime(
+                    {formatKoDateTime(
                       displayedApplication.appliedAt,
                     )}
                   </dd>

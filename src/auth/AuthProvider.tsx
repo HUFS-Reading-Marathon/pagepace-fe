@@ -11,7 +11,7 @@ import {
   login as requestLogin,
   logout as requestLogout,
 } from '../api/authApi';
-import { ApiError } from '../api/apiClient';
+import { ApiError, getApiErrorMessage } from '../api/apiClient';
 import { AuthContext } from './AuthContext';
 import {
   ACCESS_TOKEN_STORAGE_KEY,
@@ -113,9 +113,7 @@ function AuthProvider({ children }: PropsWithChildren) {
         setUser(null);
         setIsAuthenticated(false);
         setAuthError(
-          error instanceof ApiError
-            ? error.message
-            : '사용자 정보를 불러오지 못했습니다.',
+          getApiErrorMessage(error, '사용자 정보를 불러오지 못했습니다.'),
         );
       })
       .finally(() => {
@@ -173,9 +171,7 @@ function AuthProvider({ children }: PropsWithChildren) {
           }
 
           setAuthError(
-            error instanceof ApiError
-              ? error.message
-              : '사용자 정보를 불러오지 못했습니다.',
+            getApiErrorMessage(error, '사용자 정보를 불러오지 못했습니다.'),
           );
         })
         .finally(() => {
@@ -266,9 +262,7 @@ function AuthProvider({ children }: PropsWithChildren) {
               setUser(null);
               setIsAuthenticated(false);
               setAuthError(
-                error instanceof ApiError
-                  ? error.message
-                  : '사용자 정보를 불러오지 못했습니다.',
+                getApiErrorMessage(error, '사용자 정보를 불러오지 못했습니다.'),
               );
             }
           }

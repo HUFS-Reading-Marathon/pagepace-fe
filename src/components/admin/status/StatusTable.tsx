@@ -1,8 +1,6 @@
 import type { AdminCompetitionParticipantRow } from '../../../types/adminStatus';
-import {
-  formatStatusDate,
-  formatStatusDistance,
-} from '../../../utils/statusAggregation';
+import { formatStatusDistance } from '../../../utils/statusAggregation';
+import { formatKoDateKey } from '../../../utils/date';
 
 type StatusTableProps = {
   participants: AdminCompetitionParticipantRow[];
@@ -111,7 +109,7 @@ function StatusTable({
               </td>
               <td className="admin-status__last-progress">
                 {participant.lastReadingDate
-                  ? formatStatusDate(participant.lastReadingDate)
+                  ? formatKoDateKey(participant.lastReadingDate)
                   : '승인 기록 없음'}
               </td>
             </tr>

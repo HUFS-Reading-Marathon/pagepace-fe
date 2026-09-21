@@ -5,7 +5,7 @@ import {
   getAdminApplications,
   rejectAdminApplication,
 } from '../../api/adminApplicationApi';
-import { ApiError } from '../../api/apiClient';
+import { getApiErrorMessage } from '../../api/apiClient';
 import { getCurrentEvent } from '../../api/eventApi';
 import ParticipantDetailDialog from '../../components/admin/participants/ParticipantDetailDialog';
 import ParticipantFilters from '../../components/admin/participants/ParticipantFilters';
@@ -13,7 +13,6 @@ import ParticipantTable from '../../components/admin/participants/ParticipantTab
 import {
   ADMIN_APPLICATION_AFFILIATION_LABELS,
   ADMIN_APPLICATION_STATUS_LABELS,
-  formatAdminApplicationDateTime,
   type AdminApplicationAffiliationType,
   type AdminApplicationDetail,
   type AdminApplicationListItem,
@@ -21,6 +20,7 @@ import {
   type ParticipantCourseFilter,
   type ParticipantStatusFilter,
 } from '../../types/adminApplication';
+import { formatKoDateTime, getLocalDateKey } from '../../utils/date';
 import '../../styles/admin-participants.css';
 
 const CSV_HEADERS = [
@@ -37,18 +37,6 @@ const CSV_HEADERS = [
 
 function escapeCsvValue(value: string) {
   return `"${value.replace(/"/g, '""')}"`;
-}
-
-function getLocalDateStamp(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-
-  return `${year}-${month}-${day}`;
-}
-
-function getApiErrorMessage(error: unknown, fallback: string) {
-  return error instanceof ApiError ? error.message : fallback;
 }
 
 function AdminParticipantsPage() {
@@ -379,7 +367,7 @@ function AdminParticipantsPage() {
       participant.phone,
       participant.email,
       participant.courseName,
-      formatAdminApplicationDateTime(participant.appliedAt),
+      formatKoDateTime(participant.appliedAt),
     ]);
     const csv = [CSV_HEADERS, ...rows]
       .map((row) => row.map((value) => escapeCsvValue(value ?? '')).join(','))
@@ -391,7 +379,7 @@ function AdminParticipantsPage() {
     const anchor = document.createElement('a');
 
     anchor.href = objectUrl;
-    anchor.download = `독서마라톤_참가자목록_${getLocalDateStamp(new Date())}.csv`;
+    anchor.download = `독서마라톤_참가자목록_${getLocalDateKey()}.csv`;
     document.body.append(anchor);
     anchor.click();
     anchor.remove();
@@ -423,7 +411,10 @@ function AdminParticipantsPage() {
       setDetailApplication(await getAdminApplicationDetail(applicationId));
       setFeedbackMessage('참가 신청을 반려했습니다.');
     } catch (error) {
-      const message = getApiErrorMessage(error, '참가 신청을 반려하지 못했습니다.');
+      const message = getApiErrorMessage(
+        error,
+        '참가 신청을 반려하지 못했습니다.',
+      );
       setFeedbackMessage(message);
       setFeedbackIsError(true);
       setDetailActionError(message);

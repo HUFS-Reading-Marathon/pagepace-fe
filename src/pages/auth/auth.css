@@ -303,12 +303,6 @@
   filter: none !important;
 }
 
-@media (max-width: 768px) {
-  .auth-watermark {
-    display: none !important;
-  }
-}
-
 @media (max-width: 1024px) {
   .auth-watermark {
     right: -120px !important;

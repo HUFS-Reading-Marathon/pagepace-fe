@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ApiError } from '../../api/apiClient';
+import { getApiErrorMessage } from '../../api/apiClient';
 import {
   confirmPasswordReset,
   sendPasswordResetCode,
@@ -37,7 +37,7 @@ function PasswordResetPage() {
       setMessage('인증번호를 발송했습니다. 이메일에서 6자리 번호를 확인해 주세요.');
     } catch (error) {
       setIsError(true);
-      setMessage(error instanceof ApiError ? error.message : '인증번호를 발송하지 못했습니다.');
+      setMessage(getApiErrorMessage(error, '인증번호를 발송하지 못했습니다.'));
     } finally {
       setIsSending(false);
     }
@@ -60,7 +60,9 @@ function PasswordResetPage() {
       setMessage('비밀번호가 아이디와 동일한 값으로 초기화되었습니다.');
     } catch (error) {
       setIsError(true);
-      setMessage(error instanceof ApiError ? error.message : '비밀번호를 초기화하지 못했습니다.');
+      setMessage(
+        getApiErrorMessage(error, '비밀번호를 초기화하지 못했습니다.'),
+      );
     } finally {
       setIsConfirming(false);
     }

@@ -1,14 +1,13 @@
 import { useEffect, useRef } from 'react';
 import {
   formatReadingDistance,
-  formatReadingLogDate,
-  formatReadingLogDateTime,
   getReadingDistanceMeters,
   getReadingLogTotalPages,
   validateReadingLog,
   type AdminReadingLog,
   type ReadingLogDialogMode,
 } from '../../../types/adminReadingLog';
+import { formatKoDateKey, formatKoDateTime24 } from '../../../utils/date';
 import ReadingLogStatusBadge from './ReadingLogStatusBadge';
 
 type ReadingLogTableProps = {
@@ -134,7 +133,7 @@ function ReadingLogTable({
                     type="checkbox"
                     checked={selectedLogIds.includes(log.id)}
                     disabled={!isSelectable}
-                    aria-label={`${log.participantName}의 ${formatReadingLogDate(
+                    aria-label={`${log.participantName}의 ${formatKoDateKey(
                       log.readingDate,
                     )} 독서일지 선택`}
                     title={
@@ -151,7 +150,7 @@ function ReadingLogTable({
                   <ReadingLogStatusBadge status={log.status} />
                 </td>
                 <td className="admin-reading-logs__nowrap">
-                  {formatReadingLogDate(log.readingDate)}
+                  {formatKoDateKey(log.readingDate)}
                 </td>
                 <td className="admin-reading-logs__participant">
                   {log.participantName}
@@ -187,7 +186,7 @@ function ReadingLogTable({
                   )}
                 </td>
                 <td className="admin-reading-logs__submitted-at">
-                  {formatReadingLogDateTime(log.submittedAt)}
+                  {formatKoDateTime24(log.submittedAt)}
                 </td>
                 <td>
                   <div className="admin-reading-logs__row-actions">

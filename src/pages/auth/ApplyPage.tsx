@@ -1,11 +1,4 @@
-import {
-  type ClipboardEvent,
-  type FormEvent,
-  type KeyboardEvent,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GENERAL_AFFILIATIONS, STUDENT_DEPARTMENT_GROUPS } from '../../constants/departments';
 import {
@@ -14,7 +7,8 @@ import {
   sendApplicationEmailVerification,
   type ApplicationAffiliationType,
 } from '../../api/applicationApi';
-import { ApiError } from '../../api/apiClient';
+import { getApiErrorMessage } from '../../api/apiClient';
+import VerificationCodeInput from '../../components/auth/VerificationCodeInput';
 import {
   getCurrentEvent,
   getEventCourses,
@@ -98,7 +92,7 @@ function ApplyPage() {
   >(null);
   const [verificationSecondsRemaining, setVerificationSecondsRemaining] =
     useState<number | null>(null);
-  const verificationDigitRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const [codeInputFocusKey, setCodeInputFocusKey] = useState(0);
   const [department, setDepartment] = useState('');
   const [affiliation, setAffiliation] =
     useState<AffiliationType>('undergraduate');
@@ -172,9 +166,10 @@ function ApplyPage() {
         setCourses([]);
         setSelectedCourseId(null);
         setEventCourseError(
-          error instanceof ApiError
-            ? error.message
-            : '행사와 코스 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
+          getApiErrorMessage(
+            error,
+            '행사와 코스 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
+          ),
         );
       })
       .finally(() => {
@@ -265,7 +260,6 @@ function ApplyPage() {
     setVerificationError('');
     setVerificationMessage('');
     setIsSendingVerification(true);
-    let wasVerificationSent = false;
 
     try {
       await sendApplicationEmailVerification(normalizedEmail);
@@ -278,21 +272,17 @@ function ApplyPage() {
       setVerificationExpiresAt(
         Date.now() + VERIFICATION_TIME_LIMIT_SECONDS * 1000,
       );
-      wasVerificationSent = true;
+      // 인증번호 입력칸이 렌더링된 뒤 첫 번째 자리에 포커스를 옮깁니다.
+      setCodeInputFocusKey((current) => current + 1);
     } catch (error) {
       setVerificationError(
-        error instanceof ApiError
-          ? error.message
-          : '인증번호 발송에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+        getApiErrorMessage(
+          error,
+          '인증번호 발송에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+        ),
       );
     } finally {
       setIsSendingVerification(false);
-
-      if (wasVerificationSent) {
-        window.requestAnimationFrame(() => {
-          verificationDigitRefs.current[0]?.focus();
-        });
-      }
     }
   };
 
@@ -301,110 +291,6 @@ function ApplyPage() {
       nextCode.replace(/\D/g, '').slice(0, VERIFICATION_CODE_LENGTH),
     );
     setVerificationError('');
-  };
-
-  const focusVerificationDigit = (index: number) => {
-    window.requestAnimationFrame(() => {
-      verificationDigitRefs.current[index]?.focus();
-    });
-  };
-
-  const handleVerificationDigitChange = (index: number, nextValue: string) => {
-    const digits = nextValue.replace(/\D/g, '');
-
-    if (!digits) {
-      handleVerificationCodeChange(
-        verificationCode.slice(0, index) + verificationCode.slice(index + 1),
-      );
-      return;
-    }
-
-    if (index > verificationCode.length) {
-      focusVerificationDigit(verificationCode.length);
-      return;
-    }
-
-    const digit = digits.slice(-1);
-    const nextCode =
-      index === verificationCode.length
-        ? verificationCode + digit
-        : verificationCode.slice(0, index) +
-          digit +
-          verificationCode.slice(index + 1);
-
-    handleVerificationCodeChange(nextCode);
-
-    if (index < VERIFICATION_CODE_LENGTH - 1) {
-      focusVerificationDigit(index + 1);
-    }
-  };
-
-  const handleVerificationDigitKeyDown = (
-    event: KeyboardEvent<HTMLInputElement>,
-    index: number,
-  ) => {
-    if (event.key === 'Backspace') {
-      event.preventDefault();
-
-      if (verificationCode[index]) {
-        handleVerificationCodeChange(
-          verificationCode.slice(0, index) +
-            verificationCode.slice(index + 1),
-        );
-        focusVerificationDigit(index);
-      } else if (index > 0) {
-        focusVerificationDigit(index - 1);
-      }
-
-      return;
-    }
-
-    if (event.key === 'ArrowLeft' && index > 0) {
-      event.preventDefault();
-      focusVerificationDigit(index - 1);
-    }
-
-    if (
-      event.key === 'ArrowRight' &&
-      index < VERIFICATION_CODE_LENGTH - 1
-    ) {
-      event.preventDefault();
-      focusVerificationDigit(index + 1);
-    }
-  };
-
-  const handleVerificationCodePaste = (
-    event: ClipboardEvent<HTMLInputElement>,
-    index: number,
-  ) => {
-    const pastedDigits = event.clipboardData
-      .getData('text')
-      .replace(/\D/g, '');
-
-    if (!pastedDigits) {
-      return;
-    }
-
-    event.preventDefault();
-
-    const startIndex = Math.min(index, verificationCode.length);
-    const availableDigits = pastedDigits.slice(
-      0,
-      VERIFICATION_CODE_LENGTH - startIndex,
-    );
-    const nextCode = (
-      verificationCode.slice(0, startIndex) +
-      availableDigits +
-      verificationCode.slice(startIndex + availableDigits.length)
-    ).slice(0, VERIFICATION_CODE_LENGTH);
-
-    handleVerificationCodeChange(nextCode);
-    focusVerificationDigit(
-      Math.min(
-        startIndex + availableDigits.length,
-        VERIFICATION_CODE_LENGTH - 1,
-      ),
-    );
   };
 
   const handleConfirmVerification = async () => {
@@ -445,9 +331,10 @@ function ApplyPage() {
     } catch (error) {
       setVerifiedEmail(null);
       setVerificationError(
-        error instanceof ApiError
-          ? error.message
-          : '인증번호 확인에 실패했습니다. 입력한 번호를 확인해 주세요.',
+        getApiErrorMessage(
+          error,
+          '인증번호 확인에 실패했습니다. 입력한 번호를 확인해 주세요.',
+        ),
       );
     } finally {
       setIsVerifyingCode(false);
@@ -541,9 +428,10 @@ function ApplyPage() {
       navigate('/apply/pending', { state: { email: normalizedEmail } });
     } catch (error) {
       setErrorMessage(
-        error instanceof ApiError
-          ? error.message
-          : '참가신청에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+        getApiErrorMessage(
+          error,
+          '참가신청에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+        ),
       );
       isSubmittingRef.current = false;
       setIsSubmitting(false);
@@ -630,51 +518,14 @@ function ApplyPage() {
 
             {isCodeSent && !isEmailVerified && (
               <div className="auth-email-verification__row auth-email-verification__code-row">
-                <span
-                  id="verification-code-label"
-                  className="sr-only"
-                >
-                  이메일 인증번호
-                </span>
-                <div
-                  className="auth-email-verification__otp"
-                  role="group"
-                  aria-labelledby="verification-code-label"
-                >
-                  {Array.from({ length: VERIFICATION_CODE_LENGTH }).map(
-                    (_, index) => (
-                      <input
-                        key={index}
-                        ref={(element) => {
-                          verificationDigitRefs.current[index] = element;
-                        }}
-                        id={`verificationCode-${index + 1}`}
-                        className="auth-email-verification__digit"
-                        type="text"
-                        inputMode="numeric"
-                        autoComplete={index === 0 ? 'one-time-code' : 'off'}
-                        value={verificationCode[index] ?? ''}
-                        onChange={(event) =>
-                          handleVerificationDigitChange(
-                            index,
-                            event.target.value,
-                          )
-                        }
-                        onKeyDown={(event) =>
-                          handleVerificationDigitKeyDown(event, index)
-                        }
-                        onPaste={(event) =>
-                          handleVerificationCodePaste(event, index)
-                        }
-                        onFocus={(event) => event.currentTarget.select()}
-                        maxLength={1}
-                        disabled={isVerificationPending}
-                        aria-label={`인증번호 ${index + 1}번째 자리`}
-                        aria-describedby="email-verification-message"
-                      />
-                    ),
-                  )}
-                </div>
+                <VerificationCodeInput
+                  value={verificationCode}
+                  length={VERIFICATION_CODE_LENGTH}
+                  disabled={isVerificationPending}
+                  describedById="email-verification-message"
+                  onChange={handleVerificationCodeChange}
+                  focusRequestKey={codeInputFocusKey}
+                />
                 <span
                   className="auth-email-verification__timer"
                   role="timer"

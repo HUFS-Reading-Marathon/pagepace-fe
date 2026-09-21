@@ -1,4 +1,4 @@
-import { formatStatusDateTime } from '../../../utils/statusAggregation';
+import { formatKoDateTime24 } from '../../../utils/date';
 
 type StatusPublishPanelProps = {
   lastCalculatedAt: string | null;
@@ -39,7 +39,7 @@ function StatusPublishPanel({
             <dt>마지막 서버 조회</dt>
             <dd>
               {lastCalculatedAt
-                ? formatStatusDateTime(lastCalculatedAt)
+                ? formatKoDateTime24(lastCalculatedAt)
                 : '조회 이력 없음'}
             </dd>
           </div>

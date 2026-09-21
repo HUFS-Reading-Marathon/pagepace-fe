@@ -1,11 +1,7 @@
-export const ADMIN_READING_LOG_STATUSES = [
-  'SUBMITTED',
-  'APPROVED',
-  'REJECTED',
-] as const;
+import type { ReadingLogStatus } from './readingLog';
 
-export type AdminReadingLogStatus =
-  (typeof ADMIN_READING_LOG_STATUSES)[number];
+/** 서버 ReadingLogStatus enum과 동일한 값입니다. */
+export type AdminReadingLogStatus = ReadingLogStatus;
 
 export type AdminReadingLogBookResponse = {
   readingLogBookId: number;

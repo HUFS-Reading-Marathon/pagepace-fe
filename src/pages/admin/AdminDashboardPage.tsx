@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getAdminApplications } from '../../api/adminApplicationApi';
-import { ApiError } from '../../api/apiClient';
+import { getApiErrorMessage } from '../../api/apiClient';
 import { getAdminEvents } from '../../api/adminEventApi';
 import { getAdminReadingLogs } from '../../api/adminReadingLogApi';
 import DashboardAffiliationChart from '../../components/admin/dashboard/DashboardAffiliationChart';
@@ -14,8 +14,9 @@ import DashboardRecentParticipants from '../../components/admin/dashboard/Dashbo
 import type { AdminApplicationListItem } from '../../types/adminApplication';
 import type { AdminEvent, EventStatus } from '../../types/adminEvent';
 import type { AdminReadingLogResponse } from '../../types/adminReadingLogApi';
-import { formatParticipantDateTime } from '../../types/adminParticipant';
 import { getDashboardAnalytics } from '../../utils/dashboardAnalytics';
+import { chooseEventIdByStatus } from '../../utils/adminEvent';
+import { formatKoDateTime } from '../../utils/date';
 import '../../styles/admin-dashboard.css';
 
 type DashboardData = {
@@ -35,23 +36,7 @@ const EVENT_SELECTION_ORDER: EventStatus[] = [
   'ARCHIVED',
 ];
 
-function chooseEventId(events: AdminEvent[]) {
-  for (const status of EVENT_SELECTION_ORDER) {
-    const event = events.find((item) => item.status === status);
-
-    if (event) {
-      return event.eventId;
-    }
-  }
-
-  return events[0]?.eventId ?? null;
-}
-
-function getApiErrorMessage(error: unknown) {
-  return error instanceof ApiError
-    ? error.message
-    : '대시보드 데이터를 불러오지 못했습니다.';
-}
+const LOAD_ERROR_MESSAGE = '대시보드 데이터를 불러오지 못했습니다.';
 
 function getSubmissionComparison(todayCount: number, yesterdayCount: number) {
   const difference = todayCount - yesterdayCount;
@@ -99,7 +84,10 @@ function AdminDashboardPage() {
           return;
         }
 
-        const nextEventId = chooseEventId(nextEvents);
+        const nextEventId = chooseEventIdByStatus(
+          nextEvents,
+          EVENT_SELECTION_ORDER,
+        );
 
         setEvents(nextEvents);
         setDashboardData(null);
@@ -109,7 +97,7 @@ function AdminDashboardPage() {
       })
       .catch((error: unknown) => {
         if (isActive) {
-          setPageError(getApiErrorMessage(error));
+          setPageError(getApiErrorMessage(error, LOAD_ERROR_MESSAGE));
         }
       })
       .finally(() => {
@@ -153,7 +141,7 @@ function AdminDashboardPage() {
       .catch((error: unknown) => {
         if (isActive && requestSequenceRef.current === sequence) {
           setDashboardData(null);
-          setPageError(getApiErrorMessage(error));
+          setPageError(getApiErrorMessage(error, LOAD_ERROR_MESSAGE));
         }
       })
       .finally(() => {
@@ -193,7 +181,7 @@ function AdminDashboardPage() {
         100
       : 0;
   const latestDataLabel = dashboardData
-    ? formatParticipantDateTime(dashboardData.fetchedAt.toISOString())
+    ? formatKoDateTime(dashboardData.fetchedAt.toISOString())
     : isDataLoading
       ? '불러오는 중'
       : '반영 데이터 없음';
@@ -229,13 +217,13 @@ function AdminDashboardPage() {
 
       setDashboardData(data);
       setRefreshAnnouncement(
-        `대시보드 데이터를 새로 반영했습니다. ${formatParticipantDateTime(
+        `대시보드 데이터를 새로 반영했습니다. ${formatKoDateTime(
           data.fetchedAt.toISOString(),
         )}`,
       );
     } catch (error: unknown) {
       if (requestSequenceRef.current === sequence) {
-        const message = getApiErrorMessage(error);
+        const message = getApiErrorMessage(error, LOAD_ERROR_MESSAGE);
 
         setDashboardData(null);
         setPageError(message);

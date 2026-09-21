@@ -1,8 +1,8 @@
 import {
   ADMIN_APPLICATION_AFFILIATION_LABELS,
-  formatAdminApplicationDate,
   type AdminApplicationListItem,
 } from '../../../types/adminApplication';
+import { formatKoDate } from '../../../utils/date';
 import ParticipantStatusBadge from './ParticipantStatusBadge';
 
 type ParticipantTableProps = {
@@ -94,7 +94,7 @@ function ParticipantTable({
                 {participant.phone || '-'}
               </td>
               <td className="admin-participants__nowrap">
-                {formatAdminApplicationDate(participant.appliedAt)}
+                {formatKoDate(participant.appliedAt)}
               </td>
               <td>
                 <div className="admin-participants__row-actions">

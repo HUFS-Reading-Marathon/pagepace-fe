@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { isAdminRole, useAuth } from '../../auth';
+import { getExternalLinkAttrs } from '../../utils/links';
 
 type HeaderLink = {
   label: string;
@@ -31,12 +32,6 @@ const MY_LIBRARY_ITEMS: HeaderLink[] = [
 
 const DEFAULT_HASH = '#about';
 const SCROLL_SPY_TRIGGER_RATIO = 0.34;
-
-function externalAttrs(link: HeaderLink) {
-  return link.external
-    ? { target: '_blank' as const, rel: 'noopener noreferrer' }
-    : {};
-}
 
 function isHashLink(href: string) {
   return href.startsWith('/#');
@@ -186,17 +181,15 @@ function Header() {
           </div>
 
           <nav className="topbar-links" aria-label="상단 유틸리티">
-            {TOPBAR_LINKS.map((link) =>
-              link.external ? (
-                <a key={link.label} href={link.href} {...externalAttrs(link)}>
-                  {link.label}
-                </a>
-              ) : (
-                <a key={link.label} href={link.href}>
-                  {link.label}
-                </a>
-              ),
-            )}
+            {TOPBAR_LINKS.map((link) => (
+              <a
+                key={link.label}
+                href={link.href}
+                {...getExternalLinkAttrs(link)}
+              >
+                {link.label}
+              </a>
+            ))}
           </nav>
         </div>
       </div>

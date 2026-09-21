@@ -85,7 +85,8 @@ function getDistribution(labels: string[]): DashboardDistributionItem[] {
     );
 }
 
-function hasServerWarning(log: AdminReadingLogResponse) {
+/** 서버가 반려 추천 사유나 페이지 초과 경고를 돌려준 독서일지인지 확인합니다. */
+export function hasServerWarning(log: AdminReadingLogResponse) {
   return (
     (log.recommendedRejectReasons?.length ?? 0) > 0 ||
     log.books.some(

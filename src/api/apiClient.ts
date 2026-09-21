@@ -25,6 +25,11 @@ export class ApiError extends Error {
   }
 }
 
+/** ApiError면 서버 메시지를, 그 외 오류면 fallback 문구를 돌려줍니다. */
+export function getApiErrorMessage(error: unknown, fallback: string) {
+  return error instanceof ApiError ? error.message : fallback;
+}
+
 function isApiResponse(value: unknown): value is ApiResponse<unknown> {
   if (!value || typeof value !== 'object') {
     return false;

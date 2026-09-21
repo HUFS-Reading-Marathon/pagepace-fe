@@ -11,11 +11,8 @@ export function getAccessToken() {
   return token || null;
 }
 
-export function hasStoredAuthSession() {
-  return (
-    Boolean(getAccessToken()) &&
-    localStorage.getItem(LOGIN_STATE_STORAGE_KEY) === 'true'
-  );
+export function getStoredLoginId() {
+  return localStorage.getItem(LOGIN_ID_STORAGE_KEY)?.trim() || '';
 }
 
 export function saveAuthSession(accessToken: string, loginId: string) {

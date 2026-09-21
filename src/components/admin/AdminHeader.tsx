@@ -1,17 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth';
+import { AUTH_CHANGE_EVENT, getStoredLoginId } from '../../auth/authStorage';
 
 const ACCOUNT_POPOVER_ID = 'admin-account-popover';
 const ACCOUNT_POPOVER_TITLE_ID = 'admin-account-popover-title';
 
-function getAdminLoginId() {
-  return localStorage.getItem('loginId')?.trim() || '';
-}
-
 function AdminHeader() {
   const [isAccountOpen, setIsAccountOpen] = useState(false);
-  const [loginId, setLoginId] = useState(getAdminLoginId);
+  const [loginId, setLoginId] = useState(getStoredLoginId);
   const accountRef = useRef<HTMLDivElement>(null);
   const accountTriggerRef = useRef<HTMLButtonElement>(null);
   const location = useLocation();
@@ -33,14 +30,14 @@ function AdminHeader() {
 
   useEffect(() => {
     const syncAccount = () => {
-      setLoginId(getAdminLoginId());
+      setLoginId(getStoredLoginId());
     };
 
-    window.addEventListener('auth-change', syncAccount);
+    window.addEventListener(AUTH_CHANGE_EVENT, syncAccount);
     window.addEventListener('storage', syncAccount);
 
     return () => {
-      window.removeEventListener('auth-change', syncAccount);
+      window.removeEventListener(AUTH_CHANGE_EVENT, syncAccount);
       window.removeEventListener('storage', syncAccount);
     };
   }, []);

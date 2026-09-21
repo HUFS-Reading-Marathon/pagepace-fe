@@ -1,16 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ApiError } from '../../api/apiClient';
+import { getApiErrorMessage } from '../../api/apiClient';
 import { deleteReadingLog, getMyReadingLog } from '../../api/readingLogApi';
-import type { ReadingLog, ReadingLogBook } from '../../types/readingLog';
+import {
+  READING_LOG_STATUS_LABELS,
+  type ReadingLog,
+  type ReadingLogBook,
+} from '../../types/readingLog';
 import { formatDistance } from '../../utils/reading';
 import './logs.css';
-
-const STATUS_LABEL = {
-  SUBMITTED: '검토중',
-  APPROVED: '인정',
-  REJECTED: '반려',
-} as const;
 
 function DetailBookCover({ book }: { book: ReadingLogBook }) {
   if (book.coverImageUrl) {
@@ -42,9 +40,7 @@ function ReadingLogDetailPage() {
       .then(setLog)
       .catch((error: unknown) => {
         setErrorMessage(
-          error instanceof ApiError
-            ? error.message
-            : '독서일지를 불러오지 못했습니다.',
+          getApiErrorMessage(error, '독서일지를 불러오지 못했습니다.'),
         );
       });
   }, [hasValidReadingLogId, readingLogId]);
@@ -59,9 +55,7 @@ function ReadingLogDetailPage() {
       navigate('/logs', { replace: true });
     } catch (error) {
       setErrorMessage(
-        error instanceof ApiError
-          ? error.message
-          : '독서일지를 삭제하지 못했습니다.',
+        getApiErrorMessage(error, '독서일지를 삭제하지 못했습니다.'),
       );
       setIsDeleting(false);
     }
@@ -85,7 +79,7 @@ function ReadingLogDetailPage() {
     );
   }
 
-  const statusLabel = STATUS_LABEL[log.status];
+  const statusLabel = READING_LOG_STATUS_LABELS[log.status];
 
   return (
     <main className="reading-detail-page">
