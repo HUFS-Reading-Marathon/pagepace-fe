@@ -255,8 +255,6 @@
 
 .summary-card,
 .library-search-card,
-.official-card,
-.status-card,
 .contact-card,
 .check-card {
   border-radius: var(--radius);
@@ -423,8 +421,7 @@
   padding: 82px 0;
 }
 
-.section[id],
-#notice {
+.section[id] {
   scroll-margin-top: 112px;
 }
 
@@ -462,16 +459,10 @@
   font-size: 16px;
 }
 
-.notice-layout {
-  display: grid;
-  grid-template-columns: 1fr 0.72fr;
-  gap: 26px;
-  align-items: stretch;
-}
-
 .official-card {
   background: #fff;
   border: 1px solid var(--line);
+  border-radius: 8px;
   box-shadow: var(--shadow-soft);
 }
 
@@ -602,40 +593,8 @@
   white-space: nowrap;
 }
 
-.status-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 18px;
-}
-
-.status-card {
-  padding: 28px;
-  background: #fff;
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow-soft);
-}
-
-.status-card span {
-  display: block;
-  color: var(--muted);
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 10px;
-}
-
-.status-card strong {
-  display: block;
-  color: var(--navy-strong);
-  font-size: 24px;
-  line-height: 1.25;
-  font-weight: 700;
-  letter-spacing: -0.045em;
-}
-
-.status-card p {
-  margin: 14px 0 0;
-  color: var(--body);
-  font-size: 15px;
+.table-scroll {
+  overflow-x: auto;
 }
 
 .program-table {
@@ -648,11 +607,12 @@
 
 .program-table th,
 .program-table td {
-  padding: 16px 13px;
+  padding: 15px 13px;
   border-right: 1px solid var(--line-soft);
   border-bottom: 1px solid var(--line);
   text-align: center;
   vertical-align: middle;
+  white-space: nowrap;
 }
 
 .program-table th:last-child,
@@ -663,11 +623,33 @@
 .program-table thead th {
   background: var(--blue-20);
   color: #1c2d3d;
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .program-table tbody th {
   background: #fff;
+  color: var(--navy-strong);
+  font-weight: 700;
+}
+
+.program-table tbody tr:last-child th,
+.program-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.program-table tbody td {
+  color: var(--body);
+}
+
+/* 목표 거리·목표 페이지 열 강조 (첫 칸은 th라 td:nth-child는 2부터 시작) */
+.program-table tbody td:nth-child(2),
+.program-table tbody td:nth-child(3) {
+  color: var(--ink);
+  font-weight: 650;
+}
+
+/* 인원 열 강조 */
+.program-table tbody td:last-child {
   color: var(--navy-strong);
   font-weight: 700;
 }
@@ -898,7 +880,6 @@
   }
 
   .info-layout,
-  .notice-layout,
   .two-col {
     grid-template-columns: 1fr;
   }
@@ -955,8 +936,7 @@
     margin-top: 12px;
   }
 
-  .about-highlight,
-  .status-grid {
+  .about-highlight {
     grid-template-columns: 1fr;
   }
 
@@ -1049,41 +1029,6 @@
 
   .section {
     padding: 64px 0;
-  }
-}
-
-.status-detail-row {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 22px;
-}
-
-.status-detail-link {
-  display: inline-flex;
-  align-items: center;
-  color: #1f4f82;
-  font-size: 14px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.status-detail-link::after {
-  content: '→';
-  margin-left: 6px;
-  transition: transform 0.18s ease;
-}
-
-.status-detail-link:hover {
-  text-decoration: underline;
-}
-
-.status-detail-link:hover::after {
-  transform: translateX(3px);
-}
-
-@media (max-width: 720px) {
-  .status-detail-row {
-    justify-content: flex-start;
   }
 }
 

@@ -41,7 +41,7 @@ function toFallbackListItem(notice: FallbackNotice): NoticeListItem {
   };
 }
 
-/** 행사 개요 영역의 공지사항 목록 (서버 공지가 없으면 fallback 안내 표시) */
+/** 메인 공지사항 섹션의 목록 (서버 공지가 없으면 fallback 안내 표시) */
 function MainNoticeList({ notices, fallbackNotices, maxCount }: MainNoticeListProps) {
   const items =
     notices.length > 0

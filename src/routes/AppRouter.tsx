@@ -1,4 +1,4 @@
-import { BrowserRouter, Outlet, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import AdminLayout from '../layouts/AdminLayout';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
@@ -12,7 +12,6 @@ import AdminStatusPage from '../pages/admin/AdminStatusPage';
 import AdminRankingPage from '../pages/admin/AdminRankingPage';
 import AdminReviewsPage from '../pages/admin/AdminReviewsPage';
 import AdminNoticesPage from '../pages/admin/AdminNoticesPage';
-import RankingPage from '../pages/rankings/RankingPage';
 import NoticeDetailPage from '../pages/notices/NoticeDetailPage';
 import AccountSettingsPage from '../pages/my/AccountSettingsPage';
 import NotFoundPage from '../pages/error';
@@ -115,7 +114,8 @@ function AppRouter() {
             />
 
             <Route path="/status" element={<MarathonStatusPage />} />
-            <Route path="/rankings" element={<RankingPage />} />
+            {/* 사용자 랭킹은 /status로 통합됨. 기존 북마크를 위해 유지 (관리자 /admin/rankings는 별도) */}
+            <Route path="/rankings" element={<Navigate to="/status" replace />} />
             <Route path="/notices/:id" element={<NoticeDetailPage />} />
 
             <Route path="*" element={<NotFoundPage />} />
