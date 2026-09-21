@@ -26,9 +26,7 @@ function AdminReviewsPage() {
       .then((next) => {
         setEvents(next);
         setEventId(
-          next.find((event) => event.status === 'IN_PROGRESS')?.eventId ??
-            next[0]?.eventId ??
-            null,
+          next.find((event) => event.status === 'IN_PROGRESS')?.eventId ?? next[0]?.eventId ?? null,
         );
 
         if (!next.length) {
@@ -36,9 +34,7 @@ function AdminReviewsPage() {
         }
       })
       .catch((requestError: unknown) => {
-        setError(
-          getApiErrorMessage(requestError, '행사를 불러오지 못했습니다.'),
-        );
+        setError(getApiErrorMessage(requestError, '행사를 불러오지 못했습니다.'));
         setIsLoading(false);
       });
   }, []);
@@ -59,12 +55,7 @@ function AdminReviewsPage() {
       })
       .catch((requestError: unknown) => {
         if (active) {
-          setError(
-            getApiErrorMessage(
-              requestError,
-              '서평 확인 대상을 불러오지 못했습니다.',
-            ),
-          );
+          setError(getApiErrorMessage(requestError, '서평 확인 대상을 불러오지 못했습니다.'));
         }
       })
       .finally(() => {
@@ -94,9 +85,7 @@ function AdminReviewsPage() {
     try {
       await verifyAdminReview(target.participantBookId);
       setTargets((current) =>
-        current.filter(
-          (item) => item.participantBookId !== target.participantBookId,
-        ),
+        current.filter((item) => item.participantBookId !== target.participantBookId),
       );
     } catch (requestError) {
       setError(getApiErrorMessage(requestError, '서평 확인에 실패했습니다.'));
@@ -132,8 +121,7 @@ function AdminReviewsPage() {
       <div className="admin-reviews__notice">
         <strong>운영 기준</strong>
         <span>
-          독서일지 승인 시 페이지가 반영되고, 서평 확인 시 1쪽당 5m가 거리와 완주
-          여부에 반영됩니다.
+          독서일지 승인 시 페이지가 반영되고, 서평 확인 시 1쪽당 5m가 거리와 완주 여부에 반영됩니다.
         </span>
         <b>{targets.length}건 대기</b>
       </div>
@@ -176,9 +164,7 @@ function AdminReviewsPage() {
                   disabled={verifyingId !== null}
                   onClick={() => void verify(target)}
                 >
-                  {verifyingId === target.participantBookId
-                    ? '반영 중…'
-                    : '서평 확인 · 거리 반영'}
+                  {verifyingId === target.participantBookId ? '반영 중…' : '서평 확인 · 거리 반영'}
                 </button>
               </div>
             </article>

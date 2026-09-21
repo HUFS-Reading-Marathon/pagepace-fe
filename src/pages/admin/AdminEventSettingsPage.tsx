@@ -1,10 +1,4 @@
-import {
-  type FormEvent,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import {
   createAdminCourse,
   createAdminEvent,
@@ -44,17 +38,10 @@ import {
 } from '../../utils/adminEventForms';
 import '../../styles/admin-event-settings.css';
 
-const DEFAULT_EVENT_SELECTION_ORDER: EventStatus[] = [
-  'APPLICATION_OPEN',
-  'READY',
-  'DRAFT',
-];
+const DEFAULT_EVENT_SELECTION_ORDER: EventStatus[] = ['APPLICATION_OPEN', 'READY', 'DRAFT'];
 
 function chooseEventId(events: AdminEvent[], preferredEventId?: number) {
-  if (
-    preferredEventId &&
-    events.some((event) => event.eventId === preferredEventId)
-  ) {
+  if (preferredEventId && events.some((event) => event.eventId === preferredEventId)) {
     return preferredEventId;
   }
 
@@ -66,20 +53,15 @@ function AdminEventSettingsPage() {
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
   const [eventForm, setEventForm] = useState<EventForm>(EMPTY_EVENT_FORM);
-  const [courseForms, setCourseForms] = useState<
-    Array<{ courseId: number; form: CourseForm }>
-  >([]);
-  const [newCourseForm, setNewCourseForm] =
-    useState<CourseForm>(EMPTY_COURSE_FORM);
+  const [courseForms, setCourseForms] = useState<Array<{ courseId: number; form: CourseForm }>>([]);
+  const [newCourseForm, setNewCourseForm] = useState<CourseForm>(EMPTY_COURSE_FORM);
   const [isAddingCourse, setIsAddingCourse] = useState(false);
   const [isEventsLoading, setIsEventsLoading] = useState(true);
   const [isEventDetailLoading, setIsEventDetailLoading] = useState(false);
   const [isCoursesLoading, setIsCoursesLoading] = useState(false);
   const [isSavingEvent, setIsSavingEvent] = useState(false);
   const [isDeletingEvent, setIsDeletingEvent] = useState(false);
-  const [savingCourseId, setSavingCourseId] = useState<number | 'new' | null>(
-    null,
-  );
+  const [savingCourseId, setSavingCourseId] = useState<number | 'new' | null>(null);
   const [deletingCourseId, setDeletingCourseId] = useState<number | null>(null);
   const [pageError, setPageError] = useState('');
   const [courseError, setCourseError] = useState('');
@@ -201,9 +183,7 @@ function AdminEventSettingsPage() {
           return;
         }
 
-        setPageError(
-          getApiErrorMessage(error, '행사 목록을 불러오지 못했습니다.'),
-        );
+        setPageError(getApiErrorMessage(error, '행사 목록을 불러오지 못했습니다.'));
       })
       .finally(() => {
         if (isActive) {
@@ -224,20 +204,14 @@ function AdminEventSettingsPage() {
     let isActive = true;
     const eventId = selectedEventId;
 
-    if (
-      detailRequestRef.current === null ||
-      detailRequestRef.current.eventId !== eventId
-    ) {
+    if (detailRequestRef.current === null || detailRequestRef.current.eventId !== eventId) {
       detailRequestRef.current = {
         eventId,
         promise: getAdminEvent(eventId),
       };
     }
 
-    if (
-      coursesRequestRef.current === null ||
-      coursesRequestRef.current.eventId !== eventId
-    ) {
+    if (coursesRequestRef.current === null || coursesRequestRef.current.eventId !== eventId) {
       coursesRequestRef.current = {
         eventId,
         promise: getAdminEventCourses(eventId),
@@ -256,9 +230,7 @@ function AdminEventSettingsPage() {
       })
       .catch((error: unknown) => {
         if (isActive) {
-          setPageError(
-            getApiErrorMessage(error, '행사 상세를 불러오지 못했습니다.'),
-          );
+          setPageError(getApiErrorMessage(error, '행사 상세를 불러오지 못했습니다.'));
         }
       })
       .finally(() => {
@@ -285,9 +257,7 @@ function AdminEventSettingsPage() {
       })
       .catch((error: unknown) => {
         if (isActive) {
-          setCourseError(
-            getApiErrorMessage(error, '코스 목록을 불러오지 못했습니다.'),
-          );
+          setCourseError(getApiErrorMessage(error, '코스 목록을 불러오지 못했습니다.'));
         }
       })
       .finally(() => {
@@ -378,10 +348,7 @@ function AdminEventSettingsPage() {
         try {
           await Promise.all(
             (Object.keys(COURSE_PRESETS) as CoursePresetKey[]).map((presetKey) =>
-              createAdminCourse(
-                createdEvent.eventId,
-                toCourseRequest(COURSE_PRESETS[presetKey]),
-              ),
+              createAdminCourse(createdEvent.eventId, toCourseRequest(COURSE_PRESETS[presetKey])),
             ),
           );
         } catch (courseCreationError: unknown) {
@@ -433,9 +400,7 @@ function AdminEventSettingsPage() {
       return;
     }
 
-    const selectedEvent = events.find(
-      (event) => event.eventId === selectedEventId,
-    );
+    const selectedEvent = events.find((event) => event.eventId === selectedEventId);
     const confirmed = window.confirm(
       `“${selectedEvent?.title ?? '선택한 행사'}”를 삭제하시겠습니까? 삭제한 행사는 복구할 수 없습니다.`,
     );
@@ -459,11 +424,7 @@ function AdminEventSettingsPage() {
     }
   };
 
-  const updateCourseForm = (
-    courseId: number,
-    field: keyof CourseForm,
-    value: string,
-  ) => {
+  const updateCourseForm = (courseId: number, field: keyof CourseForm, value: string) => {
     clearFeedback();
     setCourseForms((current) =>
       current.map((course) =>
@@ -511,9 +472,7 @@ function AdminEventSettingsPage() {
     }
   };
 
-  const handleNewCourseSubmit = async (
-    submitEvent: FormEvent<HTMLFormElement>,
-  ) => {
+  const handleNewCourseSubmit = async (submitEvent: FormEvent<HTMLFormElement>) => {
     submitEvent.preventDefault();
 
     if (selectedEventId === null || savingCourseId !== null) {
@@ -549,9 +508,7 @@ function AdminEventSettingsPage() {
     }
 
     if (
-      !window.confirm(
-        `“${courseName}” 코스를 삭제하시겠습니까? 삭제한 코스는 복구할 수 없습니다.`,
-      )
+      !window.confirm(`“${courseName}” 코스를 삭제하시겠습니까? 삭제한 코스는 복구할 수 없습니다.`)
     ) {
       return;
     }
@@ -622,10 +579,21 @@ function AdminEventSettingsPage() {
       </section>
 
       {(editingEvent || isCreatingEvent) && (
-        <div className={`admin-event-settings__editing-context ${isCreatingEvent ? 'is-new' : ''}`} aria-live="polite">
+        <div
+          className={`admin-event-settings__editing-context ${isCreatingEvent ? 'is-new' : ''}`}
+          aria-live="polite"
+        >
           <span>{isCreatingEvent ? '새 행사 작성 중' : '현재 수정 중인 행사'}</span>
-          <strong>{isCreatingEvent ? '아직 저장되지 않은 새 행사' : `${editingEvent?.roundNo}회 · ${editingEvent?.title}`}</strong>
-          <small>{isCreatingEvent ? '저장하기 전까지 기존 행사에는 영향을 주지 않습니다.' : `${EVENT_STATUS_LABELS[editingEvent!.status]} · 행사와 아래 코스는 모두 이 행사에만 적용됩니다.`}</small>
+          <strong>
+            {isCreatingEvent
+              ? '아직 저장되지 않은 새 행사'
+              : `${editingEvent?.roundNo}회 · ${editingEvent?.title}`}
+          </strong>
+          <small>
+            {isCreatingEvent
+              ? '저장하기 전까지 기존 행사에는 영향을 주지 않습니다.'
+              : `${EVENT_STATUS_LABELS[editingEvent!.status]} · 행사와 아래 코스는 모두 이 행사에만 적용됩니다.`}
+          </small>
         </div>
       )}
 
@@ -651,38 +619,24 @@ function AdminEventSettingsPage() {
           </button>
         </div>
       ) : (
-        <form
-          className="admin-event-settings__form"
-          noValidate
-          onSubmit={handleEventSubmit}
-        >
-          <section
-            className="admin-event-settings__panel"
-            aria-labelledby="eventBasicTitle"
-          >
+        <form className="admin-event-settings__form" noValidate onSubmit={handleEventSubmit}>
+          <section className="admin-event-settings__panel" aria-labelledby="eventBasicTitle">
             <div className="admin-event-settings__section-heading">
               <div>
-                <h2 id="eventBasicTitle">
-                  {isCreatingEvent ? '새 행사 정보' : '행사 기본 정보'}
-                </h2>
+                <h2 id="eventBasicTitle">{isCreatingEvent ? '새 행사 정보' : '행사 기본 정보'}</h2>
                 <p>행사명, 회차, 운영 상태와 공개 여부를 설정합니다.</p>
               </div>
               <span>필수</span>
             </div>
 
-            <fieldset
-              className="admin-event-settings__basic-grid"
-              disabled={isEventDetailLoading}
-            >
+            <fieldset className="admin-event-settings__basic-grid" disabled={isEventDetailLoading}>
               <label className="admin-event-settings__wide-field">
                 <span>행사명</span>
                 <input
                   type="text"
                   required
                   value={eventForm.title}
-                  onChange={(event) =>
-                    handleEventFieldChange('title', event.target.value)
-                  }
+                  onChange={(event) => handleEventFieldChange('title', event.target.value)}
                 />
               </label>
 
@@ -694,9 +648,7 @@ function AdminEventSettingsPage() {
                   step="1"
                   required
                   value={eventForm.roundNo}
-                  onChange={(event) =>
-                    handleEventFieldChange('roundNo', event.target.value)
-                  }
+                  onChange={(event) => handleEventFieldChange('roundNo', event.target.value)}
                 />
               </label>
 
@@ -705,10 +657,7 @@ function AdminEventSettingsPage() {
                 <select
                   value={eventForm.status}
                   onChange={(event) =>
-                    handleEventFieldChange(
-                      'status',
-                      event.target.value as EventStatus,
-                    )
+                    handleEventFieldChange('status', event.target.value as EventStatus)
                   }
                 >
                   {EVENT_STATUSES.map((status) => (
@@ -732,10 +681,7 @@ function AdminEventSettingsPage() {
             </fieldset>
           </section>
 
-          <section
-            className="admin-event-settings__panel"
-            aria-labelledby="eventPeriodTitle"
-          >
+          <section className="admin-event-settings__panel" aria-labelledby="eventPeriodTitle">
             <div className="admin-event-settings__section-heading">
               <div>
                 <h2 id="eventPeriodTitle">기간 설정</h2>
@@ -755,10 +701,7 @@ function AdminEventSettingsPage() {
                       required
                       value={eventForm.eventStartDate}
                       onChange={(event) =>
-                        handleEventFieldChange(
-                          'eventStartDate',
-                          event.target.value,
-                        )
+                        handleEventFieldChange('eventStartDate', event.target.value)
                       }
                     />
                   </label>
@@ -787,10 +730,7 @@ function AdminEventSettingsPage() {
                       required
                       value={eventForm.applicationStartDate}
                       onChange={(event) =>
-                        handleEventFieldChange(
-                          'applicationStartDate',
-                          event.target.value,
-                        )
+                        handleEventFieldChange('applicationStartDate', event.target.value)
                       }
                     />
                   </label>
@@ -802,10 +742,7 @@ function AdminEventSettingsPage() {
                       required
                       value={eventForm.applicationEndDate}
                       onChange={(event) =>
-                        handleEventFieldChange(
-                          'applicationEndDate',
-                          event.target.value,
-                        )
+                        handleEventFieldChange('applicationEndDate', event.target.value)
                       }
                     />
                   </label>
@@ -814,10 +751,7 @@ function AdminEventSettingsPage() {
             </div>
           </section>
 
-          <section
-            className="admin-event-settings__panel"
-            aria-labelledby="eventContactTitle"
-          >
+          <section className="admin-event-settings__panel" aria-labelledby="eventContactTitle">
             <div className="admin-event-settings__section-heading">
               <div>
                 <h2 id="eventContactTitle">행사 안내</h2>
@@ -832,9 +766,7 @@ function AdminEventSettingsPage() {
                 <input
                   type="tel"
                   value={eventForm.contactPhone}
-                  onChange={(event) =>
-                    handleEventFieldChange('contactPhone', event.target.value)
-                  }
+                  onChange={(event) => handleEventFieldChange('contactPhone', event.target.value)}
                 />
               </label>
               <label>
@@ -842,9 +774,7 @@ function AdminEventSettingsPage() {
                 <input
                   type="email"
                   value={eventForm.contactEmail}
-                  onChange={(event) =>
-                    handleEventFieldChange('contactEmail', event.target.value)
-                  }
+                  onChange={(event) => handleEventFieldChange('contactEmail', event.target.value)}
                 />
               </label>
               <label className="admin-event-settings__wide-field">
@@ -853,10 +783,7 @@ function AdminEventSettingsPage() {
                   type="url"
                   value={eventForm.kakaoOpenChatUrl}
                   onChange={(event) =>
-                    handleEventFieldChange(
-                      'kakaoOpenChatUrl',
-                      event.target.value,
-                    )
+                    handleEventFieldChange('kakaoOpenChatUrl', event.target.value)
                   }
                 />
               </label>
@@ -865,9 +792,7 @@ function AdminEventSettingsPage() {
                 <textarea
                   rows={4}
                   value={eventForm.description}
-                  onChange={(event) =>
-                    handleEventFieldChange('description', event.target.value)
-                  }
+                  onChange={(event) => handleEventFieldChange('description', event.target.value)}
                 />
               </label>
             </div>
@@ -875,8 +800,15 @@ function AdminEventSettingsPage() {
 
           {isCreatingEvent && (
             <div className="admin-event-settings__default-courses-notice">
-              <div><span>자동 생성</span><strong>행사를 저장하면 기본 코스 3개를 함께 만듭니다.</strong></div>
-              <ul><li>단축 코스 · 10,000m</li><li>하프 코스 · 21,100m</li><li>풀 코스 · 42,195m</li></ul>
+              <div>
+                <span>자동 생성</span>
+                <strong>행사를 저장하면 기본 코스 3개를 함께 만듭니다.</strong>
+              </div>
+              <ul>
+                <li>단축 코스 · 10,000m</li>
+                <li>하프 코스 · 21,100m</li>
+                <li>풀 코스 · 42,195m</li>
+              </ul>
               <p>생성 후 각 코스의 거리, 보상, 인원은 코스 설정에서 수정할 수 있습니다.</p>
             </div>
           )}
@@ -910,11 +842,7 @@ function AdminEventSettingsPage() {
               className="admin-event-settings__save-button"
               disabled={isSavingEvent || isEventDetailLoading}
             >
-              {isSavingEvent
-                ? '저장 중…'
-                : isCreatingEvent
-                  ? '행사 생성'
-                  : '행사 설정 저장'}
+              {isSavingEvent ? '저장 중…' : isCreatingEvent ? '행사 생성' : '행사 설정 저장'}
             </button>
           </div>
         </form>
@@ -960,23 +888,17 @@ function AdminEventSettingsPage() {
                 <form
                   key={courseId}
                   className="admin-event-settings__course-card"
-                  onSubmit={(event) =>
-                    handleExistingCourseSubmit(event, courseId)
-                  }
+                  onSubmit={(event) => handleExistingCourseSubmit(event, courseId)}
                 >
                   <CourseFormFields
                     form={form}
-                    updateField={(field, value) =>
-                      updateCourseForm(courseId, field, value)
-                    }
+                    updateField={(field, value) => updateCourseForm(courseId, field, value)}
                   />
                   <div className="admin-event-settings__course-actions">
                     <button
                       type="button"
                       className="admin-event-settings__danger-button"
-                      disabled={
-                        deletingCourseId !== null || savingCourseId !== null
-                      }
+                      disabled={deletingCourseId !== null || savingCourseId !== null}
                       onClick={() => handleCourseDelete(courseId, form.name)}
                     >
                       {deletingCourseId === courseId ? '삭제 중…' : '삭제'}
@@ -984,9 +906,7 @@ function AdminEventSettingsPage() {
                     <button
                       type="submit"
                       className="admin-event-settings__save-button"
-                      disabled={
-                        deletingCourseId !== null || savingCourseId !== null
-                      }
+                      disabled={deletingCourseId !== null || savingCourseId !== null}
                     >
                       {savingCourseId === courseId ? '저장 중…' : '코스 저장'}
                     </button>
@@ -1006,7 +926,9 @@ function AdminEventSettingsPage() {
                         defaultValue="SHORT"
                         onChange={(event) => {
                           clearFeedback();
-                          setNewCourseForm({ ...COURSE_PRESETS[event.target.value as CoursePresetKey] });
+                          setNewCourseForm({
+                            ...COURSE_PRESETS[event.target.value as CoursePresetKey],
+                          });
                         }}
                       >
                         <option value="SHORT">단축 코스 · 10,000m</option>
@@ -1047,9 +969,7 @@ function AdminEventSettingsPage() {
               )}
 
               {courseForms.length === 0 && !isAddingCourse && (
-                <div className="admin-event-settings__empty">
-                  등록된 코스가 없습니다.
-                </div>
+                <div className="admin-event-settings__empty">등록된 코스가 없습니다.</div>
               )}
             </div>
           )}

@@ -165,8 +165,7 @@
   white-space: nowrap;
 }
 
-.admin-event-settings__section-heading
-  > .admin-event-settings__optional {
+.admin-event-settings__section-heading > .admin-event-settings__optional {
   border-color: var(--line);
   background: var(--line-soft);
   color: var(--muted);

@@ -37,7 +37,8 @@ function buildShelfBooks(logs: ReadingLog[]) {
         bookTitle: isLatest ? book.bookTitle : current.bookTitle,
         author: isLatest ? book.author : current.author,
         publisher: isLatest ? book.publisher : current.publisher,
-        coverImageUrl: (isLatest ? book.coverImageUrl : current.coverImageUrl) || current?.coverImageUrl || null,
+        coverImageUrl:
+          (isLatest ? book.coverImageUrl : current.coverImageUrl) || current?.coverImageUrl || null,
         totalBookPages: Math.max(book.totalBookPages, current?.totalBookPages ?? 0),
         approvedPages: approvedPages + (log.status === 'APPROVED' ? book.readPages : 0),
         latestLogId: isLatest ? log.readingLogId : current.latestLogId,
@@ -52,7 +53,9 @@ function buildShelfBooks(logs: ReadingLog[]) {
 function BookCover({ book }: { book: ShelfBook }) {
   return (
     <div className="my-library-book-cover">
-      {book.coverImageUrl ? <img src={book.coverImageUrl} alt={`${book.bookTitle} 표지`} /> : (
+      {book.coverImageUrl ? (
+        <img src={book.coverImageUrl} alt={`${book.bookTitle} 표지`} />
+      ) : (
         <div className="my-library-cover-fallback" aria-hidden="true">
           <span>PAGEPACE</span>
           <strong>{book.bookTitle}</strong>
@@ -80,26 +83,40 @@ function BookShelf({
     <section className="my-library-shelf-section">
       <div className="my-library-shelf-head">
         <div>
-          <div className="my-library-shelf-title"><h2>{title}</h2><span>{books.length}권</span></div>
+          <div className="my-library-shelf-title">
+            <h2>{title}</h2>
+            <span>{books.length}권</span>
+          </div>
           <p>{description}</p>
         </div>
         {books.length > PREVIEW_BOOK_COUNT && (
-          <button type="button" className="my-library-more" onClick={() => setShowAll((current) => !current)}>
+          <button
+            type="button"
+            className="my-library-more"
+            onClick={() => setShowAll((current) => !current)}
+          >
             {showAll ? '접기' : '전체보기'} <span aria-hidden="true">{showAll ? '↑' : '→'}</span>
           </button>
         )}
       </div>
 
-      {visibleBooks.length === 0 ? <div className="my-library-empty">{emptyMessage}</div> : (
+      {visibleBooks.length === 0 ? (
+        <div className="my-library-empty">{emptyMessage}</div>
+      ) : (
         <div className="my-library-shelf">
           <div className="my-library-book-grid">
             {visibleBooks.map((book) => {
               const totalPages = Math.max(book.totalBookPages, 1);
               const progress = Math.min(100, Math.round((book.approvedPages / totalPages) * 100));
-              const isCompleted = book.approvedPages >= book.totalBookPages && book.totalBookPages > 0;
+              const isCompleted =
+                book.approvedPages >= book.totalBookPages && book.totalBookPages > 0;
 
               return (
-                <Link key={book.libraryBookId} to={`/logs/${book.latestLogId}`} className="my-library-book">
+                <Link
+                  key={book.libraryBookId}
+                  to={`/logs/${book.latestLogId}`}
+                  className="my-library-book"
+                >
                   <BookCover book={book} />
                   <div className="my-library-book-info">
                     <strong>{book.bookTitle}</strong>
@@ -107,7 +124,11 @@ function BookShelf({
                     <div className="my-library-progress" aria-label={`독서 진행률 ${progress}%`}>
                       <i style={{ width: `${progress}%` }} />
                     </div>
-                    <small>{isCompleted ? '완독' : `${book.approvedPages.toLocaleString()} / ${book.totalBookPages.toLocaleString()}쪽`}</small>
+                    <small>
+                      {isCompleted
+                        ? '완독'
+                        : `${book.approvedPages.toLocaleString()} / ${book.totalBookPages.toLocaleString()}쪽`}
+                    </small>
                   </div>
                 </Link>
               );
@@ -132,18 +153,12 @@ function MyReadingLogsPage() {
       .then((participation) => getMyReadingLogs(participation.participationId))
       .then((nextLogs) => {
         if (isActive) {
-          setLogs(
-            [...nextLogs].sort((a, b) =>
-              b.readingDate.localeCompare(a.readingDate),
-            ),
-          );
+          setLogs([...nextLogs].sort((a, b) => b.readingDate.localeCompare(a.readingDate)));
         }
       })
       .catch((error: unknown) => {
         if (isActive) {
-          setErrorMessage(
-            getApiErrorMessage(error, '독서일지를 불러오지 못했습니다.'),
-          );
+          setErrorMessage(getApiErrorMessage(error, '독서일지를 불러오지 못했습니다.'));
         }
       })
       .finally(() => {
@@ -255,9 +270,7 @@ function MyReadingLogsPage() {
                         {statusLabel}
                       </span>
                       <div>
-                        <strong>
-                          {log.books.map((book) => book.bookTitle).join(', ')}
-                        </strong>
+                        <strong>{log.books.map((book) => book.bookTitle).join(', ')}</strong>
                         <span>
                           {log.readingDate} · {log.books.length}권
                         </span>

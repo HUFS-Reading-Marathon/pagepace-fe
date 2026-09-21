@@ -40,39 +40,25 @@ function escapeCsvValue(value: string) {
 }
 
 function AdminParticipantsPage() {
-  const [participants, setParticipants] = useState<
-    AdminApplicationListItem[]
-  >([]);
+  const [participants, setParticipants] = useState<AdminApplicationListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentEventId, setCurrentEventId] = useState<number | null>(null);
-  const initialListRequestRef = useRef<
-    Promise<{
-      eventId: number;
-      applications: AdminApplicationListItem[];
-    }> | null
-  >(null);
+  const initialListRequestRef = useRef<Promise<{
+    eventId: number;
+    applications: AdminApplicationListItem[];
+  }> | null>(null);
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [statusFilter, setStatusFilter] =
-    useState<ParticipantStatusFilter>('ALL');
-  const [courseFilter, setCourseFilter] =
-    useState<ParticipantCourseFilter>('ALL');
-  const [affiliationFilter, setAffiliationFilter] =
-    useState<ParticipantAffiliationFilter>('ALL');
-  const [selectedApplicationId, setSelectedApplicationId] = useState<
-    number | null
-  >(null);
-  const [detailApplication, setDetailApplication] =
-    useState<AdminApplicationDetail | null>(null);
+  const [statusFilter, setStatusFilter] = useState<ParticipantStatusFilter>('ALL');
+  const [courseFilter, setCourseFilter] = useState<ParticipantCourseFilter>('ALL');
+  const [affiliationFilter, setAffiliationFilter] = useState<ParticipantAffiliationFilter>('ALL');
+  const [selectedApplicationId, setSelectedApplicationId] = useState<number | null>(null);
+  const [detailApplication, setDetailApplication] = useState<AdminApplicationDetail | null>(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
-  const [detailActionError, setDetailActionError] = useState<string | null>(
-    null,
-  );
+  const [detailActionError, setDetailActionError] = useState<string | null>(null);
   const detailRequestSequenceRef = useRef(0);
-  const [processingApplicationId, setProcessingApplicationId] = useState<
-    number | null
-  >(null);
+  const [processingApplicationId, setProcessingApplicationId] = useState<number | null>(null);
   const processingApplicationIdRef = useRef<number | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState('');
   const [feedbackIsError, setFeedbackIsError] = useState(false);
@@ -110,12 +96,7 @@ function AdminParticipantsPage() {
 
         setCurrentEventId(null);
         setParticipants([]);
-        setError(
-          getApiErrorMessage(
-            requestError,
-            '참가신청 목록을 불러오지 못했습니다.',
-          ),
-        );
+        setError(getApiErrorMessage(requestError, '참가신청 목록을 불러오지 못했습니다.'));
       })
       .finally(() => {
         if (isActive) {
@@ -131,18 +112,10 @@ function AdminParticipantsPage() {
   const statistics = useMemo(
     () => ({
       total: participants.length,
-      pending: participants.filter(
-        (participant) => participant.status === 'APPLIED',
-      ).length,
-      approved: participants.filter(
-        (participant) => participant.status === 'APPROVED',
-      ).length,
-      rejected: participants.filter(
-        (participant) => participant.status === 'REJECTED',
-      ).length,
-      cancelled: participants.filter(
-        (participant) => participant.status === 'CANCELLED',
-      ).length,
+      pending: participants.filter((participant) => participant.status === 'APPLIED').length,
+      approved: participants.filter((participant) => participant.status === 'APPROVED').length,
+      rejected: participants.filter((participant) => participant.status === 'REJECTED').length,
+      cancelled: participants.filter((participant) => participant.status === 'CANCELLED').length,
     }),
     [participants],
   );
@@ -157,15 +130,12 @@ function AdminParticipantsPage() {
 
   const affiliationOptions = useMemo(
     () =>
-      [
-        ...new Set(
-          participants.map((participant) => participant.affiliationType),
-        ),
-      ].sort((first, second) =>
-        ADMIN_APPLICATION_AFFILIATION_LABELS[first].localeCompare(
-          ADMIN_APPLICATION_AFFILIATION_LABELS[second],
-          'ko',
-        ),
+      [...new Set(participants.map((participant) => participant.affiliationType))].sort(
+        (first, second) =>
+          ADMIN_APPLICATION_AFFILIATION_LABELS[first].localeCompare(
+            ADMIN_APPLICATION_AFFILIATION_LABELS[second],
+            'ko',
+          ),
       ) as AdminApplicationAffiliationType[],
     [participants],
   );
@@ -176,39 +146,22 @@ function AdminParticipantsPage() {
     return participants.filter((participant) => {
       const matchesKeyword =
         !normalizedKeyword ||
-        [participant.name, participant.studentNo, participant.email].some(
-          (value) => value?.toLowerCase().includes(normalizedKeyword),
+        [participant.name, participant.studentNo, participant.email].some((value) =>
+          value?.toLowerCase().includes(normalizedKeyword),
         );
-      const matchesStatus =
-        statusFilter === 'ALL' || participant.status === statusFilter;
-      const matchesCourse =
-        courseFilter === 'ALL' || participant.courseName === courseFilter;
+      const matchesStatus = statusFilter === 'ALL' || participant.status === statusFilter;
+      const matchesCourse = courseFilter === 'ALL' || participant.courseName === courseFilter;
       const matchesAffiliation =
-        affiliationFilter === 'ALL' ||
-        participant.affiliationType === affiliationFilter;
+        affiliationFilter === 'ALL' || participant.affiliationType === affiliationFilter;
 
-      return (
-        matchesKeyword &&
-        matchesStatus &&
-        matchesCourse &&
-        matchesAffiliation
-      );
+      return matchesKeyword && matchesStatus && matchesCourse && matchesAffiliation;
     });
-  }, [
-    affiliationFilter,
-    courseFilter,
-    participants,
-    searchKeyword,
-    statusFilter,
-  ]);
+  }, [affiliationFilter, courseFilter, participants, searchKeyword, statusFilter]);
 
   const selectedListApplication =
     selectedApplicationId === null
       ? undefined
-      : participants.find(
-          (participant) =>
-            participant.applicationId === selectedApplicationId,
-        );
+      : participants.find((participant) => participant.applicationId === selectedApplicationId);
 
   const handleResetFilters = () => {
     setSearchKeyword('');
@@ -221,9 +174,7 @@ function AdminParticipantsPage() {
     const requestSequence = detailRequestSequenceRef.current + 1;
     detailRequestSequenceRef.current = requestSequence;
     dialogOpenerRef.current =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setSelectedApplicationId(applicationId);
     setDetailApplication(null);
     setDetailError(null);
@@ -238,12 +189,7 @@ function AdminParticipantsPage() {
       }
     } catch (requestError) {
       if (detailRequestSequenceRef.current === requestSequence) {
-        setDetailError(
-          getApiErrorMessage(
-            requestError,
-            '참가신청 상세를 불러오지 못했습니다.',
-          ),
-        );
+        setDetailError(getApiErrorMessage(requestError, '참가신청 상세를 불러오지 못했습니다.'));
       }
     } finally {
       if (detailRequestSequenceRef.current === requestSequence) {
@@ -276,9 +222,8 @@ function AdminParticipantsPage() {
     }
 
     const participantName =
-      participants.find(
-        (participant) => participant.applicationId === applicationId,
-      )?.name ?? '참가자';
+      participants.find((participant) => participant.applicationId === applicationId)?.name ??
+      '참가자';
 
     processingApplicationIdRef.current = applicationId;
     setProcessingApplicationId(applicationId);
@@ -289,10 +234,7 @@ function AdminParticipantsPage() {
     try {
       await approveAdminApplication(applicationId);
     } catch (requestError) {
-      const message = getApiErrorMessage(
-        requestError,
-        '참가 신청을 승인하지 못했습니다.',
-      );
+      const message = getApiErrorMessage(requestError, '참가 신청을 승인하지 못했습니다.');
 
       setFeedbackMessage(message);
       setFeedbackIsError(true);
@@ -314,8 +256,7 @@ function AdminParticipantsPage() {
 
       if (selectedApplicationId === applicationId) {
         try {
-          const nextDetailApplication =
-            await getAdminApplicationDetail(applicationId);
+          const nextDetailApplication = await getAdminApplicationDetail(applicationId);
 
           setDetailApplication(nextDetailApplication);
           setDetailError(null);
@@ -329,9 +270,7 @@ function AdminParticipantsPage() {
         }
       }
 
-      setFeedbackMessage(
-        `${participantName}님의 참가 신청을 승인했습니다.`,
-      );
+      setFeedbackMessage(`${participantName}님의 참가 신청을 승인했습니다.`);
     } catch (refreshError) {
       const message = getApiErrorMessage(
         refreshError,
@@ -357,8 +296,7 @@ function AdminParticipantsPage() {
     }
 
     const rows = filteredParticipants.map((participant) => [
-      ADMIN_APPLICATION_STATUS_LABELS[participant.status] ??
-        participant.status,
+      ADMIN_APPLICATION_STATUS_LABELS[participant.status] ?? participant.status,
       participant.name,
       participant.studentNo,
       participant.department ?? '',
@@ -411,10 +349,7 @@ function AdminParticipantsPage() {
       setDetailApplication(await getAdminApplicationDetail(applicationId));
       setFeedbackMessage('참가 신청을 반려했습니다.');
     } catch (error) {
-      const message = getApiErrorMessage(
-        error,
-        '참가 신청을 반려하지 못했습니다.',
-      );
+      const message = getApiErrorMessage(error, '참가 신청을 반려하지 못했습니다.');
       setFeedbackMessage(message);
       setFeedbackIsError(true);
       setDetailActionError(message);
@@ -429,16 +364,10 @@ function AdminParticipantsPage() {
       <header className="admin-page__header admin-participants__header">
         <div>
           <h1>참가자 관리</h1>
-          <p>
-            독서마라톤 참가 신청자를 확인하고 승인 상태와 참가 정보를
-            관리합니다.
-          </p>
+          <p>독서마라톤 참가 신청자를 확인하고 승인 상태와 참가 정보를 관리합니다.</p>
         </div>
 
-        <div
-          className="admin-participants__summary"
-          aria-label="참가 신청 현황"
-        >
+        <div className="admin-participants__summary" aria-label="참가 신청 현황">
           <button
             type="button"
             aria-pressed={statusFilter === 'ALL'}
@@ -523,9 +452,7 @@ function AdminParticipantsPage() {
           isLoading={isDetailLoading}
           error={detailError}
           actionError={detailActionError}
-          isProcessing={
-            processingApplicationId === selectedApplicationId
-          }
+          isProcessing={processingApplicationId === selectedApplicationId}
           onClose={handleCloseDialog}
           onApprove={handleApprove}
           onReject={handleReject}

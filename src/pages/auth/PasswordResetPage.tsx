@@ -1,10 +1,7 @@
 import { type FormEvent, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getApiErrorMessage } from '../../api/apiClient';
-import {
-  confirmPasswordReset,
-  sendPasswordResetCode,
-} from '../../api/authApi';
+import { confirmPasswordReset, sendPasswordResetCode } from '../../api/authApi';
 import './auth.css';
 
 function PasswordResetPage() {
@@ -60,9 +57,7 @@ function PasswordResetPage() {
       setMessage('비밀번호가 아이디와 동일한 값으로 초기화되었습니다.');
     } catch (error) {
       setIsError(true);
-      setMessage(
-        getApiErrorMessage(error, '비밀번호를 초기화하지 못했습니다.'),
-      );
+      setMessage(getApiErrorMessage(error, '비밀번호를 초기화하지 못했습니다.'));
     } finally {
       setIsConfirming(false);
     }
@@ -70,7 +65,9 @@ function PasswordResetPage() {
 
   return (
     <main className="auth-page">
-      <div className="auth-watermark" aria-hidden="true"><img src="/minerva-owl.png" alt="" /></div>
+      <div className="auth-watermark" aria-hidden="true">
+        <img src="/minerva-owl.png" alt="" />
+      </div>
       <section className="auth-shell auth-shell-reset" aria-label="비밀번호 찾기 영역">
         <div className="auth-heading">
           <p className="auth-kicker">ACCOUNT RECOVERY</p>
@@ -85,27 +82,73 @@ function PasswordResetPage() {
           </div>
           <div className="auth-form-group">
             <label htmlFor="resetStudentNo">아이디</label>
-            <input id="resetStudentNo" value={studentNo} onChange={(event) => setStudentNo(event.target.value)} placeholder="학번/교번/사번" autoComplete="username" disabled={codeSent || completed} />
+            <input
+              id="resetStudentNo"
+              value={studentNo}
+              onChange={(event) => setStudentNo(event.target.value)}
+              placeholder="학번/교번/사번"
+              autoComplete="username"
+              disabled={codeSent || completed}
+            />
           </div>
           <div className="auth-form-group">
             <label htmlFor="resetEmail">등록 이메일</label>
             <div className="auth-email-verification__row">
-              <input id="resetEmail" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="example@hufs.ac.kr" autoComplete="email" disabled={codeSent || completed} />
-              <button type="button" className="auth-email-verification__button" onClick={handleSend} disabled={isSending || completed}>{isSending ? '발송 중' : codeSent ? '재발송' : '인증번호 발송'}</button>
+              <input
+                id="resetEmail"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="example@hufs.ac.kr"
+                autoComplete="email"
+                disabled={codeSent || completed}
+              />
+              <button
+                type="button"
+                className="auth-email-verification__button"
+                onClick={handleSend}
+                disabled={isSending || completed}
+              >
+                {isSending ? '발송 중' : codeSent ? '재발송' : '인증번호 발송'}
+              </button>
             </div>
           </div>
           {codeSent && !completed && (
             <div className="auth-form-group">
               <label htmlFor="resetCode">인증번호</label>
-              <input id="resetCode" inputMode="numeric" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))} placeholder="6자리 숫자" autoComplete="one-time-code" />
+              <input
+                id="resetCode"
+                inputMode="numeric"
+                maxLength={6}
+                value={code}
+                onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))}
+                placeholder="6자리 숫자"
+                autoComplete="one-time-code"
+              />
             </div>
           )}
-          {message && <p className={isError ? 'auth-error' : 'auth-success'} role="status">{message}</p>}
-          {codeSent && !completed && <button type="submit" className="auth-submit-button" disabled={isConfirming}>{isConfirming ? '확인 중...' : '인증하고 비밀번호 초기화'}</button>}
-          {completed && <Link to="/login" className="auth-submit-button auth-submit-link">초기화된 비밀번호로 로그인</Link>}
+          {message && (
+            <p className={isError ? 'auth-error' : 'auth-success'} role="status">
+              {message}
+            </p>
+          )}
+          {codeSent && !completed && (
+            <button type="submit" className="auth-submit-button" disabled={isConfirming}>
+              {isConfirming ? '확인 중...' : '인증하고 비밀번호 초기화'}
+            </button>
+          )}
+          {completed && (
+            <Link to="/login" className="auth-submit-button auth-submit-link">
+              초기화된 비밀번호로 로그인
+            </Link>
+          )}
         </form>
         <div className="auth-divider" />
-        <div className="auth-footer-info"><Link to="/login" className="auth-back-link">← 로그인으로 돌아가기</Link></div>
+        <div className="auth-footer-info">
+          <Link to="/login" className="auth-back-link">
+            ← 로그인으로 돌아가기
+          </Link>
+        </div>
       </section>
     </main>
   );

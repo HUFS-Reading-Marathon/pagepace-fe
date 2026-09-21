@@ -9,12 +9,7 @@ type StatusTableProps = {
   error: string | null;
 };
 
-function StatusTable({
-  participants,
-  hasParticipants,
-  isLoading,
-  error,
-}: StatusTableProps) {
+function StatusTable({ participants, hasParticipants, isLoading, error }: StatusTableProps) {
   if (isLoading) {
     return (
       <div className="admin-status__empty" role="status">
@@ -32,17 +27,11 @@ function StatusTable({
   }
 
   if (!hasParticipants) {
-    return (
-      <div className="admin-status__empty">집계할 참가자가 없습니다.</div>
-    );
+    return <div className="admin-status__empty">집계할 참가자가 없습니다.</div>;
   }
 
   if (participants.length === 0) {
-    return (
-      <div className="admin-status__empty">
-        조건에 맞는 참가자가 없습니다.
-      </div>
-    );
+    return <div className="admin-status__empty">조건에 맞는 참가자가 없습니다.</div>;
   }
 
   return (
@@ -69,29 +58,19 @@ function StatusTable({
           {participants.map((participant) => (
             <tr key={participant.applicationId}>
               <td>{participant.department || '—'}</td>
-              <td className="admin-status__number">
-                {participant.approvedLogCount}건
-              </td>
+              <td className="admin-status__number">{participant.approvedLogCount}건</td>
               <td className="admin-status__name">{participant.name}</td>
-              <td className="admin-status__nowrap">
-                {participant.studentNumber}
-              </td>
-              <td className="admin-status__nowrap">
-                {participant.courseName}
-              </td>
+              <td className="admin-status__nowrap">{participant.studentNumber}</td>
+              <td className="admin-status__nowrap">{participant.courseName}</td>
               <td className="admin-status__number">
                 {participant.cumulativePages.toLocaleString('ko-KR')}쪽
               </td>
               <td className="admin-status__nowrap">
-                {formatStatusDistance(
-                  participant.cumulativeDistanceMeters,
-                )}
+                {formatStatusDistance(participant.cumulativeDistanceMeters)}
               </td>
               <td className="admin-status__increase">
                 {participant.dailyIncreasePages > 0
-                  ? `+${participant.dailyIncreasePages.toLocaleString(
-                      'ko-KR',
-                    )}쪽`
+                  ? `+${participant.dailyIncreasePages.toLocaleString('ko-KR')}쪽`
                   : '—'}
               </td>
               <td className="admin-status__nowrap">
@@ -104,9 +83,7 @@ function StatusTable({
                   판정 미지원
                 </span>
               </td>
-              <td className="admin-status__nowrap">
-                —
-              </td>
+              <td className="admin-status__nowrap">—</td>
               <td className="admin-status__last-progress">
                 {participant.lastReadingDate
                   ? formatKoDateKey(participant.lastReadingDate)
@@ -121,4 +98,3 @@ function StatusTable({
 }
 
 export default StatusTable;
-

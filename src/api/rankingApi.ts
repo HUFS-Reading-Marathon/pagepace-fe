@@ -25,18 +25,20 @@ function createRankingParams(eventId: number, courseId?: number, sort: RankingSo
 export async function getRankings(eventId: number, courseId?: number, sort: RankingSort = 'RANK') {
   const searchParams = createRankingParams(eventId, courseId, sort);
 
-  const rankings = await apiRequest<Ranking[]>(
-    `/api/rankings?${searchParams.toString()}`,
-    { method: 'GET' },
-  );
+  const rankings = await apiRequest<Ranking[]>(`/api/rankings?${searchParams.toString()}`, {
+    method: 'GET',
+  });
   return rankings ?? [];
 }
 
-export async function getAdminRankings(eventId: number, courseId?: number, sort: RankingSort = 'RANK') {
+export async function getAdminRankings(
+  eventId: number,
+  courseId?: number,
+  sort: RankingSort = 'RANK',
+) {
   const searchParams = createRankingParams(eventId, courseId, sort);
-  const rankings = await apiRequest<Ranking[]>(
-    `/api/admin/rankings?${searchParams.toString()}`,
-    { method: 'GET' },
-  );
+  const rankings = await apiRequest<Ranking[]>(`/api/admin/rankings?${searchParams.toString()}`, {
+    method: 'GET',
+  });
   return rankings ?? [];
 }

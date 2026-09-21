@@ -11,13 +11,10 @@ function DashboardGenderChart({
   participantCount,
   isSupported = true,
 }: DashboardGenderChartProps) {
-  const hasOnlyUnanswered =
-    distribution.length === 1 && distribution[0].label === '미응답';
+  const hasOnlyUnanswered = distribution.length === 1 && distribution[0].label === '미응답';
   const segments = distribution.map((item, index) => ({
     ...item,
-    offset: distribution
-      .slice(0, index)
-      .reduce((sum, previousItem) => sum + previousItem.rate, 0),
+    offset: distribution.slice(0, index).reduce((sum, previousItem) => sum + previousItem.rate, 0),
   }));
 
   return (
@@ -31,14 +28,9 @@ function DashboardGenderChart({
           현재 백엔드 응답에 성별 통계가 포함되어 있지 않습니다.
         </div>
       ) : participantCount === 0 ? (
-        <div className="admin-dashboard__empty">
-          승인 참가자의 성별 정보가 없습니다.
-        </div>
+        <div className="admin-dashboard__empty">승인 참가자의 성별 정보가 없습니다.</div>
       ) : hasOnlyUnanswered ? (
-        <div
-          className="admin-dashboard__gender-unanswered"
-          role="status"
-        >
+        <div className="admin-dashboard__gender-unanswered" role="status">
           <span className="admin-dashboard__gender-unanswered-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24">
               <circle cx="12" cy="8" r="3" />
@@ -46,10 +38,7 @@ function DashboardGenderChart({
             </svg>
           </span>
           <strong>성별 응답 데이터가 없습니다.</strong>
-          <p>
-            승인 참가자 {participantCount.toLocaleString('ko-KR')}명 모두
-            미응답
-          </p>
+          <p>승인 참가자 {participantCount.toLocaleString('ko-KR')}명 모두 미응답</p>
           <div className="admin-dashboard__gender-unanswered-rate">
             <span>미응답</span>
             <strong>{distribution[0].rate.toFixed(1)}%</strong>

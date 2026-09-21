@@ -30,8 +30,7 @@ function ReadingLogDetailPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const readingLogId = Number(logId);
-  const hasValidReadingLogId =
-    Number.isInteger(readingLogId) && readingLogId > 0;
+  const hasValidReadingLogId = Number.isInteger(readingLogId) && readingLogId > 0;
 
   useEffect(() => {
     if (!hasValidReadingLogId) return;
@@ -39,9 +38,7 @@ function ReadingLogDetailPage() {
     getMyReadingLog(readingLogId)
       .then(setLog)
       .catch((error: unknown) => {
-        setErrorMessage(
-          getApiErrorMessage(error, '독서일지를 불러오지 못했습니다.'),
-        );
+        setErrorMessage(getApiErrorMessage(error, '독서일지를 불러오지 못했습니다.'));
       });
   }, [hasValidReadingLogId, readingLogId]);
 
@@ -54,9 +51,7 @@ function ReadingLogDetailPage() {
       await deleteReadingLog(log.readingLogId);
       navigate('/logs', { replace: true });
     } catch (error) {
-      setErrorMessage(
-        getApiErrorMessage(error, '독서일지를 삭제하지 못했습니다.'),
-      );
+      setErrorMessage(getApiErrorMessage(error, '독서일지를 삭제하지 못했습니다.'));
       setIsDeleting(false);
     }
   };
@@ -97,9 +92,7 @@ function ReadingLogDetailPage() {
               {log.readingDate} · {log.books.length}권 기록
             </p>
           </div>
-          <span className={`log-status-badge status-${statusLabel}`}>
-            {statusLabel}
-          </span>
+          <span className={`log-status-badge status-${statusLabel}`}>{statusLabel}</span>
         </header>
 
         <dl className="reading-detail-summary">
@@ -134,10 +127,7 @@ function ReadingLogDetailPage() {
               );
 
               return (
-                <article
-                  className="reading-detail-book"
-                  key={book.readingLogBookId}
-                >
+                <article className="reading-detail-book" key={book.readingLogBookId}>
                   <div className="reading-detail-book-cover">
                     <DetailBookCover book={book} />
                   </div>
@@ -204,10 +194,7 @@ function ReadingLogDetailPage() {
           </Link>
           {log.status !== 'APPROVED' && (
             <div>
-              <Link
-                to={`/logs/${log.readingLogId}/edit`}
-                className="reading-detail-action-primary"
-              >
+              <Link to={`/logs/${log.readingLogId}/edit`} className="reading-detail-action-primary">
                 수정
               </Link>
               <button

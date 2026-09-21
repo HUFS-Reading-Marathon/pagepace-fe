@@ -54,13 +54,10 @@ export async function getEventCourses(eventId: number) {
     );
   }
 
-  const courses = await apiRequest<EventCourse[]>(
-    `/api/events/${eventId}/courses`,
-    {
-      method: 'GET',
-      skipAuth: true,
-    },
-  );
+  const courses = await apiRequest<EventCourse[]>(`/api/events/${eventId}/courses`, {
+    method: 'GET',
+    skipAuth: true,
+  });
 
   return courses ?? [];
 }

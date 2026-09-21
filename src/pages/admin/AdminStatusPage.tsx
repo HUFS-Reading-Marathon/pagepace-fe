@@ -1,10 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getAdminApplications } from '../../api/adminApplicationApi';
 import { getApiErrorMessage } from '../../api/apiClient';
-import {
-  getAdminEventCourses,
-  getAdminEvents,
-} from '../../api/adminEventApi';
+import { getAdminEventCourses, getAdminEvents } from '../../api/adminEventApi';
 import { getAdminReadingLogs } from '../../api/adminReadingLogApi';
 import StatusCourseSummary from '../../components/admin/status/StatusCourseSummary';
 import StatusFilters from '../../components/admin/status/StatusFilters';
@@ -78,19 +75,15 @@ function AdminStatusPage() {
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [selectedDate, setSelectedDate] = useState('');
-  const [competitionData, setCompetitionData] =
-    useState<CompetitionData | null>(null);
+  const [competitionData, setCompetitionData] = useState<CompetitionData | null>(null);
   const [isEventsLoading, setIsEventsLoading] = useState(true);
   const [isDataLoading, setIsDataLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [courseFilter, setCourseFilter] =
-    useState<AdminCompetitionCourseFilter>('ALL');
-  const [activityFilter, setActivityFilter] =
-    useState<StatusActivityFilter>('ALL');
-  const [sortOption, setSortOption] =
-    useState<AdminCompetitionSortOption>('distance-desc');
+  const [courseFilter, setCourseFilter] = useState<AdminCompetitionCourseFilter>('ALL');
+  const [activityFilter, setActivityFilter] = useState<StatusActivityFilter>('ALL');
+  const [sortOption, setSortOption] = useState<AdminCompetitionSortOption>('distance-desc');
   const initialEventsRequestRef = useRef<Promise<AdminEvent[]> | null>(null);
   const dataRequestRef = useRef<{
     eventId: number;
@@ -111,12 +104,8 @@ function AdminStatusPage() {
           return;
         }
 
-        const nextEventId = chooseEventIdByStatus(
-          nextEvents,
-          EVENT_SELECTION_ORDER,
-        );
-        const nextEvent =
-          nextEvents.find((event) => event.eventId === nextEventId) ?? null;
+        const nextEventId = chooseEventIdByStatus(nextEvents, EVENT_SELECTION_ORDER);
+        const nextEvent = nextEvents.find((event) => event.eventId === nextEventId) ?? null;
 
         setEvents(nextEvents);
         setSelectedEventId(nextEventId);
@@ -152,10 +141,7 @@ function AdminStatusPage() {
     let isActive = true;
     const sequence = ++requestSequenceRef.current;
 
-    if (
-      dataRequestRef.current === null ||
-      dataRequestRef.current.eventId !== selectedEventId
-    ) {
+    if (dataRequestRef.current === null || dataRequestRef.current.eventId !== selectedEventId) {
       dataRequestRef.current = {
         eventId: selectedEventId,
         promise: requestCompetitionData(selectedEventId),
@@ -193,8 +179,7 @@ function AdminStatusPage() {
   }, [selectedEventId]);
 
   const selectedEvent = useMemo(
-    () =>
-      events.find((event) => event.eventId === selectedEventId) ?? null,
+    () => events.find((event) => event.eventId === selectedEventId) ?? null,
     [events, selectedEventId],
   );
   const rows = useMemo(
@@ -214,18 +199,13 @@ function AdminStatusPage() {
       competitionData
         ? {
             participantCount: rows.length,
-            activeParticipantCount: rows.filter(
-              (participant) => participant.dailyIncreasePages > 0,
-            ).length,
+            activeParticipantCount: rows.filter((participant) => participant.dailyIncreasePages > 0)
+              .length,
             completedCount: null,
             newlyCompletedCount: null,
-            totalPages: rows.reduce(
-              (sum, participant) => sum + participant.cumulativePages,
-              0,
-            ),
+            totalPages: rows.reduce((sum, participant) => sum + participant.cumulativePages, 0),
             totalDistanceMeters: rows.reduce(
-              (sum, participant) =>
-                sum + participant.cumulativeDistanceMeters,
+              (sum, participant) => sum + participant.cumulativeDistanceMeters,
               0,
             ),
           }
@@ -240,11 +220,7 @@ function AdminStatusPage() {
     [competitionData, rows],
   );
   const courseSummaries = useMemo(
-    () =>
-      getAdminCompetitionCourseSummaries(
-        rows,
-        competitionData?.courses ?? [],
-      ),
+    () => getAdminCompetitionCourseSummaries(rows, competitionData?.courses ?? []),
     [competitionData?.courses, rows],
   );
   const filteredParticipants = useMemo(() => {
@@ -256,8 +232,7 @@ function AdminStatusPage() {
           !normalizedKeyword ||
           participant.name.toLowerCase().includes(normalizedKeyword) ||
           participant.studentNumber.toLowerCase().includes(normalizedKeyword);
-        const matchesCourse =
-          courseFilter === 'ALL' || participant.courseId === courseFilter;
+        const matchesCourse = courseFilter === 'ALL' || participant.courseId === courseFilter;
         const matchesActivity =
           activityFilter === 'ALL' ||
           (activityFilter === 'active'
@@ -357,10 +332,7 @@ function AdminStatusPage() {
       <header className="admin-page__header admin-status__header">
         <div className="admin-status__heading">
           <h1>대회 현황 관리</h1>
-          <p>
-            승인된 참가자와 독서일지를 기준으로 실제 서버 현황을
-            조회합니다.
-          </p>
+          <p>승인된 참가자와 독서일지를 기준으로 실제 서버 현황을 조회합니다.</p>
         </div>
 
         <div className="admin-status__header-controls">
@@ -391,9 +363,7 @@ function AdminStatusPage() {
               disabled={!selectedEvent}
               onChange={(event) => {
                 setSelectedDate(event.target.value);
-                setFeedbackMessage(
-                  `${formatKoDateKey(event.target.value)} 기준으로 표시합니다.`,
-                );
+                setFeedbackMessage(`${formatKoDateKey(event.target.value)} 기준으로 표시합니다.`);
               }}
             />
             <small>행사 운영 기간 {eventPeriodLabel}</small>

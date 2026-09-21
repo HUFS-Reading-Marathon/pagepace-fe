@@ -1,9 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { AdminReadingLogResponse } from '../../../types/adminReadingLogApi';
-import {
-  getDailyActivity,
-  type DashboardDailyActivity,
-} from '../../../utils/dashboardAnalytics';
+import { getDailyActivity, type DashboardDailyActivity } from '../../../utils/dashboardAnalytics';
 
 type TrendPeriod = 7 | 14 | 30;
 type TrendMetric = 'approvedPages' | 'submissionCount';
@@ -31,30 +28,17 @@ const METRIC_OPTIONS: ReadonlyArray<{
   { value: 'submissionCount', label: '제출 건수', unit: '건' },
 ];
 
-function getMetricValue(
-  activity: DashboardDailyActivity,
-  metric: TrendMetric,
-) {
+function getMetricValue(activity: DashboardDailyActivity, metric: TrendMetric) {
   return activity[metric];
 }
 
-function DashboardReadingTrend({
-  logs,
-  now,
-}: DashboardReadingTrendProps) {
+function DashboardReadingTrend({ logs, now }: DashboardReadingTrendProps) {
   const [period, setPeriod] = useState<TrendPeriod>(7);
-  const [metric, setMetric] =
-    useState<TrendMetric>('approvedPages');
-  const activities = useMemo(
-    () => getDailyActivity(logs, period, now),
-    [logs, now, period],
-  );
+  const [metric, setMetric] = useState<TrendMetric>('approvedPages');
+  const activities = useMemo(() => getDailyActivity(logs, period, now), [logs, now, period]);
   const selectedMetric =
-    METRIC_OPTIONS.find((option) => option.value === metric) ??
-    METRIC_OPTIONS[0];
-  const values = activities.map((activity) =>
-    getMetricValue(activity, metric),
-  );
+    METRIC_OPTIONS.find((option) => option.value === metric) ?? METRIC_OPTIONS[0];
+  const values = activities.map((activity) => getMetricValue(activity, metric));
   const total = values.reduce((sum, value) => sum + value, 0);
   const average = activities.length > 0 ? total / activities.length : 0;
   const maximumValue = Math.max(0, ...values);
@@ -147,12 +131,9 @@ function DashboardReadingTrend({
           {activities.map((activity, index) => {
             const value = getMetricValue(activity, metric);
             const height = (value / chartMaximum) * plotHeight;
-            const x =
-              plotLeft + slotWidth * index + (slotWidth - barWidth) / 2;
+            const x = plotLeft + slotWidth * index + (slotWidth - barWidth) / 2;
             const y = plotBottom - height;
-            const showLabel =
-              index % labelInterval === 0 ||
-              index === activities.length - 1;
+            const showLabel = index % labelInterval === 0 || index === activities.length - 1;
 
             return (
               <g

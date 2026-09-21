@@ -18,11 +18,7 @@ import AccountSettingsPage from '../pages/my/AccountSettingsPage';
 import NotFoundPage from '../pages/error';
 import MainPage from '../pages/main';
 import MyPage from '../pages/my';
-import {
-  MyReadingLogsPage,
-  ReadingLogDetailPage,
-  ReadingLogWritePage,
-} from '../pages/logs';
+import { MyReadingLogsPage, ReadingLogDetailPage, ReadingLogWritePage } from '../pages/logs';
 import MarathonStatusPage from '../pages/status';
 import { AuthProvider } from '../auth';
 import ProtectedRoute from './ProtectedRoute';
@@ -69,12 +65,54 @@ function AppRouter() {
             <Route path="/apply" element={<ApplyPage />} />
             <Route path="/apply/pending" element={<ApplyPendingPage />} />
 
-            <Route path="/my" element={<ProtectedRoute><MyPage /></ProtectedRoute>} />
-            <Route path="/my/settings" element={<ProtectedRoute><AccountSettingsPage /></ProtectedRoute>} />
-            <Route path="/logs" element={<ProtectedRoute><MyReadingLogsPage /></ProtectedRoute>} />
-            <Route path="/logs/new" element={<ProtectedRoute><ReadingLogWritePage /></ProtectedRoute>} />
-            <Route path="/logs/:logId" element={<ProtectedRoute><ReadingLogDetailPage /></ProtectedRoute>} />
-            <Route path="/logs/:logId/edit" element={<ProtectedRoute><ReadingLogWritePage /></ProtectedRoute>} />
+            <Route
+              path="/my"
+              element={
+                <ProtectedRoute>
+                  <MyPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my/settings"
+              element={
+                <ProtectedRoute>
+                  <AccountSettingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/logs"
+              element={
+                <ProtectedRoute>
+                  <MyReadingLogsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/logs/new"
+              element={
+                <ProtectedRoute>
+                  <ReadingLogWritePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/logs/:logId"
+              element={
+                <ProtectedRoute>
+                  <ReadingLogDetailPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/logs/:logId/edit"
+              element={
+                <ProtectedRoute>
+                  <ReadingLogWritePage />
+                </ProtectedRoute>
+              }
+            />
 
             <Route path="/status" element={<MarathonStatusPage />} />
             <Route path="/rankings" element={<RankingPage />} />

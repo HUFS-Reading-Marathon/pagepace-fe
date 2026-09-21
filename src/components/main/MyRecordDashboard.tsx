@@ -24,8 +24,7 @@ function MyRecordDashboard({ record }: MyRecordDashboardProps) {
         <span>누적 독서 거리</span>
         <strong>{formatDistance(record.totalDistance)}</strong>
         <p>
-          목표 거리 {formatDistance(record.targetDistance)} 중{' '}
-          {progressRate}% 달성했습니다.
+          목표 거리 {formatDistance(record.targetDistance)} 중 {progressRate}% 달성했습니다.
         </p>
       </div>
 
@@ -34,10 +33,7 @@ function MyRecordDashboard({ record }: MyRecordDashboardProps) {
           <span>달성률</span>
           <b>{progressRate}%</b>
         </div>
-        <div
-          className="my-record-progress-track"
-          aria-label={`목표 달성률 ${progressRate}%`}
-        >
+        <div className="my-record-progress-track" aria-label={`목표 달성률 ${progressRate}%`}>
           <span style={{ width: `${progressRate}%` }} />
         </div>
       </div>

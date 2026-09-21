@@ -2,10 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getApiErrorMessage } from '../../api/apiClient';
 import { changeMyPassword, getMe, updateMe, type MeUpdateRequest } from '../../api/meApi';
-import {
-  GENERAL_AFFILIATIONS,
-  STUDENT_DEPARTMENT_GROUPS,
-} from '../../constants/departments';
+import { GENERAL_AFFILIATIONS, STUDENT_DEPARTMENT_GROUPS } from '../../constants/departments';
 import { useAuth } from '../../auth';
 import './account-settings.css';
 
@@ -132,9 +129,7 @@ function AccountSettingsPage() {
             소속
             <select
               value={form.department}
-              onChange={(event) =>
-                setForm({ ...form, department: event.target.value })
-              }
+              onChange={(event) => setForm({ ...form, department: event.target.value })}
             >
               <option value="">선택</option>
               {STUDENT_DEPARTMENT_GROUPS.map((group) => (

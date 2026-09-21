@@ -11,10 +11,7 @@ export type Notice = {
   updatedAt: string;
 };
 
-export type NoticeRequest = Pick<
-  Notice,
-  'title' | 'content' | 'pinned' | 'visible'
->;
+export type NoticeRequest = Pick<Notice, 'title' | 'content' | 'pinned' | 'visible'>;
 
 const NOTICES_PATH = '/api/notices';
 const ADMIN_NOTICES_PATH = '/api/admin/notices';
@@ -43,11 +40,7 @@ export async function getNotice(noticeId: string | number) {
   });
 
   if (!notice) {
-    throw new ApiError(
-      '공지사항 응답을 확인할 수 없습니다.',
-      200,
-      'INVALID_NOTICE_RESPONSE',
-    );
+    throw new ApiError('공지사항 응답을 확인할 수 없습니다.', 200, 'INVALID_NOTICE_RESPONSE');
   }
 
   return notice;
@@ -66,10 +59,7 @@ export function createAdminNotice(request: NoticeRequest) {
 }
 
 export function updateAdminNotice(noticeId: number, request: NoticeRequest) {
-  return apiRequest<Notice>(
-    `${ADMIN_NOTICES_PATH}/${noticeId}`,
-    jsonOptions('PATCH', request),
-  );
+  return apiRequest<Notice>(`${ADMIN_NOTICES_PATH}/${noticeId}`, jsonOptions('PATCH', request));
 }
 
 export function deleteAdminNotice(noticeId: number) {

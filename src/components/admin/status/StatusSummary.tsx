@@ -21,17 +21,11 @@ function StatusSummary({
     <dl className="admin-status__summary" aria-label="대회 현황 요약">
       <div>
         <dt>집계 참가자</dt>
-        <dd>
-          {participantCount === null ? '—' : `${participantCount}명`}
-        </dd>
+        <dd>{participantCount === null ? '—' : `${participantCount}명`}</dd>
       </div>
       <div>
         <dt>당일 독서</dt>
-        <dd>
-          {activeParticipantCount === null
-            ? '—'
-            : `${activeParticipantCount}명`}
-        </dd>
+        <dd>{activeParticipantCount === null ? '—' : `${activeParticipantCount}명`}</dd>
       </div>
       <div>
         <dt>전체 완주</dt>
@@ -39,29 +33,18 @@ function StatusSummary({
       </div>
       <div>
         <dt>신규 완주</dt>
-        <dd>
-          {newlyCompletedCount === null ? '—' : `${newlyCompletedCount}명`}
-        </dd>
+        <dd>{newlyCompletedCount === null ? '—' : `${newlyCompletedCount}명`}</dd>
       </div>
       <div>
         <dt>승인 누적</dt>
-        <dd>
-          {totalPages === null
-            ? '—'
-            : `${totalPages.toLocaleString('ko-KR')}쪽`}
-        </dd>
+        <dd>{totalPages === null ? '—' : `${totalPages.toLocaleString('ko-KR')}쪽`}</dd>
       </div>
       <div>
         <dt>누적 거리</dt>
-        <dd>
-          {totalDistanceMeters === null
-            ? '—'
-            : formatStatusDistance(totalDistanceMeters)}
-        </dd>
+        <dd>{totalDistanceMeters === null ? '—' : formatStatusDistance(totalDistanceMeters)}</dd>
       </div>
     </dl>
   );
 }
 
 export default StatusSummary;
-

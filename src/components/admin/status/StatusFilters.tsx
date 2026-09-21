@@ -57,9 +57,7 @@ function StatusFilters({
             value={courseFilter}
             onChange={(event) =>
               onCourseFilterChange(
-                event.target.value === 'ALL'
-                  ? 'ALL'
-                  : Number(event.target.value),
+                event.target.value === 'ALL' ? 'ALL' : Number(event.target.value),
               )
             }
           >
@@ -74,11 +72,7 @@ function StatusFilters({
 
         <div className="admin-status__field">
           <label htmlFor="statusCompletionFilter">완주 상태</label>
-          <select
-            id="statusCompletionFilter"
-            value="unsupported"
-            disabled
-          >
+          <select id="statusCompletionFilter" value="unsupported" disabled>
             <option value="unsupported">서버 판정 미지원</option>
           </select>
         </div>
@@ -88,11 +82,7 @@ function StatusFilters({
           <select
             id="statusActivityFilter"
             value={activityFilter}
-            onChange={(event) =>
-              onActivityFilterChange(
-                event.target.value as StatusActivityFilter,
-              )
-            }
+            onChange={(event) => onActivityFilterChange(event.target.value as StatusActivityFilter)}
           >
             {STATUS_ACTIVITY_FILTER_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -108,9 +98,7 @@ function StatusFilters({
             id="statusSortOption"
             value={sortOption}
             onChange={(event) =>
-              onSortOptionChange(
-                event.target.value as AdminCompetitionSortOption,
-              )
+              onSortOptionChange(event.target.value as AdminCompetitionSortOption)
             }
           >
             {ADMIN_COMPETITION_SORT_OPTIONS.map((option) => (
@@ -135,4 +123,3 @@ function StatusFilters({
 }
 
 export default StatusFilters;
-

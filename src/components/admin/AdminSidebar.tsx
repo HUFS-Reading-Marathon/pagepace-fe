@@ -60,10 +60,7 @@ function AdminSidebar() {
   const { pathname } = useLocation();
   const [openGroups, setOpenGroups] = useState(INITIAL_OPEN_GROUPS);
   const activeGroup = ADMIN_MENUS.find((menu) =>
-    matchPath(
-      { path: menu.path, end: menu.path === '/admin' },
-      pathname,
-    ),
+    matchPath({ path: menu.path, end: menu.path === '/admin' }, pathname),
   )?.group;
 
   const toggleGroup = (group: AdminMenuGroup) => {
@@ -82,10 +79,8 @@ function AdminSidebar() {
       <nav aria-label="관리자 메뉴">
         <ul className="admin-sidebar__menu">
           {ADMIN_MENUS.map((menu, index) => {
-            const isGroupStart =
-              index === 0 || ADMIN_MENUS[index - 1].group !== menu.group;
-            const isGroupOpen =
-              openGroups[menu.group] || activeGroup === menu.group;
+            const isGroupStart = index === 0 || ADMIN_MENUS[index - 1].group !== menu.group;
+            const isGroupOpen = openGroups[menu.group] || activeGroup === menu.group;
 
             return (
               <li
@@ -124,10 +119,7 @@ function AdminSidebar() {
                     to={menu.path}
                     end={menu.path === '/admin'}
                     className={({ isActive }) =>
-                      [
-                        'admin-sidebar__link',
-                        isActive ? 'admin-sidebar__link--active' : '',
-                      ]
+                      ['admin-sidebar__link', isActive ? 'admin-sidebar__link--active' : '']
                         .filter(Boolean)
                         .join(' ')
                     }

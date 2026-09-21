@@ -2,19 +2,17 @@ import type { MyParticipation } from '../types/participation';
 import { ApiError, apiRequest } from './apiClient';
 
 export async function getMyParticipations() {
-  const participations = await apiRequest<MyParticipation[]>(
-    '/api/me/participations',
-    { method: 'GET' },
-  );
+  const participations = await apiRequest<MyParticipation[]>('/api/me/participations', {
+    method: 'GET',
+  });
 
   return participations ?? [];
 }
 
 export async function getCurrentParticipation() {
-  const participation = await apiRequest<MyParticipation>(
-    '/api/me/participations/current',
-    { method: 'GET' },
-  );
+  const participation = await apiRequest<MyParticipation>('/api/me/participations/current', {
+    method: 'GET',
+  });
 
   if (!participation) {
     throw new ApiError(

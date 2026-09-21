@@ -28,9 +28,7 @@ export function useModalDialog({
 
   useEffect(() => {
     const previouslyFocused =
-      restoreFocus && document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
+      restoreFocus && document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousBodyOverflow = document.body.style.overflow;
 
     document.body.style.overflow = 'hidden';
