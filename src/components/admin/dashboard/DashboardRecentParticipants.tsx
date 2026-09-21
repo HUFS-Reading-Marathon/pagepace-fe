@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
 import {
   ADMIN_APPLICATION_STATUS_LABELS,
-  formatAdminApplicationDate,
   type AdminApplicationListItem,
 } from '../../../types/adminApplication';
+import { formatKoDate } from '../../../utils/date';
 
 type DashboardRecentParticipantsProps = {
   participants: AdminApplicationListItem[];
@@ -57,7 +57,7 @@ function DashboardRecentParticipants({
                       }
                     </span>
                   </td>
-                  <td>{formatAdminApplicationDate(participant.appliedAt)}</td>
+                  <td>{formatKoDate(participant.appliedAt)}</td>
                 </tr>
               ))}
             </tbody>

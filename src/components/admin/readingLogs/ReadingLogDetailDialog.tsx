@@ -1,24 +1,17 @@
+import { useRef, useState } from 'react';
+import { DAILY_READING_PAGE_LIMIT } from '../../../constants/reading';
+import { useModalDialog } from '../../../hooks/useModalDialog';
 import {
-  type FormEvent,
-  type MouseEvent,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
-import {
-  DAILY_READING_PAGE_LIMIT,
-  READING_LOG_REJECTION_REASONS,
   formatReadingDistance,
-  formatReadingLogDate,
-  formatReadingLogDateTime,
-  getExpectedApprovedPages,
   getReadingDistanceMeters,
   getReadingLogTotalPages,
-  getRemainingPages,
   validateReadingLog,
   type AdminReadingLog,
   type ReadingLogDialogMode,
 } from '../../../types/adminReadingLog';
+import { formatKoDateKey, formatKoDateTime24 } from '../../../utils/date';
+import ReadingLogBookDetails from './ReadingLogBookDetails';
+import ReadingLogRejectForm from './ReadingLogRejectForm';
 import ReadingLogStatusBadge from './ReadingLogStatusBadge';
 
 type ReadingLogDetailDialogProps = {
@@ -43,83 +36,15 @@ function ReadingLogDetailDialog({
   onReject,
 }: ReadingLogDetailDialogProps) {
   const [mode, setMode] = useState<ReadingLogDialogMode>(initialMode);
-  const [suggestedReason, setSuggestedReason] = useState('');
-  const [rejectionReason, setRejectionReason] = useState(
-    log.rejectionReason ?? '',
-  );
-  const [rejectionError, setRejectionError] = useState('');
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const onCloseRef = useRef(onClose);
   const totalReadPages = getReadingLogTotalPages(log);
   const distanceMeters = getReadingDistanceMeters(totalReadPages);
   const validationIssues = validateReadingLog(log);
   const hasValidationIssue = validationIssues.length > 0;
-
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
-
-  useEffect(() => {
-    const previousBodyOverflow = document.body.style.overflow;
-
-    document.body.style.overflow = 'hidden';
-    closeButtonRef.current?.focus();
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onCloseRef.current();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = previousBodyOverflow;
-    };
-  }, []);
-
-  const handleBackdropMouseDown = (event: MouseEvent<HTMLDivElement>) => {
-    if (event.target === event.currentTarget) {
-      onClose();
-    }
-  };
-
-  const openRejectMode = () => {
-    setSuggestedReason('');
-    setRejectionReason('');
-    setRejectionError('');
-    setMode('reject');
-  };
-
-  const handleRejectSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const normalizedReason = rejectionReason.trim();
-
-    if (!normalizedReason) {
-      setRejectionError('반려 사유를 입력해 주세요.');
-      return;
-    }
-
-    const succeeded = await onReject(log.id, normalizedReason);
-
-    if (succeeded) {
-      setRejectionError('');
-      setMode('detail');
-    }
-  };
-
-  const handleSuggestedReasonChange = (value: string) => {
-    setSuggestedReason(value);
-    setRejectionError('');
-
-    if (value === '기타') {
-      setRejectionReason('');
-      return;
-    }
-
-    setRejectionReason(value);
-  };
+  const { handleBackdropMouseDown } = useModalDialog({
+    onClose,
+    initialFocusRef: closeButtonRef,
+  });
 
   const dialogTitle =
     mode === 'approve-confirm'
@@ -127,108 +52,6 @@ function ReadingLogDetailDialog({
       : mode === 'reject'
         ? '독서일지 반려'
         : '독서일지 상세 검토';
-
-  const renderBookDetails = () => (
-    <section
-      className="admin-reading-log-dialog__section"
-      aria-labelledby="readingLogBooksTitle"
-    >
-      <div className="admin-reading-log-dialog__section-heading">
-        <h3 id="readingLogBooksTitle">책별 독서 내역</h3>
-        <span>{log.books.length}권</span>
-      </div>
-
-      <div className="admin-reading-log-dialog__books">
-        {log.books.map((book, index) => {
-          const bookIssues = validationIssues.filter(
-            (issue) => issue.bookEntryId === book.id,
-          );
-          const expectedApprovedPages = getExpectedApprovedPages(book);
-          const remainingPages = getRemainingPages(book);
-          const searchQuery = encodeURIComponent(
-            `${book.title} ${book.author} ${book.publisher}`,
-          );
-
-          return (
-            <article
-              key={book.id}
-              className={[
-                'admin-reading-log-dialog__book',
-                bookIssues.length > 0
-                  ? 'admin-reading-log-dialog__book--warning'
-                  : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-            >
-              <div className="admin-reading-log-dialog__book-heading">
-                <div>
-                  <span>책 {index + 1}</span>
-                  <h4>{book.title || '제목 정보 없음'}</h4>
-                  <p>
-                    {book.author || '저자 정보 없음'} ·{' '}
-                    {book.publisher || '출판사 정보 없음'}
-                  </p>
-                </div>
-                <a
-                  href={`https://www.google.com/search?q=${searchQuery}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="admin-reading-log-dialog__search-link"
-                  aria-label={`${book.title || '제목 없는 책'} 도서 정보 외부 검색`}
-                >
-                  도서 정보 검색
-                </a>
-              </div>
-
-              <dl className="admin-reading-log-dialog__book-pages">
-                <div>
-                  <dt>등록 전체</dt>
-                  <dd>{book.totalPages.toLocaleString('ko-KR')}쪽</dd>
-                </div>
-                <div>
-                  <dt>이전 승인 누적</dt>
-                  <dd>
-                    {book.previouslyApprovedPages.toLocaleString('ko-KR')}쪽
-                  </dd>
-                </div>
-                <div>
-                  <dt>오늘 읽음</dt>
-                  <dd>{book.readPages.toLocaleString('ko-KR')}쪽</dd>
-                </div>
-                <div>
-                  <dt>승인 예상 누적</dt>
-                  <dd>{expectedApprovedPages.toLocaleString('ko-KR')}쪽</dd>
-                </div>
-                <div>
-                  <dt>승인 후 잔여</dt>
-                  <dd
-                    className={
-                      remainingPages < 0
-                        ? 'admin-reading-log-dialog__negative'
-                        : undefined
-                    }
-                  >
-                    {remainingPages.toLocaleString('ko-KR')}쪽
-                  </dd>
-                </div>
-              </dl>
-
-              {bookIssues.length > 0 && (
-                <ul className="admin-reading-log-dialog__issue-list">
-                  {bookIssues.map((issue) => (
-                    <li key={`${issue.code}-${issue.detail}`}>
-                      <strong>{issue.label}</strong> — {issue.detail}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </article>
-          );
-        })}
-      </div>
-    </section>
-  );
 
   const renderDetailActions = () => {
     if (log.status !== 'submit') {
@@ -262,7 +85,7 @@ function ReadingLogDetailDialog({
           type="button"
           className="admin-reading-log-dialog__button admin-reading-log-dialog__button--danger"
           disabled={isProcessing}
-          onClick={openRejectMode}
+          onClick={() => setMode('reject')}
         >
           반려
         </button>
@@ -291,7 +114,7 @@ function ReadingLogDetailDialog({
         <header className="admin-reading-log-dialog__header">
           <div>
             <p className="admin-reading-log-dialog__eyebrow">
-              {formatReadingLogDate(log.readingDate)} · {log.participantName}
+              {formatKoDateKey(log.readingDate)} · {log.participantName}
             </p>
             <div className="admin-reading-log-dialog__title-row">
               <h2 id="readingLogDialogTitle">{dialogTitle}</h2>
@@ -310,103 +133,14 @@ function ReadingLogDetailDialog({
         </header>
 
         {mode === 'reject' ? (
-          <form
-            className="admin-reading-log-dialog__form"
-            onSubmit={handleRejectSubmit}
-          >
-            <div className="admin-reading-log-dialog__content">
-              <section className="admin-reading-log-dialog__section">
-                <h3>반려 사유 입력</h3>
-                <p className="admin-reading-log-dialog__mode-description">
-                  참가자는 이 사유를 확인하고 독서일지를 수정해 다시 제출할 수
-                  있습니다.
-                </p>
-
-                <label className="admin-reading-log-dialog__field">
-                  <span>사유 선택</span>
-                  <select
-                    value={suggestedReason}
-                    onChange={(event) =>
-                      handleSuggestedReasonChange(event.target.value)
-                    }
-                  >
-                    <option value="">사유를 선택해 주세요</option>
-                    {[
-                      ...new Set([
-                        ...(log.recommendedRejectReasons ?? []),
-                        ...READING_LOG_REJECTION_REASONS,
-                      ]),
-                    ].map((reason) => (
-                      <option key={reason} value={reason}>
-                        {reason}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="admin-reading-log-dialog__field">
-                  <span>최종 반려 사유</span>
-                  <textarea
-                    rows={5}
-                    value={rejectionReason}
-                    placeholder={
-                      suggestedReason === '기타'
-                        ? '구체적인 반려 사유를 직접 입력해 주세요.'
-                        : '선택한 사유를 보완하거나 직접 입력할 수 있습니다.'
-                    }
-                    aria-describedby={`readingLogRejectHint${
-                      rejectionError ? ' readingLogRejectError' : ''
-                    }`}
-                    onChange={(event) => {
-                      setRejectionReason(event.target.value);
-                      setRejectionError('');
-                    }}
-                  />
-                </label>
-                <p
-                  id="readingLogRejectHint"
-                  className="admin-reading-log-dialog__field-hint"
-                >
-                  공백만 입력한 사유로는 반려할 수 없습니다.
-                </p>
-                {rejectionError && (
-                  <p
-                    id="readingLogRejectError"
-                    className="admin-reading-log-dialog__error"
-                    role="alert"
-                  >
-                    {rejectionError}
-                  </p>
-                )}
-                {error && (
-                  <p className="admin-reading-log-dialog__error" role="alert">
-                    {error}
-                  </p>
-                )}
-              </section>
-            </div>
-
-            <footer className="admin-reading-log-dialog__actions">
-              <button
-                type="submit"
-                className="admin-reading-log-dialog__button admin-reading-log-dialog__button--danger"
-                disabled={isProcessing}
-              >
-                {isProcessing ? '반려 중…' : '반려하기'}
-              </button>
-              <button
-                type="button"
-                className="admin-reading-log-dialog__button"
-                disabled={isProcessing}
-                onClick={() => {
-                  setRejectionError('');
-                  setMode('detail');
-                }}
-              >
-                돌아가기
-              </button>
-            </footer>
-          </form>
+          <ReadingLogRejectForm
+            recommendedReasons={log.recommendedRejectReasons ?? []}
+            error={error}
+            isProcessing={isProcessing}
+            onSubmit={(reason) => onReject(log.id, reason)}
+            onSuccess={() => setMode('detail')}
+            onBack={() => setMode('detail')}
+          />
         ) : (
           <>
             <div className="admin-reading-log-dialog__content">
@@ -450,7 +184,7 @@ function ReadingLogDetailDialog({
                   </div>
                   <div>
                     <dt>독서 날짜</dt>
-                    <dd>{formatReadingLogDate(log.readingDate)}</dd>
+                    <dd>{formatKoDateKey(log.readingDate)}</dd>
                   </div>
                   {log.eventTitle && (
                     <div>
@@ -466,12 +200,12 @@ function ReadingLogDetailDialog({
                   )}
                   <div>
                     <dt>제출 시각</dt>
-                    <dd>{formatReadingLogDateTime(log.submittedAt)}</dd>
+                    <dd>{formatKoDateTime24(log.submittedAt)}</dd>
                   </div>
                   {log.approvedAt && (
                   <div>
                     <dt>검토 시각</dt>
-                    <dd>{formatReadingLogDateTime(log.approvedAt)}</dd>
+                    <dd>{formatKoDateTime24(log.approvedAt)}</dd>
                   </div>
                 )}
                 </dl>
@@ -531,18 +265,10 @@ function ReadingLogDetailDialog({
                 </div>
               )}
 
-              {log.reviewFlags && log.reviewFlags.length > 0 && (
-                <section className="admin-reading-log-dialog__section">
-                  <h3>수동 검토 참고</h3>
-                  <ul className="admin-reading-log-dialog__manual-flags">
-                    {log.reviewFlags.map((flag) => (
-                      <li key={flag}>{flag}</li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-
-              {renderBookDetails()}
+              <ReadingLogBookDetails
+                books={log.books}
+                validationIssues={validationIssues}
+              />
 
               <div className="admin-reading-log-dialog__manual-check">
                 <strong>관리자 직접 확인 필요</strong>

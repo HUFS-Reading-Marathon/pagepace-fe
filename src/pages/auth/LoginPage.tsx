@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ApiError, isAdminRole, useAuth } from '../../auth';
+import { getApiErrorMessage } from '../../api/apiClient';
+import { isAdminRole, useAuth } from '../../auth';
 import './auth.css';
 
 function LoginPage() {
@@ -43,9 +44,10 @@ function LoginPage() {
       navigate(returnPath, { replace: true });
     } catch (error) {
       setErrorMessage(
-        error instanceof ApiError
-          ? error.message
-          : '로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
+        getApiErrorMessage(
+          error,
+          '로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
+        ),
       );
     }
   };

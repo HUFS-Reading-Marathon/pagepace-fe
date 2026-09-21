@@ -1,4 +1,5 @@
 import { ApiError, apiRequest } from './apiClient';
+import type { AffiliationType } from '../auth/authTypes';
 
 export type SendEmailVerificationRequest = {
   email: string;
@@ -9,12 +10,8 @@ export type ConfirmEmailVerificationRequest = {
   code: string;
 };
 
-export type ApplicationAffiliationType =
-  | 'UNDERGRADUATE'
-  | 'GRADUATE'
-  | 'PROFESSOR'
-  | 'STAFF'
-  | 'OTHER';
+/** 서버 AffiliationType enum과 동일한 값입니다. */
+export type ApplicationAffiliationType = AffiliationType;
 
 export type CreateApplicationRequest = {
   eventId: number;

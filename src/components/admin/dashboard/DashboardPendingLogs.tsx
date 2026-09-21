@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { AdminReadingLogResponse } from '../../../types/adminReadingLogApi';
-import { formatReadingLogDate } from '../../../types/adminReadingLog';
+import { hasServerWarning } from '../../../utils/dashboardAnalytics';
+import { formatKoDateKey } from '../../../utils/date';
 
 type DashboardPendingLogsProps = {
   logs: AdminReadingLogResponse[];
@@ -16,16 +17,6 @@ function getBookSummary(log: AdminReadingLogResponse) {
   return log.books.length > 1
     ? `${firstBook.bookTitle} 외 ${log.books.length - 1}권`
     : firstBook.bookTitle;
-}
-
-function hasServerWarning(log: AdminReadingLogResponse) {
-  return (
-    (log.recommendedRejectReasons?.length ?? 0) > 0 ||
-    log.books.some(
-      (book) =>
-        book.pageExceeded || Boolean(book.warningMessage?.trim()),
-    )
-  );
 }
 
 function DashboardPendingLogs({ logs }: DashboardPendingLogsProps) {
@@ -58,7 +49,7 @@ function DashboardPendingLogs({ logs }: DashboardPendingLogsProps) {
                 return (
                   <tr key={log.readingLogId}>
                     <td>{log.userName}</td>
-                    <td>{formatReadingLogDate(log.readingDate)}</td>
+                    <td>{formatKoDateKey(log.readingDate)}</td>
                     <td title={getBookSummary(log)}>
                       {getBookSummary(log)}
                     </td>

@@ -1,15 +1,13 @@
+import type { AffiliationType } from '../auth/authTypes';
+
 export type AdminApplicationStatus =
   | 'APPLIED'
   | 'APPROVED'
   | 'REJECTED'
   | 'CANCELLED';
 
-export type AdminApplicationAffiliationType =
-  | 'UNDERGRADUATE'
-  | 'GRADUATE'
-  | 'PROFESSOR'
-  | 'STAFF'
-  | 'OTHER';
+/** 서버 AffiliationType enum과 동일한 값입니다. */
+export type AdminApplicationAffiliationType = AffiliationType;
 
 export type AdminApplicationListItem = {
   applicationId: number;
@@ -69,33 +67,3 @@ export const ADMIN_APPLICATION_AFFILIATION_OPTIONS = (
     string,
   ][]
 ).map(([value, label]) => ({ value, label }));
-
-export function formatAdminApplicationDate(value: string) {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return '-';
-  }
-
-  return new Intl.DateTimeFormat('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(date);
-}
-
-export function formatAdminApplicationDateTime(value: string) {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return '-';
-  }
-
-  return new Intl.DateTimeFormat('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date);
-}

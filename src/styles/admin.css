@@ -322,7 +322,7 @@
   text-align: left;
 }
 
-.admin-sidebar__link:not(.admin-sidebar__link--disabled):hover {
+.admin-sidebar__link:hover {
   background: transparent;
   color: var(--navy-strong);
   font-weight: 700;
@@ -333,20 +333,6 @@
   background: transparent;
   color: var(--navy-strong);
   font-weight: 750;
-}
-
-.admin-sidebar__link--disabled {
-  color: var(--muted);
-  opacity: 0.68;
-  cursor: default;
-}
-
-.admin-sidebar__status {
-  flex: 0 0 auto;
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 600;
-  white-space: nowrap;
 }
 
 .admin-page {
@@ -452,10 +438,6 @@
   .admin-sidebar__link {
     padding-inline: 9px;
     font-size: 13px;
-  }
-
-  .admin-sidebar__status {
-    display: none;
   }
 
   .admin-layout__main {

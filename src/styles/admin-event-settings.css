@@ -291,16 +291,12 @@
   gap: 10px;
 }
 
-.admin-event-settings__date-range label,
-.admin-event-settings__course-field,
-.admin-event-settings__reward-field {
+.admin-event-settings__date-range label {
   display: block;
   min-width: 0;
 }
 
-.admin-event-settings__date-range label > span,
-.admin-event-settings__course-field > span,
-.admin-event-settings__reward-field > span {
+.admin-event-settings__date-range label > span {
   display: block;
   margin-bottom: 6px;
   color: var(--body);
@@ -310,7 +306,6 @@
 
 .admin-event-settings__date-range input,
 .admin-event-settings__number-control input,
-.admin-event-settings__reward-field textarea,
 .admin-event-settings__basic-grid input:not([type='checkbox']),
 .admin-event-settings__basic-grid select,
 .admin-event-settings__contact-grid input,
@@ -346,7 +341,6 @@
 
 .admin-event-settings__date-range input:focus,
 .admin-event-settings__number-control input:focus,
-.admin-event-settings__reward-field textarea:focus,
 .admin-event-settings__basic-grid input:focus,
 .admin-event-settings__basic-grid select:focus,
 .admin-event-settings__contact-grid input:focus,
@@ -406,20 +400,6 @@
   grid-column: 1 / -1;
 }
 
-.admin-event-settings__course-field {
-  padding: 16px;
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius);
-  background: var(--blue-10);
-}
-
-.admin-event-settings__course-field > small {
-  display: block;
-  margin: -1px 0 10px;
-  color: var(--muted);
-  font-size: 10px;
-}
-
 .admin-event-settings__number-control {
   display: flex;
   min-width: 0;
@@ -444,19 +424,6 @@
   font-weight: 700;
 }
 
-.admin-event-settings__reward-field {
-  margin-top: 20px;
-}
-
-.admin-event-settings__reward-field textarea {
-  display: block;
-  min-height: 116px;
-  padding: 11px 12px;
-  resize: vertical;
-  border-radius: var(--radius);
-  line-height: 1.55;
-}
-
 .admin-event-settings__contact-grid textarea {
   display: block;
   min-height: 104px;
@@ -464,18 +431,6 @@
   resize: vertical;
   border-radius: var(--radius);
   line-height: 1.55;
-}
-
-.admin-event-settings__reward-field textarea::placeholder {
-  color: var(--muted);
-}
-
-.admin-event-settings__reward-field > small {
-  display: block;
-  margin-top: 6px;
-  color: var(--muted);
-  font-size: 11px;
-  text-align: right;
 }
 
 .admin-event-settings__form-footer {
@@ -542,10 +497,6 @@
   font-size: 11px;
 }
 
-.admin-event-settings__messages {
-  min-width: 0;
-}
-
 .admin-event-settings__event-actions,
 .admin-event-settings__course-actions {
   display: flex;
@@ -558,22 +509,14 @@
   justify-content: flex-end;
 }
 
-.admin-event-settings__error,
 .admin-event-settings__feedback {
+  min-height: 20px;
   margin: 0;
+  margin-top: 14px;
+  color: var(--green);
   font-size: 13px;
   font-weight: 650;
   line-height: 1.5;
-}
-
-.admin-event-settings__error {
-  color: #9f3030;
-}
-
-.admin-event-settings__feedback {
-  min-height: 20px;
-  margin-top: 14px;
-  color: var(--green);
 }
 
 .admin-event-settings__feedback--error,
@@ -672,7 +615,6 @@
 
 .admin-event-settings__date-range input:focus-visible,
 .admin-event-settings__number-control input:focus-visible,
-.admin-event-settings__reward-field textarea:focus-visible,
 .admin-event-settings__save-button:focus-visible,
 .admin-event-settings__secondary-button:focus-visible,
 .admin-event-settings__danger-button:focus-visible,

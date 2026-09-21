@@ -1,29 +1,32 @@
+import {
+  DAILY_READING_PAGE_LIMIT,
+  METERS_PER_PAGE,
+} from '../constants/reading';
+
 export type ReadingLogStatus = 'submit' | 'approve' | 'rejected';
 
 export type ReadingLogStatusFilter = 'ALL' | ReadingLogStatus;
 export type ReadingLogReviewFilter = 'ALL' | 'safe' | 'warning';
 export type ReadingLogDialogMode = 'detail' | 'approve-confirm' | 'reject';
 
+/** 관리자 검토 화면에서 사용하는 책별 독서 내역 표시 모델 */
 export type ReadingLogBookEntry = {
   id: string;
-  bookId: string;
   title: string;
   author: string;
   publisher: string;
   totalPages: number;
   previouslyApprovedPages: number;
   readPages: number;
-  reviewWritten?: boolean;
   expectedApprovedPages?: number;
   remainingPagesAfterApproval?: number;
-  completedAfterApproval?: boolean;
   pageExceeded?: boolean;
   warningMessage?: string;
 };
 
+/** 서버 응답(AdminReadingLogResponse)을 화면 표시용으로 변환한 모델 */
 export type AdminReadingLog = {
   id: string;
-  participantId: string;
   participantName: string;
   studentNumber: string;
   readingDate: string;
@@ -32,8 +35,6 @@ export type AdminReadingLog = {
   books: ReadingLogBookEntry[];
   approvedAt?: string;
   rejectionReason?: string;
-  adminMemo?: string;
-  reviewFlags?: string[];
   totalReadPages?: number;
   convertedDistanceMeter?: number;
   eventTitle?: string;
@@ -88,9 +89,6 @@ export const READING_LOG_REJECTION_REASONS = [
   '읽은 페이지 수 확인이 필요함',
   '기타',
 ] as const;
-
-export const DAILY_READING_PAGE_LIMIT = 400;
-export const METERS_PER_PAGE = 5;
 
 export function getReadingLogTotalPages(log: AdminReadingLog) {
   return (
@@ -203,29 +201,6 @@ export function validateReadingLog(
   });
 
   return issues;
-}
-
-export function hasBlockingValidationIssue(log: AdminReadingLog) {
-  return validateReadingLog(log).length > 0;
-}
-
-export function formatReadingLogDate(value: string) {
-  return new Intl.DateTimeFormat('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date(`${value}T00:00:00`));
-}
-
-export function formatReadingLogDateTime(value: string) {
-  return new Intl.DateTimeFormat('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).format(new Date(value));
 }
 
 export function formatReadingDistance(meters: number) {

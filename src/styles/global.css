@@ -138,22 +138,11 @@ img {
 }
 
 .brand img {
-  width: 400px;
-  height: auto;
-  object-fit: contain;
-}
-.brand img {
-  height: 42px;
   width: auto;
+  height: 42px;
   display: block;
+  object-fit: contain;
   transform: translateX(-5px);
-
-}
-.brand-text {
-  color: var(--navy-strong);
-  font-size: 20px;
-  font-weight: 750;
-  letter-spacing: -0.04em;
 }
 
 .global-nav {
@@ -164,7 +153,8 @@ img {
   gap: 2px;
 }
 
-.global-nav > a,
+/* 주메뉴 링크. My Library 드롭다운 내부 링크도 이 규칙(테두리)을 상속받습니다. */
+.global-nav a,
 .global-nav .nav-dropdown-trigger {
   padding: 28px 12px;
   color: #243341;
@@ -174,8 +164,8 @@ img {
   white-space: nowrap;
 }
 
-.global-nav > a:hover,
-.global-nav > a[aria-current="page"],
+.global-nav a:hover,
+.global-nav a[aria-current="page"],
 .global-nav .nav-dropdown-trigger:hover,
 .global-nav .nav-dropdown-trigger[aria-current="page"] {
   color: var(--navy-strong);
@@ -482,4 +472,62 @@ img {
   .footer-links {
     flex-wrap: wrap;
   }
+}
+
+/* ===== 페이지 공통 레이아웃 (독서일지·대회 현황·404 페이지 공용) ===== */
+.page-container {
+  width: min(1120px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 56px 0 80px;
+}
+
+.page-label {
+  margin: 0 0 12px;
+  color: #1f4f82;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+
+.page-section h1 {
+  margin: 0;
+  color: #172838;
+  font-size: clamp(32px, 4vw, 44px);
+  line-height: 1.2;
+  letter-spacing: -0.055em;
+  font-weight: 700;
+}
+
+.page-description {
+  margin: 18px 0 0;
+  color: #536271;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+@media (max-width: 720px) {
+  .page-container {
+    width: min(100% - 28px, 1120px);
+    padding: 42px 0 64px;
+  }
+}
+
+/* ===== 독서일지 상태 배지 색상 (.my-status-badge / .log-status-badge 공용) ===== */
+.status-인정 {
+  color: #1f4f82;
+  background: #eef5fc;
+  border: 1px solid #c5d7ea;
+}
+
+.status-검토중 {
+  color: #8a6a29;
+  background: #fff8e6;
+  border: 1px solid #ead8a8;
+}
+
+.status-반려 {
+  color: #8c3d3d;
+  background: #fff1f1;
+  border: 1px solid #edc5c5;
 }

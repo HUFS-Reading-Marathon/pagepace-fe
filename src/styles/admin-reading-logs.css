@@ -482,10 +482,6 @@
   box-shadow: var(--shadow);
 }
 
-.admin-reading-log-dialog--confirm {
-  width: min(620px, 100%);
-}
-
 .admin-reading-log-dialog__header {
   position: sticky;
   top: 0;
@@ -781,8 +777,7 @@
   color: #9f3030;
 }
 
-.admin-reading-log-dialog__issue-list,
-.admin-reading-log-dialog__manual-flags {
+.admin-reading-log-dialog__issue-list {
   margin: 12px 0 0;
   padding: 11px 14px 11px 31px;
   border-radius: var(--radius);
@@ -794,12 +789,6 @@
 
 .admin-reading-log-dialog__issue-list--summary {
   margin-top: 0;
-}
-
-.admin-reading-log-dialog__manual-flags {
-  margin-top: 0;
-  background: var(--blue-10);
-  color: var(--body);
 }
 
 .admin-reading-log-dialog__actions {

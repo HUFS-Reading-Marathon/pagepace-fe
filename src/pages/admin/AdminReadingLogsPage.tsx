@@ -11,12 +11,12 @@ import {
   getAdminReadingLogs,
   rejectAdminReadingLog,
 } from '../../api/adminReadingLogApi';
-import { ApiError } from '../../api/apiClient';
+import { getApiErrorMessage } from '../../api/apiClient';
 import { getAdminEvents } from '../../api/adminEventApi';
 import ReadingLogDetailDialog from '../../components/admin/readingLogs/ReadingLogDetailDialog';
 import ReadingLogFilters from '../../components/admin/readingLogs/ReadingLogFilters';
 import ReadingLogTable from '../../components/admin/readingLogs/ReadingLogTable';
-import type { AdminEvent } from '../../types/adminEvent';
+import type { AdminEvent, EventStatus } from '../../types/adminEvent';
 import {
   validateReadingLog,
   type AdminReadingLog,
@@ -29,6 +29,7 @@ import type {
   AdminReadingLogResponse,
   AdminReadingLogStatus,
 } from '../../types/adminReadingLogApi';
+import { chooseEventIdByStatus } from '../../utils/adminEvent';
 import '../../styles/admin-reading-logs.css';
 
 type DialogRequest = {
@@ -42,28 +43,12 @@ const STATUS_MAP: Record<AdminReadingLogStatus, ReadingLogStatus> = {
   REJECTED: 'rejected',
 };
 
-const DEFAULT_EVENT_SELECTION_ORDER = [
+const DEFAULT_EVENT_SELECTION_ORDER: EventStatus[] = [
   'APPLICATION_OPEN',
   'READY',
   'IN_PROGRESS',
   'DRAFT',
-] as const;
-
-function getApiErrorMessage(error: unknown, fallback: string) {
-  return error instanceof ApiError ? error.message : fallback;
-}
-
-function chooseEventId(events: AdminEvent[]) {
-  for (const status of DEFAULT_EVENT_SELECTION_ORDER) {
-    const matchedEvent = events.find((event) => event.status === status);
-
-    if (matchedEvent) {
-      return matchedEvent.eventId;
-    }
-  }
-
-  return events[0]?.eventId ?? null;
-}
+];
 
 function toDisplayLog(log: AdminReadingLogResponse): AdminReadingLog {
   const sortedBooks = [...log.books].sort(
@@ -72,7 +57,6 @@ function toDisplayLog(log: AdminReadingLogResponse): AdminReadingLog {
 
   return {
     id: String(log.readingLogId),
-    participantId: String(log.participationId),
     participantName: log.userName || '-',
     studentNumber: log.studentNo || '-',
     readingDate: log.readingDate,
@@ -81,7 +65,6 @@ function toDisplayLog(log: AdminReadingLogResponse): AdminReadingLog {
     approvedAt: log.reviewedAt || undefined,
     rejectionReason:
       log.status === 'REJECTED' ? log.adminComment || undefined : undefined,
-    adminMemo: log.adminComment || undefined,
     totalReadPages: log.totalReadPages,
     convertedDistanceMeter: log.convertedDistanceMeter,
     eventTitle: log.eventTitle,
@@ -89,7 +72,6 @@ function toDisplayLog(log: AdminReadingLogResponse): AdminReadingLog {
     recommendedRejectReasons: log.recommendedRejectReasons ?? [],
     books: sortedBooks.map((book) => ({
       id: String(book.readingLogBookId),
-      bookId: String(book.readingLogBookId),
       title: book.bookTitle || '-',
       author: book.author || '-',
       publisher: book.publisher || '-',
@@ -98,7 +80,6 @@ function toDisplayLog(log: AdminReadingLogResponse): AdminReadingLog {
       readPages: book.submittedReadPages,
       expectedApprovedPages: book.expectedApprovedReadPages,
       remainingPagesAfterApproval: book.remainingPagesAfterApproval,
-      completedAfterApproval: book.completedAfterApproval,
       pageExceeded: book.pageExceeded,
       warningMessage: book.warningMessage || undefined,
     })),
@@ -242,7 +223,10 @@ function AdminReadingLogsPage() {
     if (initialRequestRef.current === null) {
       initialRequestRef.current = getAdminEvents().then((nextEvents) => ({
         events: nextEvents,
-        eventId: chooseEventId(nextEvents),
+        eventId: chooseEventIdByStatus(
+          nextEvents,
+          DEFAULT_EVENT_SELECTION_ORDER,
+        ),
       }));
     }
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ApiError } from '../../api/apiClient';
+import { getApiErrorMessage } from '../../api/apiClient';
 import {
   getCurrentEvent,
   getEventCourses,
@@ -80,9 +80,7 @@ function RankingPage() {
         setError('');
       } catch (requestError: unknown) {
         setError(
-          requestError instanceof ApiError
-            ? requestError.message
-            : '랭킹을 불러오지 못했습니다.',
+          getApiErrorMessage(requestError, '랭킹을 불러오지 못했습니다.'),
         );
       } finally {
         setIsLoading(false);
@@ -106,9 +104,7 @@ function RankingPage() {
       setError('');
     } catch (requestError: unknown) {
       setError(
-        requestError instanceof ApiError
-          ? requestError.message
-          : '랭킹을 불러오지 못했습니다.',
+        getApiErrorMessage(requestError, '랭킹을 불러오지 못했습니다.'),
       );
     } finally {
       setIsLoading(false);

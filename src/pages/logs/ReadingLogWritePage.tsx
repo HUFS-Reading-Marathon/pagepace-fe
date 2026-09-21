@@ -1,12 +1,6 @@
-import {
-  type FormEvent,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { type FormEvent, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ApiError } from '../../api/apiClient';
-import { searchBooks } from '../../api/bookApi';
+import { getApiErrorMessage } from '../../api/apiClient';
 import { getCurrentParticipation } from '../../api/participationApi';
 import {
   completeReview,
@@ -16,8 +10,19 @@ import {
   getReviewTargetBooks,
   updateReadingLog,
 } from '../../api/readingLogApi';
+import BookCover from '../../components/logs/BookCover';
+import BookSearchField from '../../components/logs/BookSearchField';
+import {
+  DAILY_READING_PAGE_LIMIT,
+  METERS_PER_PAGE,
+} from '../../constants/reading';
 import type { BookSearchResult } from '../../types/book';
-import type { ParticipantBook, ReviewTargetBook } from '../../types/readingLog';
+import type {
+  ParticipantBook,
+  ReadingLogBookRequest,
+  ReadingLogRequest,
+  ReviewTargetBook,
+} from '../../types/readingLog';
 import './logs.css';
 
 type BookEntry = {
@@ -27,11 +32,18 @@ type BookEntry = {
   readPages: string;
 };
 
-type BookSearchFieldProps = {
-  book: BookEntry;
-  onQueryChange: (query: string) => void;
-  onSelect: (book: BookSearchResult) => void;
-};
+/** 독서일지·읽던 책에 저장된 도서 정보를 검색 결과와 같은 형태로 맞춥니다. */
+type SavedBook = Pick<
+  ReadingLogBookRequest,
+  | 'libraryBookId'
+  | 'bookTitle'
+  | 'author'
+  | 'publisher'
+  | 'isbn'
+  | 'callNo'
+  | 'totalBookPages'
+  | 'coverImageUrl'
+>;
 
 const createBookEntry = (): BookEntry => ({
   id: Date.now() + Math.random(),
@@ -40,141 +52,34 @@ const createBookEntry = (): BookEntry => ({
   readPages: '',
 });
 
-function BookCover({ book }: { book: BookSearchResult }) {
-  if (book.thumbnailUrl) {
-    return <img src={book.thumbnailUrl} alt="" loading="lazy" />;
-  }
-
-  return <span aria-hidden="true">BOOK</span>;
+function toBookSearchResult(book: SavedBook): BookSearchResult {
+  return {
+    libraryBookId: book.libraryBookId,
+    title: book.bookTitle,
+    author: book.author,
+    publisher: book.publisher,
+    isbn: book.isbn,
+    pageCount: book.totalBookPages,
+    callNo: book.callNo,
+    libraries: [],
+    thumbnailUrl: book.coverImageUrl,
+  };
 }
 
-function BookSearchField({
-  book,
-  onQueryChange,
-  onSelect,
-}: BookSearchFieldProps) {
-  const [results, setResults] = useState<BookSearchResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchMessage, setSearchMessage] = useState('');
-  const requestSequenceRef = useRef(0);
+function toBookRequest(book: BookEntry): ReadingLogBookRequest {
+  const selectedBook = book.selectedBook!;
 
-  useEffect(() => {
-    const query = book.query.trim();
-
-    if (book.selectedBook || query.length < 2) {
-      return;
-    }
-
-    const sequence = ++requestSequenceRef.current;
-    const timeoutId = window.setTimeout(() => {
-      setIsSearching(true);
-      setResults([]);
-      setSearchMessage('');
-
-      searchBooks(query)
-        .then((nextResults) => {
-          if (requestSequenceRef.current !== sequence) return;
-          setResults(nextResults);
-          setSearchMessage(
-            nextResults.length === 0 ? '검색 결과가 없습니다.' : '',
-          );
-        })
-        .catch((error: unknown) => {
-          if (requestSequenceRef.current !== sequence) return;
-          setResults([]);
-          setSearchMessage(
-            error instanceof ApiError
-              ? error.message
-              : '도서를 검색하지 못했습니다.',
-          );
-        })
-        .finally(() => {
-          if (requestSequenceRef.current === sequence) {
-            setIsSearching(false);
-          }
-        });
-    }, 350);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-      requestSequenceRef.current += 1;
-    };
-  }, [book.query, book.selectedBook]);
-
-  return (
-    <div className="reading-book-search">
-      <label className="reading-log-field">
-        <span>
-          도서 검색 <em>*</em>
-        </span>
-        <div className="reading-book-search-input">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="11" cy="11" r="7" />
-            <path d="m16.5 16.5 4 4" />
-          </svg>
-          <input
-            value={book.query}
-            onChange={(event) => onQueryChange(event.target.value)}
-            placeholder="책 제목 또는 ISBN을 입력해 주세요"
-            autoComplete="off"
-          />
-          {isSearching &&
-            !book.selectedBook &&
-            book.query.trim().length >= 2 && (
-              <span className="reading-book-search-spinner" />
-            )}
-        </div>
-      </label>
-
-      {!book.selectedBook && book.query.trim().length === 1 && (
-        <p className="reading-book-search-guide">두 글자 이상 입력하면 자동으로 검색합니다.</p>
-      )}
-
-      {!book.selectedBook &&
-        book.query.trim().length >= 2 &&
-        (results.length > 0 || searchMessage) && (
-          <div className="reading-book-search-results" role="listbox">
-            {searchMessage ? (
-              <p className="reading-book-search-empty">{searchMessage}</p>
-            ) : (
-              results.map((result) => (
-                <button
-                  key={result.libraryBookId}
-                  type="button"
-                  className="reading-book-search-result"
-                  onClick={() => onSelect(result)}
-                  disabled={!result.pageCount}
-                  role="option"
-                  aria-selected="false"
-                >
-                  <span className="reading-book-search-cover">
-                    <BookCover book={result} />
-                  </span>
-                  <span className="reading-book-search-copy">
-                    <strong>{result.title}</strong>
-                    <span>
-                      {result.author || '저자 미상'}
-                      {result.publisher ? ` · ${result.publisher}` : ''}
-                    </span>
-                    <small>
-                      {result.pageCount
-                        ? `${result.pageCount.toLocaleString()}쪽`
-                        : '전체 페이지 정보 없음'}
-                      {result.libraries.length > 0
-                        ? ` · ${result.libraries.join(', ')}`
-                        : ''}
-                    </small>
-                  </span>
-                  <span className="reading-book-search-select">
-                    {result.pageCount ? '선택' : '선택 불가'}
-                  </span>
-                </button>
-              ))
-            )}
-          </div>
-        )}
-    </div>
-  );
+  return {
+    libraryBookId: selectedBook.libraryBookId,
+    bookTitle: selectedBook.title,
+    author: selectedBook.author,
+    publisher: selectedBook.publisher,
+    isbn: selectedBook.isbn,
+    coverImageUrl: selectedBook.thumbnailUrl,
+    callNo: selectedBook.callNo,
+    totalBookPages: selectedBook.pageCount!,
+    readPages: Number(book.readPages),
+  };
 }
 
 function ReadingLogWritePage() {
@@ -208,29 +113,16 @@ function ReadingLogWritePage() {
               id: savedBook.readingLogBookId,
               query: savedBook.bookTitle,
               readPages: String(savedBook.readPages),
-              selectedBook: {
-                libraryBookId: savedBook.libraryBookId,
-                title: savedBook.bookTitle,
-                author: savedBook.author,
-                publisher: savedBook.publisher,
-                isbn: savedBook.isbn,
-                pageCount: savedBook.totalBookPages,
-                callNo: savedBook.callNo,
-                libraries: [],
-                thumbnailUrl: savedBook.coverImageUrl,
-              },
-              })),
+              selectedBook: toBookSearchResult(savedBook),
+            })),
           );
         } else if (readingBooks.length > 0) {
-          const currentBook = readingBooks[0];
-          setCurrentReadingBook(currentBook);
+          setCurrentReadingBook(readingBooks[0]);
         }
       })
       .catch((error: unknown) => {
         setErrorMessage(
-          error instanceof ApiError
-            ? error.message
-            : '참가 정보를 불러오지 못했습니다.',
+          getApiErrorMessage(error, '참가 정보를 불러오지 못했습니다.'),
         );
       });
   }, [editingLogId]);
@@ -246,17 +138,7 @@ function ReadingLogWritePage() {
   const loadCurrentReadingBook = () => {
     if (!currentReadingBook) return;
 
-    const selectedBook: BookSearchResult = {
-      libraryBookId: currentReadingBook.libraryBookId,
-      title: currentReadingBook.bookTitle,
-      author: currentReadingBook.author,
-      publisher: currentReadingBook.publisher,
-      isbn: currentReadingBook.isbn,
-      pageCount: currentReadingBook.totalBookPages,
-      callNo: currentReadingBook.callNo,
-      libraries: [],
-      thumbnailUrl: currentReadingBook.coverImageUrl,
-    };
+    const selectedBook = toBookSearchResult(currentReadingBook);
 
     setBooks((current) => {
       if (current.some((book) => book.selectedBook?.libraryBookId === selectedBook.libraryBookId)) return current;
@@ -280,9 +162,7 @@ function ReadingLogWritePage() {
       );
     } catch (error) {
       setErrorMessage(
-        error instanceof ApiError
-          ? error.message
-          : '서평 완료 처리에 실패했습니다.',
+        getApiErrorMessage(error, '서평 완료 처리에 실패했습니다.'),
       );
     }
   };
@@ -304,10 +184,14 @@ function ReadingLogWritePage() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!participationId || hasInvalidBook || totalReadPages > 400) {
+    if (
+      !participationId ||
+      hasInvalidBook ||
+      totalReadPages > DAILY_READING_PAGE_LIMIT
+    ) {
       setErrorMessage(
-        totalReadPages > 400
-          ? '하루 최대 400페이지까지 입력할 수 있습니다.'
+        totalReadPages > DAILY_READING_PAGE_LIMIT
+          ? `하루 최대 ${DAILY_READING_PAGE_LIMIT}페이지까지 입력할 수 있습니다.`
           : '도서를 선택하고 오늘 읽은 페이지를 확인해 주세요.',
       );
       return;
@@ -316,19 +200,9 @@ function ReadingLogWritePage() {
     try {
       setIsSubmitting(true);
       setErrorMessage('');
-      const request = {
+      const request: ReadingLogRequest = {
         readingDate,
-        books: books.map((book) => ({
-          libraryBookId: book.selectedBook!.libraryBookId,
-          bookTitle: book.selectedBook!.title,
-          author: book.selectedBook!.author,
-          publisher: book.selectedBook!.publisher,
-          isbn: book.selectedBook!.isbn,
-          coverImageUrl: book.selectedBook!.thumbnailUrl,
-          callNo: book.selectedBook!.callNo,
-          totalBookPages: book.selectedBook!.pageCount!,
-          readPages: Number(book.readPages),
-        })),
+        books: books.map(toBookRequest),
       };
       const saved = editingLogId
         ? await updateReadingLog(editingLogId, request)
@@ -337,9 +211,7 @@ function ReadingLogWritePage() {
       if (saved) navigate(`/logs/${saved.readingLogId}`);
     } catch (error) {
       setErrorMessage(
-        error instanceof ApiError
-          ? error.message
-          : '독서일지를 저장하지 못했습니다.',
+        getApiErrorMessage(error, '독서일지를 저장하지 못했습니다.'),
       );
     } finally {
       setIsSubmitting(false);
@@ -434,7 +306,7 @@ function ReadingLogWritePage() {
               );
               const availablePages = Math.min(
                 matchedCurrentBook?.remainingPages ?? totalPages,
-                Math.max(0, 400 - otherBooksPages),
+                Math.max(0, DAILY_READING_PAGE_LIMIT - otherBooksPages),
               );
               const readPages = Number(book.readPages || 0);
               const isPageInvalid = readPages > availablePages && availablePages > 0;
@@ -467,9 +339,14 @@ function ReadingLogWritePage() {
 
                   <div className="reading-book-entry-fields">
                     <BookSearchField
-                      book={book}
-                      onQueryChange={(query) => updateBook(book.id, { query, selectedBook: null })}
-                      onSelect={(selectedBook) => updateBook(book.id, { query: selectedBook.title, selectedBook })}
+                      query={book.query}
+                      selectedBook={book.selectedBook}
+                      onQueryChange={(query) =>
+                        updateBook(book.id, { query, selectedBook: null })
+                      }
+                      onSelect={(selectedBook) =>
+                        updateBook(book.id, { query: selectedBook.title, selectedBook })
+                      }
                     />
 
                     <label className="reading-log-field reading-book-read-pages">
@@ -558,13 +435,15 @@ function ReadingLogWritePage() {
           <button
             type="button"
             className="reading-book-add"
-            disabled={totalReadPages >= 400}
+            disabled={totalReadPages >= DAILY_READING_PAGE_LIMIT}
             onClick={() =>
               setBooks((current) => [...current, createBookEntry()])
             }
           >
             <span aria-hidden="true">+</span>
-            {totalReadPages >= 400 ? '오늘 기록 가능한 400쪽을 모두 입력했어요' : '다른 책 추가하기'}
+            {totalReadPages >= DAILY_READING_PAGE_LIMIT
+              ? `오늘 기록 가능한 ${DAILY_READING_PAGE_LIMIT}쪽을 모두 입력했어요`
+              : '다른 책 추가하기'}
           </button>
 
           <div className="reading-log-summary">
@@ -574,7 +453,7 @@ function ReadingLogWritePage() {
             </div>
             <div className="reading-log-summary-item">
               <span>환산 거리</span>
-              <strong>{(totalReadPages * 5).toLocaleString()}m</strong>
+              <strong>{(totalReadPages * METERS_PER_PAGE).toLocaleString()}m</strong>
             </div>
             <p>읽은 페이지는 1쪽당 5m로 자동 환산됩니다.</p>
           </div>
