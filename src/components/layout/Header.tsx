@@ -19,8 +19,7 @@ const NAV_ITEMS: HeaderLink[] = [
   { label: '행사안내', href: '/#about' },
   { label: '코스 및 혜택', href: '/#courses' },
   { label: '참여방법', href: '/#process' },
-  { label: '대회 현황', href: '/#status' },
-  { label: '랭킹', href: '/rankings' },
+  { label: '대회 현황', href: '/status' },
   { label: '공지사항', href: '/#notice' },
 ];
 

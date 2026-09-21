@@ -8,41 +8,6 @@
   max-width: 1380px;
   padding: 0;
 }
-.ranking-hero {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 28px;
-  padding-bottom: 30px;
-  border-bottom: 1px solid #d9e2ec;
-}
-.ranking-hero p {
-  margin: 0 0 10px;
-  color: #1f4f82;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.09em;
-}
-.ranking-hero h1 {
-  margin: 0;
-  color: #172838;
-  font-size: clamp(34px, 4vw, 48px);
-  letter-spacing: -0.055em;
-}
-.ranking-hero > div > span {
-  display: block;
-  margin-top: 12px;
-  color: #617181;
-  font-size: 15px;
-}
-.ranking-privacy {
-  display: block;
-  margin-top: 10px;
-  color: #7c8996;
-  font-size: 11px;
-  font-weight: 400;
-  line-height: 1.55;
-}
 .ranking-toolbar {
   display: flex;
   margin: 24px 0;
@@ -161,14 +126,6 @@
   text-align: right;
 }
 @media (max-width: 760px) {
-  .ranking-hero {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-  .ranking-privacy {
-    min-width: 0;
-    width: 100%;
-  }
   .ranking-toolbar,
   .ranking-toolbar.is-admin {
     align-items: stretch;
@@ -185,11 +142,6 @@
     align-items: stretch;
     flex-direction: column;
   }
-}
-
-.ranking-privacy time {
-  color: inherit;
-  font: inherit;
 }
 .ranking-race {
   margin-top: 20px;

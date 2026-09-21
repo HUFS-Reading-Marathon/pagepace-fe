@@ -32,12 +32,6 @@ export type ProcessStep = {
   desc: string;
 };
 
-export type StatusItem = {
-  title: string;
-  value: string;
-  desc: string;
-};
-
 /** 서버 공지사항이 없을 때 표시하는 안내 항목 */
 export type FallbackNotice = {
   badge: string;
@@ -75,7 +69,7 @@ export const QUICK_LINKS: QuickLink[] = [
     href: APPLY_FORM_URL,
     external: true,
   },
-  { eyebrow: 'Status', title: '대회 현황 보기', href: '#status' },
+  { eyebrow: 'Status', title: '대회 현황 보기', href: '/status' },
 ];
 
 export const SUMMARY_ITEMS: [string, string][] = [
@@ -144,24 +138,6 @@ export const PROCESS_STEPS: ProcessStep[] = [
     no: 4,
     title: '현황 확인',
     desc: '누적 거리, 달성률, 완주 여부와 공지사항을 대회 현황에서 확인합니다.',
-  },
-];
-
-export const STATUS_ITEMS: StatusItem[] = [
-  {
-    title: '나의 누적 거리',
-    value: '운영 시작 후 공개',
-    desc: '인정된 독서일지를 기준으로 자동 집계됩니다.',
-  },
-  {
-    title: '코스별 완주 현황',
-    value: '준비 중',
-    desc: '단축·하프·풀코스별 달성 현황을 제공합니다.',
-  },
-  {
-    title: '공개 순위',
-    value: '이름 마스킹 적용',
-    desc: '개인정보 보호 기준에 따라 일부 정보만 공개합니다.',
   },
 ];
 

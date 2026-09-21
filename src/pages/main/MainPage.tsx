@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth';
 import { getCurrentEvent, getEventCourses, type CurrentEvent } from '../../api/eventApi';
 import { getCurrentParticipation } from '../../api/participationApi';
@@ -21,7 +21,6 @@ import {
   FALLBACK_NOTICES,
   PROCESS_STEPS,
   QUICK_LINKS,
-  STATUS_ITEMS,
   SUMMARY_ITEMS,
   toCourseRow,
   type CourseRow,
@@ -31,7 +30,13 @@ import './MainPage.css';
 
 const NOTICE_PREVIEW_COUNT = 4;
 
+/** 앱 내부 라우트('/status' 등)면 true. '#courses' 같은 hash와 외부 URL은 <a>로 렌더링합니다. */
+function isRouteHref(link: { href: string; external?: boolean }) {
+  return !link.external && link.href.startsWith('/');
+}
+
 function MainPage() {
+  const { hash } = useLocation();
   const { user, isAuthenticated, isInitializing } = useAuth();
   const isApplied = localStorage.getItem('isApplied') === 'true' || isAuthenticated;
   const displayName = user?.name || '참가자';
@@ -41,6 +46,14 @@ function MainPage() {
   const [approvedLogs, setApprovedLogs] = useState(0);
   const [lastSubmittedAt, setLastSubmittedAt] = useState('-');
   const [notices, setNotices] = useState<Notice[]>([]);
+
+  useEffect(() => {
+    // 다른 페이지(/status 등)에서 /#notice 같은 링크로 들어오면 브라우저의 fragment 스크롤이
+    // React 렌더링보다 먼저 실행되어 섹션을 찾지 못하므로, 마운트 후 직접 스크롤합니다.
+    if (!hash) return;
+
+    document.getElementById(hash.slice(1))?.scrollIntoView();
+  }, [hash]);
 
   useEffect(() => {
     getNotices()
@@ -171,7 +184,7 @@ function MainPage() {
               )}
 
               <div className="hero-text-links">
-                <a href="#status">대회 현황 보기</a>
+                <Link to="/status">대회 현황 보기</Link>
               </div>
             </div>
           </div>
@@ -232,12 +245,19 @@ function MainPage() {
         </div>
 
         <div className="wrap quick-grid fade-up" aria-label="빠른 메뉴">
-          {QUICK_LINKS.map((link) => (
-            <a key={link.title} href={link.href} {...getExternalLinkAttrs(link)}>
-              <small>{link.eyebrow}</small>
-              <strong>{link.title}</strong>
-            </a>
-          ))}
+          {QUICK_LINKS.map((link) =>
+            isRouteHref(link) ? (
+              <Link key={link.title} to={link.href}>
+                <small>{link.eyebrow}</small>
+                <strong>{link.title}</strong>
+              </Link>
+            ) : (
+              <a key={link.title} href={link.href} {...getExternalLinkAttrs(link)}>
+                <small>{link.eyebrow}</small>
+                <strong>{link.title}</strong>
+              </a>
+            ),
+          )}
         </div>
       </section>
 
@@ -254,79 +274,29 @@ function MainPage() {
             </p>
           </div>
 
-          <div className="notice-layout">
-            <article className="official-card about-card fade-up">
-              <h3>독서마라톤이란?</h3>
-              <p>
-                책 1쪽을 5m로 환산하여 누적 거리를 계산하고, 참가자가 선택한 코스의 목표 거리에
-                도달하면 완주로 인정하는 독서기록 행사입니다. 운영 기간 동안 독서일지를 제출하며,
-                도서관 안내 기준에 따라 기록 인정 여부가 결정됩니다.
-              </p>
-
-              <div className="about-highlight" aria-label="독서마라톤 핵심 수치">
-                <div>
-                  <b>1쪽 = 5m</b>
-                  <span>독서량을 거리로 환산</span>
-                </div>
-                <div>
-                  <b>8주간</b>
-                  <span>정해진 운영 기간 내 기록 제출</span>
-                </div>
-                <div>
-                  <b>3개 코스</b>
-                  <span>단축·하프·풀코스 중 선택</span>
-                </div>
-              </div>
-            </article>
-
-            <aside
-              className="official-card news-card fade-up"
-              id="notice"
-              aria-labelledby="noticeTitle"
-            >
-              <div className="card-title-row">
-                <h3 id="noticeTitle">공지사항</h3>
-                <a href="#contact">문의하기</a>
-              </div>
-              <MainNoticeList
-                notices={notices}
-                fallbackNotices={FALLBACK_NOTICES}
-                maxCount={NOTICE_PREVIEW_COUNT}
-              />
-            </aside>
-          </div>
-        </div>
-      </section>
-
-      <section className="section tone-section" id="status" aria-labelledby="statusTitle">
-        <div className="wrap">
-          <div className="section-head fade-up">
-            <div className="section-title">
-              <p>Marathon Status</p>
-              <h2 id="statusTitle">대회 현황</h2>
-            </div>
-
-            <p className="section-desc">
-              운영 시작 후 참가자의 독서일지 제출 내역을 기준으로 누적 거리, 달성률, 완주 여부가
-              집계됩니다.
+          <article className="official-card about-card fade-up">
+            <h3>독서마라톤이란?</h3>
+            <p>
+              책 1쪽을 5m로 환산하여 누적 거리를 계산하고, 참가자가 선택한 코스의 목표 거리에
+              도달하면 완주로 인정하는 독서기록 행사입니다. 운영 기간 동안 독서일지를 제출하며,
+              도서관 안내 기준에 따라 기록 인정 여부가 결정됩니다.
             </p>
-          </div>
 
-          <div className="status-grid fade-up">
-            {STATUS_ITEMS.map((item) => (
-              <article className="status-card" key={item.title}>
-                <span>{item.title}</span>
-                <strong>{item.value}</strong>
-                <p>{item.desc}</p>
-              </article>
-            ))}
-          </div>
-
-          <div className="status-detail-row fade-up">
-            <Link to="/status" className="status-detail-link">
-              대회 현황 보러가기
-            </Link>
-          </div>
+            <div className="about-highlight" aria-label="독서마라톤 핵심 수치">
+              <div>
+                <b>1쪽 = 5m</b>
+                <span>독서량을 거리로 환산</span>
+              </div>
+              <div>
+                <b>8주간</b>
+                <span>정해진 운영 기간 내 기록 제출</span>
+              </div>
+              <div>
+                <b>3개 코스</b>
+                <span>단축·하프·풀코스 중 선택</span>
+              </div>
+            </div>
+          </article>
         </div>
       </section>
 
@@ -373,6 +343,33 @@ function MainPage() {
                 <p>{step.desc}</p>
               </article>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="section tone-section" id="notice" aria-labelledby="noticeTitle">
+        <div className="wrap">
+          <div className="section-head fade-up">
+            <div className="section-title">
+              <p>Notice</p>
+              <h2 id="noticeTitle">공지사항</h2>
+            </div>
+            <p className="section-desc">
+              참가 신청, 코스 기준, 독서일지 인정 기준 등 운영 관련 안내를 확인해 주세요. 세부
+              문의는 도서관 안내 채널을 이용해 주세요.
+            </p>
+          </div>
+
+          <div className="official-card news-card fade-up">
+            <div className="card-title-row">
+              <h3>최근 공지</h3>
+              <a href="#contact">문의하기</a>
+            </div>
+            <MainNoticeList
+              notices={notices}
+              fallbackNotices={FALLBACK_NOTICES}
+              maxCount={NOTICE_PREVIEW_COUNT}
+            />
           </div>
         </div>
       </section>
