@@ -15,12 +15,14 @@ const TOPBAR_LINKS: HeaderLink[] = [
   { label: '문의', href: '/#contact' },
 ];
 
+// 홈 섹션(hash) 메뉴는 MainPage의 DOM 배치 순서(#about → #courses → #process → #notice)를
+// 그대로 따르고, 별도 페이지로 이동하는 '대회 현황'은 그 뒤에 배치합니다.
 const NAV_ITEMS: HeaderLink[] = [
   { label: '행사안내', href: '/#about' },
   { label: '코스 및 혜택', href: '/#courses' },
   { label: '참여방법', href: '/#process' },
-  { label: '대회 현황', href: '/status' },
   { label: '공지사항', href: '/#notice' },
+  { label: '대회 현황', href: '/status' },
 ];
 
 const MY_LIBRARY_ITEMS: HeaderLink[] = [
