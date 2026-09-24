@@ -1,8 +1,27 @@
 .admin-layout {
+  /*
+   * 관리자 typography 위계 토큰. 관리자 전용 wrapper(.admin-layout) 범위에서만 적용되어
+   * 사용자 페이지 typography에는 영향을 주지 않습니다.
+   * regular: 본문/값/설명, medium: 일반 label, semibold: section title·table header·button·badge,
+   * bold: 페이지 제목·핵심 지표·현재 선택 메뉴
+   */
+  --admin-fw-regular: 400;
+  --admin-fw-medium: 500;
+  --admin-fw-semibold: 600;
+  --admin-fw-bold: 700;
+
+  /*
+   * 관리자 전용 배경 톤. 전역 --blue-10은 사용자 페이지(모바일 nav 등)에서도 쓰이므로
+   * 값을 직접 바꾸지 않고, 이 admin 전용 변수로 흰색에 아주 가까운 미색을 별도로 둡니다.
+   * .admin-layout__main 자체에는 배경이 없어 이 값이 그대로 비쳐 보이고, header/sidebar는
+   * 각자 자체 배경(흰색)을 갖고 있어 이 값의 영향을 받지 않습니다.
+   */
+  --admin-bg: #fafbfc;
+
   display: flex;
   min-height: 100vh;
   flex-direction: column;
-  background: var(--blue-10);
+  background: var(--admin-bg);
   color: var(--ink);
 }
 
@@ -33,28 +52,16 @@
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 20px;
-}
-
-.admin-header__logo {
-  display: block;
-  width: auto;
-  height: 42px;
-  flex: 0 0 auto;
-  object-fit: contain;
-  transform: translateX(-5px);
 }
 
 .admin-header__title {
   display: flex;
   min-width: 0;
-  padding-left: 20px;
   align-items: center;
   gap: 10px;
-  border-left: 1px solid var(--line);
   color: var(--navy-deep);
   font-size: 18px;
-  font-weight: 750;
+  font-weight: var(--admin-fw-bold);
   letter-spacing: -0.035em;
   white-space: nowrap;
 }
@@ -68,7 +75,7 @@
   background: var(--blue-20);
   color: var(--navy-strong);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--admin-fw-semibold);
   letter-spacing: -0.02em;
 }
 
@@ -105,7 +112,7 @@
   padding: 8px 10px;
   gap: 7px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--admin-fw-semibold);
 }
 
 .admin-header__logout {
@@ -158,7 +165,7 @@
   margin: 0;
   color: var(--navy-deep);
   font-size: 15px;
-  font-weight: 750;
+  font-weight: var(--admin-fw-semibold);
   line-height: 1.4;
   letter-spacing: -0.025em;
 }
@@ -192,7 +199,7 @@
   overflow-wrap: anywhere;
   color: var(--body);
   font-size: 13px;
-  font-weight: 650;
+  font-weight: var(--admin-fw-regular);
 }
 
 .admin-header__account-menu {
@@ -210,7 +217,7 @@
   border-radius: var(--radius);
   color: var(--navy-strong);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--admin-fw-semibold);
 }
 
 .admin-header__account-user-view:hover {
@@ -278,7 +285,7 @@
   color: var(--muted);
   font-family: inherit;
   font-size: 10px;
-  font-weight: 750;
+  font-weight: var(--admin-fw-semibold);
   letter-spacing: 0.06em;
   text-align: left;
   cursor: pointer;
@@ -315,7 +322,7 @@
   background: transparent;
   color: var(--body);
   font-size: 14px;
-  font-weight: 650;
+  font-weight: var(--admin-fw-medium);
   line-height: 1.4;
   text-align: left;
 }
@@ -323,14 +330,14 @@
 .admin-sidebar__link:hover {
   background: transparent;
   color: var(--navy-strong);
-  font-weight: 700;
+  font-weight: var(--admin-fw-semibold);
 }
 
 .admin-sidebar__link--active {
   border-left-color: var(--navy-strong);
   background: transparent;
   color: var(--navy-strong);
-  font-weight: 750;
+  font-weight: var(--admin-fw-bold);
 }
 
 .admin-page {
@@ -346,7 +353,7 @@
   margin: 0;
   color: var(--ink);
   font-size: 28px;
-  font-weight: 750;
+  font-weight: var(--admin-fw-bold);
   line-height: 1.35;
   letter-spacing: -0.04em;
 }
@@ -370,12 +377,7 @@
     gap: 18px;
   }
 
-  .admin-header__brand {
-    gap: 14px;
-  }
-
   .admin-header__title {
-    padding-left: 14px;
     font-size: 16px;
   }
 
@@ -404,7 +406,6 @@
   }
 
   .admin-header__title {
-    padding-left: 10px;
     font-size: 14px;
   }
 
