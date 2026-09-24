@@ -33,25 +33,13 @@
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 20px;
-}
-
-.admin-header__logo {
-  display: block;
-  width: auto;
-  height: 42px;
-  flex: 0 0 auto;
-  object-fit: contain;
-  transform: translateX(-5px);
 }
 
 .admin-header__title {
   display: flex;
   min-width: 0;
-  padding-left: 20px;
   align-items: center;
   gap: 10px;
-  border-left: 1px solid var(--line);
   color: var(--navy-deep);
   font-size: 18px;
   font-weight: 750;
@@ -370,12 +358,7 @@
     gap: 18px;
   }
 
-  .admin-header__brand {
-    gap: 14px;
-  }
-
   .admin-header__title {
-    padding-left: 14px;
     font-size: 16px;
   }
 
@@ -404,7 +387,6 @@
   }
 
   .admin-header__title {
-    padding-left: 10px;
     font-size: 14px;
   }
 
