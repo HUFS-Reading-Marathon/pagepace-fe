@@ -46,6 +46,17 @@ export const REWARD_TYPE_OPTIONS = [
   { value: 'CASH', label: '상금' },
 ] as const;
 
+export function getRewardTypeLabel(value: string) {
+  return REWARD_TYPE_OPTIONS.find((option) => option.value === value)?.label ?? value;
+}
+
+/** 조회 모드에서 코스 숫자 값을 "10,000"처럼 천 단위 구분자로 표시합니다. */
+export function formatCourseNumber(value: string) {
+  const numeric = Number(value);
+
+  return Number.isFinite(numeric) ? numeric.toLocaleString('ko-KR') : value;
+}
+
 export const EMPTY_EVENT_FORM: EventForm = {
   title: '',
   roundNo: '',
@@ -193,6 +204,20 @@ export function formatDateLabel(value: string) {
     month: 'long',
     day: 'numeric',
   }).format(new Date(`${value}T00:00:00`));
+}
+
+/** "2026-11-10" → "2026.11.10" 형태의 짧은 날짜 표기로 변환합니다. */
+function formatShortDate(value: string) {
+  return value.trim().replaceAll('-', '.');
+}
+
+/** 이전 행사 참고용 "2025.11.10 ~ 2025.11.30" 형태의 기간 문자열을 만듭니다. */
+export function formatShortDateRange(startDate: string, endDate: string) {
+  if (!startDate || !endDate) {
+    return '';
+  }
+
+  return `${formatShortDate(startDate)} ~ ${formatShortDate(endDate)}`;
 }
 
 export function validateEventForm(form: EventForm) {

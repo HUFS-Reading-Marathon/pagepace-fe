@@ -1,94 +1,132 @@
-import { REWARD_TYPE_OPTIONS, type CourseForm } from '../../../utils/adminEventForms';
+import {
+  formatCourseNumber,
+  getRewardTypeLabel,
+  REWARD_TYPE_OPTIONS,
+  type CourseForm,
+} from '../../../utils/adminEventForms';
 
 type CourseFormFieldsProps = {
   form: CourseForm;
   updateField: (field: keyof CourseForm, value: string) => void;
+  disabled?: boolean;
 };
 
-/** 코스 카드(기존 코스 수정·새 코스 생성)에서 공통으로 쓰는 입력 필드 묶음 */
-function CourseFormFields({ form, updateField }: CourseFormFieldsProps) {
+/**
+ * 코스 표(기존 코스 수정·새 코스 생성 행)에서 공통으로 쓰는 셀 묶음입니다.
+ * 열 제목은 표의 <th>가 담당하므로, 각 입력은 aria-label로 접근성 레이블을 갖습니다.
+ * disabled(조회 모드)일 때는 input 대신 값을 읽기 쉬운 텍스트로 보여줍니다.
+ */
+function CourseFormFields({ form, updateField, disabled = false }: CourseFormFieldsProps) {
   const isKnownRewardType = REWARD_TYPE_OPTIONS.some((option) => option.value === form.rewardType);
 
+  if (disabled) {
+    return (
+      <>
+        <td className="admin-event-settings__course-table-name">{form.name || '-'}</td>
+        <td className="admin-event-settings__course-table-number">
+          {formatCourseNumber(form.targetDistanceMeter)} m
+        </td>
+        <td className="admin-event-settings__course-table-number">
+          {formatCourseNumber(form.standardBookCount)} 권
+        </td>
+        <td className="admin-event-settings__course-table-number">
+          {formatCourseNumber(form.avgMonthlyReadingCount)}
+        </td>
+        <td className="admin-event-settings__course-table-number">
+          {formatCourseNumber(form.maxWinners)}
+        </td>
+        <td className="admin-event-settings__course-table-number">
+          {formatCourseNumber(form.extraLoanCount)}
+        </td>
+        <td>{getRewardTypeLabel(form.rewardType) || '-'}</td>
+        <td className="admin-event-settings__course-table-number">
+          {formatCourseNumber(form.rewardAmount)}원
+        </td>
+      </>
+    );
+  }
+
   return (
-    <div className="admin-event-settings__course-fields">
-      <label className="admin-event-settings__course-name">
-        <span>코스명</span>
+    <>
+      <td className="admin-event-settings__course-table-name">
         <input
           type="text"
           required
+          aria-label="코스명"
+          placeholder="예: 단축 코스"
           value={form.name}
           onChange={(event) => updateField('name', event.target.value)}
         />
-      </label>
+      </td>
 
-      <label>
-        <span>목표 거리</span>
+      <td>
         <div className="admin-event-settings__number-control">
           <input
             type="number"
             min="1"
             step="1"
             required
+            aria-label="목표 거리(m)"
             value={form.targetDistanceMeter}
             onChange={(event) => updateField('targetDistanceMeter', event.target.value)}
           />
           <span>m</span>
         </div>
-      </label>
+      </td>
 
-      <label>
-        <span>기준 도서 수</span>
+      <td>
         <div className="admin-event-settings__number-control">
           <input
             type="number"
             min="1"
             step="1"
             required
+            aria-label="기준 도서 수(권)"
             value={form.standardBookCount}
             onChange={(event) => updateField('standardBookCount', event.target.value)}
           />
           <span>권</span>
         </div>
-      </label>
+      </td>
 
-      <label>
-        <span>월평균 독서량</span>
+      <td>
         <input
           type="number"
           min="0"
           step="1"
+          aria-label="월평균 독서량"
           value={form.avgMonthlyReadingCount}
           onChange={(event) => updateField('avgMonthlyReadingCount', event.target.value)}
         />
-      </label>
+      </td>
 
-      <label>
-        <span>최대 수상자</span>
+      <td>
         <input
           type="number"
           min="0"
           step="1"
+          aria-label="최대 수상자"
           value={form.maxWinners}
           onChange={(event) => updateField('maxWinners', event.target.value)}
         />
-      </label>
+      </td>
 
-      <label>
-        <span>추가 대출 권수</span>
+      <td>
         <input
           type="number"
           min="0"
           step="1"
+          aria-label="추가 대출 권수"
           value={form.extraLoanCount}
           onChange={(event) => updateField('extraLoanCount', event.target.value)}
         />
-      </label>
+      </td>
 
-      <label>
-        <span>보상 유형</span>
+      <td>
         <select
-          value={form.rewardType}
+          aria-label="보상 유형"
           required
+          value={form.rewardType}
           onChange={(event) => updateField('rewardType', event.target.value)}
         >
           <option value="">보상 유형 선택</option>
@@ -103,30 +141,19 @@ function CourseFormFields({ form, updateField }: CourseFormFieldsProps) {
             </option>
           ))}
         </select>
-      </label>
+      </td>
 
-      <label>
-        <span>보상 금액</span>
+      <td>
         <input
           type="number"
           min="0"
           step="1"
+          aria-label="보상 금액"
           value={form.rewardAmount}
           onChange={(event) => updateField('rewardAmount', event.target.value)}
         />
-      </label>
-
-      <label>
-        <span>표시 순서</span>
-        <input
-          type="number"
-          min="0"
-          step="1"
-          value={form.displayOrder}
-          onChange={(event) => updateField('displayOrder', event.target.value)}
-        />
-      </label>
-    </div>
+      </td>
+    </>
   );
 }
 

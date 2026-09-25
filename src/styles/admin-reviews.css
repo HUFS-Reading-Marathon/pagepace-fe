@@ -16,7 +16,7 @@
 .admin-reviews__header label span {
   color: var(--muted);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--admin-fw-medium);
 }
 .admin-reviews__header select {
   height: 42px;
@@ -32,10 +32,10 @@
   padding: 16px 18px;
   align-items: center;
   gap: 14px;
-  border: 1px solid #cddded;
+  border: 1px solid var(--line);
   border-left: 4px solid var(--navy-strong);
   border-radius: var(--radius);
-  background: var(--blue-20);
+  background: var(--line-soft);
 }
 .admin-reviews__notice strong {
   color: var(--navy-strong);
@@ -76,7 +76,7 @@
   border-radius: 50%;
   background: var(--blue-20);
   color: var(--navy-strong);
-  font-weight: 800;
+  font-weight: var(--admin-fw-semibold);
 }
 .admin-reviews__person div {
   display: grid;
@@ -120,7 +120,7 @@
   margin: 4px 0 0;
   color: var(--navy-strong);
   font-size: 15px;
-  font-weight: 750;
+  font-weight: var(--admin-fw-regular);
 }
 .admin-reviews__actions {
   display: flex;
@@ -137,7 +137,7 @@
   border-radius: var(--radius);
   font: inherit;
   font-size: 11px;
-  font-weight: 750;
+  font-weight: var(--admin-fw-semibold);
 }
 .admin-reviews__actions a {
   background: #fff;

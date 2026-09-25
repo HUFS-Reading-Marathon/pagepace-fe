@@ -13,7 +13,7 @@
   margin-bottom: 7px;
   color: var(--navy-strong);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--admin-fw-semibold);
   letter-spacing: 0.09em;
 }
 .admin-operations__event-select {
@@ -24,7 +24,7 @@
 .admin-operations__event-select span {
   color: var(--muted);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--admin-fw-medium);
 }
 .admin-operations__event-select select {
   height: 42px;
@@ -35,7 +35,7 @@
   color: var(--ink);
   font: inherit;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: var(--admin-fw-semibold);
 }
 .admin-operations__error,
 .admin-operations__empty {
@@ -54,7 +54,7 @@
 }
 .admin-operations__empty a {
   color: var(--navy-strong);
-  font-weight: 750;
+  font-weight: var(--admin-fw-semibold);
 }
 .admin-operations__event-context {
   display: flex;
@@ -79,7 +79,7 @@
   background: var(--blue-20);
   color: var(--navy-strong);
   font-size: 10px;
-  font-weight: 750;
+  font-weight: var(--admin-fw-medium);
 }
 .admin-operations__event-context > div:first-child strong {
   color: var(--ink);
@@ -97,7 +97,7 @@
 .admin-operations__task-total > span {
   color: var(--body);
   font-size: 13px;
-  font-weight: 650;
+  font-weight: var(--admin-fw-medium);
 }
 .admin-operations__task-total strong {
   color: var(--navy-strong);
@@ -148,7 +148,7 @@
   background: var(--blue-20);
   color: var(--navy-strong);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--admin-fw-semibold);
 }
 .admin-operations__queue h2 {
   margin: 0;
@@ -229,7 +229,7 @@
   background: var(--navy-strong);
   color: #fff;
   font-size: 13px;
-  font-weight: 750;
+  font-weight: var(--admin-fw-semibold);
 }
 .admin-operations__queue-action:hover {
   background: var(--navy-deep);
@@ -266,7 +266,7 @@
   padding: 10px 12px;
   border: 1px solid var(--line-soft);
   border-radius: var(--radius);
-  background: var(--blue-10);
+  background: var(--line-soft);
 }
 .admin-operations__secondary nav a:hover {
   border-color: var(--line);

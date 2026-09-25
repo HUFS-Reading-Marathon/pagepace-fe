@@ -18,3 +18,34 @@ export function chooseEventIdByStatus(
 
   return events[0]?.eventId ?? null;
 }
+
+/**
+ * 기간 입력 시 참고할 "직전 행사"를 고릅니다.
+ * 수정 중인 행사가 있으면 그보다 회차가 낮은 행사 중 가장 높은 회차를,
+ * 없으면(신규 생성 등) 전체 행사 중 가장 높은 회차를 반환합니다.
+ */
+export function findPreviousEvent(
+  events: ReadonlyArray<AdminEvent>,
+  excludeEventId: number | null,
+  currentRoundNo: number | null,
+): AdminEvent | null {
+  const candidates = events.filter((event) => event.eventId !== excludeEventId);
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  if (currentRoundNo !== null && Number.isFinite(currentRoundNo)) {
+    const earlierRounds = candidates.filter((event) => event.roundNo < currentRoundNo);
+
+    if (earlierRounds.length > 0) {
+      return earlierRounds.reduce((latest, event) =>
+        event.roundNo > latest.roundNo ? event : latest,
+      );
+    }
+
+    return null;
+  }
+
+  return candidates.reduce((latest, event) => (event.roundNo > latest.roundNo ? event : latest));
+}
