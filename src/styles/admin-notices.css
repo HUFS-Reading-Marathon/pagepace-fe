@@ -14,7 +14,7 @@
   border-radius: var(--radius);
   background: var(--navy-strong);
   color: #fff;
-  font-weight: 750;
+  font-weight: var(--admin-fw-semibold);
 }
 .admin-notices__layout {
   display: grid;
@@ -56,7 +56,7 @@
   background: var(--blue-20);
   color: var(--navy-strong);
   font-size: 9px;
-  font-weight: 800;
+  font-weight: var(--admin-fw-semibold);
 }
 .admin-notices__list article strong {
   color: var(--ink);
@@ -83,14 +83,14 @@
 .admin-notices__form > div:first-child span {
   color: var(--navy-strong);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--admin-fw-semibold);
 }
 .admin-notices__form label {
   display: grid;
   gap: 6px;
   color: var(--body);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--admin-fw-medium);
 }
 .admin-notices__form input:not([type='checkbox']),
 .admin-notices__form textarea {
@@ -121,7 +121,7 @@
   border-radius: var(--radius);
   background: #fff;
   color: var(--navy-strong);
-  font-weight: 750;
+  font-weight: var(--admin-fw-semibold);
 }
 .admin-notices__error {
   padding: 12px;

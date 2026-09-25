@@ -93,10 +93,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  border: 1px solid rgba(31, 79, 130, 0.28);
+  border: 1px solid var(--line);
   border-left: 4px solid var(--navy-strong);
   border-radius: var(--radius);
-  background: var(--blue-20);
+  background: var(--line-soft);
   flex-wrap: wrap;
 }
 
@@ -213,9 +213,9 @@
   margin-bottom: 14px;
   padding: 10px 14px;
   align-items: center;
-  border: 1px solid rgba(31, 79, 130, 0.2);
+  border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--blue-10);
+  background: var(--line-soft);
   gap: 14px;
   flex-wrap: wrap;
 }
@@ -276,7 +276,7 @@
   align-self: end;
   border: 1px solid var(--line-soft);
   border-radius: var(--radius);
-  background: var(--blue-10);
+  background: var(--line-soft);
   gap: 9px;
 }
 
@@ -458,10 +458,10 @@
 
 .admin-event-settings__default-courses-notice {
   padding: 18px 20px;
-  border: 1px solid rgba(31, 79, 130, 0.28);
+  border: 1px solid var(--line);
   border-left: 4px solid var(--navy-strong);
   border-radius: var(--radius);
-  background: var(--blue-20);
+  background: var(--line-soft);
 }
 
 .admin-event-settings__default-courses-notice > div {
@@ -577,7 +577,7 @@
 }
 
 .admin-event-settings__course-table thead th {
-  background: var(--blue-10);
+  background: var(--line-soft);
   color: var(--navy-strong);
   font-size: 11px;
   font-weight: var(--admin-fw-semibold);
