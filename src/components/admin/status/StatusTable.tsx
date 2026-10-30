@@ -1,3 +1,4 @@
+import { formatKoDate } from '../../../utils/date';
 import type { AdminCompetitionParticipantRow } from '../../../types/adminStatus';
 import { formatStatusDistance } from '../../../utils/statusAggregation';
 import { formatKoDateKey } from '../../../utils/date';
@@ -47,7 +48,7 @@ function StatusTable({ participants, hasParticipants, isLoading, error }: Status
             <th scope="col">코스</th>
             <th scope="col">누적 페이지</th>
             <th scope="col">누적 거리</th>
-            <th scope="col">전날 대비</th>
+            <th scope="col">선택일 독서량</th>
             <th scope="col">달성률</th>
             <th scope="col">완주 여부</th>
             <th scope="col">완주일</th>
@@ -80,10 +81,12 @@ function StatusTable({ participants, hasParticipants, isLoading, error }: Status
               </td>
               <td>
                 <span className="admin-status__completion admin-status__completion--progress">
-                  판정 미지원
+                  {participant.completionStatus === 'completed' ? '완주' : '진행 중'}
                 </span>
               </td>
-              <td className="admin-status__nowrap">—</td>
+              <td className="admin-status__nowrap">
+                {participant.completedAt ? formatKoDate(participant.completedAt) : '—'}
+              </td>
               <td className="admin-status__last-progress">
                 {participant.lastReadingDate
                   ? formatKoDateKey(participant.lastReadingDate)

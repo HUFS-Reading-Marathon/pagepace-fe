@@ -1,3 +1,5 @@
+import { preferredAdminEvent } from '../../utils/eventSelection';
+import { useAdminEventState } from '../../hooks/useAdminEventState';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
@@ -24,9 +26,8 @@ import type {
   AdminReadingLogResponse,
   AdminReadingLogStatus,
 } from '../../types/adminReadingLogApi';
-import { chooseAdminEventId } from '../../utils/adminEvent';
+import { chooseEventIdByStatus } from '../../utils/adminEvent';
 import { formatKoDateKey } from '../../utils/date';
-import { useRememberedAdminEvent } from '../../hooks/useRememberedAdminEvent';
 import '../../styles/admin-reading-logs.css';
 
 type QueueSort = 'oldest' | 'newest';
@@ -103,8 +104,7 @@ function toDisplayLog(log: AdminReadingLogResponse): AdminReadingLog {
 function AdminReadingLogsPage() {
   const [searchParams] = useSearchParams();
   const [events, setEvents] = useState<AdminEvent[]>([]);
-  const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
-  useRememberedAdminEvent(selectedEventId);
+  const [selectedEventId, setSelectedEventId] = useAdminEventState();
   const [logs, setLogs] = useState<AdminReadingLog[]>([]);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<ReadingLogStatusFilter>('submit');
@@ -233,7 +233,9 @@ function AdminReadingLogsPage() {
     if (initialRequestRef.current === null) {
       initialRequestRef.current = getAdminEvents().then((nextEvents) => ({
         events: nextEvents,
-        eventId: chooseAdminEventId(nextEvents, DEFAULT_EVENT_SELECTION_ORDER),
+        eventId:
+          preferredAdminEvent(nextEvents)?.eventId ??
+          chooseEventIdByStatus(nextEvents, DEFAULT_EVENT_SELECTION_ORDER),
       }));
     }
 
@@ -263,7 +265,7 @@ function AdminReadingLogsPage() {
     return () => {
       isActive = false;
     };
-  }, [loadLogs]);
+  }, [loadLogs, setSelectedEventId]);
 
   // 선택한 일지의 최신 상세(이전 승인 누적 등)를 서버에서 다시 받아 패널에 표시합니다.
   useEffect(() => {

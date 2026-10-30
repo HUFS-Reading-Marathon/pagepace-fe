@@ -1,3 +1,5 @@
+import { preferredAdminEvent } from '../../utils/eventSelection';
+import { useAdminEventState } from '../../hooks/useAdminEventState';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getAdminApplications } from '../../api/adminApplicationApi';
@@ -11,8 +13,7 @@ import {
 import type { AdminApplicationListItem } from '../../types/adminApplication';
 import { EVENT_STATUS_LABELS, type AdminEvent, type EventStatus } from '../../types/adminEvent';
 import type { AdminReadingLogResponse } from '../../types/adminReadingLogApi';
-import { chooseAdminEventId } from '../../utils/adminEvent';
-import { useRememberedAdminEvent } from '../../hooks/useRememberedAdminEvent';
+import { chooseEventIdByStatus } from '../../utils/adminEvent';
 import '../../styles/admin-operations.css';
 
 const EVENT_ORDER: EventStatus[] = [
@@ -77,8 +78,7 @@ function formatDateTime(value: string) {
 
 function AdminOperationsDashboardPage() {
   const [events, setEvents] = useState<AdminEvent[]>([]);
-  const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
-  useRememberedAdminEvent(selectedEventId);
+  const [selectedEventId, setSelectedEventId] = useAdminEventState();
   const [applications, setApplications] = useState<AdminApplicationListItem[]>([]);
   const [logs, setLogs] = useState<AdminReadingLogResponse[]>([]);
   const [reviewTargets, setReviewTargets] = useState<AdminReviewTarget[] | null>([]);
@@ -89,7 +89,10 @@ function AdminOperationsDashboardPage() {
     getAdminEvents()
       .then((nextEvents) => {
         setEvents(nextEvents);
-        setSelectedEventId(chooseAdminEventId(nextEvents, EVENT_ORDER));
+        setSelectedEventId(
+          preferredAdminEvent(nextEvents)?.eventId ??
+            chooseEventIdByStatus(nextEvents, EVENT_ORDER),
+        );
 
         if (nextEvents.length === 0) {
           setIsLoading(false);
@@ -99,7 +102,7 @@ function AdminOperationsDashboardPage() {
         setError(getApiErrorMessage(requestError, '행사 목록을 불러오지 못했습니다.'));
         setIsLoading(false);
       });
-  }, []);
+  }, [setSelectedEventId]);
 
   useEffect(() => {
     if (selectedEventId === null) {
@@ -129,7 +132,7 @@ function AdminOperationsDashboardPage() {
           return;
         }
 
-        setError(getApiErrorMessage(requestError, '오늘의 업무를 불러오지 못했습니다.'));
+        setError(getApiErrorMessage(requestError, '운영 현황를 불러오지 못했습니다.'));
       })
       .finally(() => {
         if (isActive) {

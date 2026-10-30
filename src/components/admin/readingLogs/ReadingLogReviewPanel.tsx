@@ -195,7 +195,7 @@ function ReadingLogReviewPanel({
                   {totalReadPages.toLocaleString('ko-KR')}쪽
                 </strong>
                 <small>
-                  {log.books.length}권 · 환산 {formatReadingDistance(distanceMeters)}
+                  {log.books.length}권 · 예상 환산 {formatReadingDistance(distanceMeters)}
                 </small>
               </div>
               <p>

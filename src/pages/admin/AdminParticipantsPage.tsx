@@ -7,7 +7,11 @@ import {
   rejectAdminApplication,
 } from '../../api/adminApplicationApi';
 import { getApiErrorMessage } from '../../api/apiClient';
-import { getCurrentEvent } from '../../api/eventApi';
+import { getAdminEvents } from '../../api/adminEventApi';
+import { preferredAdminEvent } from '../../utils/eventSelection';
+import { useAdminEventState } from '../../hooks/useAdminEventState';
+import type { AdminEvent } from '../../types/adminEvent';
+import ParticipantRegistration from '../../components/admin/participants/ParticipantRegistration';
 import ParticipantDetailDialog from '../../components/admin/participants/ParticipantDetailDialog';
 import ParticipantFilters from '../../components/admin/participants/ParticipantFilters';
 import ParticipantTable from '../../components/admin/participants/ParticipantTable';
@@ -36,14 +40,14 @@ const CSV_HEADERS = [
   '신청일',
 ];
 
-/** 신청서(승인 대기)와 실제 참가자(승인)를 먼저 구분해 보여 주는 상태 탭 */
+/** 참가 신청서를 승인 대기·승인·반려·취소 상태로 구분해 보여 주는 탭(직접 등록 참가자는 위 목록에서 관리) */
 const STATUS_TABS: ReadonlyArray<{
   value: ParticipantStatusFilter;
   label: string;
   countKey: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'total';
 }> = [
   { value: 'APPLIED', label: '승인 대기 신청서', countKey: 'pending' },
-  { value: 'APPROVED', label: '참가자(승인)', countKey: 'approved' },
+  { value: 'APPROVED', label: '승인된 신청서', countKey: 'approved' },
   { value: 'REJECTED', label: '반려', countKey: 'rejected' },
   { value: 'CANCELLED', label: '참가 취소', countKey: 'cancelled' },
   { value: 'ALL', label: '전체 신청', countKey: 'total' },
@@ -57,11 +61,8 @@ function AdminParticipantsPage() {
   const [participants, setParticipants] = useState<AdminApplicationListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentEventId, setCurrentEventId] = useState<number | null>(null);
-  const initialListRequestRef = useRef<Promise<{
-    eventId: number;
-    applications: AdminApplicationListItem[];
-  }> | null>(null);
+  const [currentEventId, setCurrentEventId] = useAdminEventState();
+  const [events, setEvents] = useState<AdminEvent[]>([]);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchParams] = useSearchParams();
   // 오늘의 업무에서 ?status=APPLIED로 들어오면 승인 대기 신청서부터 보여 줍니다.
@@ -84,49 +85,48 @@ function AdminParticipantsPage() {
   const [dialogStartsRejecting, setDialogStartsRejecting] = useState(false);
 
   useEffect(() => {
-    let isActive = true;
-
-    if (initialListRequestRef.current === null) {
-      initialListRequestRef.current = (async () => {
-        const currentEvent = await getCurrentEvent();
-        const applications = await getAdminApplications(currentEvent.eventId);
-
-        return {
-          eventId: currentEvent.eventId,
-          applications,
-        };
-      })();
-    }
-
-    initialListRequestRef.current
-      .then(({ eventId, applications }) => {
-        if (!isActive) {
-          return;
+    let active = true;
+    getAdminEvents()
+      .then((next) => {
+        if (active) {
+          setEvents(next);
+          setCurrentEventId(preferredAdminEvent(next)?.eventId ?? null);
+          if (!next.length) setIsLoading(false);
         }
-
-        setCurrentEventId(eventId);
-        setParticipants(applications);
-        setError(null);
       })
-      .catch((requestError: unknown) => {
-        if (!isActive) {
-          return;
-        }
-
-        setCurrentEventId(null);
-        setParticipants([]);
-        setError(getApiErrorMessage(requestError, '참가신청 목록을 불러오지 못했습니다.'));
-      })
-      .finally(() => {
-        if (isActive) {
+      .catch((error) => {
+        if (active) {
+          setError(error.message);
           setIsLoading(false);
         }
       });
-
     return () => {
-      isActive = false;
+      active = false;
     };
-  }, []);
+  }, [setCurrentEventId]);
+  useEffect(() => {
+    if (currentEventId === null) return;
+    let active = true;
+    getAdminApplications(currentEventId)
+      .then((next) => {
+        if (active) {
+          setParticipants(next);
+          setError(null);
+        }
+      })
+      .catch((error) => {
+        if (active) {
+          setParticipants([]);
+          setError(error.message);
+        }
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [currentEventId]);
 
   const statistics = useMemo(
     () => ({
@@ -405,12 +405,39 @@ function AdminParticipantsPage() {
         <div>
           <h1>참가자 관리</h1>
           <p>
-            참가 신청서를 검수하고, 승인된 참가자 정보를 확인합니다. 참가자 수는 승인된 신청만
-            집계합니다.
+            참가 신청서를 검수하고, 승인 참가자 확인과 직접 등록을 관리합니다. 신청서 상태와 실제
+            참가자 목록(직접 등록 포함)은 구분해 표시합니다.
           </p>
         </div>
       </header>
 
+      <label>
+        관리할 행사{' '}
+        <select
+          aria-label="관리할 행사"
+          value={currentEventId ?? ''}
+          disabled={processingApplicationId !== null}
+          onChange={(e) => {
+            handleCloseDialog();
+            setParticipants([]);
+            setIsLoading(true);
+            setCurrentEventId(Number(e.target.value));
+          }}
+        >
+          {events.map((event) => (
+            <option key={event.eventId} value={event.eventId}>
+              {event.title}
+            </option>
+          ))}
+        </select>
+      </label>
+      {currentEventId !== null && (
+        <ParticipantRegistration
+          key={`${currentEventId}-${statistics.approved}`}
+          eventId={currentEventId}
+        />
+      )}
+      <h2>참가 신청서</h2>
       <div className="admin-participants__tabs">
         <div className="admin-segmented" aria-label="신청 상태별 보기">
           {STATUS_TABS.map((tab) => (

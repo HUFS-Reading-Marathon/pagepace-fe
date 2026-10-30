@@ -254,7 +254,7 @@
 .admin-dashboard__metrics {
   display: grid;
   margin-top: 22px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -558,6 +558,57 @@
   white-space: nowrap;
 }
 
+.admin-dashboard__course-list {
+  display: grid;
+  margin: 18px 0 22px;
+  gap: 20px;
+}
+
+.admin-dashboard__course-item {
+  display: grid;
+  gap: 9px;
+}
+
+.admin-dashboard__course-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-dashboard__course-heading > strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.admin-dashboard__course-heading > div {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.admin-dashboard__course-heading > div > strong {
+  color: var(--navy-strong);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.admin-dashboard__course-heading > div > span {
+  color: var(--muted);
+  font-size: 10px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.admin-dashboard__progress-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-dashboard__progress-row progress,
 .admin-dashboard__affiliation-list progress {
   width: 100%;
   height: 10px;
@@ -568,9 +619,26 @@
   appearance: none;
 }
 
+.admin-dashboard__progress-row progress::-webkit-progress-bar,
 .admin-dashboard__affiliation-list progress::-webkit-progress-bar {
   border-radius: 999px;
   background: var(--line-soft);
+}
+
+.admin-dashboard__progress-row progress::-webkit-progress-value {
+  border-radius: 999px;
+  background: var(--green);
+}
+
+.admin-dashboard__progress-row progress::-moz-progress-bar {
+  border-radius: 999px;
+  background: var(--green);
+}
+
+.admin-dashboard__progress-row > strong {
+  color: var(--navy-strong);
+  font-size: 11px;
+  text-align: right;
 }
 
 .admin-dashboard__affiliation-figure {
@@ -734,7 +802,7 @@
   }
 
   .admin-dashboard__metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 

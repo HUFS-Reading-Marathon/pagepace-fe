@@ -11,7 +11,7 @@ function StatusCourseSummary({ summaries }: StatusCourseSummaryProps) {
       <div className="admin-status__section-heading">
         <div>
           <h2 id="statusCourseSummaryTitle">코스별 요약</h2>
-          <p>현재 기준 날짜까지의 승인 기록을 코스별로 집계했습니다.</p>
+          <p>현재 누적 승인 쪽수와 서평 인정 거리를 코스별로 집계했습니다.</p>
         </div>
       </div>
 

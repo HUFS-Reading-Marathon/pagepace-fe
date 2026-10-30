@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getApiErrorMessage } from '../../api/apiClient';
 import { getAdminEvents } from '../../api/adminEventApi';
+import ReviewExcelImport from '../../components/admin/reviews/ReviewExcelImport';
 import {
   getAdminReviewTargets,
   verifyAdminReview,
@@ -9,9 +10,9 @@ import {
 import { METERS_PER_PAGE } from '../../constants/reading';
 import { formatReadingDistance } from '../../types/adminReadingLog';
 import type { AdminEvent } from '../../types/adminEvent';
-import { chooseAdminEventId } from '../../utils/adminEvent';
 import { formatKoDateTime24 } from '../../utils/date';
-import { useRememberedAdminEvent } from '../../hooks/useRememberedAdminEvent';
+import { preferredAdminEvent } from '../../utils/eventSelection';
+import { useAdminEventState } from '../../hooks/useAdminEventState';
 import '../../styles/admin-reviews.css';
 
 type ReviewTab = 'pending' | 'verified';
@@ -51,9 +52,10 @@ function getCreditBreakdown(target: AdminReviewTarget) {
 }
 
 function AdminReviewsPage() {
+  const [importBusy, setImportBusy] = useState(false);
+  const manualBusy = useRef(false);
   const [events, setEvents] = useState<AdminEvent[]>([]);
-  const [eventId, setEventId] = useState<number | null>(null);
-  useRememberedAdminEvent(eventId);
+  const [eventId, setEventId] = useAdminEventState();
   const [targets, setTargets] = useState<AdminReviewTarget[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [verifyingId, setVerifyingId] = useState<number | null>(null);
@@ -74,7 +76,7 @@ function AdminReviewsPage() {
     getAdminEvents()
       .then((next) => {
         setEvents(next);
-        setEventId(chooseAdminEventId(next, ['IN_PROGRESS']));
+        setEventId(preferredAdminEvent(next)?.eventId ?? null);
 
         if (!next.length) {
           setIsLoading(false);
@@ -84,7 +86,7 @@ function AdminReviewsPage() {
         setError(getApiErrorMessage(requestError, '행사를 불러오지 못했습니다.'));
         setIsLoading(false);
       });
-  }, []);
+  }, [setEventId]);
 
   useEffect(() => {
     if (!eventId) {
@@ -171,9 +173,10 @@ function AdminReviewsPage() {
 
   /** 서버에서 확인 처리가 성공한 뒤에만 목록을 갱신하고 다음 대기 서평으로 이동합니다. */
   const verify = async (target: AdminReviewTarget) => {
-    if (verifyingId !== null || eventId === null) {
+    if (verifyingId !== null || eventId === null || manualBusy.current || importBusy) {
       return;
     }
+    manualBusy.current = true;
 
     const index = visibleTargets.indexOf(target);
     const nextTarget = visibleTargets[index + 1] ?? visibleTargets[index - 1] ?? null;
@@ -186,6 +189,7 @@ function AdminReviewsPage() {
       await verifyAdminReview(target.participantBookId);
     } catch (requestError) {
       setActionError(getApiErrorMessage(requestError, '서평 확인에 실패했습니다.'));
+      manualBusy.current = false;
       setVerifyingId(null);
       return;
     }
@@ -208,6 +212,7 @@ function AdminReviewsPage() {
         ),
       );
     } finally {
+      manualBusy.current = false;
       setVerifyingId(null);
     }
 
@@ -231,7 +236,7 @@ function AdminReviewsPage() {
           {searchKeyword.trim()
             ? '조건에 맞는 서평이 없습니다.'
             : tab === 'pending'
-              ? '확인할 서평이 없습니다.'
+              ? '참여자의 서평 작성 알림이 없습니다. 솔라스 자료는 아래에서 대조할 수 있습니다.'
               : '이 목록에 포함된 확인 완료 서평이 없습니다.'}
         </p>
       );
@@ -275,7 +280,8 @@ function AdminReviewsPage() {
     }
 
     const isVerifying = verifyingId === activeTarget.participantBookId;
-    const canVerify = !activeTarget.reviewVerified && allChecked && verifyingId === null;
+    const canVerify =
+      !activeTarget.reviewVerified && allChecked && verifyingId === null && !importBusy;
 
     return (
       <section className="admin-detail-panel" aria-labelledby="reviewPanelTitle">
@@ -449,15 +455,17 @@ function AdminReviewsPage() {
         <div>
           <h1>서평 확인</h1>
           <p>
-            독서일지 승인으로 쪽수가 반영된 책의 서평을 확인하고, 아직 인정되지 않은 분량만 거리(1쪽
-            = {METERS_PER_PAGE}m)로 반영합니다.
+            참여자 알림 또는 솔라스 자료로 서평을 확인한 뒤, 아직 인정되지 않은 분량만 거리(1쪽 ={' '}
+            {METERS_PER_PAGE}m)로 반영합니다.
           </p>
         </div>
         <label>
           <span>행사</span>
           <select
+            disabled={verifyingId !== null || importBusy}
             value={eventId ?? ''}
             onChange={(event) => {
+              setTargets([]);
               setIsLoading(true);
               setSelectedId(null);
               setFeedbackMessage('');
@@ -476,7 +484,7 @@ function AdminReviewsPage() {
       <div className="admin-reviews__tabs">
         <div className="admin-segmented" aria-label="서평 확인 상태">
           <button type="button" aria-pressed={tab === 'pending'} onClick={() => setTab('pending')}>
-            확인 대기 <b>{pendingCount}</b>
+            참여자 알림 대기 <b>{pendingCount}</b>
           </button>
           <button
             type="button"
@@ -528,6 +536,17 @@ function AdminReviewsPage() {
           {renderPanel()}
         </div>
       </div>
+
+      {eventId && (
+        <fieldset className="review-import-fieldset" disabled={verifyingId !== null}>
+          <ReviewExcelImport
+            key={eventId}
+            eventId={eventId}
+            onBusyChange={setImportBusy}
+            onVerified={async () => setTargets(await getAdminReviewTargets(eventId))}
+          />
+        </fieldset>
+      )}
     </section>
   );
 }

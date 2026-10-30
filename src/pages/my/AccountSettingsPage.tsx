@@ -1,3 +1,7 @@
+import {
+  sendApplicationEmailVerification,
+  confirmApplicationEmailVerification,
+} from '../../api/applicationApi';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getApiErrorMessage } from '../../api/apiClient';
@@ -26,6 +30,10 @@ function AccountSettingsPage() {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [form, setForm] = useState<MeUpdateRequest>(EMPTY_FORM);
+  const [originalEmail, setOriginalEmail] = useState('');
+  const [verifiedEmail, setVerifiedEmail] = useState('');
+  const [code, setCode] = useState('');
+  const [verifying, setVerifying] = useState(false);
   const [pw, setPw] = useState({ current: '', next: '', confirm: '' });
   const [message, setMessage] = useState('');
 
@@ -33,6 +41,8 @@ function AccountSettingsPage() {
     getMe()
       .then((user) => {
         if (user) {
+          setOriginalEmail(user.email ?? '');
+
           setForm({
             name: user.name,
             email: user.email ?? '',
@@ -49,7 +59,15 @@ function AccountSettingsPage() {
     event.preventDefault();
 
     try {
+      if (
+        form.email.toLowerCase() !== originalEmail.toLowerCase() &&
+        form.email.toLowerCase() !== verifiedEmail.toLowerCase()
+      ) {
+        setMessage('변경한 이메일을 먼저 인증해 주세요.');
+        return;
+      }
       await updateMe(form);
+      setOriginalEmail(form.email);
       setMessage('내 정보가 저장되었습니다.');
     } catch (error) {
       setMessage(getApiErrorMessage(error, '저장하지 못했습니다.'));
@@ -99,6 +117,50 @@ function AccountSettingsPage() {
               onChange={(event) => setForm({ ...form, email: event.target.value })}
             />
           </label>
+          {form.email.toLowerCase() !== originalEmail.toLowerCase() && (
+            <div>
+              <button
+                type="button"
+                disabled={verifying}
+                onClick={async () => {
+                  setVerifying(true);
+                  try {
+                    await sendApplicationEmailVerification(form.email);
+                    setMessage('인증 코드를 보냈습니다.');
+                  } catch (error) {
+                    setMessage(error instanceof Error ? error.message : '발송 실패');
+                  } finally {
+                    setVerifying(false);
+                  }
+                }}
+              >
+                인증 코드 발송
+              </button>
+              <label>
+                인증 코드
+                <input value={code} onChange={(e) => setCode(e.target.value)} />
+              </label>
+              <button
+                type="button"
+                disabled={verifying || !code}
+                onClick={async () => {
+                  const email = form.email;
+                  setVerifying(true);
+                  try {
+                    await confirmApplicationEmailVerification(email, code);
+                    setVerifiedEmail(email);
+                    setMessage('이메일 인증이 완료되었습니다.');
+                  } catch (error) {
+                    setMessage(error instanceof Error ? error.message : '인증 실패');
+                  } finally {
+                    setVerifying(false);
+                  }
+                }}
+              >
+                이메일 인증 확인
+              </button>
+            </div>
+          )}
           <label>
             전화번호
             <input
