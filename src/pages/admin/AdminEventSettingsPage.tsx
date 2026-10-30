@@ -20,6 +20,7 @@ import {
 } from '../../api/adminEventApi';
 import { ApiError, getApiErrorMessage } from '../../api/apiClient';
 import CourseFormFields from '../../components/admin/eventSettings/CourseFormFields';
+import EventChangeReviewDialog from '../../components/admin/eventSettings/EventChangeReviewDialog';
 import {
   EVENT_STATUSES,
   EVENT_STATUS_LABELS,
@@ -35,6 +36,8 @@ import {
   getEventCountdown,
   formatDateLabel,
   formatShortDateRange,
+  getCourseFormChanges,
+  getEventFormChanges,
   toCourseForm,
   toCourseRequest,
   toEventForm,
@@ -44,6 +47,7 @@ import {
   type CourseForm,
   type CoursePresetKey,
   type EventForm,
+  type FormChange,
 } from '../../utils/adminEventForms';
 import { useRememberedAdminEvent } from '../../hooks/useRememberedAdminEvent';
 import '../../styles/admin-event-settings.css';
@@ -106,11 +110,12 @@ function AdminEventSettingsPage() {
   const [feedbackIsError, setFeedbackIsError] = useState(false);
 
   // 조회 모드(기본) / 수정 모드 전환. 운영에 영향이 큰 행사·코스 값을 곧바로 고칠 수 없도록
-  // "설정 수정"을 눌러야 행사 필드와 코스 표가 함께 입력 가능해지고, 저장 시 한 번 더 확인을 받습니다.
+  // "설정 수정"을 눌러야 행사 필드와 코스 표가 함께 입력 가능해지고, 저장 전 변경 비교 창에서 한 번 더 확인을 받습니다.
   const [isEditMode, setIsEditMode] = useState(false);
   const [eventFormSnapshot, setEventFormSnapshot] = useState<EventForm | null>(null);
   const [savedCourseForms, setSavedCourseForms] = useState<CourseFormEntry[]>([]);
   const [draggedCourseId, setDraggedCourseId] = useState<number | null>(null);
+  const [pendingChanges, setPendingChanges] = useState<FormChange[] | null>(null);
 
   const initialEventsRequestRef = useRef<Promise<AdminEvent[]> | null>(null);
   const detailRequestRef = useRef<{
@@ -437,15 +442,25 @@ function AdminEventSettingsPage() {
     }
 
     if (!isCreatingEvent) {
-      const confirmed = window.confirm(
-        `“${eventForm.title || '선택한 행사'}” 행사 설정을 변경하시겠습니까?`,
-      );
+      // 기존 행사는 저장 전에 기존 값과 변경 값을 비교해 보여 주고, 확인을 받은 뒤 저장합니다.
+      const changes = [
+        ...getEventFormChanges(eventFormSnapshot ?? eventForm, eventForm),
+        ...getCourseFormChanges(savedCourseForms, courseForms),
+      ];
 
-      if (!confirmed) {
+      if (changes.length === 0) {
+        showSuccess('변경된 내용이 없습니다. 값을 바꾼 뒤 저장하거나 "취소"를 눌러 주세요.');
         return;
       }
+
+      setPendingChanges(changes);
+      return;
     }
 
+    await saveEventSettings();
+  };
+
+  const saveEventSettings = async () => {
     setIsSavingEvent(true);
     clearFeedback();
 
@@ -529,6 +544,7 @@ function AdminEventSettingsPage() {
       showError(getApiErrorMessage(error, '행사 설정을 저장하지 못했습니다.'));
     } finally {
       setIsSavingEvent(false);
+      setPendingChanges(null);
     }
   };
 
@@ -881,49 +897,14 @@ function AdminEventSettingsPage() {
             <div className="admin-event-settings__section-heading">
               <div>
                 <h2 id="eventPeriodTitle">기간 설정</h2>
-                <p>행사 운영 기간(독서일지 접수기간)과 참가 신청을 받는 기간을 입력합니다.</p>
+                <p>
+                  참가 신청을 받는 기간과 행사 운영 기간(독서일지 접수기간)을 순서대로 입력합니다.
+                </p>
               </div>
               <span>필수</span>
             </div>
 
             <div className="admin-event-settings__period-grid">
-              <fieldset
-                className="admin-event-settings__period-group"
-                disabled={isEventDetailLoading || fieldsLocked}
-              >
-                <legend>행사 기간 (독서일지 접수기간)</legend>
-                <div className="admin-event-settings__date-range">
-                  <label>
-                    <span>행사 시작일</span>
-                    <input
-                      type="date"
-                      required
-                      value={eventForm.eventStartDate}
-                      onChange={(event) =>
-                        handleEventFieldChange('eventStartDate', event.target.value)
-                      }
-                    />
-                  </label>
-                  <span className="admin-event-settings__range-mark">~</span>
-                  <label>
-                    <span>행사 종료일</span>
-                    <input
-                      type="date"
-                      required
-                      value={eventForm.eventEndDate}
-                      onChange={(event) =>
-                        handleEventFieldChange('eventEndDate', event.target.value)
-                      }
-                    />
-                  </label>
-                </div>
-                {previousEventRange && (
-                  <p className="admin-event-settings__period-hint">
-                    이전 행사: {previousEventRange}
-                  </p>
-                )}
-              </fieldset>
-
               <fieldset
                 className="admin-event-settings__period-group"
                 disabled={isEventDetailLoading || fieldsLocked}
@@ -957,6 +938,43 @@ function AdminEventSettingsPage() {
                 {previousApplicationRange && (
                   <p className="admin-event-settings__period-hint">
                     이전 행사: {previousApplicationRange}
+                  </p>
+                )}
+              </fieldset>
+
+              <fieldset
+                className="admin-event-settings__period-group"
+                disabled={isEventDetailLoading || fieldsLocked}
+              >
+                <legend>행사 기간 (독서일지 접수기간)</legend>
+                <div className="admin-event-settings__date-range">
+                  <label>
+                    <span>행사 시작일</span>
+                    <input
+                      type="date"
+                      required
+                      value={eventForm.eventStartDate}
+                      onChange={(event) =>
+                        handleEventFieldChange('eventStartDate', event.target.value)
+                      }
+                    />
+                  </label>
+                  <span className="admin-event-settings__range-mark">~</span>
+                  <label>
+                    <span>행사 종료일</span>
+                    <input
+                      type="date"
+                      required
+                      value={eventForm.eventEndDate}
+                      onChange={(event) =>
+                        handleEventFieldChange('eventEndDate', event.target.value)
+                      }
+                    />
+                  </label>
+                </div>
+                {previousEventRange && (
+                  <p className="admin-event-settings__period-hint">
+                    이전 행사: {previousEventRange}
                   </p>
                 )}
               </fieldset>
@@ -1291,6 +1309,17 @@ function AdminEventSettingsPage() {
       >
         {feedbackMessage}
       </p>
+      {pendingChanges && (
+        <EventChangeReviewDialog
+          eventLabel={
+            editingEvent ? `${editingEvent.roundNo}회 · ${editingEvent.title}` : '선택한 행사'
+          }
+          changes={pendingChanges}
+          isSaving={isSavingEvent}
+          onCancel={() => setPendingChanges(null)}
+          onConfirm={() => void saveEventSettings()}
+        />
+      )}
     </section>
   );
 }

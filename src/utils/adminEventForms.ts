@@ -1,3 +1,4 @@
+import { EVENT_STATUS_LABELS } from '../types/adminEvent';
 import type {
   AdminCourse,
   AdminEvent,
@@ -304,4 +305,126 @@ export function toCourseRequest(form: CourseForm): CreateCourseRequest {
     rewardAmount: Number(form.rewardAmount),
     displayOrder: Number(form.displayOrder),
   };
+}
+
+/** 저장 전 변경사항 확인 창에 표시하는 한 줄의 변경 내용입니다. */
+export type FormChange = {
+  scope: string;
+  label: string;
+  before: string;
+  after: string;
+  /** 참가자나 공개 화면에 영향을 주는 변경이면 안내 문구를 함께 보여 줍니다. */
+  impact?: string;
+};
+
+const EVENT_FIELD_LABELS: Record<keyof EventForm, string> = {
+  title: '행사명',
+  roundNo: '회차',
+  applicationStartDate: '신청 시작일',
+  applicationEndDate: '신청 종료일',
+  eventStartDate: '행사 시작일',
+  eventEndDate: '행사 종료일',
+  status: '운영 상태',
+  description: '행사 설명',
+  contactPhone: '문의 전화',
+  contactEmail: '문의 이메일',
+  kakaoOpenChatUrl: '카카오 오픈채팅 URL',
+  publicVisible: '사용자 화면 공개',
+};
+
+const EVENT_FIELD_IMPACTS: Partial<Record<keyof EventForm, string>> = {
+  applicationStartDate: '참가 신청 가능 기간이 바뀝니다.',
+  applicationEndDate: '참가 신청 가능 기간이 바뀝니다.',
+  eventStartDate: '독서일지 제출 가능 기간이 바뀝니다.',
+  eventEndDate: '독서일지 제출 가능 기간이 바뀝니다.',
+  status: '사용자 화면의 신청·기록 가능 여부가 바뀔 수 있습니다.',
+  publicVisible: '사용자 화면 노출 여부가 바뀝니다.',
+};
+
+const COURSE_FIELD_LABELS: Record<keyof CourseForm, string> = {
+  name: '코스명',
+  targetDistanceMeter: '목표 거리',
+  standardBookCount: '기준 도서 수',
+  avgMonthlyReadingCount: '월평균 독서량',
+  maxWinners: '최대 수상자',
+  extraLoanCount: '추가 대출',
+  rewardType: '보상 유형',
+  rewardAmount: '보상 금액',
+  displayOrder: '표시 순서',
+};
+
+function formatEventValue(field: keyof EventForm, form: EventForm) {
+  const value = form[field];
+
+  if (field === 'publicVisible') {
+    return value ? '공개' : '비공개';
+  }
+
+  if (field === 'status') {
+    return EVENT_STATUS_LABELS[form.status] ?? form.status;
+  }
+
+  if (field.endsWith('Date')) {
+    return value ? formatShortDate(String(value)) : '미입력';
+  }
+
+  return String(value).trim() || '미입력';
+}
+
+function formatCourseValue(field: keyof CourseForm, form: CourseForm) {
+  if (field === 'rewardType') {
+    return getRewardTypeLabel(form.rewardType);
+  }
+
+  if (field === 'name') {
+    return form.name.trim() || '미입력';
+  }
+
+  const formatted = formatCourseNumber(form[field]);
+
+  if (field === 'targetDistanceMeter') return `${formatted}m`;
+  if (field === 'rewardAmount') return `${formatted}원`;
+  if (field === 'maxWinners') return `${formatted}명`;
+  if (field === 'displayOrder') return `${formatted}번째`;
+  return `${formatted}권`;
+}
+
+/** 저장된 행사 값과 수정 중인 값을 비교해 바뀐 항목만 돌려줍니다. */
+export function getEventFormChanges(before: EventForm, after: EventForm): FormChange[] {
+  return (Object.keys(EVENT_FIELD_LABELS) as (keyof EventForm)[])
+    .filter((field) => String(before[field]).trim() !== String(after[field]).trim())
+    .map((field) => ({
+      scope: '행사',
+      label: EVENT_FIELD_LABELS[field],
+      before: formatEventValue(field, before),
+      after: formatEventValue(field, after),
+      impact: EVENT_FIELD_IMPACTS[field],
+    }));
+}
+
+/** 서버에서 불러온 코스 값과 수정 중인 코스 값을 코스별로 비교합니다. */
+export function getCourseFormChanges(
+  before: ReadonlyArray<{ courseId: number; form: CourseForm }>,
+  after: ReadonlyArray<{ courseId: number; form: CourseForm }>,
+): FormChange[] {
+  return after.flatMap(({ courseId, form }) => {
+    const saved = before.find((course) => course.courseId === courseId)?.form;
+
+    if (!saved) {
+      return [];
+    }
+
+    return (Object.keys(COURSE_FIELD_LABELS) as (keyof CourseForm)[])
+      .filter((field) => saved[field].trim() !== form[field].trim())
+      .map((field) => ({
+        scope: saved.name || '코스',
+        label: COURSE_FIELD_LABELS[field],
+        before: formatCourseValue(field, saved),
+        after: formatCourseValue(field, form),
+        impact:
+          field === 'targetDistanceMeter'
+            ? '이 코스 참가자의 달성률과 완주 판정 기준이 바뀝니다.'
+            : undefined,
+      }));
+  });
 }
