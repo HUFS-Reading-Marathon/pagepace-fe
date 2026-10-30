@@ -21,7 +21,10 @@ export default function ReviewGuide() {
         </li>
         <li>
           <strong>이 화면으로 돌아오기</strong>
-          <span>저장을 마쳤으면 ‘서평 작성 완료 알리기’를 눌러주세요.</span>
+          <span>
+            저장을 마쳤으면 ‘도서관에서 서평을 작성했어요’를 체크해 주세요.
+            추천을 숨길 뿐, 이 체크만으로 실적이 반영되지는 않습니다.
+          </span>
         </li>
         <li>
           <strong>도서관 담당자 확인</strong>

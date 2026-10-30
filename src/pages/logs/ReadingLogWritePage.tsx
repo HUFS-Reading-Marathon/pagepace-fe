@@ -1,3 +1,6 @@
+import { useAuth } from "../../auth";
+import ReviewRecommendations from "../../components/layout/ReviewRecommendations";
+import { previousReadingBookIds } from "../../utils/reviewRecommendations";
 import ReviewGuide from "../../components/layout/ReviewGuide";
 import { koreaToday } from "../../utils/eventSelection";
 import { type FormEvent, useEffect, useRef, useState } from "react";
@@ -12,12 +15,18 @@ import {
   completeReview,
   createReadingLog,
   getMyReadingBooks,
+  getMyReadingLogs,
+  getMyBookProgress,
   getMyReadingLog,
   getReviewTargetBooks,
   updateReadingLog,
 } from "../../api/readingLogApi";
 import type { BookSearchResult } from "../../types/book";
-import type { ParticipantBook, ReviewTargetBook } from "../../types/readingLog";
+import type {
+  ParticipantBook,
+  ReadingLog,
+  ReviewTargetBook,
+} from "../../types/readingLog";
 import "./logs.css";
 
 type BookEntry = {
@@ -180,6 +189,10 @@ function BookSearchField({
 }
 
 function ReadingLogWritePage() {
+  const { user } = useAuth();
+  const [bookProgress, setBookProgress] = useState<ParticipantBook[]>([]);
+  const [previousLogs, setPreviousLogs] = useState<ReadingLog[]>([]);
+  const [guidanceWarning, setGuidanceWarning] = useState("");
   const navigate = useNavigate();
   const { logId } = useParams();
   const editingLogId = logId ? Number(logId) : null;
@@ -209,42 +222,75 @@ function ReadingLogWritePage() {
         : await getCurrentParticipation();
       if (!participation)
         throw new Error("해당 독서일지의 참가 정보를 찾을 수 없습니다.");
-      const [targets, readingBooks] = await Promise.all([
+      // Ancillary recommendation APIs must not determine whether logs can be submitted.
+      if (active) setParticipationId(participation.participationId);
+      const results = await Promise.allSettled([
         getReviewTargetBooks(participation.eventId),
         getMyReadingBooks(participation.eventId),
+        getMyBookProgress(participation.eventId),
+        getMyReadingLogs(participation.participationId),
       ]);
-      return { participation, targets, readingBooks, editingLog };
+      const [targets, readingBooks, progress, logs] = results;
+      return {
+        participation,
+        editingLog,
+        targets: targets.status === "fulfilled" ? targets.value : [],
+        readingBooks:
+          readingBooks.status === "fulfilled" ? readingBooks.value : [],
+        progress: progress.status === "fulfilled" ? progress.value : [],
+        logs: logs.status === "fulfilled" ? logs.value : [],
+        guidanceUnavailable: results.some(
+          (result) => result.status === "rejected",
+        ),
+      };
     })()
-      .then(({ participation, targets, readingBooks, editingLog }) => {
-        if (!active) return;
-        setParticipationId(participation.participationId);
-        setReviewTargets(targets);
-
-        if (editingLog) {
-          setReadingDate(editingLog.readingDate);
-          setBooks(
-            editingLog.books.map((savedBook) => ({
-              id: savedBook.readingLogBookId,
-              query: savedBook.bookTitle,
-              readPages: String(savedBook.readPages),
-              selectedBook: {
-                libraryBookId: savedBook.libraryBookId,
-                title: savedBook.bookTitle,
-                author: savedBook.author,
-                publisher: savedBook.publisher,
-                isbn: savedBook.isbn,
-                pageCount: savedBook.totalBookPages,
-                callNo: savedBook.callNo,
-                libraries: [],
-                thumbnailUrl: savedBook.coverImageUrl,
-              },
-            })),
+      .then(
+        ({
+          participation,
+          targets,
+          readingBooks,
+          editingLog,
+          progress,
+          logs,
+          guidanceUnavailable,
+        }) => {
+          if (!active) return;
+          setParticipationId(participation.participationId);
+          setReviewTargets(targets);
+          setBookProgress(progress);
+          setPreviousLogs(logs);
+          setGuidanceWarning(
+            guidanceUnavailable
+              ? "서평 안내 일부를 불러오지 못했습니다. 독서일지는 그대로 제출할 수 있습니다."
+              : "",
           );
-        } else if (readingBooks.length > 0) {
-          const currentBook = readingBooks[0];
-          setCurrentReadingBook(currentBook);
-        }
-      })
+
+          if (editingLog) {
+            setReadingDate(editingLog.readingDate);
+            setBooks(
+              editingLog.books.map((savedBook) => ({
+                id: savedBook.readingLogBookId,
+                query: savedBook.bookTitle,
+                readPages: String(savedBook.readPages),
+                selectedBook: {
+                  libraryBookId: savedBook.libraryBookId,
+                  title: savedBook.bookTitle,
+                  author: savedBook.author,
+                  publisher: savedBook.publisher,
+                  isbn: savedBook.isbn,
+                  pageCount: savedBook.totalBookPages,
+                  callNo: savedBook.callNo,
+                  libraries: [],
+                  thumbnailUrl: savedBook.coverImageUrl,
+                },
+              })),
+            );
+          } else if (readingBooks.length > 0) {
+            const currentBook = readingBooks[0];
+            setCurrentReadingBook(currentBook);
+          }
+        },
+      )
       .catch((error: unknown) => {
         if (!active) return;
         setErrorMessage(
@@ -308,7 +354,7 @@ function ReadingLogWritePage() {
     if (reviewBusy.current) return;
     if (
       !window.confirm(
-        `도서관 홈페이지에서 “${target.bookTitle}” 서평을 저장하셨나요? 이 버튼은 담당자에게 작성 완료를 알리며, 확인 후 거리가 반영됩니다.`,
+        `도서관 홈페이지에서 “${target.bookTitle}” 서평을 저장하셨나요? 체크하면 이 책의 현재 분량에 대한 추천을 숨기고 담당자에게 작성 사실을 알립니다. 체크만으로 대회 쪽수·거리·순위는 바뀌지 않습니다.`,
       )
     )
       return;
@@ -318,7 +364,7 @@ function ReadingLogWritePage() {
     try {
       await completeReview(target.participantBookId);
       setReviewMessage(
-        "작성 완료 알림을 보냈습니다. 담당자가 확인하면 거리가 반영됩니다.",
+        "작성했다고 표시해 현재 분량의 추천을 숨겼습니다. 대회 실적은 변하지 않으며 담당자가 확인한 뒤 거리가 반영됩니다.",
       );
       setReviewTargets((current) =>
         current.filter(
@@ -691,39 +737,26 @@ function ReadingLogWritePage() {
           <h2>서평 할 일</h2>
           <ReviewGuide />
           <p role="status">{reviewMessage}</p>
-          {!reviewTargets.length && (
-            <p>
-              새로 작성 완료를 알릴 책이 없습니다. 이미 알린 서평의 처리 상태는
-              나의 현황에서 확인할 수 있습니다.
-            </p>
+          {guidanceWarning && <p role="status">{guidanceWarning}</p>}
+          {participationId && user && (
+            <ReviewRecommendations
+              key={`${user.userId}-${participationId}`}
+              userId={user.userId}
+              participationId={participationId}
+              targets={reviewTargets}
+              progress={bookProgress}
+              previousBookIds={previousReadingBookIds(
+                previousLogs,
+                participationId,
+                readingDate,
+              )}
+              selectedBookIds={books.flatMap((b) =>
+                b.selectedBook ? [b.selectedBook.libraryBookId] : [],
+              )}
+              sending={reviewSending}
+              onReported={(target) => void handleReviewComplete(target)}
+            />
           )}
-          <p>
-            미완독 책도 서평을 제출할 수 있습니다. 서평 대기 중에도 새 일지를
-            작성할 수 있으며, 관리자 확인 후 승인 쪽수가 거리로 인정됩니다.
-          </p>
-          {reviewTargets.map((target) => (
-            <div className="reading-book-row" key={target.participantBookId}>
-              <strong>{target.bookTitle}</strong>
-              <div className="reading-detail-actions">
-                <a
-                  className="btn btn-secondary"
-                  href={target.reviewSearchUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  도서관에서 서평 작성 ↗
-                </a>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  disabled={reviewSending}
-                  onClick={() => handleReviewComplete(target)}
-                >
-                  서평 작성 완료 알리기
-                </button>
-              </div>
-            </div>
-          ))}
         </aside>
       </div>
     </main>

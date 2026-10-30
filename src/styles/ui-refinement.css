@@ -689,3 +689,62 @@ summary:focus-visible {
     margin-top: 16px;
   }
 }
+.review-suggestion {
+  border-top: 1px solid #dce5ee;
+  padding: 18px 0;
+  font-size: 14px;
+}
+.review-suggestion > strong {
+  display: block;
+  color: #203e5d;
+}
+.review-suggestion p {
+  line-height: 1.7;
+  color: #54677d;
+}
+.review-self-report {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  background: #f2f6fa;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.review-self-report input {
+  margin-top: 3px;
+  flex: none;
+}
+.review-suggestion small {
+  display: block;
+  line-height: 1.6;
+  color: #65758a;
+}
+.review-intent-actions {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+.review-intent-actions button {
+  padding: 10px;
+  text-align: left;
+  border: 1px solid #c6d5e3;
+  border-radius: 4px;
+  background: white;
+  color: #244768;
+}
+.review-intent-reset {
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  color: #506984;
+  font-size: 13px;
+  margin-top: 12px;
+  cursor: pointer;
+}
+.review-optional > summary {
+  cursor: pointer;
+  padding: 14px 0;
+  font-size: 14px;
+  color: #284c70;
+}
