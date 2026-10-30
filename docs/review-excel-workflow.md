@@ -54,7 +54,7 @@
 
 신규 테이블: `review_import_batches`, `review_import_rows`, `review_import_verifications`. 원본 파일 바이너리는 보관하지 않고 파일명·해시·원본 행 필드·확인 이력을 DB에 저장한다. 현재 프로젝트의 운영 `ddl-auto: update`가 새 테이블을 생성한다. 자동 DDL을 끈 환경은 같은 엔티티 스키마를 사전에 반영해야 한다. 이 기능에는 기존 데이터 변환이 없다.
 
-파일 업로드 상한은 애플리케이션 5MB / 요청 6MB다. 배포 저장소의 `nginx/default.conf`에는 본문 크기 설정이 없다. 5MB 파일을 허용하려면 `/api/` location에 `client_max_body_size 6m;`를 추가하고 nginx 설정을 반영해야 한다. 배포 저장소는 이번 수정 범위에 포함하지 않았다. 프론트보다 백엔드를 먼저 배포해야 한다. 이번 작업에서는 배포하거나 push하지 않았다.
+파일 업로드 상한은 애플리케이션 5MB / 요청 6MB다. 배포 저장소의 `nginx/default.conf`에서 정확히 `/api/admin/review-imports` 경로에 `client_max_body_size 6m;`를 설정했다. 기본 1MB 제한으로 인한 413 오류를 막고 multipart 부가 데이터를 허용하며, 파일 자체 상한은 백엔드에서 5MB로 유지한다. 운영 반영 시 nginx 설정 검사 및 재시작/리로드가 필요하다. 로컬 Docker 미실행으로 nginx 실행 검사는 수행하지 못했다. 프론트보다 백엔드를 먼저 배포해야 한다. 이번 작업에서는 배포하거나 push하지 않았다.
 
 원문에는 개인정보가 포함되므로 관리자 API에서만 조회한다. 실제 제공 파일·내용은 코드 저장소나 테스트 fixture에 넣지 않았다. 엑셀 본문은 HTML로 실행하지 않고 텍스트로 표시한다.
 

@@ -3,7 +3,7 @@
 - 관리자 /admin/reviews에서 엑셀 업로드 → 대조 → 원문 확인 → 거리 반영까지 연결.
 - 담당자가 이 기능을 다시 구현할 필요 없음. API/상태/제약은 docs/review-excel-workflow.md 참고.
 - BE 브랜치 fix/event-scoping-and-review-credit, FE 브랜치 feat/marathon-ui-and-review-guidance.
-- 배포 시 BE 우선 반영. nginx /api/에 client_max_body_size 6m; 설정 필요(배포 저장소 미수정).
+- 배포 시 BE 우선 반영. nginx 업로드 경로 /api/admin/review-imports에 client_max_body_size 6m; 반영 완료(배포 브랜치 fix/review-import-upload-limit). 배포 후 nginx 설정 검사 및 재시작/리로드 필요.
 - 실제 서평 파일/개인정보는 저장소에 포함하지 않음. 운영 배포와 push는 하지 않음.
 
 아래는 앞선 연동 작업의 이력입니다.
