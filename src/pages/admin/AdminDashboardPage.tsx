@@ -4,13 +4,9 @@ import { getApiErrorMessage } from '../../api/apiClient';
 import { getAdminEvents } from '../../api/adminEventApi';
 import { getAdminReadingLogs } from '../../api/adminReadingLogApi';
 import DashboardAffiliationChart from '../../components/admin/dashboard/DashboardAffiliationChart';
-import DashboardCourseCompletion from '../../components/admin/dashboard/DashboardCourseCompletion';
 import DashboardEventOverview from '../../components/admin/dashboard/DashboardEventOverview';
-import DashboardGenderChart from '../../components/admin/dashboard/DashboardGenderChart';
 import DashboardMetricCard from '../../components/admin/dashboard/DashboardMetricCard';
-import DashboardPendingLogs from '../../components/admin/dashboard/DashboardPendingLogs';
 import DashboardReadingTrend from '../../components/admin/dashboard/DashboardReadingTrend';
-import DashboardRecentParticipants from '../../components/admin/dashboard/DashboardRecentParticipants';
 import type { AdminApplicationListItem } from '../../types/adminApplication';
 import type { AdminEvent, EventStatus } from '../../types/adminEvent';
 import type { AdminReadingLogResponse } from '../../types/adminReadingLogApi';
@@ -231,7 +227,10 @@ function AdminDashboardPage() {
       <header className="admin-page__header admin-dashboard__header admin-dashboard__enter admin-dashboard__enter--header">
         <div className="admin-dashboard__heading">
           <h1>운영 통계</h1>
-          <p>독서마라톤의 참가, 독서 기록, 완주 현황을 한눈에 확인합니다.</p>
+          <p>
+            선택한 행사의 참가와 독서 기록 현황을 확인합니다. 완주 집계는 대회 현황·랭킹에서
+            확인하세요.
+          </p>
         </div>
         <div className="admin-dashboard__header-meta">
           <label className="admin-dashboard__event-select">
@@ -374,42 +373,21 @@ function AdminDashboardPage() {
           linkLabel="대기 목록 보기"
           tone="gold"
         />
-        <DashboardMetricCard
-          label="총 완주자"
-          value={null}
-          unit="명"
-          description="백엔드 완주 집계 API 필요"
-          to="/admin/status"
-          linkLabel="대회 현황 보기"
-          tone="teal"
-        />
       </section>
 
+      {/*
+        현재 서버 응답으로 집계할 수 있는 지표만 표시합니다. 완주자·코스별 완주·성별 통계는 집계 API가
+        없어 항상 비어 있었고, 최근 신청·검토 대기 목록은 오늘의 업무와 각 관리 화면에서 처리합니다.
+      */}
       <div className="admin-dashboard__grid admin-dashboard__grid--primary">
         <DashboardReadingTrend
           logs={dashboardData?.logs ?? []}
           now={dashboardData?.fetchedAt ?? new Date()}
         />
-        <DashboardCourseCompletion summaries={[]} isSupported={false} />
-      </div>
-
-      <div className="admin-dashboard__grid admin-dashboard__grid--distribution">
-        <DashboardGenderChart
-          distribution={[]}
-          participantCount={analytics?.approvedApplications.length ?? 0}
-          isSupported={false}
-        />
         <DashboardAffiliationChart
           distribution={analytics?.affiliationDistribution ?? []}
           participantCount={analytics?.approvedApplications.length ?? 0}
         />
-      </div>
-
-      <div className="admin-dashboard__grid admin-dashboard__grid--operations">
-        <DashboardRecentParticipants
-          participants={analytics?.recentApplications.slice(0, 4) ?? []}
-        />
-        <DashboardPendingLogs logs={analytics?.pendingLogs.slice(0, 4) ?? []} />
       </div>
     </section>
   );

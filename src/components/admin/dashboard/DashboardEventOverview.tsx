@@ -111,8 +111,9 @@ function DashboardEventOverview({
         <small>
           {approvedPageTotal === null || approvedDistanceMeters === null
             ? '데이터를 불러오는 중'
-            : `${approvedPageTotal.toLocaleString('ko-KR')}쪽 · ${approvedDistanceMeters.toLocaleString('ko-KR')}m`}
+            : `승인 ${approvedPageTotal.toLocaleString('ko-KR')}쪽 · 환산 ${approvedDistanceMeters.toLocaleString('ko-KR')}m`}
         </small>
+        <small>인정 거리는 서평 확인 후 반영</small>
       </div>
     </section>
   );
