@@ -165,8 +165,8 @@ function MainPage() {
                 </h1>
 
                 <p className="hero-copy-public">
-                  한국외국어대학교 글로벌캠퍼스 도서관은 구성원의 지속적인 독서 활동을 지원하기 위해
-                  제5회 독서마라톤을 운영합니다. 참가자는 읽은 페이지 수를 기록하고 누적 거리에 따라
+                  한국외국어대학교 글로벌캠퍼스 도서관은 구성원의 지속적인 독서 활동을 지원하기 위해{' '}
+                  {eventTitle}을 운영합니다. 참가자는 읽은 페이지 수를 기록하고 누적 거리에 따라
                   선택한 코스의 완주 여부를 확인할 수 있습니다.
                 </p>
               </>
@@ -425,9 +425,7 @@ function MainPage() {
         <div className="wrap cta-band fade-up">
           <div>
             <h2>
-              {showMyRecord
-                ? '오늘 읽은 기록을 독서일지로 남겨보세요'
-                : '제5회 독서마라톤 참가신청'}
+              {showMyRecord ? '오늘 읽은 기록을 독서일지로 남겨보세요' : `${eventTitle} 참가신청`}
             </h2>
             <p>
               {showMyRecord
