@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   approveAdminApplication,
   getAdminApplicationDetail,
@@ -62,7 +63,11 @@ function AdminParticipantsPage() {
     applications: AdminApplicationListItem[];
   }> | null>(null);
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [statusFilter, setStatusFilter] = useState<ParticipantStatusFilter>('ALL');
+  const [searchParams] = useSearchParams();
+  // 오늘의 업무에서 ?status=APPLIED로 들어오면 승인 대기 신청서부터 보여 줍니다.
+  const [statusFilter, setStatusFilter] = useState<ParticipantStatusFilter>(() =>
+    searchParams.get('status') === 'APPLIED' ? 'APPLIED' : 'ALL',
+  );
   const [courseFilter, setCourseFilter] = useState<ParticipantCourseFilter>('ALL');
   const [affiliationFilter, setAffiliationFilter] = useState<ParticipantAffiliationFilter>('ALL');
   const [selectedApplicationId, setSelectedApplicationId] = useState<number | null>(null);
