@@ -36,43 +36,44 @@ export default function RankingBoard({
     return <p className="ranking-empty">아직 승인된 독서 기록이 없습니다.</p>;
   return (
     <div className="table-scroll race-table-wrap">
-      <table className="race-table">
+      <table className="race-table" role="table">
         <caption className="sr-only">
           인정 거리 순 랭킹. 진행률은 참가 코스 목표 거리 기준입니다.
         </caption>
-        <thead>
-          <tr>
-            <th scope="col">순위</th>
-            <th scope="col">참가자</th>
-            {showIdentity && <th scope="col">학번</th>}
-            <th scope="col">코스</th>
-            <th scope="col">완주까지</th>
-            <th scope="col">승인 쪽수</th>
-            <th scope="col">인정 거리</th>
+        <thead role="rowgroup">
+          <tr role="row">
+            <th scope="col" role="columnheader">순위</th>
+            <th scope="col" role="columnheader">참가자</th>
+            {showIdentity && <th scope="col" role="columnheader">학번</th>}
+            <th scope="col" role="columnheader">코스</th>
+            <th scope="col" role="columnheader">완주까지</th>
+            <th scope="col" role="columnheader">승인 쪽수</th>
+            <th scope="col" role="columnheader">인정 거리</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody role="rowgroup">
           {rankings.map((row) => (
             <tr
+              role="row"
               key={row.participationId}
               className={
                 row.participationId === myParticipationId ? "race-row-mine" : ""
               }
             >
-              <td>{row.rank}</td>
-              <th scope="row">
+              <td role="cell" className="race-position"><span>{row.rank}</span><span className="race-mobile-unit">위</span></td>
+              <th scope="row" role="rowheader" className="race-person">
                 {row.name}{" "}
                 {row.participationId === myParticipationId && (
                   <span className="race-my-badge">나</span>
                 )}
               </th>
-              {showIdentity && <td>{row.studentNo}</td>}
-              <td>{row.courseName}</td>
-              <td>
+              {showIdentity && <td role="cell" data-label="학번">{row.studentNo}</td>}
+              <td role="cell" data-label="코스">{row.courseName}</td>
+              <td role="cell" className="race-track" data-label="완주까지">
                 <RaceProgress percent={row.progressPercent} />
               </td>
-              <td>{row.approvedPages.toLocaleString()}쪽</td>
-              <td>
+              <td role="cell" data-label="승인 쪽수">{row.approvedPages.toLocaleString()}쪽</td>
+              <td role="cell" data-label="인정 거리">
                 <strong>{row.distance.toLocaleString()}m</strong>
                 {row.status === "COMPLETED" && (
                   <small className="race-complete">완주</small>

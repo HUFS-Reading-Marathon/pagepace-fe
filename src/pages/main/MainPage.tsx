@@ -515,7 +515,7 @@ function MainPage() {
             </div>
 
             <div className="table-scroll official-card fade-up">
-              <table className="program-table">
+              <table className="program-table" role="table">
                 <caption className="sr-only">
                   {eventTitle} 코스 및 혜택 표
                 </caption>
@@ -541,15 +541,15 @@ function MainPage() {
                 </thead>
                 <tbody>
                   {eventCourses.map((course) => (
-                    <tr key={course.name}>
-                      <th scope="row">{course.name}</th>
-                      <td>{course.distance}</td>
-                      <td>{course.pages}</td>
-                      <td>{course.books}</td>
-                      <td>{course.monthly}</td>
-                      <td>{course.reward}</td>
-                      <td>{course.loan}</td>
-                      <td>{course.people}</td>
+                    <tr role="row" key={course.name}>
+                      <th role="rowheader" scope="row">{course.name}</th>
+                      <td role="cell" data-label="목표 거리">{course.distance}</td>
+                      <td role="cell" data-label="목표 페이지">{course.pages}</td>
+                      <td role="cell" data-label="독서권수 · 300쪽 기준">{course.books}</td>
+                      <td role="cell" data-label="월평균 독서량">{course.monthly}</td>
+                      <td role="cell" data-label="완주 혜택">{course.reward}</td>
+                      <td role="cell" data-label="추가대출">{course.loan}</td>
+                      <td role="cell" data-label="인원">{course.people}</td>
                     </tr>
                   ))}
                 </tbody>

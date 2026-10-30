@@ -1,6 +1,6 @@
 export default function ReviewGuide() {
   return (
-    <details className="review-guide" open>
+    <details className="review-guide">
       <summary>서평은 도서관 홈페이지에서 작성해요</summary>
       <p>
         이 행사 사이트의 로그인과 도서관 로그인은 별개입니다. 외부 사이트에서

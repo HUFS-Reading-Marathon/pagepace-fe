@@ -16,7 +16,7 @@ export default function PersonalEventSelector() {
     return ()=>{active=false;};
   },[isAuthenticated,user?.userId]);
   if (!isAuthenticated || !(pathname.startsWith('/my') || pathname.startsWith('/logs'))) return null;
-  return <div className="wrap"><label>조회할 참가 회차 <select aria-label="조회할 참가 회차" value={selectedEventId('personal') ?? ''}
+  return <div className="wrap personal-event-selector"><label>조회할 참가 회차 <select aria-label="조회할 참가 회차" value={selectedEventId('personal') ?? ''}
     disabled={/\/logs\/\d+/.test(pathname)} onChange={e=>selectEvent('personal',Number(e.target.value)||undefined)}>
     <option value="">현재 공개 행사</option>{items.map(item=><option key={item.participationId} value={item.eventId}>{item.eventTitle} · {item.courseName}</option>)}
   </select></label>{error && <p role="alert">{error}</p>}</div>;

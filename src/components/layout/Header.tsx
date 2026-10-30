@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { isAdminRole, useAuth } from '../../auth';
 
@@ -105,6 +105,7 @@ function isMyLibraryItemActive(href: string, pathname: string) {
 }
 
 function Header() {
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSectionHash, setActiveSectionHash] = useState(DEFAULT_HASH);
   const [isMyLibraryDropdownHidden, setIsMyLibraryDropdownHidden] =
@@ -171,6 +172,18 @@ function Header() {
       window.removeEventListener('resize', requestUpdate);
     };
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMobileMenuOpen(false);
+        menuButtonRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [isMobileMenuOpen]);
 
   return (
     <>
@@ -322,16 +335,17 @@ function Header() {
           </nav>
 
           <button
+            ref={menuButtonRef}
             className="mobile-menu-button"
             type="button"
             aria-expanded={isMobileMenuOpen}
             aria-controls="mobilePanel"
-            aria-label="모바일 메뉴 열기"
+            aria-label={isMobileMenuOpen ? '모바일 메뉴 닫기' : '모바일 메뉴 열기'}
             onClick={() => setIsMobileMenuOpen((prev) => !prev)}
           >
             <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
               <path
-                d="M3 6h16M3 11h16M3 16h16"
+                d={isMobileMenuOpen ? 'M5 5l12 12M17 5L5 17' : 'M3 6h16M3 11h16M3 16h16'}
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
