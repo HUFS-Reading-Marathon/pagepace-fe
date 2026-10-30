@@ -1,3 +1,4 @@
+import type {AdminParticipation} from '../api/adminParticipationApi';
 import {
   COURSE_LABELS,
   type AdminParticipant,
@@ -14,7 +15,6 @@ import type {
   StatusVisibilitySettings,
 } from '../types/adminStatus';
 import type { EventSettings } from '../types/adminEventSettings';
-import type { AdminApplicationListItem } from '../types/adminApplication';
 import type { AdminCourse } from '../types/adminEvent';
 import type { AdminReadingLogResponse } from '../types/adminReadingLogApi';
 import type {
@@ -303,94 +303,25 @@ export function formatStatusDateTime(value: string) {
   }).format(new Date(value));
 }
 
-function getCompetitionJoinKey(studentNo: string, courseId: number) {
-  return `${studentNo.trim().toLowerCase()}::${courseId}`;
-}
-
 export function buildAdminCompetitionRows(
-  applications: ReadonlyArray<AdminApplicationListItem>,
-  logs: ReadonlyArray<AdminReadingLogResponse>,
-  courses: ReadonlyArray<AdminCourse>,
-  baseDate: string,
+  participants: ReadonlyArray<AdminParticipation>, logs: ReadonlyArray<AdminReadingLogResponse>,
+  courses: ReadonlyArray<AdminCourse>, baseDate: string,
 ): AdminCompetitionParticipantRow[] {
-  const coursesById = new Map(
-    courses.map((course) => [course.courseId, course]),
-  );
-  const approvedLogsByParticipant = logs
-    .filter(
-      (log) => log.status === 'APPROVED' && log.readingDate <= baseDate,
-    )
-    .reduce<Map<string, AdminReadingLogResponse[]>>((result, log) => {
-      const key = getCompetitionJoinKey(log.studentNo, log.courseId);
-      const currentLogs = result.get(key) ?? [];
-
-      currentLogs.push(log);
-      result.set(key, currentLogs);
-      return result;
-    }, new Map());
-
-  return applications
-    .filter((application) => application.status === 'APPROVED')
-    .map((application) => {
-      const participantLogs =
-        approvedLogsByParticipant.get(
-          getCompetitionJoinKey(application.studentNo, application.courseId),
-        ) ?? [];
-      const course = coursesById.get(application.courseId);
-      const cumulativePages = participantLogs.reduce(
-        (sum, log) => sum + log.totalReadPages,
-        0,
-      );
-      const cumulativeDistanceMeters = participantLogs.reduce(
-        (sum, log) => sum + log.convertedDistanceMeter,
-        0,
-      );
-      const dailyLogs = participantLogs.filter(
-        (log) => log.readingDate === baseDate,
-      );
-      const latestLog = [...participantLogs].sort(
-        (left, right) =>
-          right.readingDate.localeCompare(left.readingDate) ||
-          right.updatedAt.localeCompare(left.updatedAt),
-      )[0];
-      const targetDistanceMeters = course?.targetDistanceMeter ?? null;
-
-      return {
-        applicationId: application.applicationId,
-        participationId: latestLog?.participationId ?? null,
-        userId: latestLog?.userId ?? null,
-        name: application.name,
-        studentNumber: application.studentNo,
-        department: application.department || '미입력',
-        affiliationType: application.affiliationType,
-        applicationStatus: application.status,
-        courseId: application.courseId,
-        courseName: course?.name ?? application.courseName,
-        targetDistanceMeters,
-        cumulativePages,
-        cumulativeDistanceMeters,
-        progressRate:
-          targetDistanceMeters && targetDistanceMeters > 0
-            ? Math.min(
-                (cumulativeDistanceMeters / targetDistanceMeters) * 100,
-                100,
-              )
-            : null,
-        dailyIncreasePages: dailyLogs.reduce(
-          (sum, log) => sum + log.totalReadPages,
-          0,
-        ),
-        dailyIncreaseDistanceMeters: dailyLogs.reduce(
-          (sum, log) => sum + log.convertedDistanceMeter,
-          0,
-        ),
-        approvedLogCount: participantLogs.length,
-        completionStatus: null,
-        completedAt: null,
-        lastReadingDate: latestLog?.readingDate ?? null,
-        lastProgressAt: latestLog?.reviewedAt || latestLog?.updatedAt || null,
-      };
-    });
+  return participants.filter(p=>p.status==='APPROVED'||p.status==='COMPLETED').map(p=>{
+    const participantLogs=logs.filter(log=>log.participationId===p.participationId&&log.status==='APPROVED');
+    const dailyLogs=participantLogs.filter(log=>log.readingDate===baseDate);
+    const latest=[...participantLogs].sort((a,b)=>b.readingDate.localeCompare(a.readingDate))[0];
+    const target=courses.find(course=>course.courseId===p.courseId)?.targetDistanceMeter??null;
+    return {applicationId:p.participationId,participationId:p.participationId,userId:p.userId,
+      name:p.name,studentNumber:p.studentNo,department:p.department||'미입력',affiliationType:p.affiliationType,
+      applicationStatus:'APPROVED',courseId:p.courseId,courseName:p.courseName,targetDistanceMeters:target,
+      cumulativePages:p.totalPages,cumulativeDistanceMeters:p.totalDistanceMeter,
+      progressRate:target?Math.min(p.totalDistanceMeter/target*100,100):null,
+      dailyIncreasePages:dailyLogs.reduce((sum,log)=>sum+log.totalReadPages,0),
+      dailyIncreaseDistanceMeters:dailyLogs.reduce((sum,log)=>sum+log.totalReadPages*5,0),
+      approvedLogCount:participantLogs.length,completionStatus:p.status==='COMPLETED'?'completed':'incomplete',completedAt:p.completedAt??null,
+      lastReadingDate:latest?.readingDate??null,lastProgressAt:latest?.reviewedAt??null};
+  });
 }
 
 export function getAdminCompetitionCourseSummaries(
@@ -407,7 +338,7 @@ export function getAdminCompetitionCourseSummaries(
       courseId: course.courseId,
       courseName: course.name,
       participantCount: courseRows.length,
-      completedCount: null,
+      completedCount: courseRows.filter(row=>row.completionStatus==='completed').length,
       averageProgressRate:
         progressValues.length > 0
           ? progressValues.reduce((sum, value) => sum + value, 0) /

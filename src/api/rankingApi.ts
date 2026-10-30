@@ -27,7 +27,7 @@ export async function getRankings(eventId: number, courseId?: number, sort: Rank
 
   const rankings = await apiRequest<Ranking[]>(
     `/api/rankings?${searchParams.toString()}`,
-    { method: 'GET' },
+    { method: 'GET', skipAuth: true },
   );
   return rankings ?? [];
 }

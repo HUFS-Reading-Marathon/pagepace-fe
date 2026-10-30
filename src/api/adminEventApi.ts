@@ -77,10 +77,10 @@ export async function updateAdminEvent(
   );
 }
 
-export async function deleteAdminEvent(eventId: number) {
+export async function deleteAdminEvent(eventId: number, confirmed = false) {
   validateId(eventId, '행사');
 
-  await apiRequest<null>(`${ADMIN_EVENTS_PATH}/${eventId}`, {
+  await apiRequest<null>(`${ADMIN_EVENTS_PATH}/${eventId}?confirmed=${confirmed}`, {
     method: 'DELETE',
   });
 }
@@ -128,4 +128,8 @@ export async function deleteAdminCourse(courseId: number) {
   await apiRequest<null>(`${ADMIN_COURSES_PATH}/${courseId}`, {
     method: 'DELETE',
   });
+}
+
+export async function reorderAdminCourses(eventId:number, courseIds:number[]) {
+  return await apiRequest<AdminCourse[]>(`${ADMIN_EVENTS_PATH}/${eventId}/courses/order`, jsonOptions('PATCH',{courseIds})) ?? [];
 }

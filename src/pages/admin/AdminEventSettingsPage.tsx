@@ -1,3 +1,6 @@
+import { reorderAdminCourses } from '../../api/adminEventApi';
+import { preferredAdminEvent } from '../../utils/eventSelection';
+import { useAdminEventState } from '../../hooks/useAdminEventState';
 import {
   type FormEvent,
   useEffect,
@@ -160,6 +163,8 @@ function toCourseForm(course: AdminCourse): CourseForm {
 }
 
 function chooseEventId(events: AdminEvent[], preferredEventId?: number) {
+  const remembered = preferredAdminEvent(events);
+  if (remembered && !preferredEventId) return remembered.eventId;
   if (
     preferredEventId &&
     events.some((event) => event.eventId === preferredEventId)
@@ -225,7 +230,7 @@ function getEventCountdown(startDate: string, endDate: string) {
 
 function formatDateLabel(value: string) {
   if (!value) {
-    return '행사 시작일을 입력해 주세요.';
+    return '접수 시작일을 입력해 주세요.';
   }
 
   return new Intl.DateTimeFormat('ko-KR', {
@@ -252,7 +257,7 @@ function validateEventForm(form: EventForm) {
     !form.eventStartDate ||
     !form.eventEndDate
   ) {
-    return '행사 기간과 신청 기간의 날짜를 모두 입력해 주세요.';
+    return '독서일지 접수기간과 신청 기간의 날짜를 모두 입력해 주세요.';
   }
 
   if (form.applicationEndDate < form.applicationStartDate) {
@@ -260,7 +265,7 @@ function validateEventForm(form: EventForm) {
   }
 
   if (form.eventEndDate < form.eventStartDate) {
-    return '행사 종료일은 행사 시작일보다 빠를 수 없습니다.';
+    return '접수 종료일은 접수 시작일보다 빠를 수 없습니다.';
   }
 
   return null;
@@ -326,7 +331,7 @@ function toCourseRequest(form: CourseForm): CreateCourseRequest {
 
 function AdminEventSettingsPage() {
   const [events, setEvents] = useState<AdminEvent[]>([]);
-  const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
+  const [selectedEventId, setSelectedEventId] = useAdminEventState();
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
   const [eventForm, setEventForm] = useState<EventForm>(EMPTY_EVENT_FORM);
   const [courseForms, setCourseForms] = useState<
@@ -477,7 +482,7 @@ function AdminEventSettingsPage() {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [setSelectedEventId]);
 
   useEffect(() => {
     if (selectedEventId === null || isCreatingEvent) {
@@ -672,7 +677,15 @@ function AdminEventSettingsPage() {
 
         showSuccess('행사와 기본 코스 3개가 성공적으로 생성되었습니다.');
       } else if (selectedEventId !== null) {
-        const updatedEvent = await updateAdminEvent(selectedEventId, request);
+        let updatedEvent;
+        try {
+          updatedEvent = await updateAdminEvent(selectedEventId, request);
+        } catch (error) {
+          if (!(error instanceof ApiError) || error.code !== 'EVENT_CHANGE_CONFIRMATION_REQUIRED') throw error;
+          const previous = events.find(event => event.eventId === selectedEventId);
+          if (!window.confirm(`참가자가 있는 행사입니다. 아래 변경은 접수와 공개 화면에 영향을 줍니다.\n신청기간: ${previous?.applicationStartDate}~${previous?.applicationEndDate} → ${request.applicationStartDate}~${request.applicationEndDate}\n독서일지 접수기간: ${previous?.eventStartDate}~${previous?.eventEndDate} → ${request.eventStartDate}~${request.eventEndDate}\n상태: ${previous?.status} → ${request.status}\n공개: ${previous?.publicVisible} → ${request.publicVisible}\n변경을 확정할까요?`)) return;
+          updatedEvent = await updateAdminEvent(selectedEventId, {...request, confirmStructuralChange:true});
+        }
         await refreshEvents(selectedEventId);
 
         if (updatedEvent) {
@@ -700,7 +713,7 @@ function AdminEventSettingsPage() {
       (event) => event.eventId === selectedEventId,
     );
     const confirmed = window.confirm(
-      `“${selectedEvent?.title ?? '선택한 행사'}”를 삭제하시겠습니까? 삭제한 행사는 복구할 수 없습니다.`,
+      `“${selectedEvent?.title ?? '선택한 행사'}”를 보관하시겠습니까? 공개 화면에서 제외되며 기존 참가 기록은 유지됩니다.`,
     );
 
     if (!confirmed) {
@@ -711,15 +724,35 @@ function AdminEventSettingsPage() {
     clearFeedback();
 
     try {
-      await deleteAdminEvent(selectedEventId);
+      await deleteAdminEvent(selectedEventId, true);
       await refreshEvents();
       setCourseForms([]);
-      showSuccess('행사가 삭제되었습니다.');
+      showSuccess('행사를 보관하고 공개를 해제했습니다.');
     } catch (error: unknown) {
       showError(getApiErrorMessage(error, '행사를 삭제하지 못했습니다.'));
     } finally {
       setIsDeletingEvent(false);
     }
+  };
+
+  const moveCourse = async (courseId: number, offset: number) => {
+    if (!selectedEventId || savingCourseId !== null) return;
+    const index = courseForms.findIndex(course => course.courseId === courseId);
+    const nextIndex = index + offset;
+    if (nextIndex < 0 || nextIndex >= courseForms.length) return;
+    const ids = courseForms.map(course => course.courseId);
+    [ids[index],ids[nextIndex]] = [ids[nextIndex],ids[index]];
+    if (!window.confirm('코스 표시 순서를 저장할까요? 저장하지 않은 코스 입력은 유지됩니다.')) return;
+    setSavingCourseId(courseId);
+    try {
+      await reorderAdminCourses(selectedEventId, ids);
+      setCourseForms(previous => ids.map((id, order) => {
+        const item = previous.find(course => course.courseId === id)!;
+        return {...item, form:{...item.form,displayOrder:String(order+1)}};
+      }));
+      showSuccess('코스 표시 순서를 저장했습니다.');
+    } catch (error) { showError(getApiErrorMessage(error, '순서를 저장하지 못했습니다.')); }
+    finally { setSavingCourseId(null); }
   };
 
   const updateCourseForm = (
@@ -971,7 +1004,7 @@ function AdminEventSettingsPage() {
       <header className="admin-page__header admin-event-settings__header">
         <div>
           <h1>행사/코스 설정</h1>
-          <p>행사 기간, 신청 기간, 코스 기준, 보상 기준을 설정합니다.</p>
+          <p>독서일지 접수기간, 신청 기간, 코스 기준, 보상 기준을 설정합니다.</p>
         </div>
 
         <div className="admin-event-settings__countdown" aria-live="polite">
@@ -1140,10 +1173,10 @@ function AdminEventSettingsPage() {
 
             <div className="admin-event-settings__period-grid">
               <fieldset className="admin-event-settings__period-group">
-                <legend>행사 기간</legend>
+                <legend>독서일지 접수기간</legend>
                 <div className="admin-event-settings__date-range">
                   <label>
-                    <span>행사 시작일</span>
+                    <span>접수 시작일</span>
                     <input
                       type="date"
                       required
@@ -1158,7 +1191,7 @@ function AdminEventSettingsPage() {
                   </label>
                   <span className="admin-event-settings__range-mark">~</span>
                   <label>
-                    <span>행사 종료일</span>
+                    <span>접수 종료일</span>
                     <input
                       type="date"
                       required
@@ -1284,7 +1317,7 @@ function AdminEventSettingsPage() {
                   disabled={isDeletingEvent || isSavingEvent}
                   onClick={handleEventDelete}
                 >
-                  {isDeletingEvent ? '삭제 중…' : '행사 삭제'}
+                  {isDeletingEvent ? '보관 중…' : '행사 보관'}
                 </button>
               )}
               {isCreatingEvent && events.length > 0 && (
@@ -1362,6 +1395,8 @@ function AdminEventSettingsPage() {
                     updateCourseForm(courseId, field, value),
                   )}
                   <div className="admin-event-settings__course-actions">
+                    <button type="button" disabled={savingCourseId !== null || courseForms[0]?.courseId === courseId} onClick={() => void moveCourse(courseId,-1)}>위로 이동</button>
+                    <button type="button" disabled={savingCourseId !== null || courseForms.at(-1)?.courseId === courseId} onClick={() => void moveCourse(courseId,1)}>아래로 이동</button>
                     <button
                       type="button"
                       className="admin-event-settings__danger-button"

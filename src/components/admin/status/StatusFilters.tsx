@@ -8,6 +8,8 @@ import {
 import type { AdminCourse } from '../../../types/adminEvent';
 
 type StatusFiltersProps = {
+  completionFilter: string;
+  onCompletionFilterChange: (value:string) => void;
   searchKeyword: string;
   courseFilter: AdminCompetitionCourseFilter;
   courses: AdminCourse[];
@@ -23,6 +25,7 @@ type StatusFiltersProps = {
 };
 
 function StatusFilters({
+  completionFilter, onCompletionFilterChange,
   searchKeyword,
   courseFilter,
   courses,
@@ -76,10 +79,10 @@ function StatusFilters({
           <label htmlFor="statusCompletionFilter">완주 상태</label>
           <select
             id="statusCompletionFilter"
-            value="unsupported"
-            disabled
+            value={completionFilter}
+            onChange={event=>onCompletionFilterChange(event.target.value)}
           >
-            <option value="unsupported">서버 판정 미지원</option>
+            <option value="ALL">전체</option><option value="completed">완주</option><option value="incomplete">진행 중</option>
           </select>
         </div>
 

@@ -1,3 +1,4 @@
+import { canApply } from '../../utils/eventSelection';
 import {
   type ClipboardEvent,
   type FormEvent,
@@ -30,29 +31,12 @@ type AffiliationType =
   | 'lecturer'
   | 'staff';
 
-type GradeType = '1' | '2' | '3' | '4';
-
-type GenderType = 'female' | 'male' | 'none';
-
 const AFFILIATION_OPTIONS: { label: string; value: AffiliationType }[] = [
   { label: '학부생', value: 'undergraduate' },
   { label: '대학원생', value: 'graduate' },
   { label: '교수', value: 'professor' },
-  { label: '강사', value: 'lecturer' },
+  { label: '강사·기타', value: 'lecturer' },
   { label: '직원(연구원 포함)', value: 'staff' },
-];
-
-const GRADE_OPTIONS: { label: string; value: GradeType }[] = [
-  { label: '1학년', value: '1' },
-  { label: '2학년', value: '2' },
-  { label: '3학년', value: '3' },
-  { label: '4학년', value: '4' },
-];
-
-const GENDER_OPTIONS: { label: string; value: GenderType }[] = [
-  { label: '여성', value: 'female' },
-  { label: '남성', value: 'male' },
-  { label: '선택 안 함', value: 'none' },
 ];
 
 const APPLICATION_AFFILIATION_BY_FORM: Partial<
@@ -62,6 +46,7 @@ const APPLICATION_AFFILIATION_BY_FORM: Partial<
   graduate: 'GRADUATE',
   professor: 'PROFESSOR',
   staff: 'STAFF',
+  lecturer: 'OTHER',
 };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -102,8 +87,6 @@ function ApplyPage() {
   const [department, setDepartment] = useState('');
   const [affiliation, setAffiliation] =
     useState<AffiliationType>('undergraduate');
-  const [grade, setGrade] = useState<GradeType | null>('1');
-  const [gender, setGender] = useState<GenderType>('none');
   const [currentEvent, setCurrentEvent] = useState<CurrentEvent | null>(null);
   const [courses, setCourses] = useState<EventCourse[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
@@ -222,7 +205,6 @@ function ApplyPage() {
 
   const handleAffiliationChange = (nextAffiliation: AffiliationType) => {
     setAffiliation(nextAffiliation);
-    setGrade(nextAffiliation === 'undergraduate' ? '1' : null);
     setDepartment('');
   };
 
@@ -466,8 +448,7 @@ function ApplyPage() {
       !studentNumber.trim() ||
       !email.trim() ||
       !affiliation ||
-      !department.trim() ||
-      !gender
+      !department.trim()
     ) {
       setErrorMessage('필수 정보를 모두 입력해 주세요.');
       return;
@@ -488,17 +469,12 @@ function ApplyPage() {
       return;
     }
 
-    if (affiliation === 'undergraduate' && !grade) {
-      setErrorMessage('학부생은 학년을 선택해 주세요.');
-      return;
-    }
-
     if (!isAgreed) {
       setErrorMessage('개인정보 수집 및 이용 안내에 동의해 주세요.');
       return;
     }
 
-    if (!currentEvent) {
+    if (!currentEvent || !canApply(currentEvent)) {
       setErrorMessage(
         eventCourseError || '현재 신청 가능한 행사가 없습니다.',
       );
@@ -558,7 +534,7 @@ function ApplyPage() {
 
       <section className="auth-shell auth-shell-apply" aria-label="참가신청 영역">
         <div className="auth-heading">
-          <h1>참가신청</h1>
+          <h1>참가신청</h1>{currentEvent && <p>{currentEvent.title} · 신청기간 {currentEvent.applicationStartDate} ~ {currentEvent.applicationEndDate}{!canApply(currentEvent) && " · 현재 신청기간이 아니거나 접수가 마감되었습니다."}</p>}
           <p className="auth-description">
             독서마라톤 참가를 위한 정보를 입력해 주세요.
           </p>
@@ -747,23 +723,6 @@ function ApplyPage() {
             </div>
           </fieldset>
 
-          {affiliation === 'undergraduate' && (
-            <div className="auth-form-group">
-              <label htmlFor="grade">학년</label>
-              <select
-                id="grade"
-                value={grade ?? ''}
-                onChange={(event) => setGrade(event.target.value as GradeType)}
-              >
-                {GRADE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
           <div className="auth-form-group">
             <label htmlFor="department">{affiliation === 'undergraduate' ? '소속 학과' : '소속 학과/부서'}</label>
             <select
@@ -797,7 +756,7 @@ function ApplyPage() {
                 }
                 disabled={
                   isEventCourseLoading ||
-                  currentEvent === null ||
+                  !canApply(currentEvent) ||
                   courses.length === 0
                 }
               >
@@ -821,20 +780,6 @@ function ApplyPage() {
               )}
             </div>
 
-            <div className="auth-form-group">
-              <label htmlFor="gender">성별</label>
-              <select
-                id="gender"
-                value={gender}
-                onChange={(event) => setGender(event.target.value as GenderType)}
-              >
-                {GENDER_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
           </div>
 
           <label className="auth-check auth-agreement">
@@ -859,7 +804,7 @@ function ApplyPage() {
               isVerificationPending ||
               isSubmitting ||
               isEventCourseLoading ||
-              currentEvent === null ||
+              !canApply(currentEvent) ||
               selectedCourseId === null
             }
             aria-busy={isSubmitting}

@@ -1,3 +1,6 @@
+import { useSyncExternalStore } from 'react';
+import PersonalEventSelector from '../components/layout/PersonalEventSelector';
+import { selectedEventId } from '../utils/eventSelection';
 import { BrowserRouter, Outlet, Route, Routes } from 'react-router-dom';
 import AdminLayout from '../layouts/AdminLayout';
 import Header from '../components/layout/Header';
@@ -27,11 +30,17 @@ import MarathonStatusPage from '../pages/status';
 import { AuthProvider } from '../auth';
 import ProtectedRoute from './ProtectedRoute';
 
+const subscribeEvent = (listener: () => void) => {
+  window.addEventListener('pagepace:event-selection', listener);
+  return () => window.removeEventListener('pagepace:event-selection', listener);
+};
 function UserLayout() {
+  const eventId = useSyncExternalStore(subscribeEvent, () => selectedEventId('personal'));
   return (
     <>
       <Header />
-      <Outlet />
+      <PersonalEventSelector />
+      <Outlet key={eventId ?? "current"} />
       <Footer />
     </>
   );

@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
-import type { StatusCourseSummary } from '../../../types/adminStatus';
+import type { AdminCompetitionCourseSummary } from '../../../types/adminStatus';
 
 type DashboardCourseCompletionProps = {
-  summaries: StatusCourseSummary[];
+  summaries: AdminCompetitionCourseSummary[];
   isSupported?: boolean;
 };
 

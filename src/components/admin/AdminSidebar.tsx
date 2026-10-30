@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { matchPath, NavLink, useLocation } from 'react-router-dom';
 
 const ADMIN_MENUS = [
+  { label: '사용자 화면 보기', path: '/', group: '화면 이동', enabled: true },
   {
     label: '오늘의 업무',
     path: '/admin',
@@ -70,7 +71,7 @@ function AdminSidebar() {
   const [openGroups, setOpenGroups] = useState(INITIAL_OPEN_GROUPS);
   const activeGroup = ADMIN_MENUS.find((menu) =>
     matchPath(
-      { path: menu.path, end: menu.path === '/admin' },
+      { path: menu.path, end: (menu.path === '/admin' || menu.path === '/') },
       pathname,
     ),
   )?.group;
@@ -131,7 +132,7 @@ function AdminSidebar() {
                 {isGroupOpen && (menu.enabled ? (
                 <NavLink
                   to={menu.path}
-                  end={menu.path === '/admin'}
+                  end={(menu.path === '/admin' || menu.path === '/')}
                   className={({ isActive }) =>
                     [
                       'admin-sidebar__link',

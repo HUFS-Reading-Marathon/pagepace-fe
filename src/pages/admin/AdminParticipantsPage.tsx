@@ -6,7 +6,11 @@ import {
   rejectAdminApplication,
 } from '../../api/adminApplicationApi';
 import { ApiError } from '../../api/apiClient';
-import { getCurrentEvent } from '../../api/eventApi';
+import { getAdminEvents } from '../../api/adminEventApi';
+import { preferredAdminEvent } from '../../utils/eventSelection';
+import { useAdminEventState } from '../../hooks/useAdminEventState';
+import type { AdminEvent } from '../../types/adminEvent';
+import ParticipantRegistration from '../../components/admin/participants/ParticipantRegistration';
 import ParticipantDetailDialog from '../../components/admin/participants/ParticipantDetailDialog';
 import ParticipantFilters from '../../components/admin/participants/ParticipantFilters';
 import ParticipantTable from '../../components/admin/participants/ParticipantTable';
@@ -57,13 +61,8 @@ function AdminParticipantsPage() {
   >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentEventId, setCurrentEventId] = useState<number | null>(null);
-  const initialListRequestRef = useRef<
-    Promise<{
-      eventId: number;
-      applications: AdminApplicationListItem[];
-    }> | null
-  >(null);
+  const [currentEventId,setCurrentEventId] = useAdminEventState();
+  const [events,setEvents] = useState<AdminEvent[]>([]);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [statusFilter, setStatusFilter] =
     useState<ParticipantStatusFilter>('ALL');
@@ -91,54 +90,19 @@ function AdminParticipantsPage() {
   const dialogOpenerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    let isActive = true;
-
-    if (initialListRequestRef.current === null) {
-      initialListRequestRef.current = (async () => {
-        const currentEvent = await getCurrentEvent();
-        const applications = await getAdminApplications(currentEvent.eventId);
-
-        return {
-          eventId: currentEvent.eventId,
-          applications,
-        };
-      })();
-    }
-
-    initialListRequestRef.current
-      .then(({ eventId, applications }) => {
-        if (!isActive) {
-          return;
-        }
-
-        setCurrentEventId(eventId);
-        setParticipants(applications);
-        setError(null);
-      })
-      .catch((requestError: unknown) => {
-        if (!isActive) {
-          return;
-        }
-
-        setCurrentEventId(null);
-        setParticipants([]);
-        setError(
-          getApiErrorMessage(
-            requestError,
-            '참가신청 목록을 불러오지 못했습니다.',
-          ),
-        );
-      })
-      .finally(() => {
-        if (isActive) {
-          setIsLoading(false);
-        }
-      });
-
-    return () => {
-      isActive = false;
-    };
-  }, []);
+    let active=true;
+    getAdminEvents().then(next=>{if(active){setEvents(next);setCurrentEventId(preferredAdminEvent(next)?.eventId??null);if(!next.length)setIsLoading(false);}})
+      .catch(error=>{if(active){setError(error.message);setIsLoading(false);}});
+    return()=>{active=false;};
+  },[setCurrentEventId]);
+  useEffect(()=>{
+    if(currentEventId===null)return;
+    let active=true;
+    getAdminApplications(currentEventId).then(next=>{if(active){setParticipants(next);setError(null);}})
+      .catch(error=>{if(active){setParticipants([]);setError(error.message);}})
+      .finally(()=>{if(active)setIsLoading(false);});
+    return()=>{active=false;};
+  },[currentEventId]);
 
   const statistics = useMemo(
     () => ({
@@ -491,6 +455,11 @@ function AdminParticipantsPage() {
         </div>
       </header>
 
+      <label>관리할 행사 <select aria-label="관리할 행사" value={currentEventId??''} disabled={processingApplicationId!==null} onChange={e=>{handleCloseDialog();setParticipants([]);setIsLoading(true);setCurrentEventId(Number(e.target.value));}}>
+        {events.map(event=><option key={event.eventId} value={event.eventId}>{event.title}</option>)}
+      </select></label>
+      {currentEventId!==null&&<ParticipantRegistration key={`${currentEventId}-${statistics.approved}`} eventId={currentEventId}/>}
+      <h2>참가 신청서</h2>
       <ParticipantFilters
         searchKeyword={searchKeyword}
         statusFilter={statusFilter}

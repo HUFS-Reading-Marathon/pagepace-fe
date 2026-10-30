@@ -1,3 +1,5 @@
+import { preferredAdminEvent } from '../../utils/eventSelection';
+import { useAdminEventState } from '../../hooks/useAdminEventState';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getAdminApplications } from '../../api/adminApplicationApi';
@@ -16,6 +18,8 @@ const EVENT_STATUS_LABEL: Record<EventStatus, string> = {
 };
 
 function chooseEvent(events: AdminEvent[]) {
+  const remembered = preferredAdminEvent(events);
+  if (remembered) return remembered;
   for (const status of EVENT_ORDER) {
     const event = events.find((item) => item.status === status);
     if (event) return event;
@@ -31,7 +35,7 @@ function formatDateTime(value: string) {
 
 function AdminOperationsDashboardPage() {
   const [events, setEvents] = useState<AdminEvent[]>([]);
-  const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
+  const [selectedEventId, setSelectedEventId] = useAdminEventState();
   const [applications, setApplications] = useState<AdminApplicationListItem[]>([]);
   const [logs, setLogs] = useState<AdminReadingLogResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,7 +52,7 @@ function AdminOperationsDashboardPage() {
         setError(requestError instanceof ApiError ? requestError.message : '행사 목록을 불러오지 못했습니다.');
         setIsLoading(false);
       });
-  }, []);
+  }, [setSelectedEventId]);
 
   useEffect(() => {
     if (selectedEventId === null) return;

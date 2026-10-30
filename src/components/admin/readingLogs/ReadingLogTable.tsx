@@ -109,7 +109,7 @@ function ReadingLogTable({
             <th scope="col">책</th>
             <th scope="col">권수</th>
             <th scope="col">읽은 쪽</th>
-            <th scope="col">거리</th>
+            <th scope="col">예상 거리</th>
             <th scope="col">검토 상태</th>
             <th scope="col">제출 시각</th>
             <th scope="col">관리</th>

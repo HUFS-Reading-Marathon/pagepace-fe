@@ -1,3 +1,5 @@
+import { preferredAdminEvent } from '../../utils/eventSelection';
+import { useAdminEventState } from '../../hooks/useAdminEventState';
 import {
   useCallback,
   useEffect,
@@ -54,6 +56,8 @@ function getApiErrorMessage(error: unknown, fallback: string) {
 }
 
 function chooseEventId(events: AdminEvent[]) {
+  const remembered = preferredAdminEvent(events);
+  if (remembered) return remembered.eventId;
   for (const status of DEFAULT_EVENT_SELECTION_ORDER) {
     const matchedEvent = events.find((event) => event.status === status);
 
@@ -107,7 +111,7 @@ function toDisplayLog(log: AdminReadingLogResponse): AdminReadingLog {
 
 function AdminReadingLogsPage() {
   const [events, setEvents] = useState<AdminEvent[]>([]);
-  const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
+  const [selectedEventId, setSelectedEventId] = useAdminEventState();
   const [logs, setLogs] = useState<AdminReadingLog[]>([]);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [statusFilter, setStatusFilter] =
@@ -274,7 +278,7 @@ function AdminReadingLogsPage() {
     return () => {
       isActive = false;
     };
-  }, [loadLogs]);
+  }, [loadLogs, setSelectedEventId]);
 
   const clearSelectionAnd = (updateFilter: () => void) => {
     setSelectedLogIds([]);
@@ -556,7 +560,7 @@ function AdminReadingLogsPage() {
       <aside className="admin-reading-logs__policy" aria-label="검토 정책 안내">
         <strong>검토 정책</strong>
         <span>서버 검증 결과 우선</span>
-        <span>승인 기록만 누적 거리·순위에 반영</span>
+        <span>일지 승인 시 쪽수 반영 · 서평 확인 시 거리 반영</span>
         <span>반려 기록은 참가자가 수정 후 재제출 가능</span>
       </aside>
 

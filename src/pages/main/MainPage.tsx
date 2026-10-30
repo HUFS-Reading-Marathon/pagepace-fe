@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth';
-import { getCurrentEvent, getEventCourses, type CurrentEvent } from '../../api/eventApi';
+import { getCurrentEvent, getEventCourses, getEventSummary, type EventSummary, type CurrentEvent } from '../../api/eventApi';
 import { getCurrentParticipation } from '../../api/participationApi';
 import { getMyReadingLogs } from '../../api/readingLogApi';
 import { getNotices, type Notice } from '../../api/noticeApi';
@@ -27,13 +27,7 @@ type Course = {
   people: string;
 };
 
-const APPLY_FORM_URL = 'https://forms.gle/QxsWgxTH7AmRUbfB9';
-
-const HERO_INFO: [string, string][] = [
-  ['운영기간', '2025. 12. 8.(월) — 2026. 2. 1.(일)'],
-  ['신청기간', '2025. 11. 24.(월) — 12. 7.(일)'],
-  ['참가대상', '글로벌캠퍼스 학부 재학생(휴학생 제외)'],
-];
+const APPLY_FORM_URL = '/apply';
 
 const QUICK_LINKS: ExternalLink[] = [
   { eyebrow: 'Step 1', title: '코스 선택하기', href: '#courses' },
@@ -42,7 +36,7 @@ const QUICK_LINKS: ExternalLink[] = [
     eyebrow: 'Step 3',
     title: '참가신청 작성',
     href: APPLY_FORM_URL,
-    external: true,
+    external: false,
   },
   { eyebrow: 'Status', title: '대회 현황 보기', href: '#status' },
 ];
@@ -52,45 +46,6 @@ const SUMMARY_ITEMS: [string, string][] = [
   ['기록방법', '독서일지에 도서 정보와 읽은 페이지 수 입력'],
   ['서평작성', '도서관 홈페이지 로그인 후 해당 도서 상세페이지에서 작성'],
   ['결과확인', '누적 거리와 코스별 완주 여부를 대회 현황에서 확인'],
-];
-
-const COURSES: Course[] = [
-  {
-    name: '단축코스',
-    distance: '10,000m',
-    pages: '2,000쪽',
-    books: '7권',
-    monthly: '2.3권',
-    reward: '문화상품권 3만원권',
-    loan: '2권',
-    people: '15명',
-  },
-  {
-    name: '하프코스',
-    distance: '21,100m',
-    pages: '4,220쪽',
-    books: '14권',
-    monthly: '4.6권',
-    reward: '문화상품권 5만원권',
-    loan: '2권',
-    people: '20명',
-  },
-  {
-    name: '풀코스',
-    distance: '42,195m',
-    pages: '8,439쪽',
-    books: '28권',
-    monthly: '9.3권',
-    reward: (
-      <>
-        상금 150,000원
-        <br />
-        <small>기타소득세 22% 공제 후 지급</small>
-      </>
-    ),
-    loan: '5권',
-    people: '3명',
-  },
 ];
 
 const PROCESS_STEPS = [
@@ -116,70 +71,12 @@ const PROCESS_STEPS = [
   },
 ];
 
-const STATUS_ITEMS = [
-  {
-    title: '나의 누적 거리',
-    value: '운영 시작 후 공개',
-    desc: '인정된 독서일지를 기준으로 자동 집계됩니다.',
-  },
-  {
-    title: '코스별 완주 현황',
-    value: '준비 중',
-    desc: '단축·하프·풀코스별 달성 현황을 제공합니다.',
-  },
-  {
-    title: '공개 순위',
-    value: '이름 마스킹 적용',
-    desc: '개인정보 보호 기준에 따라 일부 정보만 공개합니다.',
-  },
-];
-
-const NOTICES = [
-  {
-    badge: '신청',
-    title: '제5회 독서마라톤 참가 신청 안내',
-    href: '#process',
-    date: '2025.11.24',
-    dateTime: '2025-11-24',
-  },
-  {
-    badge: '코스',
-    title: '코스별 완주 기준 및 혜택 안내',
-    href: '#courses',
-    date: '2025.11.24',
-    dateTime: '2025-11-24',
-  },
-  {
-    badge: '기록',
-    title: '독서일지 제출 및 인정 기준 안내',
-    href: '#process',
-    date: '2025.12.08',
-    dateTime: '2025-12-08',
-  },
-  {
-    badge: '문의',
-    title: '서평 작성 및 문의 채널 안내',
-    href: '#contact',
-    date: '2025.12.08',
-    dateTime: '2025-12-08',
-  },
-];
-
 const CHECK_ITEMS = [
   '독서일지에는 도서 정보와 읽은 페이지 수를 정확히 입력해야 합니다.',
   '만화, 전공서적, 수험서, 원서, 정기간행물 등은 인정 대상에서 제외될 수 있습니다.',
   '서평은 도서관 홈페이지 로그인 후 해당 도서 상세페이지에서 작성합니다.',
   '상금 및 문화상품권 지급 대상과 기준은 도서관 공지사항을 따릅니다.',
 ];
-
-const MY_RECORD = {
-  course: '하프코스',
-  targetDistance: 21100,
-  totalDistance: 4025,
-  totalPages: 805,
-  approvedLogs: 4,
-  lastSubmittedAt: '2025. 12. 18.',
-};
 
 function externalAttrs(link: { external?: boolean }) {
   return link.external ? { target: '_blank' as const, rel: 'noopener noreferrer' } : {};
@@ -192,26 +89,28 @@ function formatDistance(distance: number) {
 }
 
 function MainPage() {
-  const { user, isAuthenticated, isInitializing } = useAuth();
-  const isApplied =
-    localStorage.getItem('isApplied') === 'true' || isAuthenticated;
+  const { user, isAuthenticated } = useAuth();
   const displayName = user?.name || '참가자';
   const [currentEvent, setCurrentEvent] = useState<CurrentEvent | null>(null);
-  const [eventCourses, setEventCourses] = useState<Course[]>(COURSES);
+  const [eventCourses, setEventCourses] = useState<Course[]>([]);
   const [myParticipation, setMyParticipation] = useState<MyParticipation | null>(null);
   const [approvedLogs, setApprovedLogs] = useState(0);
   const [lastSubmittedAt, setLastSubmittedAt] = useState('-');
   const [notices, setNotices] = useState<Notice[]>([]);
+  const [summary,setSummary] = useState<EventSummary|null>(null);
+  const [eventError,setEventError] = useState('');
+  const [noticeError,setNoticeError] = useState('');
 
   useEffect(() => {
-    getNotices().then(setNotices).catch(() => setNotices([]));
+    getNotices().then(setNotices).catch(() => setNoticeError('공지사항을 불러오지 못했습니다.'));
   }, []);
 
   useEffect(() => {
     getCurrentEvent()
       .then(async (event) => {
         setCurrentEvent(event);
-        const courses = await getEventCourses(event.eventId);
+        const [courses, totals] = await Promise.all([getEventCourses(event.eventId), getEventSummary(event.eventId)]);
+        setSummary(totals);
         setEventCourses(courses.map((course) => ({
           name: course.name,
           distance: `${course.targetDistanceMeter.toLocaleString()}m`,
@@ -219,21 +118,24 @@ function MainPage() {
           books: `${course.standardBookCount}권`,
           monthly: `${course.avgMonthlyReadingCount}권`,
           reward: course.rewardAmount > 0
-            ? `${course.rewardType} ${course.rewardAmount.toLocaleString()}원`
+            ? `${course.rewardType === 'GIFT_CARD' ? '문화상품권' : course.rewardType === 'CASH' ? '상금' : course.rewardType} ${course.rewardAmount.toLocaleString()}원`
             : course.rewardType,
           loan: `${course.extraLoanCount}권`,
           people: `${course.maxWinners}명`,
         })));
       })
-      .catch(() => undefined);
+      .catch(() => setEventError('현재 행사 정보를 불러오지 못했습니다.'));
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
-    getCurrentParticipation()
+    if (!isAuthenticated || !currentEvent) return;
+    let active = true;
+    getCurrentParticipation(currentEvent.eventId)
       .then(async (participation) => {
+        if (!active) return;
         setMyParticipation(participation);
         const logs = await getMyReadingLogs(participation.participationId);
+        if (!active) return;
         setApprovedLogs(logs.filter((log) => log.status === 'APPROVED').length);
         setLastSubmittedAt(
           [...logs].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
@@ -241,16 +143,17 @@ function MainPage() {
         );
       })
       .catch(() => undefined);
-  }, [isAuthenticated]);
+  return () => { active = false; };
+  }, [isAuthenticated, currentEvent]);
 
-  const eventTitle = currentEvent?.title ?? '제5회 독서마라톤';
+  const eventTitle = currentEvent?.title ?? '독서마라톤';
   const heroInfo: [string, string][] = currentEvent
     ? [
-        ['운영기간', `${currentEvent.eventStartDate} — ${currentEvent.eventEndDate}`],
+        ['독서일지 접수기간', `${currentEvent.eventStartDate} — ${currentEvent.eventEndDate}`],
         ['신청기간', `${currentEvent.applicationStartDate} — ${currentEvent.applicationEndDate}`],
         ['문의', currentEvent.contactPhone || currentEvent.contactEmail],
       ]
-    : HERO_INFO;
+    : [];
   const myRecord = myParticipation
     ? {
         course: myParticipation.courseName,
@@ -260,11 +163,11 @@ function MainPage() {
         approvedLogs,
         lastSubmittedAt,
       }
-    : MY_RECORD;
+    : {course:'참가 정보 없음',targetDistance:0,totalDistance:0,totalPages:0,approvedLogs:0,lastSubmittedAt:'-'};
 
   const progressRate = useMemo(() => {
     return Math.min(
-      Math.round((myRecord.totalDistance / myRecord.targetDistance) * 100),
+      myRecord.targetDistance > 0 ? Math.round((myRecord.totalDistance / myRecord.targetDistance) * 100) : 0,
       100,
     );
   }, [myRecord.targetDistance, myRecord.totalDistance]);
@@ -294,11 +197,11 @@ function MainPage() {
     return () => observer.disconnect();
   }, []);
 
-  const showMyRecord = (isAuthenticated || isInitializing) && isApplied;
+  const showMyRecord = isAuthenticated && myParticipation !== null;
 
   return (
     <>
-      <main id="main">
+      <main id="main">{eventError && <p role="alert">{eventError}</p>}{noticeError && <p role="alert">{noticeError}</p>}
         <section className="hero" aria-labelledby="heroTitle">
           <div className="wrap hero-inner">
             <div
@@ -332,7 +235,7 @@ function MainPage() {
 
                   <p className="hero-copy-public">
                     한국외국어대학교 글로벌캠퍼스 도서관은 구성원의 지속적인 독서
-                    활동을 지원하기 위해 제5회 독서마라톤을 운영합니다. 참가자는
+                    활동을 지원하기 위해 {eventTitle}을 운영합니다. 참가자는
                     읽은 페이지 수를 기록하고 누적 거리에 따라 선택한 코스의 완주
                     여부를 확인할 수 있습니다.
                   </p>
@@ -417,8 +320,8 @@ function MainPage() {
               ) : (
                 <div className="status-board">
                   <div className="status-board-head">
-                    <span>Reading Marathon 2025-2026</span>
-                    <b>운영 예정</b>
+                    <span>{currentEvent?.title ?? "행사 조회 중"}</span>
+                    <b>{currentEvent ? ({APPLICATION_OPEN:'신청 접수 중',IN_PROGRESS:'진행 중',APPLICATION_CLOSED:'신청 마감',ENDED:'종료',FINALIZED:'최종 확정',READY:'준비 중'}[currentEvent.status] ?? currentEvent.status) : '정보 없음'}</b>
                   </div>
 
                   <ul className="hero-info-list">
@@ -434,7 +337,7 @@ function MainPage() {
                     <span>환산 기준</span>
                     <strong>1쪽 = 5m</strong>
                     <p>
-                      입력한 페이지 수는 누적 거리와 완주율로 자동 계산됩니다.
+                      일지 승인 쪽수 중 서평 확인된 분량이 거리와 완주율에 반영됩니다.
                     </p>
                   </div>
                 </div>
@@ -524,12 +427,12 @@ function MainPage() {
                     <span>독서량을 거리로 환산</span>
                   </div>
                   <div>
-                    <b>8주간</b>
+                    <b>접수기간</b>
                     <span>정해진 운영 기간 내 기록 제출</span>
                   </div>
                   <div>
-                    <b>3개 코스</b>
-                    <span>단축·하프·풀코스 중 선택</span>
+                    <b>{eventCourses.length}개 코스</b>
+                    <span>현재 행사에서 운영하는 코스 중 선택</span>
                   </div>
                 </div>
               </article>
@@ -544,15 +447,11 @@ function MainPage() {
                   <a href="#contact">문의하기</a>
                 </div>
                 <ul className="notice-list">
-                  {(notices.length > 0 ? notices.slice(0, 4) : NOTICES).map((notice) => (
-                    <li key={'noticeId' in notice ? notice.noticeId : notice.title}>
-                      <Link to={'noticeId' in notice ? `/notices/${notice.noticeId}` : notice.href}>
-                        <span className="badge">{'pinned' in notice ? (notice.pinned ? '중요' : '공지') : notice.badge}</span>
-                        <strong>{notice.title}</strong>
-                        <time dateTime={'publishedAt' in notice ? notice.publishedAt ?? notice.updatedAt : notice.dateTime}>{'publishedAt' in notice ? new Date(notice.publishedAt ?? notice.updatedAt).toLocaleDateString('ko-KR') : notice.date}</time>
-                      </Link>
-                    </li>
-                  ))}
+                  {notices.length === 0 && <li>{noticeError || '등록된 공지사항이 없습니다.'}</li>}
+                  {notices.slice(0,4).map(notice=><li key={notice.noticeId}><Link to={`/notices/${notice.noticeId}`}>
+                    <span className="badge">{notice.pinned?'중요':'공지'}</span><strong>{notice.title}</strong>
+                    <time dateTime={notice.publishedAt??notice.updatedAt}>{new Date(notice.publishedAt??notice.updatedAt).toLocaleDateString('ko-KR')}</time>
+                  </Link></li>)}
                 </ul>
               </aside>
             </div>
@@ -568,13 +467,16 @@ function MainPage() {
               </div>
 
               <p className="section-desc">
-                운영 시작 후 참가자의 독서일지 제출 내역을 기준으로 누적 거리,
-                달성률, 완주 여부가 집계됩니다.
+                실제 참가 기록을 집계합니다. 쪽수는 일지 승인 후, 거리는 서평 확인 후 반영됩니다.
               </p>
             </div>
 
             <div className="status-grid fade-up">
-              {STATUS_ITEMS.map((item) => (
+              {[
+                {title:'실제 참가자',value:summary ? `${summary.participantCount}명` : eventError ? '집계 불가' : '집계 확인 중',desc:'승인·완주 참가자, 독서 기록이 없는 참가자 포함'},
+                {title:'완주자',value:summary ? `${summary.completedCount}명` : '—',desc:'서평 확인 후 코스 목표 거리를 달성한 참가자'},
+                {title:'서평 확인 인정 거리',value:summary ? formatDistance(summary.verifiedDistanceMeter) : '—',desc:'일지 승인과 서평 확인을 모두 마친 분량'}
+              ].map((item) => (
                 <article className="status-card" key={item.title}>
                   <span>{item.title}</span>
                   <strong>{item.value}</strong>
@@ -606,7 +508,7 @@ function MainPage() {
 
             <div className="table-scroll official-card fade-up">
               <table className="program-table">
-                <caption className="sr-only">제5회 독서마라톤 코스 및 혜택 표</caption>
+                <caption className="sr-only">{eventTitle} 코스 및 혜택 표</caption>
                 <thead>
                   <tr>
                     <th scope="col">코스명</th>
@@ -645,7 +547,7 @@ function MainPage() {
             </div>
 
             <p className="table-note fade-up">
-              추가대출기간: 2026. 3. 1. — 8. 31. / 상품 지급 기준은 도서관
+              추가대출기간과 상품 지급 기준은 해당 회차의 도서관
               공지사항 및 최종 운영 기준을 따릅니다.
             </p>
           </div>
@@ -701,21 +603,21 @@ function MainPage() {
               <div className="contact-grid">
                 <div className="contact-item">
                   <span>전화 문의</span>
-                  <b>031-330-4927</b>
+                  <b>{currentEvent?.contactPhone || '문의 전화 미등록'}</b>
                 </div>
                 <div className="contact-item">
                   <span>이메일</span>
-                  <a href="mailto:jhpark@hufs.ac.kr">jhpark@hufs.ac.kr</a>
+                  {currentEvent?.contactEmail ? <a href={`mailto:${currentEvent.contactEmail}`}>{currentEvent.contactEmail}</a> : <span>문의 이메일 미등록</span>}
                 </div>
                 <div className="contact-item">
                   <span>운영 채널</span>
-                  <a
-                    href="https://open.kakao.com/o/gfTnKI3h"
+                  {currentEvent?.kakaoOpenChatUrl && /^https?:\/\//.test(currentEvent.kakaoOpenChatUrl) ? <a
+                    href={currentEvent.kakaoOpenChatUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
                     카카오톡 오픈채팅
-                  </a>
+                  </a> : <span>운영 채널 미등록</span>}
                 </div>
                 <div className="contact-item">
                   <span>소속</span>
@@ -730,11 +632,11 @@ function MainPage() {
               <h2>
                 {showMyRecord
                   ? '오늘 읽은 기록을 독서일지로 남겨보세요'
-                  : '제5회 독서마라톤 참가신청'}
+                  : `${eventTitle} 참가신청`}
               </h2>
               <p>
                 {showMyRecord
-                  ? '읽은 페이지 수를 입력하면 누적 거리와 완주율에 반영됩니다.'
+                  ? '일지 승인 시 쪽수, 서평 확인 시 거리와 완주율에 반영됩니다.'
                   : '신청 기간과 참가 대상 확인 후 참가신청서를 제출해 주세요.'}
               </p>
             </div>

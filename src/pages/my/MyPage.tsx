@@ -2,7 +2,7 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { ApiError } from '../../api/apiClient';
 import { getCurrentParticipation } from '../../api/participationApi';
-import { getMyReadingBooks, getMyReadingLogs } from '../../api/readingLogApi';
+import { getMyBookProgress, getMyReadingLogs } from '../../api/readingLogApi';
 import type { MyParticipation } from '../../types/participation';
 import type { ParticipantBook, ReadingLog } from '../../types/readingLog';
 import { formatDistance } from '../../utils/reading';
@@ -29,7 +29,7 @@ function MyPage() {
       .then(async (nextParticipation) => {
         const [nextLogs, nextReadingBooks] = await Promise.all([
           getMyReadingLogs(nextParticipation.participationId),
-          getMyReadingBooks(),
+          getMyBookProgress(nextParticipation.eventId),
         ]);
         if (isActive) {
           setParticipation(nextParticipation);
@@ -121,7 +121,7 @@ function MyPage() {
 
       <section className="my-stat-grid" aria-label="나의 독서마라톤 요약">
         <article><span>누적 페이지</span><strong>{participation.totalPages.toLocaleString()}쪽</strong><p>승인된 독서일지 기준</p></article>
-        <article><span>누적 거리</span><strong>{formatDistance(participation.totalDistanceMeter)}</strong><p>1쪽 = 5m 기준</p></article>
+        <article><span>누적 거리</span><strong>{formatDistance(participation.totalDistanceMeter)}</strong><p>서평 확인된 승인 쪽수 × 5m</p></article>
         <article><span>인정 기록</span><strong>{approvedCount}건</strong><p>관리자 확인 완료</p></article>
         <article><span>검토중</span><strong>{pendingCount}건</strong><p>승인 대기 중인 기록</p></article>
       </section>
@@ -131,11 +131,11 @@ function MyPage() {
         {recentLog ? (
           <article className="my-latest-card">
             <div><span className={`my-status-badge status-${STATUS_LABEL[recentLog.status]}`}>{STATUS_LABEL[recentLog.status]}</span><h3>{recentLog.books.map((book) => book.bookTitle).join(', ')}</h3><p>{recentLog.books.length}권의 독서 기록</p></div>
-            <dl><div><dt>독서 날짜</dt><dd>{recentLog.readingDate}</dd></div><div><dt>읽은 페이지</dt><dd>{recentLog.totalReadPages.toLocaleString()}쪽</dd></div><div><dt>환산 거리</dt><dd>{formatDistance(recentLog.convertedDistanceMeter)}</dd></div></dl>
+            <dl><div><dt>독서 날짜</dt><dd>{recentLog.readingDate}</dd></div><div><dt>읽은 페이지</dt><dd>{recentLog.totalReadPages.toLocaleString()}쪽</dd></div><div><dt>예상 환산 거리</dt><dd>{formatDistance(recentLog.convertedDistanceMeter)}</dd></div></dl>
           </article>
         ) : <article className="my-latest-card"><p>아직 제출한 독서일지가 없습니다.</p></article>}
       </section>
-      {readingBooks.length > 0 && <section className="my-latest-section"><div className="my-section-head"><div><p className="my-section-kicker">Reading Books</p><h2>읽는 중인 책</h2></div></div>{readingBooks.map((book) => <article className="my-latest-card" key={book.participantBookId}><div><h3>{book.bookTitle}</h3><p>{book.author || '저자 미상'} · {book.publisher || '출판사 미상'}</p></div><dl><div><dt>승인된 페이지</dt><dd>{book.approvedReadPages.toLocaleString()}쪽</dd></div><div><dt>남은 페이지</dt><dd>{book.remainingPages.toLocaleString()}쪽</dd></div></dl></article>)}</section>}
+      {readingBooks.length > 0 && <section className="my-latest-section"><div className="my-section-head"><div><p className="my-section-kicker">Reading Books</p><h2>책별 독서·서평 현황</h2></div></div>{readingBooks.map((book) => <article className="my-latest-card" key={book.participantBookId}><div><h3>{book.bookTitle}</h3><p>{book.author || '저자 미상'} · {book.publisher || '출판사 미상'}</p><p>{book.completed?'완독':'읽는 중'} · {book.reviewVerified?'서평 확인 완료':book.reviewCompleted?'서평 확인 대기':'서평 작성 필요'} · 인정 거리 {formatDistance(book.creditedReadPages*5)}</p></div><dl><div><dt>승인된 페이지</dt><dd>{book.approvedReadPages.toLocaleString()}쪽</dd></div><div><dt>남은 페이지</dt><dd>{book.remainingPages.toLocaleString()}쪽</dd></div></dl></article>)}</section>}
     </main>
   );
 }

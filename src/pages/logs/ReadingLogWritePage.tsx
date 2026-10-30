@@ -1,3 +1,4 @@
+import { koreaToday } from '../../utils/eventSelection';
 import {
   type FormEvent,
   useEffect,
@@ -7,7 +8,7 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '../../api/apiClient';
 import { searchBooks } from '../../api/bookApi';
-import { getCurrentParticipation } from '../../api/participationApi';
+import { getCurrentParticipation, getMyParticipations } from '../../api/participationApi';
 import {
   completeReview,
   createReadingLog,
@@ -181,7 +182,7 @@ function ReadingLogWritePage() {
   const navigate = useNavigate();
   const { logId } = useParams();
   const editingLogId = logId ? Number(logId) : null;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = koreaToday();
   const [participationId, setParticipationId] = useState<number | null>(null);
   const [readingDate, setReadingDate] = useState(today);
   const [books, setBooks] = useState<BookEntry[]>([createBookEntry()]);
@@ -191,13 +192,20 @@ function ReadingLogWritePage() {
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
-    Promise.all([
-      getCurrentParticipation(),
-      getReviewTargetBooks(),
-      getMyReadingBooks(),
-      editingLogId ? getMyReadingLog(editingLogId) : Promise.resolve(null),
-    ])
-      .then(([participation, targets, readingBooks, editingLog]) => {
+    let active = true;
+    (async () => {
+      const editingLog = editingLogId ? await getMyReadingLog(editingLogId) : null;
+      const participation = editingLog
+        ? (await getMyParticipations()).find(item => item.participationId === editingLog.participationId)
+        : await getCurrentParticipation();
+      if (!participation) throw new Error('해당 독서일지의 참가 정보를 찾을 수 없습니다.');
+      const [targets, readingBooks] = await Promise.all([
+        getReviewTargetBooks(participation.eventId), getMyReadingBooks(participation.eventId),
+      ]);
+      return {participation, targets, readingBooks, editingLog};
+    })()
+      .then(({participation, targets, readingBooks, editingLog}) => {
+        if (!active) return;
         setParticipationId(participation.participationId);
         setReviewTargets(targets);
 
@@ -227,12 +235,14 @@ function ReadingLogWritePage() {
         }
       })
       .catch((error: unknown) => {
+        if (!active) return;
         setErrorMessage(
           error instanceof ApiError
             ? error.message
             : '참가 정보를 불러오지 못했습니다.',
         );
       });
+    return () => { active = false; };
   }, [editingLogId]);
 
   const updateBook = (id: number, changes: Partial<BookEntry>) => {
@@ -358,8 +368,8 @@ function ReadingLogWritePage() {
 
       {reviewTargets.length > 0 && (
         <section className="reading-log-card">
-          <h2>먼저 서평을 완료해 주세요</h2>
-          <p>완독한 책의 서평 완료 처리 후 새 독서일지를 제출할 수 있습니다.</p>
+          <h2>서평 작성 대상</h2>
+          <p>미완독 책도 서평을 제출할 수 있습니다. 서평 대기 중에도 새 일지를 작성할 수 있으며, 관리자 확인 후 승인 쪽수가 거리로 인정됩니다.</p>
           {reviewTargets.map((target) => (
             <div className="reading-book-row" key={target.participantBookId}>
               <strong>{target.bookTitle}</strong>
@@ -573,7 +583,7 @@ function ReadingLogWritePage() {
               <strong>{totalReadPages.toLocaleString()}쪽</strong>
             </div>
             <div className="reading-log-summary-item">
-              <span>환산 거리</span>
+              <span>예상 환산 거리</span>
               <strong>{(totalReadPages * 5).toLocaleString()}m</strong>
             </div>
             <p>읽은 페이지는 1쪽당 5m로 자동 환산됩니다.</p>
@@ -594,7 +604,7 @@ function ReadingLogWritePage() {
               className="reading-log-submit"
               type="submit"
               disabled={
-                isSubmitting || (!editingLogId && reviewTargets.length > 0)
+                isSubmitting || participationId === null
               }
             >
               {isSubmitting

@@ -489,7 +489,7 @@ function ReadingLogDetailDialog({
                     <dd>{totalReadPages.toLocaleString('ko-KR')}쪽</dd>
                   </div>
                   <div>
-                    <dt>환산 거리</dt>
+                    <dt>예상 환산 거리</dt>
                     <dd>
                       {formatReadingDistance(
                         log.convertedDistanceMeter ?? distanceMeters,
@@ -503,8 +503,8 @@ function ReadingLogDetailDialog({
                 </dl>
                 <p className="admin-reading-log-dialog__inclusion-note">
                   {log.status === 'approve'
-                    ? '승인된 페이지와 거리만 누적 집계와 순위에 포함됩니다.'
-                    : '현재 상태에서는 이 페이지와 거리가 누적 집계와 순위에 포함되지 않습니다.'}
+                    ? '승인 쪽수는 집계에 포함됩니다. 거리는 서평을 확인한 분량만 별도로 인정됩니다.'
+                    : '쪽수는 일지 승인 후, 거리는 서평 확인 후 집계에 반영됩니다.'}
                 </p>
               </section>
 
