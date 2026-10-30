@@ -518,43 +518,42 @@ function AdminReadingLogsPage() {
           </select>
         </div>
 
-        <div
-          className="admin-reading-logs__summary"
-          aria-label="독서일지 검토 현황"
-        >
-          {[
-            ["ALL", "ALL", "전체", statistics.total],
-            ["submit", "ALL", "제출", statistics.submit],
-            ["approve", "ALL", "승인", statistics.approve],
-            ["rejected", "ALL", "반려", statistics.rejected],
-            ["ALL", "warning", "확인 필요", statistics.warning],
-          ].map(([status, review, label, count]) => (
-            <button
-              key={`${status}-${review}`}
-              type="button"
-              className={
-                review === "warning"
-                  ? "admin-reading-logs__summary-warning"
-                  : undefined
-              }
-              aria-pressed={statusFilter === status && reviewFilter === review}
-              onClick={() =>
-                handleSummaryFilter(
-                  status as ReadingLogStatusFilter,
-                  review as ReadingLogReviewFilter,
-                )
-              }
-            >
-              <span>{label}</span>
-              <strong>{count}</strong>
-            </button>
-          ))}
-        </div>
       </header>
+      <div
+        className="admin-reading-logs__summary"
+        aria-label="독서일지 검토 현황"
+      >
+        {[
+          ["ALL", "ALL", "전체", statistics.total],
+          ["submit", "ALL", "제출", statistics.submit],
+          ["approve", "ALL", "승인", statistics.approve],
+          ["rejected", "ALL", "반려", statistics.rejected],
+          ["ALL", "warning", "확인 필요", statistics.warning],
+        ].map(([status, review, label, count]) => (
+          <button
+            key={`${status}-${review}`}
+            type="button"
+            className={
+              review === "warning"
+                ? "admin-reading-logs__summary-warning"
+                : undefined
+            }
+            aria-pressed={statusFilter === status && reviewFilter === review}
+            onClick={() =>
+              handleSummaryFilter(
+                status as ReadingLogStatusFilter,
+                review as ReadingLogReviewFilter,
+              )
+            }
+          >
+            <span>{label}</span>
+            <strong>{count}</strong>
+          </button>
+        ))}
+      </div>
 
       <aside className="admin-reading-logs__policy" aria-label="검토 정책 안내">
         <strong>검토 정책</strong>
-        <span>서버 검증 결과 우선</span>
         <span>일지 승인 시 쪽수 반영 · 서평 확인 시 거리 반영</span>
         <span>반려 기록은 참가자가 수정 후 재제출 가능</span>
       </aside>
@@ -700,7 +699,7 @@ function AdminReadingLogsPage() {
         )}
         {!tableView && !selectedLog && (
           <div className="ux-detail">
-            <h2>검토할 일지를 선택해 주세요</h2>
+            <h2>독서일지 상세</h2>
             <p>
               도서 정보와 이번 제출량을 확인합니다. 승인 시 쪽수만 반영되며
               거리는 서평 확인 후 인정됩니다.

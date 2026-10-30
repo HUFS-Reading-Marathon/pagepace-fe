@@ -1085,10 +1085,9 @@ function AdminEventSettingsPage() {
     >
       <header className="admin-page__header admin-event-settings__header">
         <div>
-          <h1>행사/코스 설정</h1>
+          <h1>행사·코스 설정</h1>
           <p>
-            조회 후 수정 버튼을 눌러 변경하세요. 신청 기간, 독서일지 접수기간
-            순서로 설정합니다.
+            행사 기간과 코스별 목표·보상을 관리합니다. 변경하려면 설정 수정을 선택합니다.
           </p>
           {!isCreatingEvent && (
             <button

@@ -4,6 +4,7 @@ import App from './App';
 import './styles/global.css';
 import './styles/ui-refinement.css';
 import './styles/mobile.css';
+import './styles/admin-console.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

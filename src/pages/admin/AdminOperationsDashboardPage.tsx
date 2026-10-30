@@ -58,6 +58,7 @@ function formatDateTime(value: string) {
 }
 
 function AdminOperationsDashboardPage() {
+  const [queueFilter, setQueueFilter] = useState("전체");
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [selectedEventId, setSelectedEventId] = useAdminEventState();
   const [applications, setApplications] = useState<AdminApplicationListItem[]>(
@@ -105,7 +106,7 @@ function AdminOperationsDashboardPage() {
         setError(
           requestError instanceof ApiError
             ? requestError.message
-            : "오늘의 업무를 불러오지 못했습니다.",
+            : "운영 현황을 불러오지 못했습니다.",
         );
       })
       .finally(() => {
@@ -135,222 +136,49 @@ function AdminOperationsDashboardPage() {
   const totalTasks =
     pendingApplications.length + pendingLogs.length + reviews.length;
 
+  const queue = [
+    ...pendingApplications.map(item => ({id: `application-${item.applicationId}`, kind: "참가 신청", name: item.name, detail: item.courseName, date: item.appliedAt, href: "/admin/participants", action: "신청 검토"})),
+    ...pendingLogs.map(item => ({id: `log-${item.readingLogId}`, kind: "독서일지", name: item.userName, detail: `${item.books.map(book => book.bookTitle).join(", ")} · ${item.totalReadPages}쪽`, date: item.createdAt, href: "/admin/logs", action: "일지 검토"})),
+    ...reviews.map(item => ({id: `review-${item.participantBookId}`, kind: "서평", name: item.userName, detail: item.bookTitle, date: item.reviewSubmittedAt, href: "/admin/reviews", action: "서평 확인"})),
+  ].sort((a,b) => a.date.localeCompare(b.date));
+  const filteredQueue = queue.filter(item => queueFilter === "전체" || item.kind === queueFilter);
   return (
     <section className="admin-page admin-operations">
       <header className="admin-page__header admin-operations__header">
-        <div>
-          <span className="admin-operations__eyebrow">TODAY'S WORK</span>
-          <h1>오늘의 운영 업무</h1>
-          <p>승인 대기 중인 업무부터 순서대로 처리하세요.</p>
-        </div>
-        <label className="admin-operations__event-select">
-          <span>업무 대상 행사</span>
-          <select
-            value={selectedEventId ?? ""}
-            onChange={(event) => {
-              setIsLoading(true);
-              setSelectedEventId(Number(event.target.value));
-            }}
-          >
-            {events.map((event) => (
-              <option key={event.eventId} value={event.eventId}>
-                {event.roundNo}회 · {event.title}
-              </option>
-            ))}
+        <div><h1>운영 현황</h1><p>참가 신청, 독서일지와 서평의 처리 현황을 확인합니다.</p></div>
+        <label className="admin-operations__event-select"><span>행사</span>
+          <select value={selectedEventId ?? ""} onChange={event => {setIsLoading(true); setSelectedEventId(Number(event.target.value));}}>
+            {events.map(event => <option key={event.eventId} value={event.eventId}>{event.title}</option>)}
           </select>
         </label>
       </header>
-
-      {error && (
-        <div className="admin-operations__error" role="alert">
-          {error}
+      {error && <div className="admin-operations__error" role="alert">{error}</div>}
+      {!isLoading && !selectedEvent ? <div className="admin-operations__empty">등록된 행사가 없습니다. <Link to="/admin/event">행사 등록</Link></div> : <>
+        <div className="ops-summary" aria-label="처리 대기 현황">
+          {[{title:"참가 신청",count:pendingApplications.length,href:"/admin/participants",hint:"신청 정보 검토"},{title:"독서일지",count:pendingLogs.length,href:"/admin/logs",hint:"독서량 승인"},{title:"서평",count:reviews.length,href:"/admin/reviews",hint:"작성 기록 확인"}].map(item =>
+            <Link key={item.title} to={item.href} className="ops-summary__item"><span>{item.title} 대기</span><strong>{isLoading ? "—" : item.count}<small>건</small></strong><span>{item.hint}<b aria-hidden="true">↗</b></span></Link>)}
         </div>
-      )}
-      {!isLoading && !selectedEvent ? (
-        <div className="admin-operations__empty">
-          운영할 행사가 없습니다.{" "}
-          <Link to="/admin/event">행사를 먼저 등록해 주세요.</Link>
+        <div className="ops-workspace">
+          <section className="console-panel">
+            <div className="console-panel__heading"><h2>처리 대기 목록</h2><span>전체 {isLoading ? "—" : totalTasks}건 · 접수순</span></div>
+            <div className="ux-tabs" aria-label="처리 유형">
+              {["전체","참가 신청","독서일지","서평"].map(kind => <button key={kind} aria-pressed={kind === queueFilter} className={kind === queueFilter ? "active" : ""} onClick={() => setQueueFilter(kind)}>{kind}</button>)}
+            </div>
+            {isLoading ? <p className="console-empty" role="status">처리 목록을 불러오고 있습니다.</p> : filteredQueue.length ? <div className="table-scroll"><table className="console-table"><thead><tr><th>구분</th><th>참가자</th><th>내용</th><th>접수일</th><th>처리</th></tr></thead><tbody>
+              {filteredQueue.slice(0,15).map(item => <tr key={item.id}><td><span className="console-badge">{item.kind}</span></td><th scope="row">{item.name}</th><td>{item.detail}</td><td><time>{formatDateTime(item.date)}</time></td><td><Link className="console-link-button" to={item.href}>{item.action}</Link></td></tr>)}
+            </tbody></table></div> : <p className="console-empty">처리 대기 항목이 없습니다.</p>}
+            {filteredQueue.length > 15 && <p className="console-footnote">접수순 15건을 표시합니다. 전체 목록은 각 관리 화면에서 확인할 수 있습니다.</p>}
+          </section>
+          <aside className="ops-context">
+            <section className="console-panel"><div className="console-panel__heading"><h2>행사 정보</h2></div><div className="console-panel__body">
+              <span className="console-badge">{selectedEvent ? EVENT_STATUS_LABEL[selectedEvent.status] : "불러오는 중"}</span><h3>{selectedEvent?.title}</h3>
+              <dl className="ops-dates"><dt>독서일지 접수기간</dt><dd>{selectedEvent?.eventStartDate}<br/>~ {selectedEvent?.eventEndDate}</dd></dl>
+              <Link className="console-link-button" to="/admin/event">행사·코스 설정</Link>
+            </div></section>
+            <section className="console-panel"><div className="console-panel__heading"><h2>관리 메뉴</h2></div><nav className="ops-shortcuts"><Link to="/admin/participants">참가자 관리 <span>→</span></Link><Link to="/admin/notices">공지사항 관리 <span>→</span></Link><Link to="/admin/statistics">운영 통계 <span>→</span></Link></nav></section>
+          </aside>
         </div>
-      ) : (
-        <>
-          <section className="admin-operations__event-context">
-            <div>
-              <span>
-                {selectedEvent
-                  ? EVENT_STATUS_LABEL[selectedEvent.status]
-                  : "불러오는 중"}
-              </span>
-              <strong>
-                {selectedEvent?.title ?? "행사 정보를 불러오고 있습니다."}
-              </strong>
-              <small>
-                {selectedEvent
-                  ? `${selectedEvent.eventStartDate} ~ ${selectedEvent.eventEndDate}`
-                  : ""}
-              </small>
-            </div>
-            <div className="admin-operations__task-total">
-              <span>처리 대기</span>
-              <strong>
-                {isLoading ? "-" : totalTasks}
-                <small>건</small>
-              </strong>
-            </div>
-          </section>
-
-          <div className="admin-operations__queues">
-            <section className="admin-operations__queue">
-              <header>
-                <div>
-                  <span className="admin-operations__step">01</span>
-                  <h2>참가 신청서 검수</h2>
-                  <p>오래 기다린 신청부터 확인합니다.</p>
-                </div>
-                <strong>
-                  {isLoading ? "-" : pendingApplications.length}건
-                </strong>
-              </header>
-              <div className="admin-operations__queue-list">
-                {isLoading ? (
-                  <p className="admin-operations__queue-message">
-                    신청서를 불러오고 있습니다.
-                  </p>
-                ) : pendingApplications.length === 0 ? (
-                  <p className="admin-operations__queue-message is-complete">
-                    처리할 참가 신청서가 없습니다.
-                  </p>
-                ) : (
-                  pendingApplications.slice(0, 5).map((item) => (
-                    <Link
-                      key={item.applicationId}
-                      to="/admin/participants"
-                      className="admin-operations__queue-row"
-                    >
-                      <div>
-                        <strong>{item.name}</strong>
-                        <span>
-                          {item.studentNo} · {item.courseName}
-                        </span>
-                      </div>
-                      <time>{formatDateTime(item.appliedAt)}</time>
-                      <span aria-hidden="true">→</span>
-                    </Link>
-                  ))
-                )}
-              </div>
-              <Link
-                to="/admin/participants"
-                className="admin-operations__queue-action"
-              >
-                참가 신청서 검수하기 <span>→</span>
-              </Link>
-            </section>
-
-            <section className="admin-operations__queue">
-              <header>
-                <div>
-                  <span className="admin-operations__step">02</span>
-                  <h2>독서일지 검토</h2>
-                  <p>제출 순서대로 내용과 페이지를 확인합니다.</p>
-                </div>
-                <strong>{isLoading ? "-" : pendingLogs.length}건</strong>
-              </header>
-              <div className="admin-operations__queue-list">
-                {isLoading ? (
-                  <p className="admin-operations__queue-message">
-                    독서일지를 불러오고 있습니다.
-                  </p>
-                ) : pendingLogs.length === 0 ? (
-                  <p className="admin-operations__queue-message is-complete">
-                    검토할 독서일지가 없습니다.
-                  </p>
-                ) : (
-                  pendingLogs.slice(0, 5).map((log) => (
-                    <Link
-                      key={log.readingLogId}
-                      to="/admin/logs"
-                      className="admin-operations__queue-row"
-                    >
-                      <div>
-                        <strong>{log.userName}</strong>
-                        <span>
-                          {log.books.map((book) => book.bookTitle).join(", ")} ·{" "}
-                          {log.totalReadPages}쪽
-                        </span>
-                      </div>
-                      <time>{formatDateTime(log.createdAt)}</time>
-                      <span aria-hidden="true">→</span>
-                    </Link>
-                  ))
-                )}
-              </div>
-              <Link to="/admin/logs" className="admin-operations__queue-action">
-                독서일지 검토하기 <span>→</span>
-              </Link>
-            </section>
-            <section className="admin-operations__queue">
-              <header>
-                <div>
-                  <span className="admin-operations__step">03</span>
-                  <h2>서평 확인</h2>
-                  <p>작성 완료 알림을 확인하고 거리를 반영합니다.</p>
-                </div>
-                <strong>{isLoading ? "-" : reviews.length}건</strong>
-              </header>
-              <div className="admin-operations__queue-list">
-                {isLoading ? (
-                  <p>불러오는 중입니다.</p>
-                ) : reviews.length ? (
-                  reviews.slice(0, 5).map((r) => (
-                    <Link
-                      key={r.participantBookId}
-                      to="/admin/reviews"
-                      className="admin-operations__queue-row"
-                    >
-                      <div>
-                        <strong>{r.userName}</strong>
-                        <span>{r.bookTitle}</span>
-                      </div>
-                      <span>+{r.distanceToCreditMeter}m</span>
-                    </Link>
-                  ))
-                ) : (
-                  <p className="admin-operations__queue-message">
-                    확인할 서평이 없습니다.
-                  </p>
-                )}
-              </div>
-              <Link
-                to="/admin/reviews"
-                className="admin-operations__queue-action"
-              >
-                서평 확인하기 →
-              </Link>
-            </section>
-          </div>
-
-          <section className="admin-operations__secondary">
-            <div>
-              <h2>그 밖의 운영</h2>
-              <p>필요할 때 확인하거나 변경하는 관리 기능입니다.</p>
-            </div>
-            <nav>
-              <Link to="/admin/status">
-                <strong>대회 현황 관리</strong>
-                <span>참가자별 진행 상황 확인</span>
-              </Link>
-              <Link to="/admin/event">
-                <strong>행사·코스 설정</strong>
-                <span>기간과 코스 기준 변경</span>
-              </Link>
-              <Link to="/admin/statistics">
-                <strong>운영 통계</strong>
-                <span>참여와 독서 추이 분석</span>
-              </Link>
-            </nav>
-          </section>
-        </>
-      )}
+      </>}
     </section>
   );
 }

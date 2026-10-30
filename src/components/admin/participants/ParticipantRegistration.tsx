@@ -108,16 +108,16 @@ export default function ParticipantRegistration({
     }
   };
   return (
-    <section className="admin-event-settings__panel">
-      <h2>승인 참가자 · 직접 등록</h2>
+    <section className="admin-event-settings__panel registration-panel">
+      <h2>참가 현황</h2>
       <p>
         {summary
           ? `실제 참가자 ${summary.participantCount}명 · 완주 ${summary.completedCount}명 (취소·실격 제외)`
           : "참가 현황 조회 중"}
       </p>
       {message && <p role="status">{message}</p>}
-      <details>
-        <summary>참가자 직접 등록</summary>
+      <details className="registration-create">
+        <summary>참가자 등록</summary>
         <form className="registration-form" onSubmit={submit}>
           <fieldset disabled={busy}>
             <label>
@@ -253,8 +253,8 @@ export default function ParticipantRegistration({
             : "registration-workspace"
         }
       >
-        <details open>
-          <summary>참가 기록 전체 {participants.length}건</summary>
+        <section className="registration-records">
+          <h3>참가 기록 <span>{participants.length}건</span></h3>
           <label>
             참가자 검색{" "}
             <input
@@ -306,7 +306,7 @@ export default function ParticipantRegistration({
               </tbody>
             </table>
           </div>
-        </details>
+        </section>
         {selectedParticipant && (
           <aside
             className="ux-detail registration-detail"

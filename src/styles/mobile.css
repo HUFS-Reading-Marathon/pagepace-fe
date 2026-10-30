@@ -18,9 +18,9 @@
 
 @media (max-width: 700px) {
   /* 16px fields avoid automatic iOS focus zoom; never disable user zoom. */
-  #root input:not([type="checkbox"]):not([type="radio"]),
-  #root select, #root textarea { font-size: 16px; min-width: 0; max-width: 100%; }
-  #root input:not([type="checkbox"]):not([type="radio"]), #root select { min-height: 44px; }
+  #root > :not(.admin-layout) input:not([type="checkbox"]):not([type="radio"]),
+  #root > :not(.admin-layout) select, #root > :not(.admin-layout) textarea { font-size: 16px; min-width: 0; max-width: 100%; }
+  #root > :not(.admin-layout) input:not([type="checkbox"]):not([type="radio"]), #root > :not(.admin-layout) select { min-height: 44px; }
   main button, main .btn, main summary { min-height: 44px; }
   main button, main a, main p, main strong { overflow-wrap: anywhere; }
   .page-container, .log-page, .my-page, .account-page { width: calc(100% - 28px); padding-top: 28px; padding-bottom: 40px; }

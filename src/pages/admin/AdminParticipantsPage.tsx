@@ -485,6 +485,26 @@ function AdminParticipantsPage() {
             <strong>{statistics.cancelled}</strong>
           </button>
         </div>
+        <label>
+          행사{" "}
+          <select
+            aria-label="행사"
+            value={currentEventId ?? ""}
+            disabled={processingApplicationId !== null}
+            onChange={(e) => {
+              handleCloseDialog();
+              setParticipants([]);
+              setIsLoading(true);
+              setCurrentEventId(Number(e.target.value));
+            }}
+          >
+            {events.map((event) => (
+              <option key={event.eventId} value={event.eventId}>
+                {event.title}
+              </option>
+            ))}
+          </select>
+        </label>
       </header>
 
       <div className="ux-tabs" role="tablist" aria-label="참가 관리 목록">
@@ -496,7 +516,7 @@ function AdminParticipantsPage() {
             setParticipantTab("participants");
           }}
         >
-          실제 참가자
+          참가자 목록
         </button>
         <button
           role="tab"
@@ -509,26 +529,7 @@ function AdminParticipantsPage() {
           참가 신청서
         </button>
       </div>
-      <label>
-        관리할 행사{" "}
-        <select
-          aria-label="관리할 행사"
-          value={currentEventId ?? ""}
-          disabled={processingApplicationId !== null}
-          onChange={(e) => {
-            handleCloseDialog();
-            setParticipants([]);
-            setIsLoading(true);
-            setCurrentEventId(Number(e.target.value));
-          }}
-        >
-          {events.map((event) => (
-            <option key={event.eventId} value={event.eventId}>
-              {event.title}
-            </option>
-          ))}
-        </select>
-      </label>
+
       {participantTab === "participants" && currentEventId !== null && (
         <ParticipantRegistration
           key={`${currentEventId}-${statistics.approved}`}

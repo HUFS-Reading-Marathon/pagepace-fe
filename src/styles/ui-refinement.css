@@ -200,7 +200,7 @@
 .admin-layout button,
 .admin-layout input,
 .admin-layout select {
-  font: inherit;
+  font-family: inherit;
 }
 .admin-layout button:disabled {
   cursor: not-allowed;

@@ -4,31 +4,31 @@ import { matchPath, NavLink, useLocation } from 'react-router-dom';
 const ADMIN_MENUS = [
   { label: '사용자 화면 보기', path: '/', group: '화면 이동', enabled: true },
   {
-    label: '오늘의 업무',
+    label: '운영 현황',
     path: '/admin',
-    group: '매일 하는 업무',
+    group: '참가·기록 관리',
     enabled: true,
   },
   {
     label: '참가자 관리',
     path: '/admin/participants',
-    group: '매일 하는 업무',
+    group: '참가·기록 관리',
     enabled: true,
   },
   {
     label: '독서일지 검토',
     path: '/admin/logs',
-    group: '매일 하는 업무',
+    group: '참가·기록 관리',
     enabled: true,
   },
   {
     label: '서평 확인',
     path: '/admin/reviews',
-    group: '매일 하는 업무',
+    group: '참가·기록 관리',
     enabled: true,
   },
   {
-    label: '행사/코스 설정',
+    label: '행사·코스 설정',
     path: '/admin/event',
     group: '운영 관리',
     enabled: true,
@@ -48,7 +48,7 @@ const ADMIN_MENUS = [
   {
     label: '운영 통계',
     path: '/admin/statistics',
-    group: '분석',
+    group: '통계',
     enabled: true,
   },
 ] as const;
