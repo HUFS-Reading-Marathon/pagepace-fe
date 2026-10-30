@@ -492,6 +492,7 @@
 
 .admin-queue__head h2 {
   margin: 0;
+  white-space: nowrap;
   color: var(--ink);
   font-size: 14px;
   font-weight: var(--admin-fw-semibold);
@@ -897,15 +898,70 @@
     max-width: 64px;
   }
 
+  /* 휴대폰 폭에서는 세로 사이드바가 본문을 좁히므로 가로 스크롤 메뉴로 바꿉니다. */
+  .admin-layout__body {
+    flex-direction: column;
+  }
+
   .admin-sidebar {
-    width: 168px;
-    flex-basis: 168px;
-    padding: 18px 10px;
+    position: static;
+    width: 100%;
+    height: auto;
+    flex-basis: auto;
+    padding: 6px 12px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .admin-sidebar__menu {
+    flex-direction: row;
+    gap: 2px;
+    overflow-x: auto;
+  }
+
+  .admin-sidebar__item {
+    flex: 0 0 auto;
+  }
+
+  .admin-sidebar__item[hidden] {
+    display: none;
+  }
+
+  .admin-sidebar__group {
+    display: none;
   }
 
   .admin-sidebar__link {
-    padding-inline: 9px;
+    width: auto;
+    min-height: 40px;
+    padding-inline: 10px;
+    border-bottom: 2px solid transparent;
+    border-left: 0;
+    border-radius: 0;
     font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .admin-sidebar__link--active {
+    border-bottom-color: var(--navy-strong);
+  }
+
+  .admin-detail-panel__head {
+    flex-wrap: wrap;
+  }
+
+  .admin-detail-panel__head,
+  .admin-detail-panel__body,
+  .admin-detail-panel__actions {
+    padding-inline: 16px;
+  }
+
+  .admin-detail-panel__actions .admin-button {
+    flex: 1;
+  }
+
+  .admin-detail-panel__actions-hint {
+    width: 100%;
   }
 
   .admin-layout__main {

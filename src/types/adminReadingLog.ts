@@ -4,7 +4,6 @@ export type ReadingLogStatus = 'submit' | 'approve' | 'rejected';
 
 export type ReadingLogStatusFilter = 'ALL' | ReadingLogStatus;
 export type ReadingLogReviewFilter = 'ALL' | 'safe' | 'warning';
-export type ReadingLogDialogMode = 'detail' | 'approve-confirm' | 'reject';
 
 /** 관리자 검토 화면에서 사용하는 책별 독서 내역 표시 모델 */
 export type ReadingLogBookEntry = {
@@ -54,16 +53,6 @@ export const READING_LOG_STATUS_LABELS: Record<ReadingLogStatus, string> = {
   approve: '승인',
   rejected: '반려',
 };
-
-export const READING_LOG_STATUS_OPTIONS: ReadonlyArray<{
-  value: ReadingLogStatusFilter;
-  label: string;
-}> = [
-  { value: 'ALL', label: '전체 상태' },
-  { value: 'submit', label: READING_LOG_STATUS_LABELS.submit },
-  { value: 'approve', label: READING_LOG_STATUS_LABELS.approve },
-  { value: 'rejected', label: READING_LOG_STATUS_LABELS.rejected },
-];
 
 export const READING_LOG_REVIEW_OPTIONS: ReadonlyArray<{
   value: ReadingLogReviewFilter;
