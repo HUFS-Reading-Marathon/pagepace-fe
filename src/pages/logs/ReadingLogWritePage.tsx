@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getApiErrorMessage } from '../../api/apiClient';
 import { getCurrentParticipation } from '../../api/participationApi';
 import {
@@ -14,6 +14,8 @@ import BookCover from '../../components/logs/BookCover';
 import BookSearchField from '../../components/logs/BookSearchField';
 import { DAILY_READING_PAGE_LIMIT, METERS_PER_PAGE } from '../../constants/reading';
 import type { BookSearchResult } from '../../types/book';
+import type { MyParticipation } from '../../types/participation';
+import { formatDistance } from '../../utils/reading';
 import type {
   ParticipantBook,
   ReadingLogBookRequest,
@@ -84,7 +86,8 @@ function ReadingLogWritePage() {
   const { logId } = useParams();
   const editingLogId = logId ? Number(logId) : null;
   const today = new Date().toISOString().slice(0, 10);
-  const [participationId, setParticipationId] = useState<number | null>(null);
+  const [participation, setParticipation] = useState<MyParticipation | null>(null);
+  const participationId = participation?.participationId ?? null;
   const [readingDate, setReadingDate] = useState(today);
   const [books, setBooks] = useState<BookEntry[]>([createBookEntry()]);
   const [reviewTargets, setReviewTargets] = useState<ReviewTargetBook[]>([]);
@@ -100,7 +103,7 @@ function ReadingLogWritePage() {
       editingLogId ? getMyReadingLog(editingLogId) : Promise.resolve(null),
     ])
       .then(([participation, targets, readingBooks, editingLog]) => {
-        setParticipationId(participation.participationId);
+        setParticipation(participation);
         setReviewTargets(targets);
 
         if (editingLog) {
@@ -155,6 +158,11 @@ function ReadingLogWritePage() {
     }
   };
 
+  // 기존 정책 유지: 새 일지는 완독 도서의 서평 작성 완료 처리 후 제출할 수 있습니다(수정은 제외).
+  const isBlockedByReview = !editingLogId && reviewTargets.length > 0;
+  const progressRate = participation
+    ? Math.min(Math.max(Math.round(participation.progressRate), 0), 100)
+    : 0;
   const totalReadPages = books.reduce((sum, book) => sum + Number(book.readPages || 0), 0);
   const hasInvalidBook = books.some((book) => {
     const totalPages = book.selectedBook?.pageCount ?? 0;
@@ -208,271 +216,361 @@ function ReadingLogWritePage() {
         </p>
       </section>
 
-      {reviewTargets.length > 0 && (
-        <section className="reading-log-card">
-          <h2>먼저 서평을 완료해 주세요</h2>
-          <p>완독한 책의 서평 완료 처리 후 새 독서일지를 제출할 수 있습니다.</p>
-          {reviewTargets.map((target) => (
-            <div className="reading-book-row" key={target.participantBookId}>
-              <strong>{target.bookTitle}</strong>
-              <div className="reading-detail-actions">
-                <a
-                  className="btn btn-secondary"
-                  href={target.reviewSearchUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  서평 작성하러 가기
-                </a>
+      <div
+        className={[
+          'reading-log-write-layout',
+          isBlockedByReview ? 'reading-log-write-layout--review-first' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+      >
+        <section className="reading-log-card reading-log-write-main">
+          <form onSubmit={handleSubmit}>
+            {!editingLogId && currentReadingBook && (
+              <div className="reading-current-book-guide">
+                <span className="reading-current-book-guide-icon" aria-hidden="true">
+                  ↗
+                </span>
+                <div>
+                  <strong>읽던 책이 있어요</strong>
+                  <p>
+                    <b>{currentReadingBook.bookTitle}</b>을 이어서 읽었다면 바로 불러올 수 있어요.
+                    다른 책을 자유롭게 검색해도 됩니다.
+                  </p>
+                </div>
+                <dl>
+                  <div>
+                    <dt>지금까지 인정</dt>
+                    <dd>{currentReadingBook.approvedReadPages.toLocaleString()}쪽</dd>
+                  </div>
+                  <div>
+                    <dt>남은 페이지</dt>
+                    <dd>{currentReadingBook.remainingPages.toLocaleString()}쪽</dd>
+                  </div>
+                </dl>
                 <button
                   type="button"
-                  className="btn btn-secondary"
-                  onClick={() => handleReviewComplete(target)}
+                  className="reading-current-book-load"
+                  onClick={loadCurrentReadingBook}
+                  disabled={books.some(
+                    (book) => book.selectedBook?.libraryBookId === currentReadingBook.libraryBookId,
+                  )}
                 >
-                  작성 완료
+                  {books.some(
+                    (book) => book.selectedBook?.libraryBookId === currentReadingBook.libraryBookId,
+                  )
+                    ? '불러옴'
+                    : '읽던 책 불러오기'}
                 </button>
               </div>
+            )}
+            <div className="reading-log-date-section">
+              <label className="reading-log-field reading-log-date-field">
+                <span>
+                  독서 날짜 <em>*</em>
+                </span>
+                <input
+                  type="date"
+                  value={readingDate}
+                  onChange={(event) => setReadingDate(event.target.value)}
+                  required
+                />
+              </label>
             </div>
-          ))}
-        </section>
-      )}
 
-      <section className="reading-log-card">
-        <form onSubmit={handleSubmit}>
-          {!editingLogId && currentReadingBook && (
-            <div className="reading-current-book-guide">
-              <span className="reading-current-book-guide-icon" aria-hidden="true">
-                ↗
-              </span>
-              <div>
-                <strong>읽던 책이 있어요</strong>
-                <p>
-                  <b>{currentReadingBook.bookTitle}</b>을 이어서 읽었다면 바로 불러올 수 있어요.
-                  다른 책을 자유롭게 검색해도 됩니다.
-                </p>
-              </div>
-              <dl>
-                <div>
-                  <dt>지금까지 인정</dt>
-                  <dd>{currentReadingBook.approvedReadPages.toLocaleString()}쪽</dd>
-                </div>
-                <div>
-                  <dt>남은 페이지</dt>
-                  <dd>{currentReadingBook.remainingPages.toLocaleString()}쪽</dd>
-                </div>
-              </dl>
-              <button
-                type="button"
-                className="reading-current-book-load"
-                onClick={loadCurrentReadingBook}
-                disabled={books.some(
-                  (book) => book.selectedBook?.libraryBookId === currentReadingBook.libraryBookId,
-                )}
-              >
-                {books.some(
-                  (book) => book.selectedBook?.libraryBookId === currentReadingBook.libraryBookId,
-                )
-                  ? '불러옴'
-                  : '읽던 책 불러오기'}
-              </button>
-            </div>
-          )}
-          <div className="reading-log-date-section">
-            <label className="reading-log-field reading-log-date-field">
-              <span>
-                독서 날짜 <em>*</em>
-              </span>
-              <input
-                type="date"
-                value={readingDate}
-                onChange={(event) => setReadingDate(event.target.value)}
-                required
-              />
-            </label>
-          </div>
+            <div className="reading-book-list">
+              {books.map((book, index) => {
+                const totalPages = book.selectedBook?.pageCount ?? 0;
+                const matchedCurrentBook =
+                  !editingLogId &&
+                  currentReadingBook?.libraryBookId === book.selectedBook?.libraryBookId
+                    ? currentReadingBook
+                    : null;
+                const otherBooksPages = books.reduce(
+                  (sum, item) => (item.id === book.id ? sum : sum + Number(item.readPages || 0)),
+                  0,
+                );
+                const availablePages = Math.min(
+                  matchedCurrentBook?.remainingPages ?? totalPages,
+                  Math.max(0, DAILY_READING_PAGE_LIMIT - otherBooksPages),
+                );
+                const readPages = Number(book.readPages || 0);
+                const isPageInvalid = readPages > availablePages && availablePages > 0;
 
-          <div className="reading-book-list">
-            {books.map((book, index) => {
-              const totalPages = book.selectedBook?.pageCount ?? 0;
-              const matchedCurrentBook =
-                !editingLogId &&
-                currentReadingBook?.libraryBookId === book.selectedBook?.libraryBookId
-                  ? currentReadingBook
-                  : null;
-              const otherBooksPages = books.reduce(
-                (sum, item) => (item.id === book.id ? sum : sum + Number(item.readPages || 0)),
-                0,
-              );
-              const availablePages = Math.min(
-                matchedCurrentBook?.remainingPages ?? totalPages,
-                Math.max(0, DAILY_READING_PAGE_LIMIT - otherBooksPages),
-              );
-              const readPages = Number(book.readPages || 0);
-              const isPageInvalid = readPages > availablePages && availablePages > 0;
-
-              return (
-                <section className="reading-book-row" key={book.id}>
-                  <div className="reading-book-row-head">
-                    <div className="reading-book-row-title">
-                      <strong>책 {index + 1}</strong>
-                      {book.selectedBook && (
-                        <span className="reading-book-row-preview">{book.selectedBook.title}</span>
+                return (
+                  <section className="reading-book-row" key={book.id}>
+                    <div className="reading-book-row-head">
+                      <div className="reading-book-row-title">
+                        <strong>책 {index + 1}</strong>
+                        {book.selectedBook && (
+                          <span className="reading-book-row-preview">
+                            {book.selectedBook.title}
+                          </span>
+                        )}
+                      </div>
+                      {books.length > 1 && (
+                        <button
+                          type="button"
+                          className="reading-book-remove"
+                          onClick={() =>
+                            setBooks((current) => current.filter((item) => item.id !== book.id))
+                          }
+                        >
+                          삭제
+                        </button>
                       )}
                     </div>
-                    {books.length > 1 && (
-                      <button
-                        type="button"
-                        className="reading-book-remove"
-                        onClick={() =>
-                          setBooks((current) => current.filter((item) => item.id !== book.id))
+
+                    <div className="reading-book-entry-fields">
+                      <BookSearchField
+                        query={book.query}
+                        selectedBook={book.selectedBook}
+                        onQueryChange={(query) =>
+                          updateBook(book.id, { query, selectedBook: null })
                         }
-                      >
-                        삭제
-                      </button>
-                    )}
-                  </div>
+                        onSelect={(selectedBook) =>
+                          updateBook(book.id, { query: selectedBook.title, selectedBook })
+                        }
+                      />
 
-                  <div className="reading-book-entry-fields">
-                    <BookSearchField
-                      query={book.query}
-                      selectedBook={book.selectedBook}
-                      onQueryChange={(query) => updateBook(book.id, { query, selectedBook: null })}
-                      onSelect={(selectedBook) =>
-                        updateBook(book.id, { query: selectedBook.title, selectedBook })
-                      }
-                    />
+                      <label className="reading-log-field reading-book-read-pages">
+                        <span>
+                          오늘 읽은 페이지 <em>*</em>
+                        </span>
+                        <div className="reading-log-number-input">
+                          <input
+                            type="number"
+                            min="1"
+                            max={availablePages || undefined}
+                            value={book.readPages}
+                            onChange={(event) =>
+                              updateBook(book.id, {
+                                readPages: event.target.value,
+                              })
+                            }
+                            placeholder={
+                              book.selectedBook
+                                ? `최대 ${availablePages.toLocaleString()}`
+                                : '도서 선택 후 입력'
+                            }
+                            disabled={!book.selectedBook}
+                            required
+                          />
+                          <span>쪽</span>
+                        </div>
+                        {isPageInvalid && (
+                          <small className="reading-log-error">
+                            남은 페이지 이하로 입력해 주세요.
+                          </small>
+                        )}
+                      </label>
+                    </div>
 
-                    <label className="reading-log-field reading-book-read-pages">
-                      <span>
-                        오늘 읽은 페이지 <em>*</em>
-                      </span>
-                      <div className="reading-log-number-input">
-                        <input
-                          type="number"
-                          min="1"
-                          max={availablePages || undefined}
-                          value={book.readPages}
-                          onChange={(event) =>
+                    {book.selectedBook && (
+                      <div className="reading-book-selected">
+                        <span className="reading-book-selected-cover">
+                          <BookCover book={book.selectedBook} />
+                        </span>
+                        <div className="reading-book-selected-info">
+                          <span>선택한 도서</span>
+                          <strong>{book.selectedBook.title}</strong>
+                          <p>
+                            {book.selectedBook.author || '저자 미상'}
+                            {book.selectedBook.publisher ? ` · ${book.selectedBook.publisher}` : ''}
+                          </p>
+                          <dl>
+                            <div>
+                              <dt>전체 페이지</dt>
+                              <dd>{totalPages.toLocaleString()}쪽</dd>
+                            </div>
+                            {matchedCurrentBook && (
+                              <div>
+                                <dt>독서 진행</dt>
+                                <dd>
+                                  {matchedCurrentBook.approvedReadPages.toLocaleString()} /{' '}
+                                  {totalPages.toLocaleString()}쪽
+                                </dd>
+                              </div>
+                            )}
+                            {book.selectedBook.callNo && (
+                              <div>
+                                <dt>청구기호</dt>
+                                <dd>{book.selectedBook.callNo}</dd>
+                              </div>
+                            )}
+                          </dl>
+                        </div>
+                        <button
+                          type="button"
+                          className="reading-book-change"
+                          onClick={() =>
                             updateBook(book.id, {
-                              readPages: event.target.value,
+                              query: '',
+                              selectedBook: null,
                             })
                           }
-                          placeholder={
-                            book.selectedBook
-                              ? `최대 ${availablePages.toLocaleString()}`
-                              : '도서 선택 후 입력'
-                          }
-                          disabled={!book.selectedBook}
-                          required
-                        />
-                        <span>쪽</span>
+                        >
+                          다른 책 선택
+                        </button>
                       </div>
-                      {isPageInvalid && (
-                        <small className="reading-log-error">
-                          남은 페이지 이하로 입력해 주세요.
-                        </small>
-                      )}
-                    </label>
-                  </div>
-
-                  {book.selectedBook && (
-                    <div className="reading-book-selected">
-                      <span className="reading-book-selected-cover">
-                        <BookCover book={book.selectedBook} />
-                      </span>
-                      <div className="reading-book-selected-info">
-                        <span>선택한 도서</span>
-                        <strong>{book.selectedBook.title}</strong>
-                        <p>
-                          {book.selectedBook.author || '저자 미상'}
-                          {book.selectedBook.publisher ? ` · ${book.selectedBook.publisher}` : ''}
-                        </p>
-                        <dl>
-                          <div>
-                            <dt>전체 페이지</dt>
-                            <dd>{totalPages.toLocaleString()}쪽</dd>
-                          </div>
-                          {matchedCurrentBook && (
-                            <div>
-                              <dt>독서 진행</dt>
-                              <dd>
-                                {matchedCurrentBook.approvedReadPages.toLocaleString()} /{' '}
-                                {totalPages.toLocaleString()}쪽
-                              </dd>
-                            </div>
-                          )}
-                          {book.selectedBook.callNo && (
-                            <div>
-                              <dt>청구기호</dt>
-                              <dd>{book.selectedBook.callNo}</dd>
-                            </div>
-                          )}
-                        </dl>
-                      </div>
-                      <button
-                        type="button"
-                        className="reading-book-change"
-                        onClick={() =>
-                          updateBook(book.id, {
-                            query: '',
-                            selectedBook: null,
-                          })
-                        }
-                      >
-                        다른 책 선택
-                      </button>
-                    </div>
-                  )}
-                </section>
-              );
-            })}
-          </div>
-
-          <button
-            type="button"
-            className="reading-book-add"
-            disabled={totalReadPages >= DAILY_READING_PAGE_LIMIT}
-            onClick={() => setBooks((current) => [...current, createBookEntry()])}
-          >
-            <span aria-hidden="true">+</span>
-            {totalReadPages >= DAILY_READING_PAGE_LIMIT
-              ? `오늘 기록 가능한 ${DAILY_READING_PAGE_LIMIT}쪽을 모두 입력했어요`
-              : '다른 책 추가하기'}
-          </button>
-
-          <div className="reading-log-summary">
-            <div className="reading-log-summary-item">
-              <span>오늘 읽은 페이지</span>
-              <strong>{totalReadPages.toLocaleString()}쪽</strong>
+                    )}
+                  </section>
+                );
+              })}
             </div>
-            <div className="reading-log-summary-item">
-              <span>환산 거리</span>
-              <strong>{(totalReadPages * METERS_PER_PAGE).toLocaleString()}m</strong>
-            </div>
-            <p>읽은 페이지는 1쪽당 5m로 자동 환산됩니다.</p>
-          </div>
 
-          <div className="reading-log-actions">
-            <div className="reading-log-action-message">
-              {errorMessage ? (
-                <p className="reading-log-form-error" role="alert">
-                  <span aria-hidden="true">!</span>
-                  {errorMessage}
-                </p>
-              ) : (
-                <p>도서와 페이지를 확인한 뒤 제출해 주세요.</p>
-              )}
-            </div>
             <button
-              className="reading-log-submit"
-              type="submit"
-              disabled={isSubmitting || (!editingLogId && reviewTargets.length > 0)}
+              type="button"
+              className="reading-book-add"
+              disabled={totalReadPages >= DAILY_READING_PAGE_LIMIT}
+              onClick={() => setBooks((current) => [...current, createBookEntry()])}
             >
-              {isSubmitting ? '저장 중...' : editingLogId ? '독서일지 수정' : '독서일지 제출'}
+              <span aria-hidden="true">+</span>
+              {totalReadPages >= DAILY_READING_PAGE_LIMIT
+                ? `오늘 기록 가능한 ${DAILY_READING_PAGE_LIMIT}쪽을 모두 입력했어요`
+                : '다른 책 추가하기'}
             </button>
-          </div>
-        </form>
-      </section>
+
+            <div className="reading-log-summary">
+              <div className="reading-log-summary-item">
+                <span>오늘 읽은 페이지</span>
+                <strong>{totalReadPages.toLocaleString()}쪽</strong>
+              </div>
+              <div className="reading-log-summary-item">
+                <span>예상 환산 거리</span>
+                <strong>{(totalReadPages * METERS_PER_PAGE).toLocaleString()}m</strong>
+              </div>
+              <p>
+                1쪽당 {METERS_PER_PAGE}m로 환산한 예상값입니다. 관리자 승인과 서평 확인을 거친 뒤
+                인정 거리에 반영됩니다.
+              </p>
+            </div>
+
+            <div className="reading-log-actions">
+              <div className="reading-log-action-message">
+                {errorMessage ? (
+                  <p className="reading-log-form-error" role="alert">
+                    <span aria-hidden="true">!</span>
+                    {errorMessage}
+                  </p>
+                ) : isBlockedByReview ? (
+                  <p className="reading-log-review-block">
+                    완독한 책의 서평 작성 완료 처리 후 제출할 수 있습니다.{' '}
+                    <a href="#review-todo">서평 할 일 보기</a>
+                  </p>
+                ) : (
+                  <p>도서와 페이지를 확인한 뒤 제출해 주세요.</p>
+                )}
+              </div>
+              <button
+                className="reading-log-submit"
+                type="submit"
+                disabled={isSubmitting || isBlockedByReview}
+              >
+                {isSubmitting ? '저장 중...' : editingLogId ? '독서일지 수정' : '독서일지 제출'}
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <aside className="reading-log-write-aside" aria-label="나의 기록과 서평 할 일">
+          {participation && (
+            <section className="reading-log-side-card">
+              <div className="reading-log-side-head">
+                <h2>나의 기록</h2>
+                <Link to="/status">대회 현황 보기</Link>
+              </div>
+              <p className="reading-log-side-course">
+                {participation.eventTitle} · {participation.courseName}
+              </p>
+              <dl className="reading-log-side-stats">
+                <div>
+                  <dt>승인 쪽수</dt>
+                  <dd>{participation.totalPages.toLocaleString()}쪽</dd>
+                </div>
+                <div>
+                  <dt>인정 거리</dt>
+                  <dd>{formatDistance(participation.totalDistanceMeter)}</dd>
+                </div>
+              </dl>
+              <div className="reading-log-side-progress">
+                <div>
+                  <span>목표 진행률</span>
+                  <b>
+                    {formatDistance(participation.totalDistanceMeter)} /{' '}
+                    {formatDistance(participation.targetDistanceMeter)}
+                  </b>
+                </div>
+                <div
+                  className="reading-log-side-bar"
+                  role="progressbar"
+                  aria-label="목표 진행률"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={progressRate}
+                >
+                  <span style={{ width: `${progressRate}%` }} />
+                </div>
+                <small>{progressRate}% · 인정 거리는 관리자 서평 확인 후 반영됩니다.</small>
+              </div>
+            </section>
+          )}
+
+          <section
+            id="review-todo"
+            className={[
+              'reading-log-side-card',
+              'reading-log-review-todo',
+              reviewTargets.length > 0 ? 'has-items' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          >
+            <div className="reading-log-side-head">
+              <h2>서평 할 일 {reviewTargets.length > 0 && <em>{reviewTargets.length}권</em>}</h2>
+            </div>
+            {reviewTargets.length === 0 ? (
+              <p className="reading-log-side-empty">지금 작성할 서평이 없습니다.</p>
+            ) : (
+              <>
+                <p className="reading-log-side-desc">
+                  완독한 책의 서평을 도서관 사이트에서 작성한 뒤 &lsquo;작성 완료&rsquo;를 눌러
+                  주세요. 서평 작성 완료 처리 후 새 독서일지를 제출할 수 있습니다.
+                </p>
+                <ul className="reading-log-review-list">
+                  {reviewTargets.map((target) => (
+                    <li key={target.participantBookId}>
+                      <strong>{target.bookTitle}</strong>
+                      <span>
+                        {target.author || '저자 미상'} · 승인{' '}
+                        {target.approvedReadPages.toLocaleString()}/
+                        {target.totalBookPages.toLocaleString()}쪽
+                      </span>
+                      <div>
+                        <a
+                          className="btn btn-secondary"
+                          href={target.reviewSearchUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          서평 작성
+                        </a>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          onClick={() => handleReviewComplete(target)}
+                        >
+                          작성 완료
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </section>
+        </aside>
+      </div>
     </main>
   );
 }

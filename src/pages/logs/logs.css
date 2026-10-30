@@ -524,7 +524,191 @@
 /* ===== 독서일지 작성 페이지 ===== */
 
 .reading-log-write {
-  width: min(960px, calc(100% - 40px));
+  width: min(1120px, calc(100% - 40px));
+}
+
+/* 입력 폼을 주 영역에, 나의 기록과 서평 할 일을 오른쪽 보조 영역에 둡니다. */
+.reading-log-write-layout {
+  display: grid;
+  margin-top: 34px;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  align-items: start;
+  gap: 24px;
+}
+
+.reading-log-write-layout .reading-log-card {
+  margin-top: 0;
+}
+
+.reading-log-write-aside {
+  position: sticky;
+  top: 24px;
+  display: grid;
+  gap: 16px;
+}
+
+.reading-log-side-card {
+  padding: 20px;
+  border: 1px solid #d9e2ec;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.reading-log-review-todo.has-items {
+  border-color: #ead9bd;
+  background: #fffaf2;
+  scroll-margin-top: 24px;
+}
+
+.reading-log-side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.reading-log-side-head h2 {
+  margin: 0;
+  color: #1d2733;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.reading-log-side-head h2 em {
+  margin-left: 4px;
+  color: #9a5d1d;
+  font-style: normal;
+}
+
+.reading-log-side-head a {
+  color: #1f4f82;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.reading-log-side-course {
+  margin: 4px 0 0;
+  color: #7c8996;
+  font-size: 12px;
+}
+
+.reading-log-side-stats {
+  display: grid;
+  margin: 14px 0 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.reading-log-side-stats div {
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #f7faff;
+}
+
+.reading-log-side-stats dt {
+  color: #667584;
+  font-size: 12px;
+}
+
+.reading-log-side-stats dd {
+  margin: 2px 0 0;
+  color: #173c63;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.reading-log-side-progress {
+  margin-top: 14px;
+}
+
+.reading-log-side-progress > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: #536271;
+  font-size: 12px;
+}
+
+.reading-log-side-progress b {
+  color: #1d2733;
+  font-weight: 600;
+}
+
+.reading-log-side-bar {
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: #e4eef8;
+  overflow: hidden;
+}
+
+.reading-log-side-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #1f4f82;
+}
+
+.reading-log-side-progress small {
+  display: block;
+  margin-top: 6px;
+  color: #7c8996;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.reading-log-side-empty,
+.reading-log-side-desc {
+  margin: 8px 0 0;
+  color: #667584;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.reading-log-review-list {
+  display: grid;
+  margin: 12px 0 0;
+  padding: 0;
+  gap: 10px;
+  list-style: none;
+}
+
+.reading-log-review-list li {
+  display: grid;
+  padding: 12px;
+  gap: 2px;
+  border: 1px solid #ead9bd;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.reading-log-review-list strong {
+  color: #1d2733;
+  font-size: 14px;
+}
+
+.reading-log-review-list span {
+  color: #7c8996;
+  font-size: 12px;
+}
+
+.reading-log-review-list div {
+  display: grid;
+  margin-top: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.reading-log-review-list .btn {
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.reading-log-review-block a {
+  color: #1f4f82;
+  font-weight: 600;
+  text-decoration: underline;
 }
 
 .reading-log-write .page-section {
@@ -1759,5 +1943,20 @@
 
   .reading-detail-summary div:last-child {
     border-bottom: 0;
+  }
+}
+
+@media (max-width: 960px) {
+  .reading-log-write-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .reading-log-write-aside {
+    position: static;
+  }
+
+  /* 서평 때문에 제출이 막혀 있으면 작은 화면에서는 서평 할 일을 먼저 보여 줍니다. */
+  .reading-log-write-layout--review-first .reading-log-write-aside {
+    order: -1;
   }
 }
