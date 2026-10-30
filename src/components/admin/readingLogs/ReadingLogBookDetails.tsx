@@ -10,12 +10,12 @@ type ReadingLogBookDetailsProps = {
   validationIssues: ReadingLogValidationIssue[];
 };
 
-/** 상세 검토 다이얼로그의 "책별 독서 내역" 섹션 */
+/** 독서일지 상세 패널의 책별 쪽수 비교(이전 승인 → 이번 제출 → 승인 후 누적) 섹션 */
 function ReadingLogBookDetails({ books, validationIssues }: ReadingLogBookDetailsProps) {
   return (
     <section className="admin-reading-log-dialog__section" aria-labelledby="readingLogBooksTitle">
       <div className="admin-reading-log-dialog__section-heading">
-        <h3 id="readingLogBooksTitle">책별 독서 내역</h3>
+        <h3 id="readingLogBooksTitle">도서 정보와 승인량 비교</h3>
         <span>{books.length}권</span>
       </div>
 
@@ -57,20 +57,20 @@ function ReadingLogBookDetails({ books, validationIssues }: ReadingLogBookDetail
 
               <dl className="admin-reading-log-dialog__book-pages">
                 <div>
-                  <dt>등록 전체</dt>
-                  <dd>{book.totalPages.toLocaleString('ko-KR')}쪽</dd>
-                </div>
-                <div>
                   <dt>이전 승인 누적</dt>
                   <dd>{book.previouslyApprovedPages.toLocaleString('ko-KR')}쪽</dd>
                 </div>
-                <div>
-                  <dt>오늘 읽음</dt>
-                  <dd>{book.readPages.toLocaleString('ko-KR')}쪽</dd>
+                <div className="is-submitted">
+                  <dt>이번 제출</dt>
+                  <dd>+{book.readPages.toLocaleString('ko-KR')}쪽</dd>
+                </div>
+                <div className="is-result">
+                  <dt>승인 후 누적</dt>
+                  <dd>{expectedApprovedPages.toLocaleString('ko-KR')}쪽</dd>
                 </div>
                 <div>
-                  <dt>승인 예상 누적</dt>
-                  <dd>{expectedApprovedPages.toLocaleString('ko-KR')}쪽</dd>
+                  <dt>등록 전체</dt>
+                  <dd>{book.totalPages.toLocaleString('ko-KR')}쪽</dd>
                 </div>
                 <div>
                   <dt>승인 후 잔여</dt>

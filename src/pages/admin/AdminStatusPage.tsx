@@ -25,6 +25,8 @@ import {
 } from '../../utils/statusAggregation';
 import { chooseEventIdByStatus } from '../../utils/adminEvent';
 import { formatKoDateKey, getLocalDateKey } from '../../utils/date';
+import AdminPageTabs from '../../components/admin/AdminPageTabs';
+import { COMPETITION_TABS } from '../../constants/adminNavigation';
 import '../../styles/admin-status.css';
 
 type CompetitionData = {
@@ -347,7 +349,7 @@ function AdminStatusPage() {
     <section className="admin-page admin-status">
       <header className="admin-page__header admin-status__header">
         <div className="admin-status__heading">
-          <h1>대회 현황 관리</h1>
+          <h1>대회 현황·랭킹</h1>
           <p>
             누적 쪽수·인정 거리·완주 여부는 현재 기준입니다. 날짜 선택은 해당 날짜의 독서량 조회에만
             적용됩니다.
@@ -391,6 +393,8 @@ function AdminStatusPage() {
         </div>
       </header>
 
+      <AdminPageTabs label="대회 현황·랭킹 화면" tabs={COMPETITION_TABS} />
+
       <StatusSummary {...summary} />
 
       <aside className="admin-status__policy" aria-label="현황 집계 정책">
@@ -400,38 +404,6 @@ function AdminStatusPage() {
         <span>서버 페이지·거리 값 사용</span>
         <span>완주는 참가 상태 기준</span>
       </aside>
-
-      <StatusPublishPanel
-        lastCalculatedAt={competitionData?.fetchedAt ?? null}
-        isRefreshing={isDataLoading}
-        canRefresh={selectedEventId !== null}
-        onRecalculate={handleRefresh}
-        publicVisible={
-          !!selectedEvent?.publicVisible && !['DRAFT', 'ARCHIVED'].includes(selectedEvent.status)
-        }
-        canExport={!!competitionData && !isDataLoading && !error}
-        onExport={() =>
-          downloadCsv(`event-${selectedEventId}-status.csv`, [
-            ['이름', '학번', '학과', '코스', '승인 쪽수', '인정 거리(m)', '완주 상태', '완주일'],
-            ...filteredParticipants.map((p) => [
-              p.name,
-              p.studentNumber,
-              p.department,
-              p.courseName,
-              p.cumulativePages,
-              p.cumulativeDistanceMeters,
-              p.completionStatus === 'completed' ? '완주' : '진행 중',
-              p.completedAt ?? '',
-            ]),
-          ])
-        }
-      />
-
-      <div className="admin-status__feedback" role="status" aria-live="polite">
-        {feedbackMessage}
-      </div>
-
-      <StatusCourseSummary summaries={courseSummaries} />
 
       <div className="admin-status__section-heading admin-status__table-heading">
         <div>
@@ -463,6 +435,38 @@ function AdminStatusPage() {
         isLoading={isEventsLoading || isDataLoading}
         error={error}
       />
+
+      <div className="admin-status__feedback" role="status" aria-live="polite">
+        {feedbackMessage}
+      </div>
+
+      <StatusPublishPanel
+        lastCalculatedAt={competitionData?.fetchedAt ?? null}
+        isRefreshing={isDataLoading}
+        canRefresh={selectedEventId !== null}
+        onRecalculate={handleRefresh}
+        publicVisible={
+          !!selectedEvent?.publicVisible && !['DRAFT', 'ARCHIVED'].includes(selectedEvent.status)
+        }
+        canExport={!!competitionData && !isDataLoading && !error}
+        onExport={() =>
+          downloadCsv(`event-${selectedEventId}-status.csv`, [
+            ['이름', '학번', '학과', '코스', '승인 쪽수', '인정 거리(m)', '완주 상태', '완주일'],
+            ...filteredParticipants.map((p) => [
+              p.name,
+              p.studentNumber,
+              p.department,
+              p.courseName,
+              p.cumulativePages,
+              p.cumulativeDistanceMeters,
+              p.completionStatus === 'completed' ? '완주' : '진행 중',
+              p.completedAt ?? '',
+            ]),
+          ])
+        }
+      />
+
+      <StatusCourseSummary summaries={courseSummaries} />
     </section>
   );
 }

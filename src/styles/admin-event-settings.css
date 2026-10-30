@@ -874,3 +874,121 @@
     width: 100%;
   }
 }
+
+/* 저장 전 변경사항 확인 창 */
+.admin-event-change-review__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  padding: 24px 16px;
+  align-items: center;
+  justify-content: center;
+  background: rgba(16, 47, 81, 0.34);
+}
+
+.admin-event-change-review {
+  display: flex;
+  width: min(720px, 100%);
+  max-height: calc(100vh - 48px);
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.admin-event-change-review header {
+  padding: 20px 22px 14px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.admin-event-change-review h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 19px;
+  font-weight: var(--admin-fw-bold);
+}
+
+.admin-event-change-review header p {
+  margin: 4px 0 0;
+  color: var(--body);
+  font-size: 13px;
+}
+
+.admin-event-change-review__table-wrapper {
+  min-height: 0;
+  padding: 0 22px;
+  overflow: auto;
+}
+
+.admin-event-change-review table {
+  width: 100%;
+  margin-top: 14px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.admin-event-change-review th,
+.admin-event-change-review td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--body);
+  text-align: left;
+  vertical-align: top;
+}
+
+.admin-event-change-review thead th {
+  background: var(--blue-10);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: var(--admin-fw-semibold);
+}
+
+.admin-event-change-review tbody th {
+  color: var(--ink);
+  font-weight: var(--admin-fw-semibold);
+  white-space: nowrap;
+}
+
+.admin-event-change-review .is-before {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.admin-event-change-review .is-after {
+  background: var(--blue-20);
+  color: var(--navy-strong);
+  font-weight: var(--admin-fw-semibold);
+}
+
+.admin-event-change-review__impacts {
+  margin: 14px 22px 0;
+  padding: 11px 14px 11px 30px;
+  border-radius: var(--radius);
+  background: rgba(211, 144, 69, 0.11);
+  color: #714719;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.admin-event-change-review footer {
+  display: flex;
+  margin-top: 16px;
+  padding: 14px 22px;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 700px) {
+  .admin-event-change-review header,
+  .admin-event-change-review__table-wrapper,
+  .admin-event-change-review footer {
+    padding-inline: 16px;
+  }
+
+  .admin-event-change-review__impacts {
+    margin-inline: 16px;
+  }
+}

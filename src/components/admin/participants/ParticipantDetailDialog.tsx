@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { type FormEvent, useRef, useState } from 'react';
 import { useModalDialog } from '../../../hooks/useModalDialog';
 import {
   ADMIN_APPLICATION_AFFILIATION_LABELS,
@@ -15,9 +15,15 @@ type ParticipantDetailDialogProps = {
   error: string | null;
   actionError: string | null;
   isProcessing: boolean;
+  /** 현재 목록에서의 위치. 시트를 닫지 않고 이전·다음 신청서로 이동할 때 사용합니다. */
+  position: { index: number; total: number };
+  initialRejecting?: boolean;
+  onPrevious?: () => void;
+  onNext?: () => void;
   onClose: () => void;
   onApprove: (applicationId: number) => void;
-  onReject: (applicationId: number) => void;
+  /** 반려 요청. 서버 처리에 성공하면 true를 돌려줍니다. */
+  onReject: (applicationId: number, reason: string) => Promise<boolean>;
 };
 
 function ParticipantDetailDialog({
@@ -27,17 +33,39 @@ function ParticipantDetailDialog({
   error,
   actionError,
   isProcessing,
+  position,
+  initialRejecting = false,
+  onPrevious,
+  onNext,
   onClose,
   onApprove,
   onReject,
 }: ParticipantDetailDialogProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const [isRejecting, setIsRejecting] = useState(initialRejecting);
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejectError, setRejectError] = useState('');
   const displayedApplication = application ?? fallbackApplication;
   const { handleBackdropMouseDown } = useModalDialog({
     onClose,
     initialFocusRef: closeButtonRef,
     restoreFocus: true,
   });
+
+  const handleRejectSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const reason = rejectReason.trim();
+
+    if (!reason) {
+      setRejectError('반려 사유를 입력해 주세요.');
+      return;
+    }
+
+    if (await onReject(displayedApplication.applicationId, reason)) {
+      setIsRejecting(false);
+      setRejectReason('');
+    }
+  };
 
   return (
     <div className="admin-participant-dialog__backdrop" onMouseDown={handleBackdropMouseDown}>
@@ -50,13 +78,36 @@ function ParticipantDetailDialog({
       >
         <header className="admin-participant-dialog__header">
           <div>
-            <p className="admin-participant-dialog__eyebrow">참가 신청 상세</p>
+            <p className="admin-participant-dialog__eyebrow">
+              {displayedApplication.status === 'APPROVED' ? '참가자 상세' : '참가 신청서 상세'}
+            </p>
             <div className="admin-participant-dialog__title-row">
               <h2 id="participantDialogTitle">{displayedApplication.name}</h2>
               <ParticipantStatusBadge status={displayedApplication.status} />
             </div>
           </div>
 
+          <div className="admin-participant-dialog__nav">
+            <span>
+              {position.index + 1} / {position.total}
+            </span>
+            <button
+              type="button"
+              aria-label="이전 신청서"
+              disabled={!onPrevious || isProcessing}
+              onClick={onPrevious}
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              aria-label="다음 신청서"
+              disabled={!onNext || isProcessing}
+              onClick={onNext}
+            >
+              ›
+            </button>
+          </div>
           <button
             ref={closeButtonRef}
             type="button"
@@ -151,77 +202,84 @@ function ParticipantDetailDialog({
           </div>
         )}
 
-        <footer className="admin-participant-dialog__actions">
-          {!isLoading && !error && displayedApplication.status === 'APPLIED' && (
-            <>
+        {isRejecting && !isLoading && !error ? (
+          <form className="admin-participant-dialog__reject" onSubmit={handleRejectSubmit}>
+            <label htmlFor="participantRejectReason">반려 사유</label>
+            <textarea
+              id="participantRejectReason"
+              rows={4}
+              value={rejectReason}
+              placeholder="신청자에게 안내할 반려 사유를 입력해 주세요."
+              aria-describedby={rejectError ? 'participantRejectError' : undefined}
+              onChange={(event) => {
+                setRejectReason(event.target.value);
+                setRejectError('');
+              }}
+            />
+            {rejectError && (
+              <p
+                id="participantRejectError"
+                className="admin-participant-dialog__error"
+                role="alert"
+              >
+                {rejectError}
+              </p>
+            )}
+            <div className="admin-participant-dialog__actions">
               <button
                 type="button"
-                className="admin-participant-dialog__button admin-participant-dialog__button--primary"
-                onClick={() => onApprove(displayedApplication.applicationId)}
+                className="admin-participant-dialog__button"
+                disabled={isProcessing}
+                onClick={() => {
+                  setIsRejecting(false);
+                  setRejectError('');
+                }}
+              >
+                돌아가기
+              </button>
+              <button
+                type="submit"
+                className="admin-participant-dialog__button admin-participant-dialog__button--danger"
                 disabled={isProcessing}
               >
-                {isProcessing ? '처리 중...' : '승인'}
+                {isProcessing ? '처리 중...' : '반려 확정'}
               </button>
-              <button
-                type="button"
-                className="admin-participant-dialog__button admin-participant-dialog__button--danger"
-                onClick={() => onReject(displayedApplication.applicationId)}
-                disabled={isProcessing}
-              >
-                반려
-              </button>
-              <button
-                type="button"
-                className="admin-participant-dialog__button"
-                disabled
-                title="백엔드 참가신청 수정 API 확인이 필요합니다."
-              >
-                정보 수정
-              </button>
-            </>
-          )}
-          {!isLoading && !error && displayedApplication.status === 'APPROVED' && (
-            <>
-              <button
-                type="button"
-                className="admin-participant-dialog__button"
-                disabled
-                title="백엔드 참가신청 수정 API 확인이 필요합니다."
-              >
-                정보 수정
-              </button>
-              <button
-                type="button"
-                className="admin-participant-dialog__button"
-                disabled
-                title="백엔드 코스 변경 API 확인이 필요합니다."
-              >
-                코스 변경
-              </button>
-              <button
-                type="button"
-                className="admin-participant-dialog__button admin-participant-dialog__button--danger"
-                disabled
-                title="백엔드 참가 취소 API 확인이 필요합니다."
-              >
-                참가 취소
-              </button>
-            </>
-          )}
-          {!isLoading && !error && displayedApplication.status === 'REJECTED' && (
-            <button
-              type="button"
-              className="admin-participant-dialog__button"
-              disabled
-              title="백엔드 참가신청 수정 API 확인이 필요합니다."
-            >
-              정보 수정
+            </div>
+          </form>
+        ) : (
+          <footer className="admin-participant-dialog__actions">
+            {!isLoading && !error && displayedApplication.status === 'APPLIED' ? (
+              <>
+                <button
+                  type="button"
+                  className="admin-participant-dialog__button admin-participant-dialog__button--danger"
+                  onClick={() => setIsRejecting(true)}
+                  disabled={isProcessing}
+                >
+                  반려
+                </button>
+                <button
+                  type="button"
+                  className="admin-participant-dialog__button admin-participant-dialog__button--primary"
+                  onClick={() => onApprove(displayedApplication.applicationId)}
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? '처리 중...' : '참가 승인'}
+                </button>
+              </>
+            ) : (
+              !isLoading &&
+              !error && (
+                <p className="admin-participant-dialog__pending-note">
+                  정보 수정·코스 변경·참가 취소는 서버 API가 확인되면 제공됩니다.
+                </p>
+              )
+            )}
+            <button type="button" className="admin-participant-dialog__button" onClick={onClose}>
+              닫기
             </button>
-          )}
-          <button type="button" className="admin-participant-dialog__button" onClick={onClose}>
-            닫기
-          </button>
-        </footer>
+          </footer>
+        )}
       </section>
     </div>
   );

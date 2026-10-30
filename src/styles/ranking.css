@@ -111,6 +111,7 @@
 }
 .ranking-toolbar.is-admin {
   justify-content: flex-start;
+  flex-wrap: wrap;
 }
 .ranking-toolbar.is-admin label {
   display: grid;

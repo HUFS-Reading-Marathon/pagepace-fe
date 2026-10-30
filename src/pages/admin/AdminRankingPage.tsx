@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { getApiErrorMessage } from '../../api/apiClient';
 import { getAdminEventCourses, getAdminEvents } from '../../api/adminEventApi';
 import { getAdminRankings, type Ranking, type RankingSort } from '../../api/rankingApi';
+import AdminPageTabs from '../../components/admin/AdminPageTabs';
+import { COMPETITION_TABS } from '../../constants/adminNavigation';
 import RankingBoard from '../../components/ranking/RankingBoard';
 import type { AdminCourse, AdminEvent } from '../../types/adminEvent';
 import '../../styles/ranking.css';
@@ -100,7 +102,7 @@ function AdminRankingPage() {
     <section className="admin-page admin-ranking ranking-page is-admin">
       <header className="admin-page__header ranking-admin-header">
         <div>
-          <h1>참가자 랭킹</h1>
+          <h1>대회 현황·랭킹</h1>
           <p>마스킹되지 않은 참가자 정보와 코스별 진행 순위를 확인합니다.</p>
         </div>
         <div className="ranking-admin-summary">
@@ -109,6 +111,7 @@ function AdminRankingPage() {
           <small>{rankings[0] ? `${(rankings[0].distance / 1000).toFixed(2)}km` : '집계 전'}</small>
         </div>
       </header>
+      <AdminPageTabs label="대회 현황·랭킹 화면" tabs={COMPETITION_TABS} />
       <section className="ranking-toolbar is-admin">
         <label>
           <span>행사</span>

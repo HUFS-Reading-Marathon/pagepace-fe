@@ -10,62 +10,6 @@
   flex-wrap: wrap;
 }
 
-.admin-participants__summary {
-  display: flex;
-  margin: 0;
-  padding: 0;
-  align-items: stretch;
-  gap: 1px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--line);
-  overflow: hidden;
-}
-
-.admin-participants__summary button {
-  display: grid;
-  min-width: 76px;
-  padding: 9px 12px;
-  gap: 3px;
-  border: 0;
-  background: var(--surface);
-  color: inherit;
-  font: inherit;
-  text-align: center;
-  cursor: pointer;
-}
-
-.admin-participants__summary button:hover {
-  background: var(--blue-10);
-}
-
-.admin-participants__summary button[aria-pressed='true'] {
-  position: relative;
-  z-index: 1;
-  background: var(--blue-20);
-  box-shadow: inset 0 0 0 1px var(--navy-strong);
-}
-
-.admin-participants__summary span {
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.35;
-}
-
-.admin-participants__summary strong {
-  color: var(--navy-strong);
-  font-size: 18px;
-  font-weight: var(--admin-fw-bold);
-  line-height: 1.25;
-}
-
-.admin-participants__summary button:focus-visible {
-  position: relative;
-  z-index: 2;
-  outline: 3px solid rgba(31, 79, 130, 0.22);
-  outline-offset: -3px;
-}
-
 .admin-participants__toolbar {
   margin-top: 24px;
   padding: 20px;
@@ -352,20 +296,21 @@
   inset: 0;
   z-index: 1000;
   display: flex;
-  padding: 24px 16px;
-  align-items: center;
-  justify-content: center;
-  background: rgba(16, 47, 81, 0.34);
+  align-items: stretch;
+  justify-content: flex-end;
+  background: rgba(16, 47, 81, 0.16);
 }
 
+/* 목록을 가리지 않도록 오른쪽 시트로 열어, 뒤의 검색 결과를 보면서 이전·다음 신청서로 이동합니다. */
 .admin-participant-dialog__panel {
-  width: min(740px, 100%);
-  max-height: calc(100vh - 48px);
+  display: flex;
+  width: min(480px, 100%);
+  height: 100%;
+  flex-direction: column;
   overflow-y: auto;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-left: 1px solid var(--line);
   background: var(--surface);
-  box-shadow: var(--shadow);
+  box-shadow: -14px 0 36px rgba(26, 72, 115, 0.12);
 }
 
 .admin-participant-dialog__header {
@@ -421,7 +366,72 @@
 }
 
 .admin-participant-dialog__content {
-  padding: 24px;
+  padding: 20px 24px;
+  flex: 1;
+}
+
+.admin-participant-dialog__nav {
+  display: flex;
+  margin-left: auto;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.admin-participant-dialog__nav button {
+  display: inline-grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--body);
+  font: inherit;
+  cursor: pointer;
+}
+
+.admin-participant-dialog__nav button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.admin-participant-dialog__reject {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  padding: 16px 24px 0;
+  gap: 6px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.admin-participant-dialog__reject label {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: var(--admin-fw-semibold);
+}
+
+.admin-participant-dialog__reject textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.admin-participant-dialog__reject .admin-participant-dialog__actions {
+  margin: 8px -24px 0;
+}
+
+.admin-participant-dialog__pending-note {
+  margin: 0 auto 0 0;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .admin-participant-dialog__section + .admin-participant-dialog__section {
@@ -440,7 +450,7 @@
 .admin-participant-dialog__details {
   display: grid;
   margin: 0;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   column-gap: 24px;
 }
 
@@ -499,17 +509,6 @@
   }
 }
 
-@media (max-width: 900px) {
-  .admin-participants__summary {
-    width: 100%;
-  }
-
-  .admin-participants__summary button {
-    min-width: 0;
-    flex: 1;
-  }
-}
-
 @media (max-width: 700px) {
   .admin-participants__filter-grid {
     grid-template-columns: 1fr;
@@ -520,20 +519,12 @@
     flex-direction: column;
   }
 
-  .admin-participants__summary {
-    flex-wrap: wrap;
+  .admin-participant-dialog__reject {
+    padding-inline: 18px;
   }
 
-  .admin-participants__summary button {
-    min-width: calc(33.333% - 1px);
-  }
-
-  .admin-participant-dialog__backdrop {
-    padding: 12px;
-  }
-
-  .admin-participant-dialog__panel {
-    max-height: calc(100vh - 24px);
+  .admin-participant-dialog__reject .admin-participant-dialog__actions {
+    margin-inline: -18px;
   }
 
   .admin-participant-dialog__header,
@@ -545,4 +536,8 @@
   .admin-participant-dialog__details {
     grid-template-columns: 1fr;
   }
+}
+
+.admin-participants__tabs {
+  margin-top: 20px;
 }

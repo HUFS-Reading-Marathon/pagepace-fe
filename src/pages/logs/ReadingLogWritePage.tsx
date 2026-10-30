@@ -4,7 +4,7 @@ import { previousReadingBookIds } from '../../utils/reviewRecommendations';
 import ReviewGuide from '../../components/layout/ReviewGuide';
 import { koreaToday } from '../../utils/eventSelection';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '../../api/apiClient';
 import BookCover from '../../components/logs/BookCover';
 import BookSearchField from '../../components/logs/BookSearchField';
@@ -20,7 +20,9 @@ import {
   updateReadingLog,
 } from '../../api/readingLogApi';
 import type { BookSearchResult } from '../../types/book';
+import type { MyParticipation } from '../../types/participation';
 import type { ParticipantBook, ReadingLog, ReviewTargetBook } from '../../types/readingLog';
+import { formatDistance } from '../../utils/reading';
 import './logs.css';
 
 type BookEntry = {
@@ -47,6 +49,7 @@ function ReadingLogWritePage() {
   const editingLogId = logId ? Number(logId) : null;
   const today = koreaToday();
   const [participationId, setParticipationId] = useState<number | null>(null);
+  const [participation, setParticipation] = useState<MyParticipation | null>(null);
   const [readingDate, setReadingDate] = useState(today);
   const [books, setBooks] = useState<BookEntry[]>([createBookEntry()]);
   const reviewBusy = useRef(false);
@@ -98,6 +101,7 @@ function ReadingLogWritePage() {
         }) => {
           if (!active) return;
           setParticipationId(participation.participationId);
+          setParticipation(participation);
           setReviewTargets(targets);
           setBookProgress(progress);
           setPreviousLogs(logs);
@@ -203,6 +207,9 @@ function ReadingLogWritePage() {
     }
   };
 
+  const progressRate = participation
+    ? Math.min(Math.max(Math.round(participation.progressRate), 0), 100)
+    : 0;
   const totalReadPages = books.reduce((sum, book) => sum + Number(book.readPages || 0), 0);
   const hasInvalidBook = books.some((book) => {
     const totalPages = book.selectedBook?.pageCount ?? 0;
@@ -268,8 +275,8 @@ function ReadingLogWritePage() {
         </p>
       </section>
 
-      <div className="reading-workspace">
-        <section className="reading-log-card">
+      <div className="reading-workspace reading-log-write-layout">
+        <section className="reading-log-card reading-log-write-main">
           <form onSubmit={handleSubmit}>
             {!editingLogId && currentReadingBook && (
               <div className="reading-current-book-guide">
@@ -515,26 +522,70 @@ function ReadingLogWritePage() {
             </div>
           </form>
         </section>
-        <aside className="reading-log-card reading-review-aside" id="review-guide">
-          <h2>서평 할 일</h2>
-          <ReviewGuide />
-          <p role="status">{reviewMessage}</p>
-          {guidanceWarning && <p role="status">{guidanceWarning}</p>}
-          {participationId && user && (
-            <ReviewRecommendations
-              key={`${user.userId}-${participationId}`}
-              userId={user.userId}
-              participationId={participationId}
-              targets={reviewTargets}
-              progress={bookProgress}
-              previousBookIds={previousReadingBookIds(previousLogs, participationId, readingDate)}
-              selectedBookIds={books.flatMap((b) =>
-                b.selectedBook ? [b.selectedBook.libraryBookId] : [],
-              )}
-              sending={reviewSending}
-              onReported={(target) => void handleReviewComplete(target)}
-            />
+        <aside className="reading-log-write-aside" aria-label="나의 기록과 서평 할 일">
+          {participation && (
+            <section className="reading-log-side-card">
+              <div className="reading-log-side-head">
+                <h2>나의 기록</h2>
+                <Link to="/status">대회 현황 보기</Link>
+              </div>
+              <p className="reading-log-side-course">
+                {participation.eventTitle} · {participation.courseName}
+              </p>
+              <dl className="reading-log-side-stats">
+                <div>
+                  <dt>승인 쪽수</dt>
+                  <dd>{participation.totalPages.toLocaleString()}쪽</dd>
+                </div>
+                <div>
+                  <dt>인정 거리</dt>
+                  <dd>{formatDistance(participation.totalDistanceMeter)}</dd>
+                </div>
+              </dl>
+              <div className="reading-log-side-progress">
+                <div>
+                  <span>목표 진행률</span>
+                  <b>
+                    {formatDistance(participation.totalDistanceMeter)} /{' '}
+                    {formatDistance(participation.targetDistanceMeter)}
+                  </b>
+                </div>
+                <div
+                  className="reading-log-side-bar"
+                  role="progressbar"
+                  aria-label="목표 진행률"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={progressRate}
+                >
+                  <span style={{ width: `${progressRate}%` }} />
+                </div>
+                <small>{progressRate}% · 인정 거리는 관리자 서평 확인 후 반영됩니다.</small>
+              </div>
+            </section>
           )}
+
+          <section className="reading-log-side-card reading-review-aside" id="review-guide">
+            <h2>서평 할 일</h2>
+            <ReviewGuide />
+            <p role="status">{reviewMessage}</p>
+            {guidanceWarning && <p role="status">{guidanceWarning}</p>}
+            {participationId && user && (
+              <ReviewRecommendations
+                key={`${user.userId}-${participationId}`}
+                userId={user.userId}
+                participationId={participationId}
+                targets={reviewTargets}
+                progress={bookProgress}
+                previousBookIds={previousReadingBookIds(previousLogs, participationId, readingDate)}
+                selectedBookIds={books.flatMap((b) =>
+                  b.selectedBook ? [b.selectedBook.libraryBookId] : [],
+                )}
+                sending={reviewSending}
+                onReported={(target) => void handleReviewComplete(target)}
+              />
+            )}
+          </section>
         </aside>
       </div>
     </main>
