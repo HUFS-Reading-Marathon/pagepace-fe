@@ -2,6 +2,11 @@ import { ApiError, apiRequest } from './apiClient';
 
 export type Ranking = {
   rank: number;
+  participationId: number;
+  courseId: number;
+  courseName: string;
+  targetDistance: number;
+  status: string;
   name: string;
   studentNo: string;
   approvedPages: number;
@@ -27,6 +32,7 @@ export async function getRankings(eventId: number, courseId?: number, sort: Rank
 
   const rankings = await apiRequest<Ranking[]>(`/api/rankings?${searchParams.toString()}`, {
     method: 'GET',
+    skipAuth: true,
   });
   return rankings ?? [];
 }

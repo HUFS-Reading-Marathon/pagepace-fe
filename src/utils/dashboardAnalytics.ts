@@ -113,8 +113,8 @@ export function getDailyActivity(
   }));
 }
 
-function getAffiliationDistribution(
-  applications: ReadonlyArray<AdminApplicationListItem>,
+export function getAffiliationDistribution(
+  applications: ReadonlyArray<{ department: string | null }>,
   visibleLimit = 5,
 ) {
   const distribution = getDistribution(

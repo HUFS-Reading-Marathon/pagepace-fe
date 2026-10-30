@@ -1,3 +1,5 @@
+import { preferredAdminEvent } from '../../utils/eventSelection';
+import { useAdminEventState } from '../../hooks/useAdminEventState';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getAdminApplications } from '../../api/adminApplicationApi';
@@ -40,7 +42,7 @@ function formatDateTime(value: string) {
 
 function AdminOperationsDashboardPage() {
   const [events, setEvents] = useState<AdminEvent[]>([]);
-  const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
+  const [selectedEventId, setSelectedEventId] = useAdminEventState();
   const [applications, setApplications] = useState<AdminApplicationListItem[]>([]);
   const [logs, setLogs] = useState<AdminReadingLogResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,7 +52,10 @@ function AdminOperationsDashboardPage() {
     getAdminEvents()
       .then((nextEvents) => {
         setEvents(nextEvents);
-        setSelectedEventId(chooseEventIdByStatus(nextEvents, EVENT_ORDER));
+        setSelectedEventId(
+          preferredAdminEvent(nextEvents)?.eventId ??
+            chooseEventIdByStatus(nextEvents, EVENT_ORDER),
+        );
 
         if (nextEvents.length === 0) {
           setIsLoading(false);
@@ -60,7 +65,7 @@ function AdminOperationsDashboardPage() {
         setError(getApiErrorMessage(requestError, '행사 목록을 불러오지 못했습니다.'));
         setIsLoading(false);
       });
-  }, []);
+  }, [setSelectedEventId]);
 
   useEffect(() => {
     if (selectedEventId === null) {
@@ -87,7 +92,7 @@ function AdminOperationsDashboardPage() {
           return;
         }
 
-        setError(getApiErrorMessage(requestError, '오늘의 업무를 불러오지 못했습니다.'));
+        setError(getApiErrorMessage(requestError, '운영 현황를 불러오지 못했습니다.'));
       })
       .finally(() => {
         if (isActive) {

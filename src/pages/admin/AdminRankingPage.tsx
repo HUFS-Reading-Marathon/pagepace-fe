@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { preferredAdminEvent } from '../../utils/eventSelection';
+import { useAdminEventState } from '../../hooks/useAdminEventState';
+import { useEffect, useRef, useState } from 'react';
 import { getApiErrorMessage } from '../../api/apiClient';
 import { getAdminEventCourses, getAdminEvents } from '../../api/adminEventApi';
 import { getAdminRankings, type Ranking, type RankingSort } from '../../api/rankingApi';
@@ -9,8 +11,9 @@ import '../../styles/ranking.css';
 const RANKING_ERROR_MESSAGE = '관리자 랭킹을 불러오지 못했습니다.';
 
 function AdminRankingPage() {
+  const sequence = useRef(0);
   const [events, setEvents] = useState<AdminEvent[]>([]);
-  const [eventId, setEventId] = useState<number | null>(null);
+  const [eventId, setEventId] = useAdminEventState();
   const [courses, setCourses] = useState<AdminCourse[]>([]);
   const [courseId, setCourseId] = useState<number | undefined>();
   const [sort, setSort] = useState<RankingSort>('RANK');
@@ -22,22 +25,14 @@ function AdminRankingPage() {
     getAdminEvents()
       .then((nextEvents) => {
         setEvents(nextEvents);
-        setEventId(
-          nextEvents.find((event) => ['IN_PROGRESS', 'APPLICATION_OPEN'].includes(event.status))
-            ?.eventId ??
-            nextEvents[0]?.eventId ??
-            null,
-        );
-
-        if (nextEvents.length === 0) {
-          setIsLoading(false);
-        }
+        setEventId(preferredAdminEvent(nextEvents)?.eventId ?? null);
+        if (nextEvents.length === 0) setIsLoading(false);
       })
       .catch((requestError: unknown) => {
         setError(getApiErrorMessage(requestError, '행사를 불러오지 못했습니다.'));
         setIsLoading(false);
       });
-  }, []);
+  }, [setEventId]);
 
   useEffect(() => {
     if (!eventId) {
@@ -45,12 +40,10 @@ function AdminRankingPage() {
     }
 
     let active = true;
-
+    const request = ++sequence.current;
     Promise.all([getAdminEventCourses(eventId), getAdminRankings(eventId)])
       .then(([nextCourses, nextRankings]) => {
-        if (!active) {
-          return;
-        }
+        if (!active || sequence.current !== request) return;
 
         setCourses(nextCourses);
         setCourseId(undefined);
@@ -73,40 +66,32 @@ function AdminRankingPage() {
       active = false;
     };
   }, [eventId]);
-
-  const reloadRankings = async (nextCourseId: number | undefined, nextSort: RankingSort) => {
-    if (!eventId) {
-      return;
-    }
+  const loadFiltered = async (nextCourseId: number | undefined, nextSort: RankingSort) => {
+    if (!eventId) return;
+    const request = ++sequence.current;
 
     setIsLoading(true);
 
     try {
-      setRankings(await getAdminRankings(eventId, nextCourseId, nextSort));
-      setError('');
-    } catch (requestError) {
-      setError(getApiErrorMessage(requestError, RANKING_ERROR_MESSAGE));
+      const rows = await getAdminRankings(eventId, nextCourseId, nextSort);
+      if (sequence.current === request) {
+        setRankings(rows);
+        setError('');
+      }
+    } catch (error) {
+      if (sequence.current === request)
+        setError(error instanceof Error ? error.message : '조회 실패');
     } finally {
-      setIsLoading(false);
+      if (sequence.current === request) setIsLoading(false);
     }
   };
-
-  const filterCourse = (nextCourseId?: number) => {
-    if (!eventId) {
-      return;
-    }
-
-    setCourseId(nextCourseId);
-    void reloadRankings(nextCourseId, sort);
+  const filterCourse = (id?: number) => {
+    setCourseId(id);
+    void loadFiltered(id, sort);
   };
-
-  const changeSort = (nextSort: RankingSort) => {
-    if (!eventId) {
-      return;
-    }
-
-    setSort(nextSort);
-    void reloadRankings(courseId, nextSort);
+  const changeSort = (value: RankingSort) => {
+    setSort(value);
+    void loadFiltered(courseId, value);
   };
 
   const selectedEvent = events.find((event) => event.eventId === eventId);
@@ -130,6 +115,9 @@ function AdminRankingPage() {
           <select
             value={eventId ?? ''}
             onChange={(event) => {
+              ++sequence.current;
+              setCourses([]);
+              setRankings([]);
               setIsLoading(true);
               setEventId(Number(event.target.value));
             }}
@@ -166,7 +154,7 @@ function AdminRankingPage() {
         </label>
         <div>
           <strong>{selectedEvent?.title ?? '행사 선택'}</strong>
-          <span>총 {rankings.length}명</span>
+          <span>독서 기록이 있는 참가자 {rankings.length}명</span>
         </div>
       </section>
       {isLoading ? (

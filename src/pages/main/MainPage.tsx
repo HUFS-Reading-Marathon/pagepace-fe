@@ -14,11 +14,6 @@ import { getExternalLinkAttrs } from '../../utils/links';
 import {
   APPLY_FORM_URL,
   CHECK_ITEMS,
-  FALLBACK_COURSES,
-  FALLBACK_EVENT_TITLE,
-  FALLBACK_HERO_INFO,
-  FALLBACK_MY_RECORD,
-  FALLBACK_NOTICES,
   PROCESS_STEPS,
   QUICK_LINKS,
   SUMMARY_ITEMS,
@@ -38,14 +33,15 @@ function isRouteHref(link: { href: string; external?: boolean }) {
 function MainPage() {
   const { hash } = useLocation();
   const { user, isAuthenticated, isInitializing } = useAuth();
-  const isApplied = localStorage.getItem('isApplied') === 'true' || isAuthenticated;
   const displayName = user?.name || '참가자';
   const [currentEvent, setCurrentEvent] = useState<CurrentEvent | null>(null);
-  const [eventCourses, setEventCourses] = useState<CourseRow[]>(FALLBACK_COURSES);
+  const [eventCourses, setEventCourses] = useState<CourseRow[]>([]);
   const [myParticipation, setMyParticipation] = useState<MyParticipation | null>(null);
   const [approvedLogs, setApprovedLogs] = useState(0);
   const [lastSubmittedAt, setLastSubmittedAt] = useState('-');
   const [notices, setNotices] = useState<Notice[]>([]);
+  const [eventError, setEventError] = useState('');
+  const [noticeError, setNoticeError] = useState('');
 
   useEffect(() => {
     // 다른 페이지(/status 등)에서 /#notice 같은 링크로 들어오면 브라우저의 fragment 스크롤이
@@ -58,7 +54,7 @@ function MainPage() {
   useEffect(() => {
     getNotices()
       .then(setNotices)
-      .catch(() => setNotices([]));
+      .catch(() => setNoticeError('공지사항을 불러오지 못했습니다.'));
   }, []);
 
   useEffect(() => {
@@ -68,31 +64,37 @@ function MainPage() {
         const courses = await getEventCourses(event.eventId);
         setEventCourses(courses.map(toCourseRow));
       })
-      .catch(() => undefined);
+      .catch(() => setEventError('행사 정보를 불러오지 못했습니다.'));
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (isInitializing || !isAuthenticated) return;
+    let active = true;
     getCurrentParticipation()
       .then(async (participation) => {
+        if (!active) return;
         setMyParticipation(participation);
         const logs = await getMyReadingLogs(participation.participationId);
+        if (!active) return;
         setApprovedLogs(logs.filter((log) => log.status === 'APPROVED').length);
         setLastSubmittedAt(
           [...logs].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]?.readingDate ?? '-',
         );
       })
       .catch(() => undefined);
-  }, [isAuthenticated]);
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated, isInitializing, user?.userId]);
 
-  const eventTitle = currentEvent?.title ?? FALLBACK_EVENT_TITLE;
+  const eventTitle = currentEvent?.title ?? '독서마라톤';
   const heroInfo: [string, string][] = currentEvent
     ? [
-        ['운영기간', `${currentEvent.eventStartDate} — ${currentEvent.eventEndDate}`],
+        ['독서일지 접수기간', `${currentEvent.eventStartDate} — ${currentEvent.eventEndDate}`],
         ['신청기간', `${currentEvent.applicationStartDate} — ${currentEvent.applicationEndDate}`],
         ['문의', currentEvent.contactPhone || currentEvent.contactEmail],
       ]
-    : FALLBACK_HERO_INFO;
+    : [];
   const myRecord: MyRecordSummary = myParticipation
     ? {
         course: myParticipation.courseName,
@@ -102,7 +104,14 @@ function MainPage() {
         approvedLogs,
         lastSubmittedAt,
       }
-    : FALLBACK_MY_RECORD;
+    : {
+        course: '참가 정보 없음',
+        targetDistance: 0,
+        totalDistance: 0,
+        totalPages: 0,
+        approvedLogs: 0,
+        lastSubmittedAt: '-',
+      };
 
   useEffect(() => {
     const elements = document.querySelectorAll('.fade-up');
@@ -129,10 +138,11 @@ function MainPage() {
     return () => observer.disconnect();
   }, []);
 
-  const showMyRecord = (isAuthenticated || isInitializing) && isApplied;
+  const showMyRecord = isAuthenticated && !isInitializing && myParticipation !== null;
 
   return (
     <main id="main">
+      {eventError && <p role="alert">{eventError}</p>}
       <section className="hero" aria-labelledby="heroTitle">
         <div className="wrap hero-inner">
           <div
@@ -166,7 +176,7 @@ function MainPage() {
 
                 <p className="hero-copy-public">
                   한국외국어대학교 글로벌캠퍼스 도서관은 구성원의 지속적인 독서 활동을 지원하기 위해
-                  제5회 독서마라톤을 운영합니다. 참가자는 읽은 페이지 수를 기록하고 누적 거리에 따라
+                  {eventTitle}을 운영합니다. 참가자는 읽은 페이지 수를 기록하고 누적 거리에 따라
                   선택한 코스의 완주 여부를 확인할 수 있습니다.
                 </p>
               </>
@@ -288,12 +298,12 @@ function MainPage() {
                 <span>독서량을 거리로 환산</span>
               </div>
               <div>
-                <b>8주간</b>
+                <b>접수기간 내</b>
                 <span>정해진 운영 기간 내 기록 제출</span>
               </div>
               <div>
-                <b>3개 코스</b>
-                <span>단축·하프·풀코스 중 선택</span>
+                <b>{eventCourses.length}개 코스</b>
+                <span>공개된 코스 중 선택</span>
               </div>
             </div>
           </article>
@@ -316,8 +326,7 @@ function MainPage() {
           <CourseBenefitTable courses={eventCourses} />
 
           <p className="table-note fade-up">
-            추가대출기간: 2026. 3. 1. — 8. 31. / 상품 지급 기준은 도서관 공지사항 및 최종 운영
-            기준을 따릅니다.
+            추가대출기간 및 상품 지급 기준은 도서관 공지사항 및 최종 운영 기준을 따릅니다.
           </p>
         </div>
       </section>
@@ -330,8 +339,8 @@ function MainPage() {
               <h2 id="processTitle">참여방법</h2>
             </div>
             <p className="section-desc">
-              참가 신청 후 안내에 따라 독서일지를 제출합니다. 제출된 기록은 페이지 수 기준으로 거리
-              환산 및 누적 집계됩니다.
+              참가 신청 후 안내에 따라 독서일지를 제출합니다. 일지 승인 시 쪽수가, 서평 확인 시
+              거리가 반영됩니다.
             </p>
           </div>
 
@@ -365,9 +374,12 @@ function MainPage() {
               <h3>최근 공지</h3>
               <a href="#contact">문의하기</a>
             </div>
+            {notices.length === 0 && (
+              <p role="status">{noticeError || '등록된 공지사항이 없습니다.'}</p>
+            )}
             <MainNoticeList
               notices={notices}
-              fallbackNotices={FALLBACK_NOTICES}
+              fallbackNotices={[]}
               maxCount={NOTICE_PREVIEW_COUNT}
             />
           </div>
@@ -398,21 +410,26 @@ function MainPage() {
             <div className="contact-grid">
               <div className="contact-item">
                 <span>전화 문의</span>
-                <b>031-330-4927</b>
+                <b>{currentEvent?.contactPhone || '문의 전화 미등록'}</b>
               </div>
               <div className="contact-item">
                 <span>이메일</span>
-                <a href="mailto:jhpark@hufs.ac.kr">jhpark@hufs.ac.kr</a>
+                {currentEvent?.contactEmail ? (
+                  <a href={`mailto:${currentEvent.contactEmail}`}>{currentEvent.contactEmail}</a>
+                ) : (
+                  <span>문의 이메일 미등록</span>
+                )}
               </div>
               <div className="contact-item">
                 <span>운영 채널</span>
-                <a
-                  href="https://open.kakao.com/o/gfTnKI3h"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  카카오톡 오픈채팅
-                </a>
+                {currentEvent?.kakaoOpenChatUrl &&
+                /^https?:\/\//.test(currentEvent.kakaoOpenChatUrl) ? (
+                  <a href={currentEvent.kakaoOpenChatUrl} target="_blank" rel="noopener noreferrer">
+                    카카오톡 오픈채팅
+                  </a>
+                ) : (
+                  <span>운영 채널 미등록</span>
+                )}
               </div>
               <div className="contact-item">
                 <span>소속</span>
@@ -425,13 +442,11 @@ function MainPage() {
         <div className="wrap cta-band fade-up">
           <div>
             <h2>
-              {showMyRecord
-                ? '오늘 읽은 기록을 독서일지로 남겨보세요'
-                : '제5회 독서마라톤 참가신청'}
+              {showMyRecord ? '오늘 읽은 기록을 독서일지로 남겨보세요' : `${eventTitle} 참가신청`}
             </h2>
             <p>
               {showMyRecord
-                ? '읽은 페이지 수를 입력하면 누적 거리와 완주율에 반영됩니다.'
+                ? '일지 승인 시 쪽수, 서평 확인 시 거리와 완주율에 반영됩니다.'
                 : '신청 기간과 참가 대상 확인 후 참가신청서를 제출해 주세요.'}
             </p>
           </div>

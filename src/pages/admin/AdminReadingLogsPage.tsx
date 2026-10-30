@@ -1,3 +1,5 @@
+import { preferredAdminEvent } from '../../utils/eventSelection';
+import { useAdminEventState } from '../../hooks/useAdminEventState';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   approveAdminReadingLog,
@@ -81,7 +83,7 @@ function toDisplayLog(log: AdminReadingLogResponse): AdminReadingLog {
 
 function AdminReadingLogsPage() {
   const [events, setEvents] = useState<AdminEvent[]>([]);
-  const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
+  const [selectedEventId, setSelectedEventId] = useAdminEventState();
   const [logs, setLogs] = useState<AdminReadingLog[]>([]);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<ReadingLogStatusFilter>('ALL');
@@ -196,7 +198,9 @@ function AdminReadingLogsPage() {
     if (initialRequestRef.current === null) {
       initialRequestRef.current = getAdminEvents().then((nextEvents) => ({
         events: nextEvents,
-        eventId: chooseEventIdByStatus(nextEvents, DEFAULT_EVENT_SELECTION_ORDER),
+        eventId:
+          preferredAdminEvent(nextEvents)?.eventId ??
+          chooseEventIdByStatus(nextEvents, DEFAULT_EVENT_SELECTION_ORDER),
       }));
     }
 
@@ -226,7 +230,7 @@ function AdminReadingLogsPage() {
     return () => {
       isActive = false;
     };
-  }, [loadLogs]);
+  }, [loadLogs, setSelectedEventId]);
 
   const clearSelectionAnd = (updateFilter: () => void) => {
     setSelectedLogIds([]);
@@ -474,7 +478,7 @@ function AdminReadingLogsPage() {
       <aside className="admin-reading-logs__policy" aria-label="검토 정책 안내">
         <strong>검토 정책</strong>
         <span>서버 검증 결과 우선</span>
-        <span>승인 기록만 누적 거리·순위에 반영</span>
+        <span>일지 승인 시 쪽수 반영 · 서평 확인 시 거리 반영</span>
         <span>반려 기록은 참가자가 수정 후 재제출 가능</span>
       </aside>
 

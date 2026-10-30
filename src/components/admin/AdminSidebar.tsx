@@ -2,25 +2,26 @@ import { useState } from 'react';
 import { matchPath, NavLink, useLocation } from 'react-router-dom';
 
 const ADMIN_MENUS = [
+  { label: '사용자 화면 보기', path: '/', group: '화면 이동', enabled: true },
   {
-    label: '오늘의 업무',
+    label: '운영 현황',
     path: '/admin',
-    group: '매일 하는 업무',
+    group: '참가·기록',
   },
   {
     label: '참가자 관리',
     path: '/admin/participants',
-    group: '매일 하는 업무',
+    group: '참가·기록',
   },
   {
     label: '독서일지 검토',
     path: '/admin/logs',
-    group: '매일 하는 업무',
+    group: '참가·기록',
   },
   {
     label: '서평 확인',
     path: '/admin/reviews',
-    group: '매일 하는 업무',
+    group: '참가·기록',
   },
   {
     label: '행사/코스 설정',
@@ -60,7 +61,7 @@ function AdminSidebar() {
   const { pathname } = useLocation();
   const [openGroups, setOpenGroups] = useState(INITIAL_OPEN_GROUPS);
   const activeGroup = ADMIN_MENUS.find((menu) =>
-    matchPath({ path: menu.path, end: menu.path === '/admin' }, pathname),
+    matchPath({ path: menu.path, end: menu.path === '/admin' || menu.path === '/' }, pathname),
   )?.group;
 
   const toggleGroup = (group: AdminMenuGroup) => {

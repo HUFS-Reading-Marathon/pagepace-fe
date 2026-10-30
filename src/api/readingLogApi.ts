@@ -1,3 +1,4 @@
+import { selectedEventId, eventQuery } from '../utils/eventSelection';
 import type {
   ReadingLog,
   ReadingLogRequest,
@@ -62,15 +63,16 @@ export async function deleteReadingLog(readingLogId: number) {
   });
 }
 
-export async function getReviewTargetBooks() {
-  const books = await apiRequest<ReviewTargetBook[]>('/api/me/review-target-books', {
-    method: 'GET',
-  });
+export async function getReviewTargetBooks(eventId = selectedEventId('personal')) {
+  const books = await apiRequest<ReviewTargetBook[]>(
+    `/api/me/review-target-books${eventQuery(eventId)}`,
+    { method: 'GET' },
+  );
   return books ?? [];
 }
 
-export async function getMyReadingBooks() {
-  const books = await apiRequest<ParticipantBook[]>('/api/me/reading-books', {
+export async function getMyReadingBooks(eventId = selectedEventId('personal')) {
+  const books = await apiRequest<ParticipantBook[]>(`/api/me/reading-books${eventQuery(eventId)}`, {
     method: 'GET',
   });
   return books ?? [];
@@ -81,4 +83,12 @@ export function completeReview(participantBookId: number) {
   return apiRequest<ReviewTargetBook>(`/api/me/review-target-books/${participantBookId}/complete`, {
     method: 'PATCH',
   });
+}
+
+export async function getMyBookProgress(eventId = selectedEventId('personal')) {
+  return (
+    (await apiRequest<ParticipantBook[]>(`/api/me/book-progress${eventQuery(eventId)}`, {
+      method: 'GET',
+    })) ?? []
+  );
 }

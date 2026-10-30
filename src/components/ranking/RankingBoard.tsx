@@ -14,10 +14,12 @@ function RankingBoard({
   rankings,
   showIdentity = false,
   simpleLayout = false,
+  myParticipationId,
 }: {
   rankings: Ranking[];
   showIdentity?: boolean;
   simpleLayout?: boolean;
+  myParticipationId?: number;
 }) {
   if (rankings.length === 0)
     return (
@@ -44,13 +46,13 @@ function RankingBoard({
       </header>
       <div className="ranking-race-list">
         {rankings.map((ranking) => {
-          const progress = Math.min(ranking.progressPercent, 100);
+          const progress = Math.max(0, Math.min(ranking.progressPercent, 100));
           const completed = ranking.progressPercent >= 100;
           const runnerPosition = Math.max(2, Math.min(progress, 96));
           return (
             <article
               key={`${ranking.rank}-${ranking.studentNo}`}
-              className={`${completed ? 'is-completed' : ''} ${ranking.rank <= 3 ? `is-top-rank is-rank-${ranking.rank}` : ''}`}
+              className={`${ranking.participationId === myParticipationId ? 'race-row-mine' : ''} ${completed ? 'is-completed' : ''} ${ranking.rank <= 3 ? `is-top-rank is-rank-${ranking.rank}` : ''}`}
             >
               <div
                 className={`ranking-race-person ${useSimpleLayout ? 'ranking-race-person--simple' : ''}`}
@@ -62,7 +64,10 @@ function RankingBoard({
                 {!useSimpleLayout && <RankingAvatar name={ranking.name} />}
                 <span>
                   <b>{ranking.name}</b>
-                  <small>{ranking.studentNo}</small>
+                  {showIdentity && <small>{ranking.studentNo}</small>}
+                  {ranking.participationId === myParticipationId && (
+                    <span className="race-my-badge"> · 나</span>
+                  )}
                 </span>
                 {completed && (
                   <em>

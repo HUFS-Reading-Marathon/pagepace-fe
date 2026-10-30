@@ -1,7 +1,15 @@
+import { getAdminParticipations, type AdminParticipation } from '../../api/adminParticipationApi';
+import {
+  buildAdminCompetitionRows,
+  getAdminCompetitionCourseSummaries,
+} from '../../utils/statusAggregation';
+import { getEventSummary, type EventSummary } from '../../api/eventApi';
+import { preferredAdminEvent } from '../../utils/eventSelection';
+import { useAdminEventState } from '../../hooks/useAdminEventState';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getAdminApplications } from '../../api/adminApplicationApi';
 import { getApiErrorMessage } from '../../api/apiClient';
-import { getAdminEvents } from '../../api/adminEventApi';
+import { getAdminEventCourses, getAdminEvents } from '../../api/adminEventApi';
 import { getAdminReadingLogs } from '../../api/adminReadingLogApi';
 import DashboardAffiliationChart from '../../components/admin/dashboard/DashboardAffiliationChart';
 import DashboardCourseCompletion from '../../components/admin/dashboard/DashboardCourseCompletion';
@@ -12,14 +20,17 @@ import DashboardPendingLogs from '../../components/admin/dashboard/DashboardPend
 import DashboardReadingTrend from '../../components/admin/dashboard/DashboardReadingTrend';
 import DashboardRecentParticipants from '../../components/admin/dashboard/DashboardRecentParticipants';
 import type { AdminApplicationListItem } from '../../types/adminApplication';
-import type { AdminEvent, EventStatus } from '../../types/adminEvent';
+import type { AdminCourse, AdminEvent, EventStatus } from '../../types/adminEvent';
 import type { AdminReadingLogResponse } from '../../types/adminReadingLogApi';
-import { getDashboardAnalytics } from '../../utils/dashboardAnalytics';
+import { getAffiliationDistribution, getDashboardAnalytics } from '../../utils/dashboardAnalytics';
 import { chooseEventIdByStatus } from '../../utils/adminEvent';
 import { formatKoDateTime } from '../../utils/date';
 import '../../styles/admin-dashboard.css';
 
 type DashboardData = {
+  summary: EventSummary;
+  participants: AdminParticipation[];
+  courses: AdminCourse[];
   applications: AdminApplicationListItem[];
   logs: AdminReadingLogResponse[];
   fetchedAt: Date;
@@ -45,18 +56,25 @@ function getSubmissionComparison(todayCount: number, yesterdayCount: number) {
 }
 
 function requestDashboardData(eventId: number) {
-  return Promise.all([getAdminApplications(eventId), getAdminReadingLogs({ eventId })]).then(
-    ([applications, logs]) => ({
-      applications,
-      logs,
-      fetchedAt: new Date(),
-    }),
-  );
+  return Promise.all([
+    getEventSummary(eventId, undefined, true),
+    getAdminParticipations(eventId),
+    getAdminEventCourses(eventId),
+    getAdminApplications(eventId),
+    getAdminReadingLogs({ eventId }),
+  ]).then(([summary, participants, courses, applications, logs]) => ({
+    summary,
+    participants,
+    courses,
+    applications,
+    logs,
+    fetchedAt: new Date(),
+  }));
 }
 
 function AdminDashboardPage() {
   const [events, setEvents] = useState<AdminEvent[]>([]);
-  const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
+  const [selectedEventId, setSelectedEventId] = useAdminEventState();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [isEventsLoading, setIsEventsLoading] = useState(true);
   const [isDataLoading, setIsDataLoading] = useState(false);
@@ -83,7 +101,9 @@ function AdminDashboardPage() {
           return;
         }
 
-        const nextEventId = chooseEventIdByStatus(nextEvents, EVENT_SELECTION_ORDER);
+        const nextEventId =
+          preferredAdminEvent(nextEvents)?.eventId ??
+          chooseEventIdByStatus(nextEvents, EVENT_SELECTION_ORDER);
 
         setEvents(nextEvents);
         setDashboardData(null);
@@ -105,7 +125,7 @@ function AdminDashboardPage() {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [setSelectedEventId]);
 
   useEffect(() => {
     if (selectedEventId === null) {
@@ -319,9 +339,9 @@ function AdminDashboardPage() {
 
       <DashboardEventOverview
         event={selectedEvent}
-        approvedParticipantCount={analytics?.approvedApplications.length ?? null}
-        approvedPageTotal={analytics?.approvedPageTotal ?? null}
-        approvedDistanceMeters={analytics?.approvedDistanceMeters ?? null}
+        approvedParticipantCount={dashboardData?.summary.participantCount ?? null}
+        approvedPageTotal={dashboardData?.summary.approvedPages ?? null}
+        approvedDistanceMeters={dashboardData?.summary.verifiedDistanceMeter ?? null}
       />
 
       <section className="admin-dashboard__metrics" aria-label="핵심 운영 지표">
@@ -338,9 +358,13 @@ function AdminDashboardPage() {
         />
         <DashboardMetricCard
           label="승인 참가자"
-          value={analytics?.approvedApplications.length ?? null}
+          value={dashboardData?.summary.participantCount ?? null}
           unit="명"
-          description={analytics ? `승인율 ${approvedRate.toFixed(1)}%` : '서버 집계 대기'}
+          description={
+            analytics
+              ? `직접 등록 포함 · 신청서 승인율 ${approvedRate.toFixed(1)}%`
+              : '서버 집계 대기'
+          }
           to="/admin/participants"
           linkLabel="승인 현황 보기"
           tone="green"
@@ -374,9 +398,9 @@ function AdminDashboardPage() {
         />
         <DashboardMetricCard
           label="총 완주자"
-          value={null}
+          value={dashboardData?.summary.completedCount ?? null}
           unit="명"
-          description="백엔드 완주 집계 API 필요"
+          description="서평 인정 거리와 참가 완주 상태 기준"
           to="/admin/status"
           linkLabel="대회 현황 보기"
           tone="teal"
@@ -388,18 +412,36 @@ function AdminDashboardPage() {
           logs={dashboardData?.logs ?? []}
           now={dashboardData?.fetchedAt ?? new Date()}
         />
-        <DashboardCourseCompletion summaries={[]} isSupported={false} />
+        <DashboardCourseCompletion
+          summaries={
+            dashboardData
+              ? getAdminCompetitionCourseSummaries(
+                  buildAdminCompetitionRows(
+                    dashboardData.participants,
+                    dashboardData.logs,
+                    dashboardData.courses,
+                    '',
+                  ),
+                  dashboardData.courses,
+                )
+              : []
+          }
+        />
       </div>
 
       <div className="admin-dashboard__grid admin-dashboard__grid--distribution">
         <DashboardGenderChart
           distribution={[]}
-          participantCount={analytics?.approvedApplications.length ?? 0}
+          participantCount={dashboardData?.summary.participantCount ?? 0}
           isSupported={false}
         />
         <DashboardAffiliationChart
-          distribution={analytics?.affiliationDistribution ?? []}
-          participantCount={analytics?.approvedApplications.length ?? 0}
+          distribution={getAffiliationDistribution(
+            dashboardData?.participants.filter(
+              (p) => p.status === 'APPROVED' || p.status === 'COMPLETED',
+            ) ?? [],
+          )}
+          participantCount={dashboardData?.summary.participantCount ?? 0}
         />
       </div>
 

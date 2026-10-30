@@ -105,7 +105,7 @@ function ReadingLogDetailPage() {
             <dd>{log.totalReadPages.toLocaleString()}쪽</dd>
           </div>
           <div>
-            <dt>환산 거리</dt>
+            <dt>예상 환산 거리</dt>
             <dd>{formatDistance(log.convertedDistanceMeter)}</dd>
           </div>
         </dl>

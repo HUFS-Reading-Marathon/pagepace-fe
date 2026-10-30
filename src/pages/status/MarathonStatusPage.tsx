@@ -3,11 +3,15 @@ import { getApiErrorMessage } from '../../api/apiClient';
 import { useAuth } from '../../auth';
 import {
   getCurrentEvent,
+  getPublicEvents,
+  getEventSummary,
+  type EventSummary,
   getEventCourses,
   type CurrentEvent,
   type EventCourse,
 } from '../../api/eventApi';
-import { getCurrentParticipation } from '../../api/participationApi';
+import { selectEvent, selectedEventId } from '../../utils/eventSelection';
+import { getMyParticipations, getCurrentParticipation } from '../../api/participationApi';
 import { getRankings, type Ranking } from '../../api/rankingApi';
 import RankingBoard from '../../components/ranking/RankingBoard';
 import { formatDistance } from '../../utils/reading';
@@ -78,7 +82,20 @@ function formatUpdatedAt(date: Date) {
 }
 
 function MarathonStatusPage() {
-  const { isAuthenticated, isInitializing } = useAuth();
+  const { isAuthenticated, isInitializing, user } = useAuth();
+  const [events, setEvents] = useState<CurrentEvent[]>([]);
+  const [chosenEventId, setChosenEventId] = useState<number | undefined>(
+    () => selectedEventId('public') ?? undefined,
+  );
+  const [summary, setSummary] = useState<EventSummary | null>(null);
+  const [mine, setMine] = useState<{
+    owner: number;
+    participationId?: number;
+    rank?: number;
+    distance: number;
+    pages: number;
+  } | null>(null);
+  const [personalError, setPersonalError] = useState('');
   const [event, setEvent] = useState<CurrentEvent | null>(null);
   const [courses, setCourses] = useState<EventCourse[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<number | undefined>();
@@ -100,14 +117,22 @@ function MarathonStatusPage() {
       setLoadState('initial');
 
       try {
-        const nextEvent = await resolveStatusEvent(isAuthenticated);
-        const [nextCourses, nextRankings] = await Promise.all([
+        const nextEvents = await getPublicEvents();
+        const preferred = nextEvents.find((item) => item.eventId === chosenEventId);
+        const resolved = preferred ?? (await resolveStatusEvent(isAuthenticated));
+        const nextEvent =
+          nextEvents.find((item) => item.eventId === resolved.eventId) ?? nextEvents[0];
+        if (!nextEvent) throw new Error('공개된 행사가 없습니다.');
+        const [nextCourses, nextRankings, nextSummary] = await Promise.all([
           getEventCourses(nextEvent.eventId),
           getRankings(nextEvent.eventId),
+          getEventSummary(nextEvent.eventId),
         ]);
 
         if (!active || requestSequenceRef.current !== sequence) return;
 
+        setEvents(nextEvents);
+        setSummary(nextSummary);
         setEvent(nextEvent);
         setCourses(nextCourses);
         setSelectedCourseId(undefined);
@@ -128,7 +153,39 @@ function MarathonStatusPage() {
     return () => {
       active = false;
     };
-  }, [isAuthenticated, isInitializing]);
+  }, [isAuthenticated, isInitializing, chosenEventId]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user || !event) return;
+    let active = true;
+    getMyParticipations()
+      .then(async (rows) => {
+        const participation = rows.find(
+          (row) =>
+            row.eventId === event.eventId &&
+            ['APPROVED', 'COMPLETED'].includes(row.participationStatus),
+        );
+        const courseRankings = participation
+          ? await getRankings(event.eventId, participation.courseId)
+          : [];
+        if (!active) return;
+        setMine({
+          owner: user.userId,
+          participationId: participation?.participationId,
+          rank: courseRankings.find((row) => row.participationId === participation?.participationId)
+            ?.rank,
+          distance: participation?.totalDistanceMeter ?? 0,
+          pages: participation?.totalPages ?? 0,
+        });
+        setPersonalError('');
+      })
+      .catch(() => {
+        if (active) setPersonalError('내 순위를 불러오지 못했습니다.');
+      });
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated, user, event]);
 
   const handleCourseChange = async (courseId?: number) => {
     if (!event) return;
@@ -139,7 +196,11 @@ function MarathonStatusPage() {
     setLoadState('refreshing');
 
     try {
-      const nextRankings = await getRankings(event.eventId, courseId);
+      const [nextRankings, nextSummary] = await Promise.all([
+        getRankings(event.eventId, courseId),
+        getEventSummary(event.eventId, courseId),
+      ]);
+      if (requestSequenceRef.current === sequence) setSummary(nextSummary);
 
       if (requestSequenceRef.current !== sequence) return;
 
@@ -157,12 +218,19 @@ function MarathonStatusPage() {
 
   const isReady = loadState === 'ready';
   const isLoading = loadState === 'initial' || loadState === 'refreshing';
-  const completedCount = rankings.filter((ranking) => ranking.progressPercent >= 100).length;
-  const maxDistance = Math.max(0, ...rankings.map((ranking) => ranking.distance));
+
   const summaryItems: [string, string, string][] = [
-    ['총 참가자', isReady ? `${rankings.length}명` : '—', '현재 선택 코스 기준'],
-    ['완주자', isReady ? `${completedCount}명` : '—', '코스 목표 거리를 달성한 참가자'],
-    ['최고 누적 거리', isReady ? formatDistance(maxDistance) : '—', '승인된 페이지 기준'],
+    ['총 참가자', isReady ? `${summary?.participantCount ?? 0}명` : '—', '현재 선택 코스 기준'],
+    [
+      '완주자',
+      isReady ? `${summary?.completedCount ?? 0}명` : '—',
+      '코스 목표 거리를 달성한 참가자',
+    ],
+    [
+      '최고 누적 거리',
+      isReady ? formatDistance(summary?.maxDistanceMeter ?? 0) : '—',
+      '일지 승인과 서평 확인이 완료된 거리',
+    ],
   ];
 
   return (
@@ -171,11 +239,11 @@ function MarathonStatusPage() {
         <p className="page-label">Marathon Status</p>
         <h1 id="statusPageTitle">대회 현황</h1>
         <p className="page-description">
-          {event ? `${getEventDisplayTitle(event)} · ` : ''}승인된 독서일지를 기준으로 참가자의 누적
-          거리, 진행률, 완주 여부를 집계합니다.
+          {event ? `${getEventDisplayTitle(event)} · ` : ''}일지 승인 시 쪽수가, 승인된 쪽수의 서평
+          확인 시 거리가 반영됩니다. 기록이 없는 승인 참가자도 총 참가자 수에 포함합니다.
         </p>
         <p className="status-privacy">
-          ※ 개인정보 보호를 위해 이름과 학번 일부가 마스킹되어 표시됩니다.
+          ※ 개인정보 보호를 위해 이름은 마스킹하고 학번은 공개하지 않습니다.
           {updatedAt && (
             <>
               {' '}
@@ -186,6 +254,37 @@ function MarathonStatusPage() {
         </p>
       </section>
 
+      <div className="status-course-filter">
+        <label htmlFor="statusEventFilter">행사</label>
+        <select
+          id="statusEventFilter"
+          value={event?.eventId ?? ''}
+          disabled={isLoading}
+          onChange={(e) => {
+            const id = Number(e.target.value);
+            selectEvent('public', id);
+            setChosenEventId(id);
+            setMine(null);
+            setLoadState('initial');
+          }}
+        >
+          {events.map((item) => (
+            <option key={item.eventId} value={item.eventId}>
+              {getEventDisplayTitle(item)}
+            </option>
+          ))}
+        </select>
+      </div>
+      {isAuthenticated && user && mine?.owner === user.userId && mine.participationId && (
+        <section className="page-section" aria-label="내 순위">
+          <h2>내 순위</h2>
+          <p>
+            참가 코스 기준 {mine.rank ? `${mine.rank}위` : '집계 전'} · 승인{' '}
+            {mine.pages.toLocaleString()}쪽 · 인정 거리 {formatDistance(mine.distance)}
+          </p>
+        </section>
+      )}
+      {isAuthenticated && personalError && <p role="status">{personalError}</p>}
       <section className="status-grid" aria-label="현황 요약">
         {summaryItems.map(([label, value, description]) => (
           <article className="status-card" key={label}>
@@ -230,7 +329,15 @@ function MarathonStatusPage() {
           ) : loadState === 'error' ? (
             <div className="ranking-empty is-error">{errorMessage}</div>
           ) : (
-            <RankingBoard rankings={rankings} simpleLayout />
+            <RankingBoard
+              rankings={rankings}
+              simpleLayout
+              myParticipationId={
+                isAuthenticated && user && mine?.owner === user.userId
+                  ? mine.participationId
+                  : undefined
+              }
+            />
           )}
         </div>
       </section>
