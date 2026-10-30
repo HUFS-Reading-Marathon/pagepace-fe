@@ -3,10 +3,9 @@ import type { MyParticipation } from '../types/participation';
 import { ApiError, apiRequest } from './apiClient';
 
 export async function getMyParticipations() {
-  const participations = await apiRequest<MyParticipation[]>(
-    '/api/me/participations',
-    { method: 'GET' },
-  );
+  const participations = await apiRequest<MyParticipation[]>('/api/me/participations', {
+    method: 'GET',
+  });
 
   return participations ?? [];
 }

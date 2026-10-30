@@ -1,4 +1,5 @@
 import { ApiError, apiRequest } from './apiClient';
+import type { AffiliationType } from '../auth/authTypes';
 
 export type SendEmailVerificationRequest = {
   email: string;
@@ -9,12 +10,8 @@ export type ConfirmEmailVerificationRequest = {
   code: string;
 };
 
-export type ApplicationAffiliationType =
-  | 'UNDERGRADUATE'
-  | 'GRADUATE'
-  | 'PROFESSOR'
-  | 'STAFF'
-  | 'OTHER';
+/** 서버 AffiliationType enum과 동일한 값입니다. */
+export type ApplicationAffiliationType = AffiliationType;
 
 export type CreateApplicationRequest = {
   eventId: number;
@@ -58,10 +55,7 @@ export async function sendApplicationEmailVerification(email: string) {
   });
 }
 
-export async function confirmApplicationEmailVerification(
-  email: string,
-  code: string,
-) {
+export async function confirmApplicationEmailVerification(email: string, code: string) {
   const request: ConfirmEmailVerificationRequest = { email, code };
 
   await apiRequest<unknown>(`${EMAIL_VERIFICATION_PATH}/confirm`, {
@@ -75,24 +69,17 @@ export async function confirmApplicationEmailVerification(
 }
 
 export async function createApplication(request: CreateApplicationRequest) {
-  const application = await apiRequest<CreateApplicationResponse>(
-    '/api/applications',
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(request),
-      skipAuth: true,
+  const application = await apiRequest<CreateApplicationResponse>('/api/applications', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
     },
-  );
+    body: JSON.stringify(request),
+    skipAuth: true,
+  });
 
   if (!application || !Number.isFinite(application.applicationId)) {
-    throw new ApiError(
-      '참가신청 응답을 확인할 수 없습니다.',
-      200,
-      'INVALID_APPLICATION_RESPONSE',
-    );
+    throw new ApiError('참가신청 응답을 확인할 수 없습니다.', 200, 'INVALID_APPLICATION_RESPONSE');
   }
 
   return application;

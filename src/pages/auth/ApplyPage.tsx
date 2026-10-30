@@ -1,12 +1,5 @@
 import { canApply } from '../../utils/eventSelection';
-import {
-  type ClipboardEvent,
-  type FormEvent,
-  type KeyboardEvent,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GENERAL_AFFILIATIONS, STUDENT_DEPARTMENT_GROUPS } from '../../constants/departments';
 import {
@@ -15,7 +8,8 @@ import {
   sendApplicationEmailVerification,
   type ApplicationAffiliationType,
 } from '../../api/applicationApi';
-import { ApiError } from '../../api/apiClient';
+import { getApiErrorMessage } from '../../api/apiClient';
+import VerificationCodeInput from '../../components/auth/VerificationCodeInput';
 import {
   getCurrentEvent,
   getEventCourses,
@@ -24,12 +18,7 @@ import {
 } from '../../api/eventApi';
 import './auth.css';
 
-type AffiliationType =
-  | 'undergraduate'
-  | 'graduate'
-  | 'professor'
-  | 'lecturer'
-  | 'staff';
+type AffiliationType = 'undergraduate' | 'graduate' | 'professor' | 'lecturer' | 'staff';
 
 const AFFILIATION_OPTIONS: { label: string; value: AffiliationType }[] = [
   { label: '학부생', value: 'undergraduate' },
@@ -72,39 +61,34 @@ function ApplyPage() {
   const [isSendingVerification, setIsSendingVerification] = useState(false);
   const [isCodeSent, setIsCodeSent] = useState(false);
   const [isVerifyingCode, setIsVerifyingCode] = useState(false);
-  const [verificationEmail, setVerificationEmail] = useState<string | null>(
-    null,
-  );
+  const [verificationEmail, setVerificationEmail] = useState<string | null>(null);
   const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null);
   const [verificationMessage, setVerificationMessage] = useState('');
   const [verificationError, setVerificationError] = useState('');
-  const [verificationExpiresAt, setVerificationExpiresAt] = useState<
-    number | null
-  >(null);
-  const [verificationSecondsRemaining, setVerificationSecondsRemaining] =
-    useState<number | null>(null);
-  const verificationDigitRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const [verificationExpiresAt, setVerificationExpiresAt] = useState<number | null>(null);
+  const [verificationSecondsRemaining, setVerificationSecondsRemaining] = useState<number | null>(
+    null,
+  );
+  const [codeInputFocusKey, setCodeInputFocusKey] = useState(0);
   const [department, setDepartment] = useState('');
-  const [affiliation, setAffiliation] =
-    useState<AffiliationType>('undergraduate');
+  const [affiliation, setAffiliation] = useState<AffiliationType>('undergraduate');
   const [currentEvent, setCurrentEvent] = useState<CurrentEvent | null>(null);
   const [courses, setCourses] = useState<EventCourse[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
   const [isEventCourseLoading, setIsEventCourseLoading] = useState(true);
   const [eventCourseError, setEventCourseError] = useState('');
-  const eventCourseRequestRef = useRef<
-    Promise<{ currentEvent: CurrentEvent; courses: EventCourse[] }> | null
-  >(null);
+  const eventCourseRequestRef = useRef<Promise<{
+    currentEvent: CurrentEvent;
+    courses: EventCourse[];
+  }> | null>(null);
   const [isAgreed, setIsAgreed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isSubmittingRef = useRef(false);
   const [errorMessage, setErrorMessage] = useState('');
   const normalizedEmail = email.trim();
-  const isEmailVerified =
-    verifiedEmail !== null && verifiedEmail === normalizedEmail;
+  const isEmailVerified = verifiedEmail !== null && verifiedEmail === normalizedEmail;
   const isVerificationPending = isSendingVerification || isVerifyingCode;
-  const isVerificationExpired =
-    isCodeSent && verificationSecondsRemaining === 0;
+  const isVerificationExpired = isCodeSent && verificationSecondsRemaining === 0;
   const verificationStatusMessage =
     verificationError ||
     (isVerificationExpired
@@ -135,16 +119,13 @@ function ApplyPage() {
         }
 
         const defaultCourse =
-          nextCourses.find(
-            (course) => course.name.replace(/\s/g, '') === '하프코스',
-          ) ?? nextCourses[0];
+          nextCourses.find((course) => course.name.replace(/\s/g, '') === '하프코스') ??
+          nextCourses[0];
 
         setCurrentEvent(nextCurrentEvent);
         setCourses(nextCourses);
         setSelectedCourseId(defaultCourse?.courseId ?? null);
-        setEventCourseError(
-          nextCourses.length === 0 ? '신청 가능한 코스가 없습니다.' : '',
-        );
+        setEventCourseError(nextCourses.length === 0 ? '신청 가능한 코스가 없습니다.' : '');
       })
       .catch((error: unknown) => {
         if (!isActive) {
@@ -155,9 +136,10 @@ function ApplyPage() {
         setCourses([]);
         setSelectedCourseId(null);
         setEventCourseError(
-          error instanceof ApiError
-            ? error.message
-            : '행사와 코스 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
+          getApiErrorMessage(
+            error,
+            '행사와 코스 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
+          ),
         );
       })
       .finally(() => {
@@ -178,10 +160,7 @@ function ApplyPage() {
 
     let intervalId: number | undefined;
     const updateRemainingTime = () => {
-      const nextSeconds = Math.max(
-        0,
-        Math.ceil((verificationExpiresAt - Date.now()) / 1000),
-      );
+      const nextSeconds = Math.max(0, Math.ceil((verificationExpiresAt - Date.now()) / 1000));
 
       setVerificationSecondsRemaining(nextSeconds);
 
@@ -247,7 +226,6 @@ function ApplyPage() {
     setVerificationError('');
     setVerificationMessage('');
     setIsSendingVerification(true);
-    let wasVerificationSent = false;
 
     try {
       await sendApplicationEmailVerification(normalizedEmail);
@@ -257,136 +235,21 @@ function ApplyPage() {
       setVerifiedEmail(null);
       setVerificationMessage('인증번호를 이메일로 발송했습니다.');
       setVerificationSecondsRemaining(VERIFICATION_TIME_LIMIT_SECONDS);
-      setVerificationExpiresAt(
-        Date.now() + VERIFICATION_TIME_LIMIT_SECONDS * 1000,
-      );
-      wasVerificationSent = true;
+      setVerificationExpiresAt(Date.now() + VERIFICATION_TIME_LIMIT_SECONDS * 1000);
+      // 인증번호 입력칸이 렌더링된 뒤 첫 번째 자리에 포커스를 옮깁니다.
+      setCodeInputFocusKey((current) => current + 1);
     } catch (error) {
       setVerificationError(
-        error instanceof ApiError
-          ? error.message
-          : '인증번호 발송에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+        getApiErrorMessage(error, '인증번호 발송에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
       );
     } finally {
       setIsSendingVerification(false);
-
-      if (wasVerificationSent) {
-        window.requestAnimationFrame(() => {
-          verificationDigitRefs.current[0]?.focus();
-        });
-      }
     }
   };
 
   const handleVerificationCodeChange = (nextCode: string) => {
-    setVerificationCode(
-      nextCode.replace(/\D/g, '').slice(0, VERIFICATION_CODE_LENGTH),
-    );
+    setVerificationCode(nextCode.replace(/\D/g, '').slice(0, VERIFICATION_CODE_LENGTH));
     setVerificationError('');
-  };
-
-  const focusVerificationDigit = (index: number) => {
-    window.requestAnimationFrame(() => {
-      verificationDigitRefs.current[index]?.focus();
-    });
-  };
-
-  const handleVerificationDigitChange = (index: number, nextValue: string) => {
-    const digits = nextValue.replace(/\D/g, '');
-
-    if (!digits) {
-      handleVerificationCodeChange(
-        verificationCode.slice(0, index) + verificationCode.slice(index + 1),
-      );
-      return;
-    }
-
-    if (index > verificationCode.length) {
-      focusVerificationDigit(verificationCode.length);
-      return;
-    }
-
-    const digit = digits.slice(-1);
-    const nextCode =
-      index === verificationCode.length
-        ? verificationCode + digit
-        : verificationCode.slice(0, index) +
-          digit +
-          verificationCode.slice(index + 1);
-
-    handleVerificationCodeChange(nextCode);
-
-    if (index < VERIFICATION_CODE_LENGTH - 1) {
-      focusVerificationDigit(index + 1);
-    }
-  };
-
-  const handleVerificationDigitKeyDown = (
-    event: KeyboardEvent<HTMLInputElement>,
-    index: number,
-  ) => {
-    if (event.key === 'Backspace') {
-      event.preventDefault();
-
-      if (verificationCode[index]) {
-        handleVerificationCodeChange(
-          verificationCode.slice(0, index) +
-            verificationCode.slice(index + 1),
-        );
-        focusVerificationDigit(index);
-      } else if (index > 0) {
-        focusVerificationDigit(index - 1);
-      }
-
-      return;
-    }
-
-    if (event.key === 'ArrowLeft' && index > 0) {
-      event.preventDefault();
-      focusVerificationDigit(index - 1);
-    }
-
-    if (
-      event.key === 'ArrowRight' &&
-      index < VERIFICATION_CODE_LENGTH - 1
-    ) {
-      event.preventDefault();
-      focusVerificationDigit(index + 1);
-    }
-  };
-
-  const handleVerificationCodePaste = (
-    event: ClipboardEvent<HTMLInputElement>,
-    index: number,
-  ) => {
-    const pastedDigits = event.clipboardData
-      .getData('text')
-      .replace(/\D/g, '');
-
-    if (!pastedDigits) {
-      return;
-    }
-
-    event.preventDefault();
-
-    const startIndex = Math.min(index, verificationCode.length);
-    const availableDigits = pastedDigits.slice(
-      0,
-      VERIFICATION_CODE_LENGTH - startIndex,
-    );
-    const nextCode = (
-      verificationCode.slice(0, startIndex) +
-      availableDigits +
-      verificationCode.slice(startIndex + availableDigits.length)
-    ).slice(0, VERIFICATION_CODE_LENGTH);
-
-    handleVerificationCodeChange(nextCode);
-    focusVerificationDigit(
-      Math.min(
-        startIndex + availableDigits.length,
-        VERIFICATION_CODE_LENGTH - 1,
-      ),
-    );
   };
 
   const handleConfirmVerification = async () => {
@@ -394,11 +257,7 @@ function ApplyPage() {
       return;
     }
 
-    if (
-      !isCodeSent ||
-      verificationEmail === null ||
-      verificationEmail !== normalizedEmail
-    ) {
+    if (!isCodeSent || verificationEmail === null || verificationEmail !== normalizedEmail) {
       setVerificationMessage('');
       setVerificationError('학교 이메일 인증번호를 다시 요청해 주세요.');
       return;
@@ -416,10 +275,7 @@ function ApplyPage() {
     setIsVerifyingCode(true);
 
     try {
-      await confirmApplicationEmailVerification(
-        normalizedEmail,
-        verificationCode,
-      );
+      await confirmApplicationEmailVerification(normalizedEmail, verificationCode);
       setVerifiedEmail(normalizedEmail);
       setVerificationMessage('이메일 인증이 완료되었습니다.');
       setVerificationExpiresAt(null);
@@ -427,9 +283,7 @@ function ApplyPage() {
     } catch (error) {
       setVerifiedEmail(null);
       setVerificationError(
-        error instanceof ApiError
-          ? error.message
-          : '인증번호 확인에 실패했습니다. 입력한 번호를 확인해 주세요.',
+        getApiErrorMessage(error, '인증번호 확인에 실패했습니다. 입력한 번호를 확인해 주세요.'),
       );
     } finally {
       setIsVerifyingCode(false);
@@ -475,9 +329,7 @@ function ApplyPage() {
     }
 
     if (!currentEvent || !canApply(currentEvent)) {
-      setErrorMessage(
-        eventCourseError || '현재 신청 가능한 행사가 없습니다.',
-      );
+      setErrorMessage(eventCourseError || '현재 신청 가능한 행사가 없습니다.');
       return;
     }
 
@@ -489,13 +341,10 @@ function ApplyPage() {
       return;
     }
 
-    const applicationAffiliation =
-      APPLICATION_AFFILIATION_BY_FORM[affiliation];
+    const applicationAffiliation = APPLICATION_AFFILIATION_BY_FORM[affiliation];
 
     if (!applicationAffiliation) {
-      setErrorMessage(
-        '강사의 서버 소속 유형 정책이 확인되지 않아 현재 참가신청할 수 없습니다.',
-      );
+      setErrorMessage('강사의 서버 소속 유형 정책이 확인되지 않아 현재 참가신청할 수 없습니다.');
       return;
     }
 
@@ -517,9 +366,7 @@ function ApplyPage() {
       navigate('/apply/pending', { state: { email: normalizedEmail } });
     } catch (error) {
       setErrorMessage(
-        error instanceof ApiError
-          ? error.message
-          : '참가신청에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+        getApiErrorMessage(error, '참가신청에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
       );
       isSubmittingRef.current = false;
       setIsSubmitting(false);
@@ -534,10 +381,15 @@ function ApplyPage() {
 
       <section className="auth-shell auth-shell-apply" aria-label="참가신청 영역">
         <div className="auth-heading">
-          <h1>참가신청</h1>{currentEvent && <p>{currentEvent.title} · 신청기간 {currentEvent.applicationStartDate} ~ {currentEvent.applicationEndDate}{!canApply(currentEvent) && " · 현재 신청기간이 아니거나 접수가 마감되었습니다."}</p>}
-          <p className="auth-description">
-            독서마라톤 참가를 위한 정보를 입력해 주세요.
-          </p>
+          <h1>참가신청</h1>
+          {currentEvent && (
+            <p>
+              {currentEvent.title} · 신청기간 {currentEvent.applicationStartDate} ~{' '}
+              {currentEvent.applicationEndDate}
+              {!canApply(currentEvent) && ' · 현재 신청기간이 아니거나 접수가 마감되었습니다.'}
+            </p>
+          )}
+          <p className="auth-description">독서마라톤 참가를 위한 정보를 입력해 주세요.</p>
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit}>
@@ -563,9 +415,7 @@ function ApplyPage() {
               placeholder="학번 또는 사번"
               autoComplete="username"
             />
-            <p className="auth-field-help">
-              입력한 학번/사번은 로그인 아이디로 사용됩니다.
-            </p>
+            <p className="auth-field-help">입력한 학번/사번은 로그인 아이디로 사용됩니다.</p>
           </div>
 
           <div className="auth-form-group auth-email-verification">
@@ -606,63 +456,24 @@ function ApplyPage() {
 
             {isCodeSent && !isEmailVerified && (
               <div className="auth-email-verification__row auth-email-verification__code-row">
-                <span
-                  id="verification-code-label"
-                  className="sr-only"
-                >
-                  이메일 인증번호
-                </span>
-                <div
-                  className="auth-email-verification__otp"
-                  role="group"
-                  aria-labelledby="verification-code-label"
-                >
-                  {Array.from({ length: VERIFICATION_CODE_LENGTH }).map(
-                    (_, index) => (
-                      <input
-                        key={index}
-                        ref={(element) => {
-                          verificationDigitRefs.current[index] = element;
-                        }}
-                        id={`verificationCode-${index + 1}`}
-                        className="auth-email-verification__digit"
-                        type="text"
-                        inputMode="numeric"
-                        autoComplete={index === 0 ? 'one-time-code' : 'off'}
-                        value={verificationCode[index] ?? ''}
-                        onChange={(event) =>
-                          handleVerificationDigitChange(
-                            index,
-                            event.target.value,
-                          )
-                        }
-                        onKeyDown={(event) =>
-                          handleVerificationDigitKeyDown(event, index)
-                        }
-                        onPaste={(event) =>
-                          handleVerificationCodePaste(event, index)
-                        }
-                        onFocus={(event) => event.currentTarget.select()}
-                        maxLength={1}
-                        disabled={isVerificationPending}
-                        aria-label={`인증번호 ${index + 1}번째 자리`}
-                        aria-describedby="email-verification-message"
-                      />
-                    ),
-                  )}
-                </div>
+                <VerificationCodeInput
+                  value={verificationCode}
+                  length={VERIFICATION_CODE_LENGTH}
+                  disabled={isVerificationPending}
+                  describedById="email-verification-message"
+                  onChange={handleVerificationCodeChange}
+                  focusRequestKey={codeInputFocusKey}
+                />
                 <span
                   className="auth-email-verification__timer"
                   role="timer"
                   aria-live="off"
                   aria-label={`인증번호 입력 남은 시간 ${formatVerificationTime(
-                    verificationSecondsRemaining ??
-                      VERIFICATION_TIME_LIMIT_SECONDS,
+                    verificationSecondsRemaining ?? VERIFICATION_TIME_LIMIT_SECONDS,
                   )}`}
                 >
                   {formatVerificationTime(
-                    verificationSecondsRemaining ??
-                      VERIFICATION_TIME_LIMIT_SECONDS,
+                    verificationSecondsRemaining ?? VERIFICATION_TIME_LIMIT_SECONDS,
                   )}
                 </span>
                 <button
@@ -683,9 +494,7 @@ function ApplyPage() {
 
             <p
               id="email-verification-message"
-              className={`auth-email-verification__message${
-                verificationError ? ' is-error' : ''
-              }`}
+              className={`auth-email-verification__message${verificationError ? ' is-error' : ''}`}
               role={verificationError ? 'alert' : 'status'}
               aria-live="polite"
             >
@@ -724,25 +533,39 @@ function ApplyPage() {
           </fieldset>
 
           <div className="auth-form-group">
-            <label htmlFor="department">{affiliation === 'undergraduate' ? '소속 학과' : '소속 학과/부서'}</label>
+            <label htmlFor="department">
+              {affiliation === 'undergraduate' ? '소속 학과' : '소속 학과/부서'}
+            </label>
             <select
               id="department"
               value={department}
               onChange={(event) => setDepartment(event.target.value)}
             >
-              <option value="" disabled>소속을 선택해 주세요</option>
+              <option value="" disabled>
+                소속을 선택해 주세요
+              </option>
               {STUDENT_DEPARTMENT_GROUPS.map((group) => (
                 <optgroup key={group.label} label={group.label}>
-                  {group.departments.map((item) => <option key={item} value={item}>{item}</option>)}
+                  {group.departments.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
                 </optgroup>
               ))}
               {affiliation !== 'undergraduate' && (
                 <optgroup label="교직원·대학원·기타">
-                  {GENERAL_AFFILIATIONS.map((item) => <option key={item} value={item}>{item}</option>)}
+                  {GENERAL_AFFILIATIONS.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
                 </optgroup>
               )}
             </select>
-            <small className="auth-department-guide">목록에 없는 소속은 도서관 담당자에게 문의해 주세요.</small>
+            <small className="auth-department-guide">
+              목록에 없는 소속은 도서관 담당자에게 문의해 주세요.
+            </small>
           </div>
 
           <div className="auth-form-row">
@@ -751,14 +574,8 @@ function ApplyPage() {
               <select
                 id="course"
                 value={selectedCourseId ?? ''}
-                onChange={(event) =>
-                  setSelectedCourseId(Number(event.target.value))
-                }
-                disabled={
-                  isEventCourseLoading ||
-                  !canApply(currentEvent) ||
-                  courses.length === 0
-                }
+                onChange={(event) => setSelectedCourseId(Number(event.target.value))}
+                disabled={isEventCourseLoading || !canApply(currentEvent) || courses.length === 0}
               >
                 <option value="" disabled>
                   {isEventCourseLoading
@@ -779,7 +596,6 @@ function ApplyPage() {
                 </p>
               )}
             </div>
-
           </div>
 
           <label className="auth-check auth-agreement">
@@ -789,8 +605,7 @@ function ApplyPage() {
               onChange={(event) => setIsAgreed(event.target.checked)}
             />
             <span>
-              도서관 문화행사 참가자 파악 및 행사 안내를 위한 개인정보 수집 및
-              이용에 동의합니다.
+              도서관 문화행사 참가자 파악 및 행사 안내를 위한 개인정보 수집 및 이용에 동의합니다.
             </span>
           </label>
 

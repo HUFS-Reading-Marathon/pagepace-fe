@@ -18,13 +18,13 @@
 .admin-dashboard__header-meta span {
   color: var(--muted);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--admin-fw-medium);
 }
 
 .admin-dashboard__header-meta strong {
   color: var(--body);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--admin-fw-regular);
   line-height: 1.4;
 }
 
@@ -46,12 +46,12 @@
   min-height: 32px;
   padding: 5px 28px 5px 9px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--surface);
   color: var(--body);
   font: inherit;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--admin-fw-semibold);
 }
 
 .admin-dashboard__event-select select:focus-visible {
@@ -66,21 +66,18 @@
   padding: 0;
   place-items: center;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--surface);
   color: var(--navy-strong);
-  box-shadow: 0 1px 3px rgba(26, 72, 115, 0.06);
   cursor: pointer;
   transition:
     border-color 180ms ease,
-    background-color 180ms ease,
-    box-shadow 180ms ease;
+    background-color 180ms ease;
 }
 
 .admin-dashboard__refresh:hover {
   border-color: var(--blue-30);
   background: var(--blue-10);
-  box-shadow: 0 2px 6px rgba(26, 72, 115, 0.1);
 }
 
 .admin-dashboard__refresh:focus-visible {
@@ -111,9 +108,8 @@
   gap: 24px;
   border: 1px solid var(--line);
   border-left: 3px solid var(--navy-strong);
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--surface);
-  box-shadow: var(--shadow-soft);
 }
 
 .admin-dashboard__event-primary {
@@ -132,7 +128,7 @@
 .admin-dashboard__event-primary > div > span {
   color: var(--muted);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--admin-fw-medium);
 }
 
 .admin-dashboard__event-primary strong {
@@ -152,7 +148,7 @@
   background: var(--line-soft);
   color: var(--body);
   font-size: 11px;
-  font-weight: 750;
+  font-weight: var(--admin-fw-semibold);
   white-space: nowrap;
 }
 
@@ -202,7 +198,7 @@
 .admin-dashboard__event-periods dt {
   color: var(--muted);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--admin-fw-medium);
 }
 
 .admin-dashboard__event-periods dd {
@@ -210,7 +206,7 @@
   margin: 0;
   color: var(--ink);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--admin-fw-regular);
   line-height: 1.4;
   overflow-wrap: anywhere;
 }
@@ -225,7 +221,7 @@
 .admin-dashboard__event-approved > span {
   color: var(--muted);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--admin-fw-medium);
 }
 
 .admin-dashboard__event-approved p {
@@ -246,7 +242,7 @@
 .admin-dashboard__event-approved small {
   color: var(--body);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--admin-fw-regular);
 }
 
 .admin-dashboard__event-approved > small {
@@ -266,9 +262,8 @@
 .admin-dashboard__card {
   min-width: 0;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--surface);
-  box-shadow: var(--shadow-soft);
 }
 
 .admin-dashboard__metric {
@@ -278,16 +273,11 @@
   padding: 21px 20px 19px;
   flex-direction: column;
   overflow: hidden;
-  transition:
-    transform 180ms ease,
-    border-color 180ms ease,
-    box-shadow 180ms ease;
+  transition: border-color 180ms ease;
 }
 
 .admin-dashboard__metric:hover {
   border-color: var(--blue-30);
-  box-shadow: 0 7px 18px rgba(26, 72, 115, 0.1);
-  transform: translateY(-2px);
 }
 
 .admin-dashboard__metric::before {
@@ -321,7 +311,7 @@
   gap: 12px;
   color: var(--body);
   font-size: 13px;
-  font-weight: 750;
+  font-weight: var(--admin-fw-semibold);
 }
 
 .admin-dashboard__metric-icon {
@@ -370,7 +360,7 @@
 .admin-dashboard__metric-value strong {
   color: var(--navy-deep);
   font-size: 36px;
-  font-weight: 800;
+  font-weight: var(--admin-fw-bold);
   line-height: 1.1;
   letter-spacing: -0.045em;
 }
@@ -378,14 +368,14 @@
 .admin-dashboard__metric-value span {
   color: var(--body);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: var(--admin-fw-regular);
 }
 
 .admin-dashboard__metric-description {
   margin: 7px 0 16px;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: var(--admin-fw-regular);
   line-height: 1.45;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -400,7 +390,7 @@
   gap: 10px;
   color: var(--navy-strong);
   font-size: 12px;
-  font-weight: 750;
+  font-weight: var(--admin-fw-semibold);
 }
 
 .admin-dashboard__card-link:hover {
@@ -447,7 +437,7 @@
   margin: 0;
   color: var(--ink);
   font-size: 17px;
-  font-weight: 750;
+  font-weight: var(--admin-fw-semibold);
   line-height: 1.35;
 }
 
@@ -475,7 +465,7 @@
   padding: 2px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--blue-10);
+  background: var(--line-soft);
 }
 
 .admin-dashboard__trend-controls button {
@@ -487,7 +477,7 @@
   color: var(--body);
   font: inherit;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--admin-fw-semibold);
   cursor: pointer;
 }
 
@@ -867,7 +857,7 @@
   min-width: 0;
   color: var(--ink);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--admin-fw-medium);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -877,7 +867,7 @@
   flex: 0 0 auto;
   color: var(--body);
   font-size: 11px;
-  font-weight: 750;
+  font-weight: var(--admin-fw-regular);
 }
 
 .admin-dashboard__affiliation-list progress {
@@ -929,10 +919,10 @@
 }
 
 .admin-dashboard__table th {
-  background: var(--blue-10);
+  background: var(--line-soft);
   color: var(--ink);
   font-size: 11px;
-  font-weight: 750;
+  font-weight: var(--admin-fw-semibold);
 }
 
 .admin-dashboard__table tbody tr:last-child td {
@@ -989,7 +979,7 @@
 .admin-dashboard__table td:first-child,
 .admin-dashboard__table td:first-child a {
   color: var(--ink);
-  font-weight: 700;
+  font-weight: var(--admin-fw-medium);
 }
 
 .admin-dashboard__table td:first-child a:hover {
@@ -1008,7 +998,7 @@
   background: var(--line-soft);
   color: var(--body);
   font-size: 10px;
-  font-weight: 750;
+  font-weight: var(--admin-fw-semibold);
 }
 
 .admin-dashboard__status--approved,
@@ -1294,10 +1284,6 @@
   .admin-dashboard__affiliation-list progress::-webkit-progress-value,
   .admin-dashboard__refresh-icon--spinning {
     animation: none;
-    transform: none;
-  }
-
-  .admin-dashboard__metric:hover {
     transform: none;
   }
 }

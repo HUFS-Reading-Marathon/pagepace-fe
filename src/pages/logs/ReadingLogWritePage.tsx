@@ -1,16 +1,14 @@
-import { useAuth } from "../../auth";
-import ReviewRecommendations from "../../components/layout/ReviewRecommendations";
-import { previousReadingBookIds } from "../../utils/reviewRecommendations";
-import ReviewGuide from "../../components/layout/ReviewGuide";
-import { koreaToday } from "../../utils/eventSelection";
-import { type FormEvent, useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { ApiError } from "../../api/apiClient";
-import { searchBooks } from "../../api/bookApi";
-import {
-  getCurrentParticipation,
-  getMyParticipations,
-} from "../../api/participationApi";
+import { useAuth } from '../../auth';
+import ReviewRecommendations from '../../components/layout/ReviewRecommendations';
+import { previousReadingBookIds } from '../../utils/reviewRecommendations';
+import ReviewGuide from '../../components/layout/ReviewGuide';
+import { koreaToday } from '../../utils/eventSelection';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ApiError } from '../../api/apiClient';
+import BookCover from '../../components/logs/BookCover';
+import BookSearchField from '../../components/logs/BookSearchField';
+import { getCurrentParticipation, getMyParticipations } from '../../api/participationApi';
 import {
   completeReview,
   createReadingLog,
@@ -20,14 +18,10 @@ import {
   getMyReadingLog,
   getReviewTargetBooks,
   updateReadingLog,
-} from "../../api/readingLogApi";
-import type { BookSearchResult } from "../../types/book";
-import type {
-  ParticipantBook,
-  ReadingLog,
-  ReviewTargetBook,
-} from "../../types/readingLog";
-import "./logs.css";
+} from '../../api/readingLogApi';
+import type { BookSearchResult } from '../../types/book';
+import type { ParticipantBook, ReadingLog, ReviewTargetBook } from '../../types/readingLog';
+import './logs.css';
 
 type BookEntry = {
   id: number;
@@ -36,163 +30,18 @@ type BookEntry = {
   readPages: string;
 };
 
-type BookSearchFieldProps = {
-  book: BookEntry;
-  onQueryChange: (query: string) => void;
-  onSelect: (book: BookSearchResult) => void;
-};
-
 const createBookEntry = (): BookEntry => ({
   id: Date.now() + Math.random(),
   selectedBook: null,
-  query: "",
-  readPages: "",
+  query: '',
+  readPages: '',
 });
-
-function BookCover({ book }: { book: BookSearchResult }) {
-  if (book.thumbnailUrl) {
-    return <img src={book.thumbnailUrl} alt="" loading="lazy" />;
-  }
-
-  return <span aria-hidden="true">BOOK</span>;
-}
-
-function BookSearchField({
-  book,
-  onQueryChange,
-  onSelect,
-}: BookSearchFieldProps) {
-  const [results, setResults] = useState<BookSearchResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchMessage, setSearchMessage] = useState("");
-  const requestSequenceRef = useRef(0);
-
-  useEffect(() => {
-    const query = book.query.trim();
-
-    if (book.selectedBook || query.length < 2) {
-      return;
-    }
-
-    const sequence = ++requestSequenceRef.current;
-    const timeoutId = window.setTimeout(() => {
-      setIsSearching(true);
-      setResults([]);
-      setSearchMessage("");
-
-      searchBooks(query)
-        .then((nextResults) => {
-          if (requestSequenceRef.current !== sequence) return;
-          setResults(nextResults);
-          setSearchMessage(
-            nextResults.length === 0 ? "검색 결과가 없습니다." : "",
-          );
-        })
-        .catch((error: unknown) => {
-          if (requestSequenceRef.current !== sequence) return;
-          setResults([]);
-          setSearchMessage(
-            error instanceof ApiError
-              ? error.message
-              : "도서를 검색하지 못했습니다.",
-          );
-        })
-        .finally(() => {
-          if (requestSequenceRef.current === sequence) {
-            setIsSearching(false);
-          }
-        });
-    }, 350);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-      requestSequenceRef.current += 1;
-    };
-  }, [book.query, book.selectedBook]);
-
-  return (
-    <div className="reading-book-search">
-      <label className="reading-log-field">
-        <span>
-          도서 검색 <em>*</em>
-        </span>
-        <div className="reading-book-search-input">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="11" cy="11" r="7" />
-            <path d="m16.5 16.5 4 4" />
-          </svg>
-          <input
-            value={book.query}
-            onChange={(event) => onQueryChange(event.target.value)}
-            placeholder="책 제목 또는 ISBN을 입력해 주세요"
-            autoComplete="off"
-          />
-          {isSearching &&
-            !book.selectedBook &&
-            book.query.trim().length >= 2 && (
-              <span className="reading-book-search-spinner" />
-            )}
-        </div>
-      </label>
-
-      {!book.selectedBook && book.query.trim().length === 1 && (
-        <p className="reading-book-search-guide">
-          두 글자 이상 입력하면 자동으로 검색합니다.
-        </p>
-      )}
-
-      {!book.selectedBook &&
-        book.query.trim().length >= 2 &&
-        (results.length > 0 || searchMessage) && (
-          <div className="reading-book-search-results" role="listbox">
-            {searchMessage ? (
-              <p className="reading-book-search-empty">{searchMessage}</p>
-            ) : (
-              results.map((result) => (
-                <button
-                  key={result.libraryBookId}
-                  type="button"
-                  className="reading-book-search-result"
-                  onClick={() => onSelect(result)}
-                  disabled={!result.pageCount}
-                  role="option"
-                  aria-selected="false"
-                >
-                  <span className="reading-book-search-cover">
-                    <BookCover book={result} />
-                  </span>
-                  <span className="reading-book-search-copy">
-                    <strong>{result.title}</strong>
-                    <span>
-                      {result.author || "저자 미상"}
-                      {result.publisher ? ` · ${result.publisher}` : ""}
-                    </span>
-                    <small>
-                      {result.pageCount
-                        ? `${result.pageCount.toLocaleString()}쪽`
-                        : "전체 페이지 정보 없음"}
-                      {result.libraries.length > 0
-                        ? ` · ${result.libraries.join(", ")}`
-                        : ""}
-                    </small>
-                  </span>
-                  <span className="reading-book-search-select">
-                    {result.pageCount ? "선택" : "선택 불가"}
-                  </span>
-                </button>
-              ))
-            )}
-          </div>
-        )}
-    </div>
-  );
-}
 
 function ReadingLogWritePage() {
   const { user } = useAuth();
   const [bookProgress, setBookProgress] = useState<ParticipantBook[]>([]);
   const [previousLogs, setPreviousLogs] = useState<ReadingLog[]>([]);
-  const [guidanceWarning, setGuidanceWarning] = useState("");
+  const [guidanceWarning, setGuidanceWarning] = useState('');
   const navigate = useNavigate();
   const { logId } = useParams();
   const editingLogId = logId ? Number(logId) : null;
@@ -202,26 +51,22 @@ function ReadingLogWritePage() {
   const [books, setBooks] = useState<BookEntry[]>([createBookEntry()]);
   const reviewBusy = useRef(false);
   const [reviewSending, setReviewSending] = useState(false);
-  const [reviewMessage, setReviewMessage] = useState("");
+  const [reviewMessage, setReviewMessage] = useState('');
   const [reviewTargets, setReviewTargets] = useState<ReviewTargetBook[]>([]);
-  const [currentReadingBook, setCurrentReadingBook] =
-    useState<ParticipantBook | null>(null);
+  const [currentReadingBook, setCurrentReadingBook] = useState<ParticipantBook | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     let active = true;
     (async () => {
-      const editingLog = editingLogId
-        ? await getMyReadingLog(editingLogId)
-        : null;
+      const editingLog = editingLogId ? await getMyReadingLog(editingLogId) : null;
       const participation = editingLog
         ? (await getMyParticipations()).find(
             (item) => item.participationId === editingLog.participationId,
           )
         : await getCurrentParticipation();
-      if (!participation)
-        throw new Error("해당 독서일지의 참가 정보를 찾을 수 없습니다.");
+      if (!participation) throw new Error('해당 독서일지의 참가 정보를 찾을 수 없습니다.');
       // Ancillary recommendation APIs must not determine whether logs can be submitted.
       if (active) setParticipationId(participation.participationId);
       const results = await Promise.allSettled([
@@ -234,14 +79,11 @@ function ReadingLogWritePage() {
       return {
         participation,
         editingLog,
-        targets: targets.status === "fulfilled" ? targets.value : [],
-        readingBooks:
-          readingBooks.status === "fulfilled" ? readingBooks.value : [],
-        progress: progress.status === "fulfilled" ? progress.value : [],
-        logs: logs.status === "fulfilled" ? logs.value : [],
-        guidanceUnavailable: results.some(
-          (result) => result.status === "rejected",
-        ),
+        targets: targets.status === 'fulfilled' ? targets.value : [],
+        readingBooks: readingBooks.status === 'fulfilled' ? readingBooks.value : [],
+        progress: progress.status === 'fulfilled' ? progress.value : [],
+        logs: logs.status === 'fulfilled' ? logs.value : [],
+        guidanceUnavailable: results.some((result) => result.status === 'rejected'),
       };
     })()
       .then(
@@ -261,8 +103,8 @@ function ReadingLogWritePage() {
           setPreviousLogs(logs);
           setGuidanceWarning(
             guidanceUnavailable
-              ? "서평 안내 일부를 불러오지 못했습니다. 독서일지는 그대로 제출할 수 있습니다."
-              : "",
+              ? '서평 안내 일부를 불러오지 못했습니다. 독서일지는 그대로 제출할 수 있습니다.'
+              : '',
           );
 
           if (editingLog) {
@@ -294,9 +136,7 @@ function ReadingLogWritePage() {
       .catch((error: unknown) => {
         if (!active) return;
         setErrorMessage(
-          error instanceof ApiError
-            ? error.message
-            : "참가 정보를 불러오지 못했습니다.",
+          error instanceof ApiError ? error.message : '참가 정보를 불러오지 못했습니다.',
         );
       });
     return () => {
@@ -305,9 +145,7 @@ function ReadingLogWritePage() {
   }, [editingLogId]);
 
   const updateBook = (id: number, changes: Partial<BookEntry>) => {
-    setBooks((current) =>
-      current.map((book) => (book.id === id ? { ...book, ...changes } : book)),
-    );
+    setBooks((current) => current.map((book) => (book.id === id ? { ...book, ...changes } : book)));
   };
 
   const loadCurrentReadingBook = () => {
@@ -326,27 +164,15 @@ function ReadingLogWritePage() {
     };
 
     setBooks((current) => {
-      if (
-        current.some(
-          (book) =>
-            book.selectedBook?.libraryBookId === selectedBook.libraryBookId,
-        )
-      )
+      if (current.some((book) => book.selectedBook?.libraryBookId === selectedBook.libraryBookId))
         return current;
-      const emptyBook = current.find(
-        (book) => !book.selectedBook && !book.query.trim(),
-      );
+      const emptyBook = current.find((book) => !book.selectedBook && !book.query.trim());
       if (emptyBook) {
         return current.map((book) =>
-          book.id === emptyBook.id
-            ? { ...book, query: selectedBook.title, selectedBook }
-            : book,
+          book.id === emptyBook.id ? { ...book, query: selectedBook.title, selectedBook } : book,
         );
       }
-      return [
-        ...current,
-        { ...createBookEntry(), query: selectedBook.title, selectedBook },
-      ];
+      return [...current, { ...createBookEntry(), query: selectedBook.title, selectedBook }];
     });
   };
 
@@ -360,33 +186,24 @@ function ReadingLogWritePage() {
       return;
     reviewBusy.current = true;
     setReviewSending(true);
-    setReviewMessage("");
+    setReviewMessage('');
     try {
       await completeReview(target.participantBookId);
       setReviewMessage(
-        "작성했다고 표시해 현재 분량의 추천을 숨겼습니다. 대회 실적은 변하지 않으며 담당자가 확인한 뒤 거리가 반영됩니다.",
+        '작성했다고 표시해 현재 분량의 추천을 숨겼습니다. 대회 실적은 변하지 않으며 담당자가 확인한 뒤 거리가 반영됩니다.',
       );
       setReviewTargets((current) =>
-        current.filter(
-          (item) => item.participantBookId !== target.participantBookId,
-        ),
+        current.filter((item) => item.participantBookId !== target.participantBookId),
       );
     } catch (error) {
-      setErrorMessage(
-        error instanceof ApiError
-          ? error.message
-          : "서평 완료 처리에 실패했습니다.",
-      );
+      setErrorMessage(error instanceof ApiError ? error.message : '서평 완료 처리에 실패했습니다.');
     } finally {
       reviewBusy.current = false;
       setReviewSending(false);
     }
   };
 
-  const totalReadPages = books.reduce(
-    (sum, book) => sum + Number(book.readPages || 0),
-    0,
-  );
+  const totalReadPages = books.reduce((sum, book) => sum + Number(book.readPages || 0), 0);
   const hasInvalidBook = books.some((book) => {
     const totalPages = book.selectedBook?.pageCount ?? 0;
     const readPages = Number(book.readPages);
@@ -395,12 +212,7 @@ function ReadingLogWritePage() {
         ? currentReadingBook
         : null;
     const availablePages = matchedCurrentBook?.remainingPages ?? totalPages;
-    return (
-      !book.selectedBook ||
-      totalPages <= 0 ||
-      readPages <= 0 ||
-      readPages > availablePages
-    );
+    return !book.selectedBook || totalPages <= 0 || readPages <= 0 || readPages > availablePages;
   });
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -409,15 +221,15 @@ function ReadingLogWritePage() {
     if (!participationId || hasInvalidBook || totalReadPages > 400) {
       setErrorMessage(
         totalReadPages > 400
-          ? "하루 최대 400페이지까지 입력할 수 있습니다."
-          : "도서를 선택하고 오늘 읽은 페이지를 확인해 주세요.",
+          ? '하루 최대 400페이지까지 입력할 수 있습니다.'
+          : '도서를 선택하고 오늘 읽은 페이지를 확인해 주세요.',
       );
       return;
     }
 
     try {
       setIsSubmitting(true);
-      setErrorMessage("");
+      setErrorMessage('');
       const request = {
         readingDate,
         books: books.map((book) => ({
@@ -439,9 +251,7 @@ function ReadingLogWritePage() {
       if (saved) navigate(`/logs/${saved.readingLogId}`);
     } catch (error) {
       setErrorMessage(
-        error instanceof ApiError
-          ? error.message
-          : "독서일지를 저장하지 못했습니다.",
+        error instanceof ApiError ? error.message : '독서일지를 저장하지 못했습니다.',
       );
     } finally {
       setIsSubmitting(false);
@@ -452,7 +262,7 @@ function ReadingLogWritePage() {
     <main className="page-container reading-log-write">
       <section className="page-section">
         <p className="page-label">Reading Log</p>
-        <h1>{editingLogId ? "독서일지 수정" : "독서일지 작성"}</h1>
+        <h1>{editingLogId ? '독서일지 수정' : '독서일지 작성'}</h1>
         <p className="page-description">
           도서관 소장 도서를 검색한 뒤 오늘 읽은 페이지만 기록해 주세요.
         </p>
@@ -463,31 +273,24 @@ function ReadingLogWritePage() {
           <form onSubmit={handleSubmit}>
             {!editingLogId && currentReadingBook && (
               <div className="reading-current-book-guide">
-                <span
-                  className="reading-current-book-guide-icon"
-                  aria-hidden="true"
-                >
+                <span className="reading-current-book-guide-icon" aria-hidden="true">
                   ↗
                 </span>
                 <div>
                   <strong>읽던 책이 있어요</strong>
                   <p>
-                    <b>{currentReadingBook.bookTitle}</b>을 이어서 읽었다면 바로
-                    불러올 수 있어요. 다른 책을 자유롭게 검색해도 됩니다.
+                    <b>{currentReadingBook.bookTitle}</b>을 이어서 읽었다면 바로 불러올 수 있어요.
+                    다른 책을 자유롭게 검색해도 됩니다.
                   </p>
                 </div>
                 <dl>
                   <div>
                     <dt>지금까지 인정</dt>
-                    <dd>
-                      {currentReadingBook.approvedReadPages.toLocaleString()}쪽
-                    </dd>
+                    <dd>{currentReadingBook.approvedReadPages.toLocaleString()}쪽</dd>
                   </div>
                   <div>
                     <dt>남은 페이지</dt>
-                    <dd>
-                      {currentReadingBook.remainingPages.toLocaleString()}쪽
-                    </dd>
+                    <dd>{currentReadingBook.remainingPages.toLocaleString()}쪽</dd>
                   </div>
                 </dl>
                 <button
@@ -495,18 +298,14 @@ function ReadingLogWritePage() {
                   className="reading-current-book-load"
                   onClick={loadCurrentReadingBook}
                   disabled={books.some(
-                    (book) =>
-                      book.selectedBook?.libraryBookId ===
-                      currentReadingBook.libraryBookId,
+                    (book) => book.selectedBook?.libraryBookId === currentReadingBook.libraryBookId,
                   )}
                 >
                   {books.some(
-                    (book) =>
-                      book.selectedBook?.libraryBookId ===
-                      currentReadingBook.libraryBookId,
+                    (book) => book.selectedBook?.libraryBookId === currentReadingBook.libraryBookId,
                   )
-                    ? "불러옴"
-                    : "읽던 책 불러오기"}
+                    ? '불러옴'
+                    : '읽던 책 불러오기'}
                 </button>
               </div>
             )}
@@ -529,15 +328,11 @@ function ReadingLogWritePage() {
                 const totalPages = book.selectedBook?.pageCount ?? 0;
                 const matchedCurrentBook =
                   !editingLogId &&
-                  currentReadingBook?.libraryBookId ===
-                    book.selectedBook?.libraryBookId
+                  currentReadingBook?.libraryBookId === book.selectedBook?.libraryBookId
                     ? currentReadingBook
                     : null;
                 const otherBooksPages = books.reduce(
-                  (sum, item) =>
-                    item.id === book.id
-                      ? sum
-                      : sum + Number(item.readPages || 0),
+                  (sum, item) => (item.id === book.id ? sum : sum + Number(item.readPages || 0)),
                   0,
                 );
                 const availablePages = Math.min(
@@ -545,8 +340,7 @@ function ReadingLogWritePage() {
                   Math.max(0, 400 - otherBooksPages),
                 );
                 const readPages = Number(book.readPages || 0);
-                const isPageInvalid =
-                  readPages > availablePages && availablePages > 0;
+                const isPageInvalid = readPages > availablePages && availablePages > 0;
 
                 return (
                   <section className="reading-book-row" key={book.id}>
@@ -564,9 +358,7 @@ function ReadingLogWritePage() {
                           type="button"
                           className="reading-book-remove"
                           onClick={() =>
-                            setBooks((current) =>
-                              current.filter((item) => item.id !== book.id),
-                            )
+                            setBooks((current) => current.filter((item) => item.id !== book.id))
                           }
                         >
                           삭제
@@ -576,7 +368,8 @@ function ReadingLogWritePage() {
 
                     <div className="reading-book-entry-fields">
                       <BookSearchField
-                        book={book}
+                        query={book.query}
+                        selectedBook={book.selectedBook}
                         onQueryChange={(query) =>
                           updateBook(book.id, { query, selectedBook: null })
                         }
@@ -606,7 +399,7 @@ function ReadingLogWritePage() {
                             placeholder={
                               book.selectedBook
                                 ? `최대 ${availablePages.toLocaleString()}`
-                                : "도서 선택 후 입력"
+                                : '도서 선택 후 입력'
                             }
                             disabled={!book.selectedBook}
                             required
@@ -630,10 +423,8 @@ function ReadingLogWritePage() {
                           <span>선택한 도서</span>
                           <strong>{book.selectedBook.title}</strong>
                           <p>
-                            {book.selectedBook.author || "저자 미상"}
-                            {book.selectedBook.publisher
-                              ? ` · ${book.selectedBook.publisher}`
-                              : ""}
+                            {book.selectedBook.author || '저자 미상'}
+                            {book.selectedBook.publisher ? ` · ${book.selectedBook.publisher}` : ''}
                           </p>
                           <dl>
                             <div>
@@ -644,8 +435,8 @@ function ReadingLogWritePage() {
                               <div>
                                 <dt>독서 진행</dt>
                                 <dd>
-                                  {matchedCurrentBook.approvedReadPages.toLocaleString()}{" "}
-                                  / {totalPages.toLocaleString()}쪽
+                                  {matchedCurrentBook.approvedReadPages.toLocaleString()} /{' '}
+                                  {totalPages.toLocaleString()}쪽
                                 </dd>
                               </div>
                             )}
@@ -662,7 +453,7 @@ function ReadingLogWritePage() {
                           className="reading-book-change"
                           onClick={() =>
                             updateBook(book.id, {
-                              query: "",
+                              query: '',
                               selectedBook: null,
                             })
                           }
@@ -680,14 +471,12 @@ function ReadingLogWritePage() {
               type="button"
               className="reading-book-add"
               disabled={totalReadPages >= 400}
-              onClick={() =>
-                setBooks((current) => [...current, createBookEntry()])
-              }
+              onClick={() => setBooks((current) => [...current, createBookEntry()])}
             >
               <span aria-hidden="true">+</span>
               {totalReadPages >= 400
-                ? "오늘 기록 가능한 400쪽을 모두 입력했어요"
-                : "다른 책 추가하기"}
+                ? '오늘 기록 가능한 400쪽을 모두 입력했어요'
+                : '다른 책 추가하기'}
             </button>
 
             <div className="reading-log-summary">
@@ -700,8 +489,8 @@ function ReadingLogWritePage() {
                 <strong>{(totalReadPages * 5).toLocaleString()}m</strong>
               </div>
               <p>
-                표시된 거리는 예상 값입니다. 일지 승인과 서평 확인을 모두 거친
-                분량만 실제 거리로 반영됩니다.
+                표시된 거리는 예상 값입니다. 일지 승인과 서평 확인을 모두 거친 분량만 실제 거리로
+                반영됩니다.
               </p>
             </div>
 
@@ -721,19 +510,12 @@ function ReadingLogWritePage() {
                 type="submit"
                 disabled={isSubmitting || participationId === null}
               >
-                {isSubmitting
-                  ? "저장 중..."
-                  : editingLogId
-                    ? "독서일지 수정"
-                    : "독서일지 제출"}
+                {isSubmitting ? '저장 중...' : editingLogId ? '독서일지 수정' : '독서일지 제출'}
               </button>
             </div>
           </form>
         </section>
-        <aside
-          className="reading-log-card reading-review-aside"
-          id="review-guide"
-        >
+        <aside className="reading-log-card reading-review-aside" id="review-guide">
           <h2>서평 할 일</h2>
           <ReviewGuide />
           <p role="status">{reviewMessage}</p>
@@ -745,11 +527,7 @@ function ReadingLogWritePage() {
               participationId={participationId}
               targets={reviewTargets}
               progress={bookProgress}
-              previousBookIds={previousReadingBookIds(
-                previousLogs,
-                participationId,
-                readingDate,
-              )}
+              previousBookIds={previousReadingBookIds(previousLogs, participationId, readingDate)}
               selectedBookIds={books.flatMap((b) =>
                 b.selectedBook ? [b.selectedBook.libraryBookId] : [],
               )}

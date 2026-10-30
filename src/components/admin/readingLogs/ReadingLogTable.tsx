@@ -1,14 +1,13 @@
 import { useEffect, useRef } from 'react';
 import {
   formatReadingDistance,
-  formatReadingLogDate,
-  formatReadingLogDateTime,
   getReadingDistanceMeters,
   getReadingLogTotalPages,
   validateReadingLog,
   type AdminReadingLog,
   type ReadingLogDialogMode,
 } from '../../../types/adminReadingLog';
+import { formatKoDateKey, formatKoDateTime24 } from '../../../utils/date';
 import ReadingLogStatusBadge from './ReadingLogStatusBadge';
 
 type ReadingLogTableProps = {
@@ -20,10 +19,7 @@ type ReadingLogTableProps = {
   selectedLogIds: string[];
   onToggleLog: (logId: string, checked: boolean) => void;
   onToggleAll: (checked: boolean) => void;
-  onOpenDialog: (
-    logId: string,
-    initialMode: ReadingLogDialogMode,
-  ) => void;
+  onOpenDialog: (logId: string, initialMode: ReadingLogDialogMode) => void;
 };
 
 function ReadingLogTable({
@@ -46,8 +42,7 @@ function ReadingLogTable({
   ).length;
   const allEligibleSelected =
     eligibleLogs.length > 0 && selectedEligibleCount === eligibleLogs.length;
-  const someEligibleSelected =
-    selectedEligibleCount > 0 && !allEligibleSelected;
+  const someEligibleSelected = selectedEligibleCount > 0 && !allEligibleSelected;
 
   useEffect(() => {
     if (selectAllRef.current) {
@@ -72,19 +67,11 @@ function ReadingLogTable({
   }
 
   if (!hasLogs) {
-    return (
-      <div className="admin-reading-logs__empty">
-        검토할 독서일지가 없습니다.
-      </div>
-    );
+    return <div className="admin-reading-logs__empty">검토할 독서일지가 없습니다.</div>;
   }
 
   if (logs.length === 0) {
-    return (
-      <div className="admin-reading-logs__empty">
-        조건에 맞는 독서일지가 없습니다.
-      </div>
-    );
+    return <div className="admin-reading-logs__empty">조건에 맞는 독서일지가 없습니다.</div>;
   }
 
   return (
@@ -119,8 +106,7 @@ function ReadingLogTable({
           {logs.map((log) => {
             const validationIssues = validateReadingLog(log);
             const totalReadPages = getReadingLogTotalPages(log);
-            const isSelectable =
-              log.status === 'submit' && validationIssues.length === 0;
+            const isSelectable = log.status === 'submit' && validationIssues.length === 0;
             const firstBookTitle = log.books[0]?.title ?? '등록 도서 없음';
             const bookLabel =
               log.books.length > 1
@@ -134,7 +120,7 @@ function ReadingLogTable({
                     type="checkbox"
                     checked={selectedLogIds.includes(log.id)}
                     disabled={!isSelectable}
-                    aria-label={`${log.participantName}의 ${formatReadingLogDate(
+                    aria-label={`${log.participantName}의 ${formatKoDateKey(
                       log.readingDate,
                     )} 독서일지 선택`}
                     title={
@@ -142,34 +128,23 @@ function ReadingLogTable({
                         ? '자동 검증 문제가 있어 일괄 승인할 수 없습니다.'
                         : undefined
                     }
-                    onChange={(event) =>
-                      onToggleLog(log.id, event.target.checked)
-                    }
+                    onChange={(event) => onToggleLog(log.id, event.target.checked)}
                   />
                 </td>
                 <td>
                   <ReadingLogStatusBadge status={log.status} />
                 </td>
-                <td className="admin-reading-logs__nowrap">
-                  {formatReadingLogDate(log.readingDate)}
-                </td>
-                <td className="admin-reading-logs__participant">
-                  {log.participantName}
-                </td>
-                <td className="admin-reading-logs__nowrap">
-                  {log.studentNumber}
-                </td>
+                <td className="admin-reading-logs__nowrap">{formatKoDateKey(log.readingDate)}</td>
+                <td className="admin-reading-logs__participant">{log.participantName}</td>
+                <td className="admin-reading-logs__nowrap">{log.studentNumber}</td>
                 <td className="admin-reading-logs__book-title">{bookLabel}</td>
-                <td className="admin-reading-logs__number">
-                  {log.books.length}권
-                </td>
+                <td className="admin-reading-logs__number">{log.books.length}권</td>
                 <td className="admin-reading-logs__number">
                   {totalReadPages.toLocaleString('ko-KR')}쪽
                 </td>
                 <td className="admin-reading-logs__nowrap">
                   {formatReadingDistance(
-                    log.convertedDistanceMeter ??
-                      getReadingDistanceMeters(totalReadPages),
+                    log.convertedDistanceMeter ?? getReadingDistanceMeters(totalReadPages),
                   )}
                 </td>
                 <td>
@@ -187,7 +162,7 @@ function ReadingLogTable({
                   )}
                 </td>
                 <td className="admin-reading-logs__submitted-at">
-                  {formatReadingLogDateTime(log.submittedAt)}
+                  {formatKoDateTime24(log.submittedAt)}
                 </td>
                 <td>
                   <div className="admin-reading-logs__row-actions">
@@ -204,18 +179,13 @@ function ReadingLogTable({
                         <button
                           type="button"
                           className="admin-reading-logs__table-button admin-reading-logs__table-button--approve"
-                          disabled={
-                            validationIssues.length > 0 ||
-                            processingLogId === log.id
-                          }
+                          disabled={validationIssues.length > 0 || processingLogId === log.id}
                           title={
                             validationIssues.length > 0
                               ? '자동 검증 문제를 먼저 확인해 주세요.'
                               : undefined
                           }
-                          onClick={() =>
-                            onOpenDialog(log.id, 'approve-confirm')
-                          }
+                          onClick={() => onOpenDialog(log.id, 'approve-confirm')}
                           aria-busy={processingLogId === log.id}
                         >
                           승인

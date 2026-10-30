@@ -1,17 +1,15 @@
 import { Link } from 'react-router-dom';
 import {
   ADMIN_APPLICATION_STATUS_LABELS,
-  formatAdminApplicationDate,
   type AdminApplicationListItem,
 } from '../../../types/adminApplication';
+import { formatKoDate } from '../../../utils/date';
 
 type DashboardRecentParticipantsProps = {
   participants: AdminApplicationListItem[];
 };
 
-function DashboardRecentParticipants({
-  participants,
-}: DashboardRecentParticipantsProps) {
+function DashboardRecentParticipants({ participants }: DashboardRecentParticipantsProps) {
   return (
     <section className="admin-dashboard__card admin-dashboard__operations-card admin-dashboard__enter">
       <header className="admin-dashboard__card-header">
@@ -19,9 +17,7 @@ function DashboardRecentParticipants({
       </header>
 
       {participants.length === 0 ? (
-        <div className="admin-dashboard__empty">
-          최근 참가 신청이 없습니다.
-        </div>
+        <div className="admin-dashboard__empty">최근 참가 신청이 없습니다.</div>
       ) : (
         <div className="admin-dashboard__table-wrapper">
           <table className="admin-dashboard__table admin-dashboard__table--participants">
@@ -52,12 +48,10 @@ function DashboardRecentParticipants({
                           : participant.status.toLowerCase()
                       }`}
                     >
-                      {
-                        ADMIN_APPLICATION_STATUS_LABELS[participant.status]
-                      }
+                      {ADMIN_APPLICATION_STATUS_LABELS[participant.status]}
                     </span>
                   </td>
-                  <td>{formatAdminApplicationDate(participant.appliedAt)}</td>
+                  <td>{formatKoDate(participant.appliedAt)}</td>
                 </tr>
               ))}
             </tbody>

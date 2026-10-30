@@ -16,9 +16,7 @@ function DashboardAffiliationChart({
       </header>
 
       {participantCount === 0 ? (
-        <div className="admin-dashboard__empty">
-          승인 참가자의 소속 정보가 없습니다.
-        </div>
+        <div className="admin-dashboard__empty">승인 참가자의 소속 정보가 없습니다.</div>
       ) : (
         <figure
           className="admin-dashboard__affiliation-figure"
@@ -36,9 +34,7 @@ function DashboardAffiliationChart({
                 <progress
                   max={participantCount}
                   value={item.count}
-                  aria-label={`${item.label} ${item.count}명, ${item.rate.toFixed(
-                    1,
-                  )}%`}
+                  aria-label={`${item.label} ${item.count}명, ${item.rate.toFixed(1)}%`}
                 />
               </div>
             ))}

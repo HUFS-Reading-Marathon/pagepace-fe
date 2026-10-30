@@ -1,16 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ApiError } from '../../api/apiClient';
+import { getApiErrorMessage } from '../../api/apiClient';
 import { deleteReadingLog, getMyReadingLog } from '../../api/readingLogApi';
-import type { ReadingLog, ReadingLogBook } from '../../types/readingLog';
+import {
+  READING_LOG_STATUS_LABELS,
+  type ReadingLog,
+  type ReadingLogBook,
+} from '../../types/readingLog';
 import { formatDistance } from '../../utils/reading';
 import './logs.css';
-
-const STATUS_LABEL = {
-  SUBMITTED: '검토중',
-  APPROVED: '인정',
-  REJECTED: '반려',
-} as const;
 
 function DetailBookCover({ book }: { book: ReadingLogBook }) {
   if (book.coverImageUrl) {
@@ -32,8 +30,7 @@ function ReadingLogDetailPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const readingLogId = Number(logId);
-  const hasValidReadingLogId =
-    Number.isInteger(readingLogId) && readingLogId > 0;
+  const hasValidReadingLogId = Number.isInteger(readingLogId) && readingLogId > 0;
 
   useEffect(() => {
     if (!hasValidReadingLogId) return;
@@ -41,11 +38,7 @@ function ReadingLogDetailPage() {
     getMyReadingLog(readingLogId)
       .then(setLog)
       .catch((error: unknown) => {
-        setErrorMessage(
-          error instanceof ApiError
-            ? error.message
-            : '독서일지를 불러오지 못했습니다.',
-        );
+        setErrorMessage(getApiErrorMessage(error, '독서일지를 불러오지 못했습니다.'));
       });
   }, [hasValidReadingLogId, readingLogId]);
 
@@ -58,11 +51,7 @@ function ReadingLogDetailPage() {
       await deleteReadingLog(log.readingLogId);
       navigate('/logs', { replace: true });
     } catch (error) {
-      setErrorMessage(
-        error instanceof ApiError
-          ? error.message
-          : '독서일지를 삭제하지 못했습니다.',
-      );
+      setErrorMessage(getApiErrorMessage(error, '독서일지를 삭제하지 못했습니다.'));
       setIsDeleting(false);
     }
   };
@@ -85,7 +74,7 @@ function ReadingLogDetailPage() {
     );
   }
 
-  const statusLabel = STATUS_LABEL[log.status];
+  const statusLabel = READING_LOG_STATUS_LABELS[log.status];
 
   return (
     <main className="reading-detail-page">
@@ -103,9 +92,7 @@ function ReadingLogDetailPage() {
               {log.readingDate} · {log.books.length}권 기록
             </p>
           </div>
-          <span className={`log-status-badge status-${statusLabel}`}>
-            {statusLabel}
-          </span>
+          <span className={`log-status-badge status-${statusLabel}`}>{statusLabel}</span>
         </header>
 
         <dl className="reading-detail-summary">
@@ -140,10 +127,7 @@ function ReadingLogDetailPage() {
               );
 
               return (
-                <article
-                  className="reading-detail-book"
-                  key={book.readingLogBookId}
-                >
+                <article className="reading-detail-book" key={book.readingLogBookId}>
                   <div className="reading-detail-book-cover">
                     <DetailBookCover book={book} />
                   </div>
@@ -210,10 +194,7 @@ function ReadingLogDetailPage() {
           </Link>
           {log.status !== 'APPROVED' && (
             <div>
-              <Link
-                to={`/logs/${log.readingLogId}/edit`}
-                className="reading-detail-action-primary"
-              >
+              <Link to={`/logs/${log.readingLogId}/edit`} className="reading-detail-action-primary">
                 수정
               </Link>
               <button

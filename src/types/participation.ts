@@ -1,8 +1,4 @@
-export type ParticipationStatus =
-  | 'APPROVED'
-  | 'CANCELLED'
-  | 'COMPLETED'
-  | 'DISQUALIFIED';
+export type ParticipationStatus = 'APPROVED' | 'CANCELLED' | 'COMPLETED' | 'DISQUALIFIED';
 
 export type MyParticipation = {
   participationId: number;

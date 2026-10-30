@@ -1,5 +1,12 @@
 export type ReadingLogStatus = 'SUBMITTED' | 'APPROVED' | 'REJECTED';
 
+/** 사용자 화면에서 표시하는 독서일지 상태 라벨 (CSS `.status-{라벨}` 클래스에도 사용) */
+export const READING_LOG_STATUS_LABELS: Record<ReadingLogStatus, string> = {
+  SUBMITTED: '검토중',
+  APPROVED: '인정',
+  REJECTED: '반려',
+};
+
 export type ReadingLogBookRequest = {
   libraryBookId: number;
   bookTitle: string;

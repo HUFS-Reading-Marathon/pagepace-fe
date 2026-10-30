@@ -1,5 +1,5 @@
 import type { AdminEvent } from '../../../types/adminEvent';
-import { formatStatusDate } from '../../../utils/statusAggregation';
+import { formatKoDateKey, getLocalDateKey } from '../../../utils/date';
 
 type DashboardEventOverviewProps = {
   event: AdminEvent | null;
@@ -18,11 +18,9 @@ function formatPeriod(startDate: string, endDate: string) {
       return fallback;
     }
 
-    try {
-      return formatStatusDate(value);
-    } catch {
-      return '날짜 확인 필요';
-    }
+    const label = formatKoDateKey(value);
+
+    return label === '-' ? '날짜 확인 필요' : label;
   };
   const startLabel = getDateLabel(startDate, '시작일 미정');
   const endLabel = getDateLabel(endDate, '종료일 미정');
@@ -38,12 +36,7 @@ function getEventState(event: AdminEvent | null) {
     } as const;
   }
 
-  const today = new Date();
-  const todayKey = [
-    today.getFullYear(),
-    String(today.getMonth() + 1).padStart(2, '0'),
-    String(today.getDate()).padStart(2, '0'),
-  ].join('-');
+  const todayKey = getLocalDateKey();
 
   if (todayKey < event.eventStartDate) {
     return {
@@ -96,20 +89,12 @@ function DashboardEventOverview({
         <div>
           <dt>신청</dt>
           <dd>
-            {formatPeriod(
-              event?.applicationStartDate ?? '',
-              event?.applicationEndDate ?? '',
-            )}
+            {formatPeriod(event?.applicationStartDate ?? '', event?.applicationEndDate ?? '')}
           </dd>
         </div>
         <div>
           <dt>운영</dt>
-          <dd>
-            {formatPeriod(
-              event?.eventStartDate ?? '',
-              event?.eventEndDate ?? '',
-            )}
-          </dd>
+          <dd>{formatPeriod(event?.eventStartDate ?? '', event?.eventEndDate ?? '')}</dd>
         </div>
       </dl>
 

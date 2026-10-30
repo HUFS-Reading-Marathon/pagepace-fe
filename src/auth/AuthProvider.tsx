@@ -1,17 +1,6 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type PropsWithChildren,
-} from 'react';
-import {
-  getCurrentUser,
-  login as requestLogin,
-  logout as requestLogout,
-} from '../api/authApi';
-import { ApiError } from '../api/apiClient';
+import { useCallback, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
+import { getCurrentUser, login as requestLogin, logout as requestLogout } from '../api/authApi';
+import { ApiError, getApiErrorMessage } from '../api/apiClient';
 import { AuthContext } from './AuthContext';
 import {
   ACCESS_TOKEN_STORAGE_KEY,
@@ -40,10 +29,7 @@ function AuthProvider({ children }: PropsWithChildren) {
   const authSequenceRef = useRef(0);
 
   const requestCurrentUser = useCallback((token: string) => {
-    if (
-      currentUserRequestRef.current === null ||
-      currentUserRequestRef.current.token !== token
-    ) {
+    if (currentUserRequestRef.current === null || currentUserRequestRef.current.token !== token) {
       const request = {
         token,
         promise: getCurrentUser(),
@@ -67,15 +53,12 @@ function AuthProvider({ children }: PropsWithChildren) {
     return currentUserRequestRef.current.promise;
   }, []);
 
-  const applyAuthenticatedUser = useCallback(
-    (nextUser: AuthUser, token: string) => {
-      saveAuthSession(token, nextUser.studentNo);
-      setUser(nextUser);
-      setIsAuthenticated(true);
-      setAuthError(null);
-    },
-    [],
-  );
+  const applyAuthenticatedUser = useCallback((nextUser: AuthUser, token: string) => {
+    saveAuthSession(token, nextUser.studentNo);
+    setUser(nextUser);
+    setIsAuthenticated(true);
+    setAuthError(null);
+  }, []);
 
   const clearAuthentication = useCallback(() => {
     clearAuthStorage();
@@ -112,11 +95,7 @@ function AuthProvider({ children }: PropsWithChildren) {
 
         setUser(null);
         setIsAuthenticated(false);
-        setAuthError(
-          error instanceof ApiError
-            ? error.message
-            : '사용자 정보를 불러오지 못했습니다.',
-        );
+        setAuthError(getApiErrorMessage(error, '사용자 정보를 불러오지 못했습니다.'));
       })
       .finally(() => {
         if (isActive && authSequenceRef.current === sequence) {
@@ -127,12 +106,7 @@ function AuthProvider({ children }: PropsWithChildren) {
     return () => {
       isActive = false;
     };
-  }, [
-    applyAuthenticatedUser,
-    clearAuthentication,
-    initialToken,
-    requestCurrentUser,
-  ]);
+  }, [applyAuthenticatedUser, clearAuthentication, initialToken, requestCurrentUser]);
 
   useEffect(() => {
     const syncFromStorage = (event: StorageEvent) => {
@@ -172,11 +146,7 @@ function AuthProvider({ children }: PropsWithChildren) {
             return;
           }
 
-          setAuthError(
-            error instanceof ApiError
-              ? error.message
-              : '사용자 정보를 불러오지 못했습니다.',
-          );
+          setAuthError(getApiErrorMessage(error, '사용자 정보를 불러오지 못했습니다.'));
         })
         .finally(() => {
           if (authSequenceRef.current === sequence) {
@@ -224,30 +194,18 @@ function AuthProvider({ children }: PropsWithChildren) {
           const { accessToken } = await requestLogin(credentials);
 
           if (authSequenceRef.current !== sequence) {
-            throw new ApiError(
-              '로그인 요청이 취소되었습니다.',
-              0,
-              'AUTH_REQUEST_CANCELLED',
-            );
+            throw new ApiError('로그인 요청이 취소되었습니다.', 0, 'AUTH_REQUEST_CANCELLED');
           }
 
           if (!saveAuthSession(accessToken, credentials.studentNo)) {
-            throw new ApiError(
-              '로그인 정보를 저장하지 못했습니다.',
-              0,
-              'AUTH_STORAGE_ERROR',
-            );
+            throw new ApiError('로그인 정보를 저장하지 못했습니다.', 0, 'AUTH_STORAGE_ERROR');
           }
 
           sessionSaved = true;
           const nextUser = await requestCurrentUser(accessToken);
 
           if (authSequenceRef.current !== sequence) {
-            throw new ApiError(
-              '로그인 요청이 취소되었습니다.',
-              0,
-              'AUTH_REQUEST_CANCELLED',
-            );
+            throw new ApiError('로그인 요청이 취소되었습니다.', 0, 'AUTH_REQUEST_CANCELLED');
           }
 
           applyAuthenticatedUser(nextUser, accessToken);
@@ -256,8 +214,7 @@ function AuthProvider({ children }: PropsWithChildren) {
         } catch (error) {
           if (authSequenceRef.current === sequence) {
             const shouldClearSession =
-              !sessionSaved ||
-              (error instanceof ApiError && error.status === 401);
+              !sessionSaved || (error instanceof ApiError && error.status === 401);
 
             if (shouldClearSession) {
               clearAuthentication();
@@ -265,11 +222,7 @@ function AuthProvider({ children }: PropsWithChildren) {
             } else {
               setUser(null);
               setIsAuthenticated(false);
-              setAuthError(
-                error instanceof ApiError
-                  ? error.message
-                  : '사용자 정보를 불러오지 못했습니다.',
-              );
+              setAuthError(getApiErrorMessage(error, '사용자 정보를 불러오지 못했습니다.'));
             }
           }
 
@@ -283,7 +236,8 @@ function AuthProvider({ children }: PropsWithChildren) {
       loginPromiseRef.current = loginPromise;
 
       return loginPromise;
-    }, [applyAuthenticatedUser, clearAuthentication, requestCurrentUser],
+    },
+    [applyAuthenticatedUser, clearAuthentication, requestCurrentUser],
   );
 
   const logout = useCallback(() => {
@@ -305,15 +259,7 @@ function AuthProvider({ children }: PropsWithChildren) {
       login,
       logout,
     }),
-    [
-      authError,
-      isAuthenticated,
-      isInitializing,
-      isLoading,
-      login,
-      logout,
-      user,
-    ],
+    [authError, isAuthenticated, isInitializing, isLoading, login, logout, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

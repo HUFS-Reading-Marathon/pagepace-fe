@@ -22,9 +22,7 @@ function ApplyPendingPage() {
 
         <div className="auth-heading">
           <h1>참가신청이 접수되었습니다</h1>
-          <p className="auth-description">
-            관리자 확인 후 참가 승인이 완료됩니다.
-          </p>
+          <p className="auth-description">관리자 확인 후 참가 승인이 완료됩니다.</p>
         </div>
 
         <div className="auth-pending-content">

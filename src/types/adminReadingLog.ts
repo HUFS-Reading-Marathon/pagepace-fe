@@ -1,29 +1,29 @@
+import { DAILY_READING_PAGE_LIMIT, METERS_PER_PAGE } from '../constants/reading';
+
 export type ReadingLogStatus = 'submit' | 'approve' | 'rejected';
 
 export type ReadingLogStatusFilter = 'ALL' | ReadingLogStatus;
 export type ReadingLogReviewFilter = 'ALL' | 'safe' | 'warning';
 export type ReadingLogDialogMode = 'detail' | 'approve-confirm' | 'reject';
 
+/** 관리자 검토 화면에서 사용하는 책별 독서 내역 표시 모델 */
 export type ReadingLogBookEntry = {
   id: string;
-  bookId: string;
   title: string;
   author: string;
   publisher: string;
   totalPages: number;
   previouslyApprovedPages: number;
   readPages: number;
-  reviewWritten?: boolean;
   expectedApprovedPages?: number;
   remainingPagesAfterApproval?: number;
-  completedAfterApproval?: boolean;
   pageExceeded?: boolean;
   warningMessage?: string;
 };
 
+/** 서버 응답(AdminReadingLogResponse)을 화면 표시용으로 변환한 모델 */
 export type AdminReadingLog = {
   id: string;
-  participantId: string;
   participantName: string;
   studentNumber: string;
   readingDate: string;
@@ -32,8 +32,6 @@ export type AdminReadingLog = {
   books: ReadingLogBookEntry[];
   approvedAt?: string;
   rejectionReason?: string;
-  adminMemo?: string;
-  reviewFlags?: string[];
   totalReadPages?: number;
   convertedDistanceMeter?: number;
   eventTitle?: string;
@@ -42,10 +40,7 @@ export type AdminReadingLog = {
 };
 
 export type ReadingLogValidationCode =
-  | 'daily-limit'
-  | 'book-total-overflow'
-  | 'invalid-pages'
-  | 'missing-book-info';
+  'daily-limit' | 'book-total-overflow' | 'invalid-pages' | 'missing-book-info';
 
 export type ReadingLogValidationIssue = {
   code: ReadingLogValidationCode;
@@ -89,14 +84,8 @@ export const READING_LOG_REJECTION_REASONS = [
   '기타',
 ] as const;
 
-export const DAILY_READING_PAGE_LIMIT = 400;
-export const METERS_PER_PAGE = 5;
-
 export function getReadingLogTotalPages(log: AdminReadingLog) {
-  return (
-    log.totalReadPages ??
-    log.books.reduce((sum, book) => sum + book.readPages, 0)
-  );
+  return log.totalReadPages ?? log.books.reduce((sum, book) => sum + book.readPages, 0);
 }
 
 export function getReadingDistanceMeters(readPages: number) {
@@ -104,22 +93,14 @@ export function getReadingDistanceMeters(readPages: number) {
 }
 
 export function getExpectedApprovedPages(book: ReadingLogBookEntry) {
-  return (
-    book.expectedApprovedPages ??
-    book.previouslyApprovedPages + book.readPages
-  );
+  return book.expectedApprovedPages ?? book.previouslyApprovedPages + book.readPages;
 }
 
 export function getRemainingPages(book: ReadingLogBookEntry) {
-  return (
-    book.remainingPagesAfterApproval ??
-    book.totalPages - getExpectedApprovedPages(book)
-  );
+  return book.remainingPagesAfterApproval ?? book.totalPages - getExpectedApprovedPages(book);
 }
 
-export function validateReadingLog(
-  log: AdminReadingLog,
-): ReadingLogValidationIssue[] {
+export function validateReadingLog(log: AdminReadingLog): ReadingLogValidationIssue[] {
   const issues: ReadingLogValidationIssue[] = [];
   const totalReadPages = getReadingLogTotalPages(log);
 
@@ -158,10 +139,7 @@ export function validateReadingLog(
       });
     }
 
-    if (
-      !hasInvalidPageValue &&
-      getExpectedApprovedPages(book) > book.totalPages
-    ) {
+    if (!hasInvalidPageValue && getExpectedApprovedPages(book) > book.totalPages) {
       issues.push({
         code: 'book-total-overflow',
         label: '책 전체 페이지 초과',
@@ -172,11 +150,7 @@ export function validateReadingLog(
 
     if (
       book.pageExceeded &&
-      !issues.some(
-        (issue) =>
-          issue.code === 'book-total-overflow' &&
-          issue.bookEntryId === book.id,
-      )
+      !issues.some((issue) => issue.code === 'book-total-overflow' && issue.bookEntryId === book.id)
     ) {
       issues.push({
         code: 'book-total-overflow',
@@ -188,11 +162,7 @@ export function validateReadingLog(
       });
     }
 
-    if (
-      !book.title.trim() ||
-      !book.author.trim() ||
-      !book.publisher.trim()
-    ) {
+    if (!book.title.trim() || !book.author.trim() || !book.publisher.trim()) {
       issues.push({
         code: 'missing-book-info',
         label: '도서 정보 누락',
@@ -203,29 +173,6 @@ export function validateReadingLog(
   });
 
   return issues;
-}
-
-export function hasBlockingValidationIssue(log: AdminReadingLog) {
-  return validateReadingLog(log).length > 0;
-}
-
-export function formatReadingLogDate(value: string) {
-  return new Intl.DateTimeFormat('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date(`${value}T00:00:00`));
-}
-
-export function formatReadingLogDateTime(value: string) {
-  return new Intl.DateTimeFormat('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).format(new Date(value));
 }
 
 export function formatReadingDistance(meters: number) {

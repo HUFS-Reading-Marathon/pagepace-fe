@@ -1,10 +1,11 @@
-import { type MouseEvent, useEffect, useRef } from 'react';
+import { useRef } from 'react';
+import { useModalDialog } from '../../../hooks/useModalDialog';
 import {
   ADMIN_APPLICATION_AFFILIATION_LABELS,
-  formatAdminApplicationDateTime,
   type AdminApplicationDetail,
   type AdminApplicationListItem,
 } from '../../../types/adminApplication';
+import { formatKoDateTime } from '../../../utils/date';
 import ParticipantStatusBadge from './ParticipantStatusBadge';
 
 type ParticipantDetailDialogProps = {
@@ -31,49 +32,15 @@ function ParticipantDetailDialog({
   onReject,
 }: ParticipantDetailDialogProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const onCloseRef = useRef(onClose);
   const displayedApplication = application ?? fallbackApplication;
-
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
-
-  useEffect(() => {
-    const previouslyFocused =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-    const previousBodyOverflow = document.body.style.overflow;
-
-    document.body.style.overflow = 'hidden';
-    closeButtonRef.current?.focus();
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onCloseRef.current();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = previousBodyOverflow;
-      previouslyFocused?.focus();
-    };
-  }, []);
-
-  const handleBackdropMouseDown = (event: MouseEvent<HTMLDivElement>) => {
-    if (event.target === event.currentTarget) {
-      onClose();
-    }
-  };
+  const { handleBackdropMouseDown } = useModalDialog({
+    onClose,
+    initialFocusRef: closeButtonRef,
+    restoreFocus: true,
+  });
 
   return (
-    <div
-      className="admin-participant-dialog__backdrop"
-      onMouseDown={handleBackdropMouseDown}
-    >
+    <div className="admin-participant-dialog__backdrop" onMouseDown={handleBackdropMouseDown}>
       <section
         className="admin-participant-dialog__panel"
         role="dialog"
@@ -83,13 +50,9 @@ function ParticipantDetailDialog({
       >
         <header className="admin-participant-dialog__header">
           <div>
-            <p className="admin-participant-dialog__eyebrow">
-              참가 신청 상세
-            </p>
+            <p className="admin-participant-dialog__eyebrow">참가 신청 상세</p>
             <div className="admin-participant-dialog__title-row">
-              <h2 id="participantDialogTitle">
-                {displayedApplication.name}
-              </h2>
+              <h2 id="participantDialogTitle">{displayedApplication.name}</h2>
               <ParticipantStatusBadge status={displayedApplication.status} />
             </div>
           </div>
@@ -107,19 +70,13 @@ function ParticipantDetailDialog({
 
         {isLoading ? (
           <div className="admin-participant-dialog__content">
-            <p
-              className="admin-participant-dialog__mode-description"
-              role="status"
-            >
+            <p className="admin-participant-dialog__mode-description" role="status">
               참가신청 상세를 불러오는 중입니다.
             </p>
           </div>
         ) : error ? (
           <div className="admin-participant-dialog__content">
-            <p
-              className="admin-participant-dialog__error"
-              role="alert"
-            >
+            <p className="admin-participant-dialog__error" role="alert">
               {error}
             </p>
           </div>
@@ -143,9 +100,8 @@ function ParticipantDetailDialog({
                 <div>
                   <dt>신분</dt>
                   <dd>
-                    {ADMIN_APPLICATION_AFFILIATION_LABELS[
-                      displayedApplication.affiliationType
-                    ] ?? displayedApplication.affiliationType}
+                    {ADMIN_APPLICATION_AFFILIATION_LABELS[displayedApplication.affiliationType] ??
+                      displayedApplication.affiliationType}
                   </dd>
                 </div>
                 <div>
@@ -160,11 +116,7 @@ function ParticipantDetailDialog({
                 </div>
                 <div>
                   <dt>신청일시</dt>
-                  <dd>
-                    {formatAdminApplicationDateTime(
-                      displayedApplication.appliedAt,
-                    )}
-                  </dd>
+                  <dd>{formatKoDateTime(displayedApplication.appliedAt)}</dd>
                 </div>
               </dl>
             </section>
@@ -183,9 +135,7 @@ function ParticipantDetailDialog({
                 <div>
                   <dt>현재 신청 상태</dt>
                   <dd>
-                    <ParticipantStatusBadge
-                      status={displayedApplication.status}
-                    />
+                    <ParticipantStatusBadge status={displayedApplication.status} />
                   </dd>
                 </div>
               </dl>
@@ -195,81 +145,31 @@ function ParticipantDetailDialog({
 
         {actionError && !isLoading && !error && (
           <div className="admin-participant-dialog__content">
-            <p
-              className="admin-participant-dialog__error"
-              role="alert"
-            >
+            <p className="admin-participant-dialog__error" role="alert">
               {actionError}
             </p>
           </div>
         )}
 
         <footer className="admin-participant-dialog__actions">
-          {!isLoading &&
-            !error &&
-            displayedApplication.status === 'APPLIED' && (
-              <>
-                <button
-                  type="button"
-                  className="admin-participant-dialog__button admin-participant-dialog__button--primary"
-                  onClick={() =>
-                    onApprove(displayedApplication.applicationId)
-                  }
-                  disabled={isProcessing}
-                >
-                  {isProcessing ? '처리 중...' : '승인'}
-                </button>
-                <button
-                  type="button"
-                  className="admin-participant-dialog__button admin-participant-dialog__button--danger"
-                  onClick={() => onReject(displayedApplication.applicationId)}
-                  disabled={isProcessing}
-                >
-                  반려
-                </button>
-                <button
-                  type="button"
-                  className="admin-participant-dialog__button"
-                  disabled
-                  title="백엔드 참가신청 수정 API 확인이 필요합니다."
-                >
-                  정보 수정
-                </button>
-              </>
-            )}
-          {!isLoading &&
-            !error &&
-            displayedApplication.status === 'APPROVED' && (
-              <>
-                <button
-                  type="button"
-                  className="admin-participant-dialog__button"
-                  disabled
-                  title="백엔드 참가신청 수정 API 확인이 필요합니다."
-                >
-                  정보 수정
-                </button>
-                <button
-                  type="button"
-                  className="admin-participant-dialog__button"
-                  disabled
-                  title="백엔드 코스 변경 API 확인이 필요합니다."
-                >
-                  코스 변경
-                </button>
-                <button
-                  type="button"
-                  className="admin-participant-dialog__button admin-participant-dialog__button--danger"
-                  disabled
-                  title="백엔드 참가 취소 API 확인이 필요합니다."
-                >
-                  참가 취소
-                </button>
-              </>
-            )}
-          {!isLoading &&
-            !error &&
-            displayedApplication.status === 'REJECTED' && (
+          {!isLoading && !error && displayedApplication.status === 'APPLIED' && (
+            <>
+              <button
+                type="button"
+                className="admin-participant-dialog__button admin-participant-dialog__button--primary"
+                onClick={() => onApprove(displayedApplication.applicationId)}
+                disabled={isProcessing}
+              >
+                {isProcessing ? '처리 중...' : '승인'}
+              </button>
+              <button
+                type="button"
+                className="admin-participant-dialog__button admin-participant-dialog__button--danger"
+                onClick={() => onReject(displayedApplication.applicationId)}
+                disabled={isProcessing}
+              >
+                반려
+              </button>
               <button
                 type="button"
                 className="admin-participant-dialog__button"
@@ -278,12 +178,47 @@ function ParticipantDetailDialog({
               >
                 정보 수정
               </button>
-            )}
-          <button
-            type="button"
-            className="admin-participant-dialog__button"
-            onClick={onClose}
-          >
+            </>
+          )}
+          {!isLoading && !error && displayedApplication.status === 'APPROVED' && (
+            <>
+              <button
+                type="button"
+                className="admin-participant-dialog__button"
+                disabled
+                title="백엔드 참가신청 수정 API 확인이 필요합니다."
+              >
+                정보 수정
+              </button>
+              <button
+                type="button"
+                className="admin-participant-dialog__button"
+                disabled
+                title="백엔드 코스 변경 API 확인이 필요합니다."
+              >
+                코스 변경
+              </button>
+              <button
+                type="button"
+                className="admin-participant-dialog__button admin-participant-dialog__button--danger"
+                disabled
+                title="백엔드 참가 취소 API 확인이 필요합니다."
+              >
+                참가 취소
+              </button>
+            </>
+          )}
+          {!isLoading && !error && displayedApplication.status === 'REJECTED' && (
+            <button
+              type="button"
+              className="admin-participant-dialog__button"
+              disabled
+              title="백엔드 참가신청 수정 API 확인이 필요합니다."
+            >
+              정보 수정
+            </button>
+          )}
+          <button type="button" className="admin-participant-dialog__button" onClick={onClose}>
             닫기
           </button>
         </footer>

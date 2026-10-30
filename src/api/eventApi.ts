@@ -54,31 +54,39 @@ export async function getEventCourses(eventId: number) {
     );
   }
 
-  const courses = await apiRequest<EventCourse[]>(
-    `/api/events/${eventId}/courses`,
-    {
-      method: 'GET',
-      skipAuth: true,
-    },
-  );
+  const courses = await apiRequest<EventCourse[]>(`/api/events/${eventId}/courses`, {
+    method: 'GET',
+    skipAuth: true,
+  });
 
   return courses ?? [];
 }
 
 export async function getPublicEvents() {
-  return await apiRequest<CurrentEvent[]>('/api/events', {method:'GET',skipAuth:true}) ?? [];
+  return (await apiRequest<CurrentEvent[]>('/api/events', { method: 'GET', skipAuth: true })) ?? [];
 }
 export async function getEvent(eventId: number) {
-  const event = await apiRequest<CurrentEvent>(`/api/events/${eventId}`, {method:'GET',skipAuth:true});
+  const event = await apiRequest<CurrentEvent>(`/api/events/${eventId}`, {
+    method: 'GET',
+    skipAuth: true,
+  });
   if (!event) throw new ApiError('행사를 찾을 수 없습니다.');
   return event;
 }
 export type EventSummary = {
-  eventId:number; courseId:number|null; participantCount:number; completedCount:number;
-  approvedPages:number; verifiedDistanceMeter:number; maxDistanceMeter:number;
+  eventId: number;
+  courseId: number | null;
+  participantCount: number;
+  completedCount: number;
+  approvedPages: number;
+  verifiedDistanceMeter: number;
+  maxDistanceMeter: number;
 };
-export async function getEventSummary(eventId:number, courseId?:number, admin=false) {
-  const summary = await apiRequest<EventSummary>(`/api/${admin ? 'admin/' : ''}events/${eventId}/summary${courseId ? `?courseId=${courseId}` : ''}`, {method:'GET',skipAuth:!admin});
+export async function getEventSummary(eventId: number, courseId?: number, admin = false) {
+  const summary = await apiRequest<EventSummary>(
+    `/api/${admin ? 'admin/' : ''}events/${eventId}/summary${courseId ? `?courseId=${courseId}` : ''}`,
+    { method: 'GET', skipAuth: !admin },
+  );
   if (!summary) throw new ApiError('행사 집계를 확인할 수 없습니다.');
   return summary;
 }

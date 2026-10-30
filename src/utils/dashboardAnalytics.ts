@@ -41,9 +41,7 @@ export function getSeoulDateKey(date: Date) {
     month: '2-digit',
     day: '2-digit',
   }).formatToParts(date);
-  const values = Object.fromEntries(
-    parts.map((part) => [part.type, part.value]),
-  );
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
 
   return `${values.year}-${values.month}-${values.day}`;
 }
@@ -79,19 +77,15 @@ function getDistribution(labels: string[]): DashboardDistributionItem[] {
       rate: getRate(count, total),
     }))
     .sort(
-      (left, right) =>
-        right.count - left.count ||
-        left.label.localeCompare(right.label, 'ko-KR'),
+      (left, right) => right.count - left.count || left.label.localeCompare(right.label, 'ko-KR'),
     );
 }
 
-function hasServerWarning(log: AdminReadingLogResponse) {
+/** 서버가 반려 추천 사유나 페이지 초과 경고를 돌려준 독서일지인지 확인합니다. */
+export function hasServerWarning(log: AdminReadingLogResponse) {
   return (
     (log.recommendedRejectReasons?.length ?? 0) > 0 ||
-    log.books.some(
-      (book) =>
-        book.pageExceeded || Boolean(book.warningMessage?.trim()),
-    )
+    log.books.some((book) => book.pageExceeded || Boolean(book.warningMessage?.trim()))
   );
 }
 
@@ -115,20 +109,16 @@ export function getDailyActivity(
     approvedPages: logs
       .filter((log) => log.status === 'APPROVED' && log.readingDate === date)
       .reduce((sum, log) => sum + log.totalReadPages, 0),
-    submissionCount: logs.filter(
-      (log) => getSeoulDateKeyFromValue(log.createdAt) === date,
-    ).length,
+    submissionCount: logs.filter((log) => getSeoulDateKeyFromValue(log.createdAt) === date).length,
   }));
 }
 
 export function getAffiliationDistribution(
-  applications: ReadonlyArray<{department:string|null}>,
+  applications: ReadonlyArray<{ department: string | null }>,
   visibleLimit = 5,
 ) {
   const distribution = getDistribution(
-    applications.map(
-      (application) => application.department?.trim() || '미입력',
-    ),
+    applications.map((application) => application.department?.trim() || '미입력'),
   );
   const safeLimit = Math.max(1, Math.floor(visibleLimit));
 
@@ -137,9 +127,7 @@ export function getAffiliationDistribution(
   }
 
   const visibleItems = distribution.slice(0, safeLimit);
-  const otherCount = distribution
-    .slice(safeLimit)
-    .reduce((sum, item) => sum + item.count, 0);
+  const otherCount = distribution.slice(safeLimit).reduce((sum, item) => sum + item.count, 0);
 
   return [
     ...visibleItems,
@@ -165,42 +153,30 @@ export function getDashboardAnalytics(
     .filter((log) => log.status === 'SUBMITTED')
     .sort(
       (left, right) =>
-        (getValidTime(right.createdAt) ?? 0) -
-          (getValidTime(left.createdAt) ?? 0) ||
+        (getValidTime(right.createdAt) ?? 0) - (getValidTime(left.createdAt) ?? 0) ||
         left.readingLogId - right.readingLogId,
     );
   const approvedLogs = logs.filter((log) => log.status === 'APPROVED');
 
   return {
     totalApplicants: applications.length,
-    pendingApplicantCount: applications.filter(
-      (application) => application.status === 'APPLIED',
-    ).length,
+    pendingApplicantCount: applications.filter((application) => application.status === 'APPLIED')
+      .length,
     approvedApplications,
-    todaySubmissionCount: logs.filter(
-      (log) => getSeoulDateKeyFromValue(log.createdAt) === todayKey,
-    ).length,
+    todaySubmissionCount: logs.filter((log) => getSeoulDateKeyFromValue(log.createdAt) === todayKey)
+      .length,
     yesterdaySubmissionCount: logs.filter(
       (log) => getSeoulDateKeyFromValue(log.createdAt) === yesterdayKey,
     ).length,
     pendingLogs,
     warningPendingCount: pendingLogs.filter(hasServerWarning).length,
-    approvedPageTotal: approvedLogs.reduce(
-      (sum, log) => sum + log.totalReadPages,
-      0,
-    ),
-    approvedDistanceMeters: approvedLogs.reduce(
-      (sum, log) => sum + log.convertedDistanceMeter,
-      0,
-    ),
-    affiliationDistribution: getAffiliationDistribution(
-      approvedApplications,
-    ),
+    approvedPageTotal: approvedLogs.reduce((sum, log) => sum + log.totalReadPages, 0),
+    approvedDistanceMeters: approvedLogs.reduce((sum, log) => sum + log.convertedDistanceMeter, 0),
+    affiliationDistribution: getAffiliationDistribution(approvedApplications),
     recentApplications: [...applications]
       .sort(
         (left, right) =>
-          (getValidTime(right.appliedAt) ?? 0) -
-            (getValidTime(left.appliedAt) ?? 0) ||
+          (getValidTime(right.appliedAt) ?? 0) - (getValidTime(left.appliedAt) ?? 0) ||
           left.applicationId - right.applicationId,
       )
       .slice(0, 5),

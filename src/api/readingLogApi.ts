@@ -9,11 +9,7 @@ import { ApiError, apiRequest } from './apiClient';
 
 function validateId(id: number, label: '참가' | '독서일지' | '도서') {
   if (!Number.isInteger(id) || id <= 0) {
-    throw new ApiError(
-      `${label} ID가 올바르지 않습니다.`,
-      0,
-      'INVALID_ID',
-    );
+    throw new ApiError(`${label} ID가 올바르지 않습니다.`, 0, 'INVALID_ID');
   }
 }
 
@@ -44,21 +40,15 @@ export async function getMyReadingLog(readingLogId: number) {
   return log;
 }
 
-export function createReadingLog(
-  participationId: number,
-  request: ReadingLogRequest,
-) {
+export function createReadingLog(participationId: number, request: ReadingLogRequest) {
   validateId(participationId, '참가');
-  return apiRequest<ReadingLog>(
-    `/api/participations/${participationId}/reading-logs`,
-    { method: 'POST', ...jsonOptions(request) },
-  );
+  return apiRequest<ReadingLog>(`/api/participations/${participationId}/reading-logs`, {
+    method: 'POST',
+    ...jsonOptions(request),
+  });
 }
 
-export function updateReadingLog(
-  readingLogId: number,
-  request: ReadingLogRequest,
-) {
+export function updateReadingLog(readingLogId: number, request: ReadingLogRequest) {
   validateId(readingLogId, '독서일지');
   return apiRequest<ReadingLog>(`/api/reading-logs/${readingLogId}`, {
     method: 'PATCH',
@@ -90,12 +80,15 @@ export async function getMyReadingBooks(eventId = selectedEventId('personal')) {
 
 export function completeReview(participantBookId: number) {
   validateId(participantBookId, '도서');
-  return apiRequest<ReviewTargetBook>(
-    `/api/me/review-target-books/${participantBookId}/complete`,
-    { method: 'PATCH' },
-  );
+  return apiRequest<ReviewTargetBook>(`/api/me/review-target-books/${participantBookId}/complete`, {
+    method: 'PATCH',
+  });
 }
 
 export async function getMyBookProgress(eventId = selectedEventId('personal')) {
-  return await apiRequest<ParticipantBook[]>(`/api/me/book-progress${eventQuery(eventId)}`, {method:'GET'}) ?? [];
+  return (
+    (await apiRequest<ParticipantBook[]>(`/api/me/book-progress${eventQuery(eventId)}`, {
+      method: 'GET',
+    })) ?? []
+  );
 }

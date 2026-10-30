@@ -10,9 +10,7 @@ type DashboardMetricCardProps = {
   tone: 'navy' | 'green' | 'blue' | 'gold' | 'teal';
 };
 
-function MetricIcon({
-  tone,
-}: Pick<DashboardMetricCardProps, 'tone'>) {
+function MetricIcon({ tone }: Pick<DashboardMetricCardProps, 'tone'>) {
   if (tone === 'green') {
     return (
       <svg viewBox="0 0 24 24" aria-hidden="true">
