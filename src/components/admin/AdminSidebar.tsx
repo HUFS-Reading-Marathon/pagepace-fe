@@ -6,35 +6,35 @@ const ADMIN_MENUS = [
   {
     label: '운영 현황',
     path: '/admin',
-    group: '참가·기록 관리',
+    group: '참가·기록',
     enabled: true,
   },
   {
     label: '참가자 관리',
     path: '/admin/participants',
-    group: '참가·기록 관리',
+    group: '참가·기록',
     enabled: true,
   },
   {
     label: '독서일지 검토',
     path: '/admin/logs',
-    group: '참가·기록 관리',
+    group: '참가·기록',
     enabled: true,
   },
   {
     label: '서평 확인',
     path: '/admin/reviews',
-    group: '참가·기록 관리',
+    group: '참가·기록',
     enabled: true,
   },
   {
-    label: '행사·코스 설정',
+    label: '행사/코스 설정',
     path: '/admin/event',
     group: '운영 관리',
     enabled: true,
   },
   {
-    label: '대회 현황·랭킹',
+    label: '대회 현황 관리',
     path: '/admin/status',
     group: '운영 관리',
     enabled: true,
@@ -46,9 +46,15 @@ const ADMIN_MENUS = [
     enabled: true,
   },
   {
+    label: '참가자 랭킹',
+    path: '/admin/rankings',
+    group: '운영 관리',
+    enabled: true,
+  },
+  {
     label: '운영 통계',
     path: '/admin/statistics',
-    group: '통계',
+    group: '분석',
     enabled: true,
   },
 ] as const;
@@ -61,8 +67,7 @@ const INITIAL_OPEN_GROUPS = ADMIN_MENUS.reduce(
 );
 
 function AdminSidebar() {
-  const location = useLocation();
-  const pathname=location.pathname==='/admin/rankings'?'/admin/status':location.pathname;
+  const { pathname } = useLocation();
   const [openGroups, setOpenGroups] = useState(INITIAL_OPEN_GROUPS);
   const activeGroup = ADMIN_MENUS.find((menu) =>
     matchPath(
@@ -131,7 +136,7 @@ function AdminSidebar() {
                   className={({ isActive }) =>
                     [
                       'admin-sidebar__link',
-                      (isActive || (menu.path==='/admin/status'&&pathname==='/admin/status')) ? 'admin-sidebar__link--active' : '',
+                      isActive ? 'admin-sidebar__link--active' : '',
                     ]
                       .filter(Boolean)
                       .join(' ')

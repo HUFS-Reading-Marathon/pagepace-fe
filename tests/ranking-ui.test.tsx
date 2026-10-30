@@ -1,9 +1,7 @@
 import React from "react";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import RankingBoard, {
-  RaceProgress,
-} from "../src/components/ranking/RankingBoard";
+import RankingBoard from "../src/components/ranking/RankingBoard";
 import type { Ranking } from "../src/api/rankingApi";
 const row: Ranking = {
   rank: 1,
@@ -43,7 +41,7 @@ describe("랭킹의 공개 범위와 두 승인 단계", () => {
     expect(html.match(/race-my-badge/g)).toHaveLength(1);
   });
   it("목표 초과는 트랙에서 100%로 제한하지만 원래 인정 거리는 유지한다", () => {
-    expect(renderToStaticMarkup(<RaceProgress percent={150} />)).toContain(
+    expect(renderToStaticMarkup(<RankingBoard rankings={[{...row, progressPercent:150}]} simpleLayout />)).toContain(
       'aria-valuenow="100"',
     );
     expect(
@@ -52,6 +50,6 @@ describe("랭킹의 공개 범위와 두 승인 단계", () => {
           rankings={[{ ...row, distance: 1500, progressPercent: 150 }]}
         />,
       ),
-    ).toContain("1,500");
+    ).toContain("1.50km");
   });
 });

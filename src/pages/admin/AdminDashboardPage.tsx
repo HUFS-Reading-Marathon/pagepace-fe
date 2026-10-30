@@ -11,8 +11,11 @@ import { getAdminReadingLogs } from '../../api/adminReadingLogApi';
 import DashboardAffiliationChart from '../../components/admin/dashboard/DashboardAffiliationChart';
 import DashboardCourseCompletion from '../../components/admin/dashboard/DashboardCourseCompletion';
 import DashboardEventOverview from '../../components/admin/dashboard/DashboardEventOverview';
+import DashboardGenderChart from '../../components/admin/dashboard/DashboardGenderChart';
 import DashboardMetricCard from '../../components/admin/dashboard/DashboardMetricCard';
+import DashboardPendingLogs from '../../components/admin/dashboard/DashboardPendingLogs';
 import DashboardReadingTrend from '../../components/admin/dashboard/DashboardReadingTrend';
+import DashboardRecentParticipants from '../../components/admin/dashboard/DashboardRecentParticipants';
 import type { AdminApplicationListItem } from '../../types/adminApplication';
 import type { AdminCourse, AdminEvent, EventStatus } from '../../types/adminEvent';
 import type { AdminReadingLogResponse } from '../../types/adminReadingLogApi';
@@ -441,13 +444,23 @@ function AdminDashboardPage() {
       </div>
 
       <div className="admin-dashboard__grid admin-dashboard__grid--distribution">
+        <DashboardGenderChart
+          distribution={[]}
+          participantCount={dashboardData?.summary.participantCount ?? 0}
+          isSupported={false}
+        />
         <DashboardAffiliationChart
           distribution={getAffiliationDistribution(dashboardData?.participants.filter(p=>p.status==='APPROVED'||p.status==='COMPLETED')??[])}
           participantCount={dashboardData?.summary.participantCount ?? 0}
         />
       </div>
 
-
+      <div className="admin-dashboard__grid admin-dashboard__grid--operations">
+        <DashboardRecentParticipants
+          participants={analytics?.recentApplications.slice(0, 4) ?? []}
+        />
+        <DashboardPendingLogs logs={analytics?.pendingLogs.slice(0, 4) ?? []} />
+      </div>
 
     </section>
   );

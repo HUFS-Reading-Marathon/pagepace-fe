@@ -1,88 +1,60 @@
-import type { Ranking } from "../../api/rankingApi";
-import "../../styles/ranking.css";
+import type { Ranking } from '../../api/rankingApi';
+import '../../styles/ranking.css';
 
-export function RaceProgress({ percent }: { percent: number }) {
-  const value = Math.max(
-    0,
-    Math.min(Number.isFinite(percent) ? percent : 0, 100),
-  );
+function distanceLabel(distance: number) {
+  return distance >= 1000 ? `${(distance / 1000).toFixed(2)}km` : `${distance.toLocaleString()}m`;
+}
+
+function RankingAvatar({ name }: { name: string }) {
+  return <span className="ranking-avatar" aria-hidden="true">{name.trim().slice(0, 1) || '?'}</span>;
+}
+
+function RankingBoard({ rankings, showIdentity = false, simpleLayout = false, myParticipationId }: { rankings: Ranking[]; showIdentity?: boolean; simpleLayout?: boolean; myParticipationId?: number }) {
+  if (rankings.length === 0) return <div className="ranking-empty">아직 집계된 순위가 없습니다.<span>독서일지가 승인되면 순위가 표시됩니다.</span></div>;
+  const useSimpleLayout = showIdentity || simpleLayout;
+
   return (
-    <div className="race-progress">
-      <div
-        role="progressbar"
-        aria-label="인정 거리 기준 목표 달성률"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={value}
-      >
-        <span style={{ width: `${value}%` }} />
-      </div>
-      <span aria-hidden="true">⚑</span>
-      <small>{value.toFixed(1)}%</small>
-    </div>
+    <>
+      <section className={simpleLayout ? 'ranking-race is-simple' : 'ranking-race'} aria-label="전체 참가자 독서 레이스">
+        <header><div><span>LIVE MARATHON</span><h2>전체 독서 레이스</h2><small>책장을 넘길 때마다 결승선에 가까워집니다.</small></div><p><i /> 누적 거리 <i /> 승인 페이지</p></header>
+        <div className="ranking-race-list">{rankings.map((ranking) => {
+          const progress = Math.max(0, Math.min(ranking.progressPercent, 100));
+          const completed = ranking.progressPercent >= 100;
+          const runnerPosition = Math.max(2, Math.min(progress, 96));
+          return <article key={`${ranking.rank}-${ranking.studentNo}`} className={`${ranking.participationId === myParticipationId ? 'race-row-mine' : ''} ${completed ? 'is-completed' : ''} ${ranking.rank <= 3 ? `is-top-rank is-rank-${ranking.rank}` : ''}`}>
+            <div className={`ranking-race-person ${useSimpleLayout ? 'ranking-race-person--simple' : ''}`}><strong className="ranking-race-rank">{ranking.rank <= 3 && <span aria-hidden="true">★</span>}{ranking.rank}</strong>{!useSimpleLayout && <RankingAvatar name={ranking.name} />}<span><b>{ranking.name}</b>{showIdentity && <small>{ranking.studentNo}</small>}{ranking.participationId === myParticipationId && <span className="race-my-badge"> · 나</span>}</span>{completed && <em><span aria-hidden="true">✓</span> 완주</em>}</div>
+            {useSimpleLayout ? (
+              <div className="ranking-race-tracks ranking-race-tracks--simple">
+                <div
+                  className="ranking-race-progress-track"
+                  role="progressbar"
+                  aria-label={`${ranking.name} 누적 거리 진행률`}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={progress}
+                >
+                  <span className="ranking-race-progress-fill" style={{ width: `${progress}%` }} />
+                  <span className="ranking-race-progress-marker" style={{ left: `${runnerPosition}%` }} aria-hidden="true" />
+                  <i className="ranking-race-progress-finish" aria-hidden="true" />
+                </div>
+                <div className="ranking-race-progress-meta">
+                  <span>{distanceLabel(ranking.distance)} · {ranking.approvedPages.toLocaleString()}쪽</span>
+                  <small><i aria-hidden="true" /> 승인 {ranking.approvedPages.toLocaleString()}쪽</small>
+                </div>
+              </div>
+            ) : (
+              <div className="ranking-race-tracks">
+                <div className="ranking-race-track is-distance"><span className="ranking-start-mark" aria-hidden="true">START</span><span className="ranking-race-fill" style={{ width: `${progress}%` }} /><span className="ranking-runner" style={{ left: `${runnerPosition}%` }} aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="15" cy="4" r="2"/><path d="m13 7-3 5 4 2 2 6M11 10l-4-2-3 3M10 12l-3 7M14 9l5 3"/></svg></span><i className="ranking-finish-mark" aria-hidden="true">FINISH</i><b>{distanceLabel(ranking.distance)}</b></div>
+                <div className="ranking-race-track is-pages"><span className="ranking-race-fill" style={{ width: `${progress}%` }} /><b>{ranking.approvedPages.toLocaleString()}쪽</b></div>
+              </div>
+            )}
+            <div className="ranking-race-percent"><strong>{ranking.progressPercent.toFixed(1)}%</strong><span>{completed ? '목표 달성' : '완주까지 진행 중'}</span></div>
+            {showIdentity && completed && <span className="ranking-complete-badge">완주자</span>}
+          </article>;
+        })}</div>
+      </section>
+    </>
   );
 }
-export default function RankingBoard({
-  rankings,
-  showIdentity = false,
-  myParticipationId,
-}: {
-  rankings: Ranking[];
-  showIdentity?: boolean;
-  simpleLayout?: boolean;
-  myParticipationId?: number;
-}) {
-  if (!rankings.length)
-    return <p className="ranking-empty">아직 승인된 독서 기록이 없습니다.</p>;
-  return (
-    <div className="table-scroll race-table-wrap">
-      <table className="race-table" role="table">
-        <caption className="sr-only">
-          인정 거리 순 랭킹. 진행률은 참가 코스 목표 거리 기준입니다.
-        </caption>
-        <thead role="rowgroup">
-          <tr role="row">
-            <th scope="col" role="columnheader">순위</th>
-            <th scope="col" role="columnheader">참가자</th>
-            {showIdentity && <th scope="col" role="columnheader">학번</th>}
-            <th scope="col" role="columnheader">코스</th>
-            <th scope="col" role="columnheader">완주까지</th>
-            <th scope="col" role="columnheader">승인 쪽수</th>
-            <th scope="col" role="columnheader">인정 거리</th>
-          </tr>
-        </thead>
-        <tbody role="rowgroup">
-          {rankings.map((row) => (
-            <tr
-              role="row"
-              key={row.participationId}
-              className={
-                row.participationId === myParticipationId ? "race-row-mine" : ""
-              }
-            >
-              <td role="cell" className="race-position"><span>{row.rank}</span><span className="race-mobile-unit">위</span></td>
-              <th scope="row" role="rowheader" className="race-person">
-                {row.name}{" "}
-                {row.participationId === myParticipationId && (
-                  <span className="race-my-badge">나</span>
-                )}
-              </th>
-              {showIdentity && <td role="cell" data-label="학번">{row.studentNo}</td>}
-              <td role="cell" data-label="코스">{row.courseName}</td>
-              <td role="cell" className="race-track" data-label="완주까지">
-                <RaceProgress percent={row.progressPercent} />
-              </td>
-              <td role="cell" data-label="승인 쪽수">{row.approvedPages.toLocaleString()}쪽</td>
-              <td role="cell" data-label="인정 거리">
-                <strong>{row.distance.toLocaleString()}m</strong>
-                {row.status === "COMPLETED" && (
-                  <small className="race-complete">완주</small>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
+
+export default RankingBoard;

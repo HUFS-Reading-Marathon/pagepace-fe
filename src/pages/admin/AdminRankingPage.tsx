@@ -1,209 +1,28 @@
-import { NavLink } from "react-router-dom";
-import { preferredAdminEvent } from "../../utils/eventSelection";
-import { useAdminEventState } from "../../hooks/useAdminEventState";
-import { useEffect, useRef, useState } from "react";
-import { ApiError } from "../../api/apiClient";
-import { getAdminEventCourses, getAdminEvents } from "../../api/adminEventApi";
-import {
-  getAdminRankings,
-  type Ranking,
-  type RankingSort,
-} from "../../api/rankingApi";
-import RankingBoard from "../../components/ranking/RankingBoard";
-import type { AdminCourse, AdminEvent } from "../../types/adminEvent";
-import "../../styles/ranking.css";
+import {preferredAdminEvent} from '../../utils/eventSelection';
+import { useAdminEventState } from '../../hooks/useAdminEventState';
+import { useEffect, useRef, useState } from 'react';
+import { ApiError } from '../../api/apiClient';
+import { getAdminEventCourses, getAdminEvents } from '../../api/adminEventApi';
+import { getAdminRankings, type Ranking, type RankingSort } from '../../api/rankingApi';
+import RankingBoard from '../../components/ranking/RankingBoard';
+import type { AdminCourse, AdminEvent } from '../../types/adminEvent';
+import '../../styles/ranking.css';
 
 function AdminRankingPage() {
-  const sequence = useRef(0);
-  const [search, setSearch] = useState("");
-  const [events, setEvents] = useState<AdminEvent[]>([]);
-  const [eventId, setEventId] = useAdminEventState();
-  const [courses, setCourses] = useState<AdminCourse[]>([]);
-  const [courseId, setCourseId] = useState<number | undefined>();
-  const [sort, setSort] = useState<RankingSort>("RANK");
-  const [rankings, setRankings] = useState<Ranking[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
-  useEffect(() => {
-    getAdminEvents()
-      .then((nextEvents) => {
-        setEvents(nextEvents);
-        setEventId(preferredAdminEvent(nextEvents)?.eventId ?? null);
-        if (nextEvents.length === 0) setIsLoading(false);
-      })
-      .catch((requestError: unknown) => {
-        setError(
-          requestError instanceof ApiError
-            ? requestError.message
-            : "행사를 불러오지 못했습니다.",
-        );
-        setIsLoading(false);
-      });
-  }, [setEventId]);
-  useEffect(() => {
-    if (!eventId) return;
-    let active = true;
-    const request = ++sequence.current;
-    Promise.all([getAdminEventCourses(eventId), getAdminRankings(eventId)])
-      .then(([nextCourses, nextRankings]) => {
-        if (!active || sequence.current !== request) return;
-        setCourses(nextCourses);
-        setCourseId(undefined);
-        setSort("RANK");
-        setRankings(nextRankings);
-        setError("");
-      })
-      .catch((requestError: unknown) => {
-        if (active)
-          setError(
-            requestError instanceof ApiError
-              ? requestError.message
-              : "관리자 랭킹을 불러오지 못했습니다.",
-          );
-      })
-      .finally(() => {
-        if (active) setIsLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [eventId]);
-  const loadFiltered = async (nextCourseId: number | undefined) => {
-    if (!eventId) return;
-    const request = ++sequence.current;
-    setIsLoading(true);
-    try {
-      const rows = await getAdminRankings(eventId, nextCourseId, "RANK");
-      if (sequence.current === request) {
-        setRankings(rows);
-        setError("");
-      }
-    } catch (error) {
-      if (sequence.current === request)
-        setError(error instanceof Error ? error.message : "조회 실패");
-    } finally {
-      if (sequence.current === request) setIsLoading(false);
-    }
+  const sequence=useRef(0);
+  const [events, setEvents] = useState<AdminEvent[]>([]); const [eventId, setEventId] = useAdminEventState(); const [courses, setCourses] = useState<AdminCourse[]>([]); const [courseId, setCourseId] = useState<number | undefined>(); const [sort, setSort] = useState<RankingSort>('RANK'); const [rankings, setRankings] = useState<Ranking[]>([]); const [isLoading, setIsLoading] = useState(true); const [error, setError] = useState('');
+  useEffect(() => { getAdminEvents().then((nextEvents) => { setEvents(nextEvents); setEventId(preferredAdminEvent(nextEvents)?.eventId ?? null); if (nextEvents.length === 0) setIsLoading(false); }).catch((requestError: unknown) => { setError(requestError instanceof ApiError ? requestError.message : '행사를 불러오지 못했습니다.'); setIsLoading(false); }); }, [setEventId]);
+  useEffect(() => { if (!eventId) return; let active = true; const request=++sequence.current; Promise.all([getAdminEventCourses(eventId), getAdminRankings(eventId)]).then(([nextCourses, nextRankings]) => { if (!active || sequence.current!==request) return; setCourses(nextCourses); setCourseId(undefined); setSort('RANK'); setRankings(nextRankings); setError(''); }).catch((requestError: unknown) => { if (active) setError(requestError instanceof ApiError ? requestError.message : '관리자 랭킹을 불러오지 못했습니다.'); }).finally(() => { if (active) setIsLoading(false); }); return () => { active = false; }; }, [eventId]);
+  const loadFiltered=async(nextCourseId:number|undefined,nextSort:RankingSort)=>{
+    if(!eventId)return; const request=++sequence.current;setIsLoading(true);
+    try {const rows=await getAdminRankings(eventId,nextCourseId,nextSort);if(sequence.current===request){setRankings(rows);setError('');}}
+    catch(error){if(sequence.current===request)setError(error instanceof Error?error.message:'조회 실패');}
+    finally{if(sequence.current===request)setIsLoading(false);}
   };
-  const filterCourse = (id?: number) => {
-    setCourseId(id);
-    void loadFiltered(id);
-  };
-  const changeSort = (value: RankingSort) => {
-    setSort(value);
-  };
+  const filterCourse=(id?:number)=>{setCourseId(id);void loadFiltered(id,sort);};
+  const changeSort=(value:RankingSort)=>{setSort(value);void loadFiltered(courseId,value);};
   const selectedEvent = events.find((event) => event.eventId === eventId);
-  return (
-    <section className="admin-page admin-ranking ranking-page is-admin">
-      <nav className="ux-tabs" aria-label="대회 현황 보기">
-        <NavLink to="/admin/status">참가자 현황</NavLink>
-        <NavLink to="/admin/rankings">랭킹</NavLink>
-      </nav>
-      <header className="admin-page__header ranking-admin-header">
-        <div>
-          <h1>참가자 랭킹</h1>
-          <p>마스킹되지 않은 참가자 정보와 코스별 진행 순위를 확인합니다.</p>
-        </div>
-        <div className="ranking-admin-summary">
-          <span>현재 1위</span>
-          <strong>
-            {[...rankings].sort((a, b) => b.distance - a.distance)[0]?.name ??
-              "-"}
-          </strong>
-          <small>
-            {rankings[0]
-              ? `${(rankings[0].distance / 1000).toFixed(2)}km`
-              : "집계 전"}
-          </small>
-        </div>
-      </header>
-      <section className="ranking-toolbar is-admin">
-        <label>
-          <span>행사</span>
-          <select
-            value={eventId ?? ""}
-            onChange={(event) => {
-              ++sequence.current;
-              setCourses([]);
-              setRankings([]);
-              setIsLoading(true);
-              setEventId(Number(event.target.value));
-            }}
-          >
-            {events.map((event) => (
-              <option key={event.eventId} value={event.eventId}>
-                {event.roundNo}회 · {event.title}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>코스</span>
-          <select
-            value={courseId ?? ""}
-            onChange={(event) =>
-              void filterCourse(
-                event.target.value ? Number(event.target.value) : undefined,
-              )
-            }
-          >
-            <option value="">전체 코스</option>
-            {courses.map((course) => (
-              <option key={course.courseId} value={course.courseId}>
-                {course.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>정렬</span>
-          <select
-            value={sort}
-            onChange={(event) =>
-              void changeSort(event.target.value as RankingSort)
-            }
-          >
-            <option value="RANK">거리 순</option>
-            <option value="NAME">이름 순</option>
-          </select>
-        </label>
-        <div>
-          <strong>{selectedEvent?.title ?? "행사 선택"}</strong>
-          <span>독서 기록이 있는 참가자 {rankings.length}명</span>
-        </div>
-      </section>
-      {isLoading ? (
-        <div className="ranking-empty">랭킹을 집계하고 있습니다.</div>
-      ) : error ? (
-        <div className="ranking-empty is-error">{error}</div>
-      ) : (
-        <>
-          <label className="race-search">
-            참가자 검색{" "}
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="이름 또는 학번"
-            />
-          </label>
-          <p className="ux-policy">
-            승인 쪽수는 일지 승인 기준, 인정 거리는 서평 확인 기준입니다. 전체
-            코스 조회에서는 서로 다른 목표 거리의 진행률이 함께 표시됩니다.
-          </p>
-          <RankingBoard
-            rankings={[...rankings]
-              .sort((a, b) =>
-                sort === "NAME"
-                  ? a.name.localeCompare(b.name, "ko")
-                  : a.rank - b.rank,
-              )
-              .filter((r) => `${r.name} ${r.studentNo}`.includes(search))}
-            showIdentity
-          />
-        </>
-      )}
-    </section>
-  );
+  return <section className="admin-page admin-ranking ranking-page is-admin"><header className="admin-page__header ranking-admin-header"><div><h1>참가자 랭킹</h1><p>마스킹되지 않은 참가자 정보와 코스별 진행 순위를 확인합니다.</p></div><div className="ranking-admin-summary"><span>현재 1위</span><strong>{rankings[0]?.name ?? '-'}</strong><small>{rankings[0] ? `${(rankings[0].distance / 1000).toFixed(2)}km` : '집계 전'}</small></div></header><section className="ranking-toolbar is-admin"><label><span>행사</span><select value={eventId ?? ''} onChange={(event) => { ++sequence.current; setCourses([]);setRankings([]);setIsLoading(true); setEventId(Number(event.target.value)); }}>{events.map((event) => <option key={event.eventId} value={event.eventId}>{event.roundNo}회 · {event.title}</option>)}</select></label><label><span>코스</span><select value={courseId ?? ''} onChange={(event) => void filterCourse(event.target.value ? Number(event.target.value) : undefined)}><option value="">전체 코스</option>{courses.map((course) => <option key={course.courseId} value={course.courseId}>{course.name}</option>)}</select></label><label><span>정렬</span><select value={sort} onChange={(event) => void changeSort(event.target.value as RankingSort)}><option value="RANK">거리 순</option><option value="NAME">이름 순</option></select></label><div><strong>{selectedEvent?.title ?? '행사 선택'}</strong><span>독서 기록이 있는 참가자 {rankings.length}명</span></div></section>{isLoading ? <div className="ranking-empty">랭킹을 집계하고 있습니다.</div> : error ? <div className="ranking-empty is-error">{error}</div> : <RankingBoard rankings={rankings} showIdentity />}</section>;
 }
 
 export default AdminRankingPage;

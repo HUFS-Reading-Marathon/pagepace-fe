@@ -1,3 +1,13 @@
+2026-10-30 추가 완료: 솔라스 서평 엑셀 대조
+- FE 디자인은 cf34ff0 기준으로 복원. API 연동, 선택적 서평 안내, 로그인 본인 순위는 유지.
+- 관리자 /admin/reviews에서 엑셀 업로드 → 대조 → 원문 확인 → 거리 반영까지 연결.
+- 담당자가 이 기능을 다시 구현할 필요 없음. API/상태/제약은 docs/review-excel-workflow.md 참고.
+- BE 브랜치 fix/event-scoping-and-review-credit, FE 브랜치 feat/marathon-ui-and-review-guidance.
+- 배포 시 BE 우선 반영. nginx /api/에 client_max_body_size 6m; 설정 필요(배포 저장소 미수정).
+- 실제 서평 파일/개인정보는 저장소에 포함하지 않음. 운영 배포와 push는 하지 않음.
+
+아래는 앞선 연동 작업의 이력입니다.
+
 PagePace 백엔드·프론트 연동 완료 인수인계
 작성: 2026-10-30 / 브랜치: fix/event-scoping-and-review-credit (BE, FE 각각)
 이 문서가 앞서 전달한 '프론트 필수 수정 목록'을 대체합니다.

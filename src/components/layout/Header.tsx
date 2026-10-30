@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { isAdminRole, useAuth } from '../../auth';
 
@@ -18,8 +18,9 @@ const NAV_ITEMS: HeaderLink[] = [
   { label: '행사안내', href: '/#about' },
   { label: '코스 및 혜택', href: '/#courses' },
   { label: '참여방법', href: '/#process' },
+  { label: '대회 현황', href: '/#status' },
+  { label: '랭킹', href: '/rankings' },
   { label: '공지사항', href: '/#notice' },
-  { label: '대회 현황·랭킹', href: '/status' },
 ];
 
 const MY_LIBRARY_ITEMS: HeaderLink[] = [
@@ -105,7 +106,6 @@ function isMyLibraryItemActive(href: string, pathname: string) {
 }
 
 function Header() {
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSectionHash, setActiveSectionHash] = useState(DEFAULT_HASH);
   const [isMyLibraryDropdownHidden, setIsMyLibraryDropdownHidden] =
@@ -172,18 +172,6 @@ function Header() {
       window.removeEventListener('resize', requestUpdate);
     };
   }, [location.pathname]);
-
-  useEffect(() => {
-    if (!isMobileMenuOpen) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsMobileMenuOpen(false);
-        menuButtonRef.current?.focus();
-      }
-    };
-    document.addEventListener('keydown', closeOnEscape);
-    return () => document.removeEventListener('keydown', closeOnEscape);
-  }, [isMobileMenuOpen]);
 
   return (
     <>
@@ -335,17 +323,16 @@ function Header() {
           </nav>
 
           <button
-            ref={menuButtonRef}
             className="mobile-menu-button"
             type="button"
             aria-expanded={isMobileMenuOpen}
             aria-controls="mobilePanel"
-            aria-label={isMobileMenuOpen ? '모바일 메뉴 닫기' : '모바일 메뉴 열기'}
+            aria-label="모바일 메뉴 열기"
             onClick={() => setIsMobileMenuOpen((prev) => !prev)}
           >
             <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
               <path
-                d={isMobileMenuOpen ? 'M5 5l12 12M17 5L5 17' : 'M3 6h16M3 11h16M3 16h16'}
+                d="M3 6h16M3 11h16M3 16h16"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
