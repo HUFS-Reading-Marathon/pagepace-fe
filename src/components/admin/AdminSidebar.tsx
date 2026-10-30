@@ -1,7 +1,14 @@
 import { useState } from 'react';
 import { matchPath, NavLink, useLocation } from 'react-router-dom';
 
-const ADMIN_MENUS = [
+type AdminMenu = {
+  label: string;
+  path: string;
+  group: '매일 하는 업무' | '운영 관리' | '분석';
+  relatedPaths?: readonly string[];
+};
+
+const ADMIN_MENUS: readonly AdminMenu[] = [
   {
     label: '오늘의 업무',
     path: '/admin',
@@ -28,9 +35,11 @@ const ADMIN_MENUS = [
     group: '운영 관리',
   },
   {
-    label: '대회 현황 관리',
+    label: '대회 현황·랭킹',
     path: '/admin/status',
     group: '운영 관리',
+    // 참가 현황과 공식 랭킹은 같은 메뉴 안에서 탭으로 오갑니다.
+    relatedPaths: ['/admin/rankings'],
   },
   {
     label: '공지사항 관리',
@@ -38,18 +47,19 @@ const ADMIN_MENUS = [
     group: '운영 관리',
   },
   {
-    label: '참가자 랭킹',
-    path: '/admin/rankings',
-    group: '운영 관리',
-  },
-  {
     label: '운영 통계',
     path: '/admin/statistics',
     group: '분석',
   },
-] as const;
+];
 
-type AdminMenuGroup = (typeof ADMIN_MENUS)[number]['group'];
+type AdminMenuGroup = AdminMenu['group'];
+
+function isMenuActive(menu: AdminMenu, pathname: string) {
+  return [menu.path, ...(menu.relatedPaths ?? [])].some((path) =>
+    matchPath({ path, end: path === '/admin' }, pathname),
+  );
+}
 
 const INITIAL_OPEN_GROUPS = ADMIN_MENUS.reduce(
   (groups, menu) => ({ ...groups, [menu.group]: true }),
@@ -59,9 +69,7 @@ const INITIAL_OPEN_GROUPS = ADMIN_MENUS.reduce(
 function AdminSidebar() {
   const { pathname } = useLocation();
   const [openGroups, setOpenGroups] = useState(INITIAL_OPEN_GROUPS);
-  const activeGroup = ADMIN_MENUS.find((menu) =>
-    matchPath({ path: menu.path, end: menu.path === '/admin' }, pathname),
-  )?.group;
+  const activeGroup = ADMIN_MENUS.find((menu) => isMenuActive(menu, pathname))?.group;
 
   const toggleGroup = (group: AdminMenuGroup) => {
     if (group === activeGroup) {
@@ -119,7 +127,12 @@ function AdminSidebar() {
                     to={menu.path}
                     end={menu.path === '/admin'}
                     className={({ isActive }) =>
-                      ['admin-sidebar__link', isActive ? 'admin-sidebar__link--active' : '']
+                      [
+                        'admin-sidebar__link',
+                        isActive || isMenuActive(menu, pathname)
+                          ? 'admin-sidebar__link--active'
+                          : '',
+                      ]
                         .filter(Boolean)
                         .join(' ')
                     }

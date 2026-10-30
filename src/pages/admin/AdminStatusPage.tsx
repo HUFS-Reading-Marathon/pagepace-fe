@@ -20,8 +20,11 @@ import {
   buildAdminCompetitionRows,
   getAdminCompetitionCourseSummaries,
 } from '../../utils/statusAggregation';
-import { chooseEventIdByStatus } from '../../utils/adminEvent';
+import { chooseAdminEventId } from '../../utils/adminEvent';
 import { formatKoDateKey, getLocalDateKey } from '../../utils/date';
+import AdminPageTabs from '../../components/admin/AdminPageTabs';
+import { COMPETITION_TABS } from '../../constants/adminNavigation';
+import { useRememberedAdminEvent } from '../../hooks/useRememberedAdminEvent';
 import '../../styles/admin-status.css';
 
 type CompetitionData = {
@@ -74,6 +77,7 @@ function requestCompetitionData(eventId: number) {
 function AdminStatusPage() {
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
+  useRememberedAdminEvent(selectedEventId);
   const [selectedDate, setSelectedDate] = useState('');
   const [competitionData, setCompetitionData] = useState<CompetitionData | null>(null);
   const [isEventsLoading, setIsEventsLoading] = useState(true);
@@ -104,7 +108,7 @@ function AdminStatusPage() {
           return;
         }
 
-        const nextEventId = chooseEventIdByStatus(nextEvents, EVENT_SELECTION_ORDER);
+        const nextEventId = chooseAdminEventId(nextEvents, EVENT_SELECTION_ORDER);
         const nextEvent = nextEvents.find((event) => event.eventId === nextEventId) ?? null;
 
         setEvents(nextEvents);
@@ -331,7 +335,7 @@ function AdminStatusPage() {
     <section className="admin-page admin-status">
       <header className="admin-page__header admin-status__header">
         <div className="admin-status__heading">
-          <h1>대회 현황 관리</h1>
+          <h1>대회 현황·랭킹</h1>
           <p>승인된 참가자와 독서일지를 기준으로 실제 서버 현황을 조회합니다.</p>
         </div>
 
@@ -371,6 +375,8 @@ function AdminStatusPage() {
         </div>
       </header>
 
+      <AdminPageTabs label="대회 현황·랭킹 화면" tabs={COMPETITION_TABS} />
+
       <StatusSummary {...summary} />
 
       <aside className="admin-status__policy" aria-label="현황 집계 정책">
@@ -380,19 +386,6 @@ function AdminStatusPage() {
         <span>서버 페이지·거리 값 사용</span>
         <span>완주·순위는 서버 판정 API 필요</span>
       </aside>
-
-      <StatusPublishPanel
-        lastCalculatedAt={competitionData?.fetchedAt ?? null}
-        isRefreshing={isDataLoading}
-        canRefresh={selectedEventId !== null}
-        onRecalculate={handleRefresh}
-      />
-
-      <div className="admin-status__feedback" role="status" aria-live="polite">
-        {feedbackMessage}
-      </div>
-
-      <StatusCourseSummary summaries={courseSummaries} />
 
       <div className="admin-status__section-heading admin-status__table-heading">
         <div>
@@ -421,6 +414,19 @@ function AdminStatusPage() {
         hasParticipants={rows.length > 0}
         isLoading={isEventsLoading || isDataLoading}
         error={error}
+      />
+
+      <StatusCourseSummary summaries={courseSummaries} />
+
+      <div className="admin-status__feedback" role="status" aria-live="polite">
+        {feedbackMessage}
+      </div>
+
+      <StatusPublishPanel
+        lastCalculatedAt={competitionData?.fetchedAt ?? null}
+        isRefreshing={isDataLoading}
+        canRefresh={selectedEventId !== null}
+        onRecalculate={handleRefresh}
       />
     </section>
   );

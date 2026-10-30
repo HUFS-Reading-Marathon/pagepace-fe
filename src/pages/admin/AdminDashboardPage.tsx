@@ -15,8 +15,9 @@ import type { AdminApplicationListItem } from '../../types/adminApplication';
 import type { AdminEvent, EventStatus } from '../../types/adminEvent';
 import type { AdminReadingLogResponse } from '../../types/adminReadingLogApi';
 import { getDashboardAnalytics } from '../../utils/dashboardAnalytics';
-import { chooseEventIdByStatus } from '../../utils/adminEvent';
+import { chooseAdminEventId } from '../../utils/adminEvent';
 import { formatKoDateTime } from '../../utils/date';
+import { useRememberedAdminEvent } from '../../hooks/useRememberedAdminEvent';
 import '../../styles/admin-dashboard.css';
 
 type DashboardData = {
@@ -57,6 +58,7 @@ function requestDashboardData(eventId: number) {
 function AdminDashboardPage() {
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
+  useRememberedAdminEvent(selectedEventId);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [isEventsLoading, setIsEventsLoading] = useState(true);
   const [isDataLoading, setIsDataLoading] = useState(false);
@@ -83,7 +85,7 @@ function AdminDashboardPage() {
           return;
         }
 
-        const nextEventId = chooseEventIdByStatus(nextEvents, EVENT_SELECTION_ORDER);
+        const nextEventId = chooseAdminEventId(nextEvents, EVENT_SELECTION_ORDER);
 
         setEvents(nextEvents);
         setDashboardData(null);

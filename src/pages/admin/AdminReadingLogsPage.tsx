@@ -23,7 +23,8 @@ import type {
   AdminReadingLogResponse,
   AdminReadingLogStatus,
 } from '../../types/adminReadingLogApi';
-import { chooseEventIdByStatus } from '../../utils/adminEvent';
+import { chooseAdminEventId } from '../../utils/adminEvent';
+import { useRememberedAdminEvent } from '../../hooks/useRememberedAdminEvent';
 import '../../styles/admin-reading-logs.css';
 
 type DialogRequest = {
@@ -82,6 +83,7 @@ function toDisplayLog(log: AdminReadingLogResponse): AdminReadingLog {
 function AdminReadingLogsPage() {
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
+  useRememberedAdminEvent(selectedEventId);
   const [logs, setLogs] = useState<AdminReadingLog[]>([]);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<ReadingLogStatusFilter>('ALL');
@@ -196,7 +198,7 @@ function AdminReadingLogsPage() {
     if (initialRequestRef.current === null) {
       initialRequestRef.current = getAdminEvents().then((nextEvents) => ({
         events: nextEvents,
-        eventId: chooseEventIdByStatus(nextEvents, DEFAULT_EVENT_SELECTION_ORDER),
+        eventId: chooseAdminEventId(nextEvents, DEFAULT_EVENT_SELECTION_ORDER),
       }));
     }
 

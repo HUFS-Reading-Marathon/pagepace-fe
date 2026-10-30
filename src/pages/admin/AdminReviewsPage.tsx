@@ -6,7 +6,9 @@ import {
   verifyAdminReview,
   type AdminReviewTarget,
 } from '../../api/adminReadingLogApi';
+import { chooseAdminEventId } from '../../utils/adminEvent';
 import type { AdminEvent } from '../../types/adminEvent';
+import { useRememberedAdminEvent } from '../../hooks/useRememberedAdminEvent';
 import '../../styles/admin-reviews.css';
 
 function formatCreditDistance(meters: number) {
@@ -16,6 +18,7 @@ function formatCreditDistance(meters: number) {
 function AdminReviewsPage() {
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [eventId, setEventId] = useState<number | null>(null);
+  useRememberedAdminEvent(eventId);
   const [targets, setTargets] = useState<AdminReviewTarget[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [verifyingId, setVerifyingId] = useState<number | null>(null);
@@ -25,9 +28,7 @@ function AdminReviewsPage() {
     getAdminEvents()
       .then((next) => {
         setEvents(next);
-        setEventId(
-          next.find((event) => event.status === 'IN_PROGRESS')?.eventId ?? next[0]?.eventId ?? null,
-        );
+        setEventId(chooseAdminEventId(next, ['IN_PROGRESS']));
 
         if (!next.length) {
           setIsLoading(false);

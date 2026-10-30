@@ -27,7 +27,7 @@ import {
   type AdminEvent,
   type EventStatus,
 } from '../../types/adminEvent';
-import { chooseEventIdByStatus, findPreviousEvent } from '../../utils/adminEvent';
+import { chooseAdminEventId, findPreviousEvent } from '../../utils/adminEvent';
 import {
   COURSE_PRESETS,
   EMPTY_COURSE_FORM,
@@ -45,6 +45,7 @@ import {
   type CoursePresetKey,
   type EventForm,
 } from '../../utils/adminEventForms';
+import { useRememberedAdminEvent } from '../../hooks/useRememberedAdminEvent';
 import '../../styles/admin-event-settings.css';
 
 const DEFAULT_EVENT_SELECTION_ORDER: EventStatus[] = ['APPLICATION_OPEN', 'READY', 'DRAFT'];
@@ -56,7 +57,7 @@ function chooseEventId(events: AdminEvent[], preferredEventId?: number) {
     return preferredEventId;
   }
 
-  return chooseEventIdByStatus(events, DEFAULT_EVENT_SELECTION_ORDER);
+  return chooseAdminEventId(events, DEFAULT_EVENT_SELECTION_ORDER);
 }
 
 function toCourseFormEntries(courses: AdminCourse[]): CourseFormEntry[] {
@@ -86,6 +87,7 @@ function mergeLocalCourseEdits(
 function AdminEventSettingsPage() {
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
+  useRememberedAdminEvent(selectedEventId);
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
   const [eventForm, setEventForm] = useState<EventForm>(EMPTY_EVENT_FORM);
   const [courseForms, setCourseForms] = useState<CourseFormEntry[]>([]);

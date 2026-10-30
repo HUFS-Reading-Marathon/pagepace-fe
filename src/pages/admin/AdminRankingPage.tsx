@@ -2,8 +2,12 @@ import { useEffect, useState } from 'react';
 import { getApiErrorMessage } from '../../api/apiClient';
 import { getAdminEventCourses, getAdminEvents } from '../../api/adminEventApi';
 import { getAdminRankings, type Ranking, type RankingSort } from '../../api/rankingApi';
+import { chooseAdminEventId } from '../../utils/adminEvent';
+import AdminPageTabs from '../../components/admin/AdminPageTabs';
+import { COMPETITION_TABS } from '../../constants/adminNavigation';
 import RankingBoard from '../../components/ranking/RankingBoard';
 import type { AdminCourse, AdminEvent } from '../../types/adminEvent';
+import { useRememberedAdminEvent } from '../../hooks/useRememberedAdminEvent';
 import '../../styles/ranking.css';
 
 const RANKING_ERROR_MESSAGE = '관리자 랭킹을 불러오지 못했습니다.';
@@ -11,6 +15,7 @@ const RANKING_ERROR_MESSAGE = '관리자 랭킹을 불러오지 못했습니다.
 function AdminRankingPage() {
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [eventId, setEventId] = useState<number | null>(null);
+  useRememberedAdminEvent(eventId);
   const [courses, setCourses] = useState<AdminCourse[]>([]);
   const [courseId, setCourseId] = useState<number | undefined>();
   const [sort, setSort] = useState<RankingSort>('RANK');
@@ -22,12 +27,7 @@ function AdminRankingPage() {
     getAdminEvents()
       .then((nextEvents) => {
         setEvents(nextEvents);
-        setEventId(
-          nextEvents.find((event) => ['IN_PROGRESS', 'APPLICATION_OPEN'].includes(event.status))
-            ?.eventId ??
-            nextEvents[0]?.eventId ??
-            null,
-        );
+        setEventId(chooseAdminEventId(nextEvents, ['IN_PROGRESS', 'APPLICATION_OPEN']));
 
         if (nextEvents.length === 0) {
           setIsLoading(false);
@@ -115,7 +115,7 @@ function AdminRankingPage() {
     <section className="admin-page admin-ranking ranking-page is-admin">
       <header className="admin-page__header ranking-admin-header">
         <div>
-          <h1>참가자 랭킹</h1>
+          <h1>대회 현황·랭킹</h1>
           <p>마스킹되지 않은 참가자 정보와 코스별 진행 순위를 확인합니다.</p>
         </div>
         <div className="ranking-admin-summary">
@@ -124,6 +124,7 @@ function AdminRankingPage() {
           <small>{rankings[0] ? `${(rankings[0].distance / 1000).toFixed(2)}km` : '집계 전'}</small>
         </div>
       </header>
+      <AdminPageTabs label="대회 현황·랭킹 화면" tabs={COMPETITION_TABS} />
       <section className="ranking-toolbar is-admin">
         <label>
           <span>행사</span>

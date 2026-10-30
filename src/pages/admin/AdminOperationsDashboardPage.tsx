@@ -7,7 +7,8 @@ import { getAdminReadingLogs } from '../../api/adminReadingLogApi';
 import type { AdminApplicationListItem } from '../../types/adminApplication';
 import { EVENT_STATUS_LABELS, type AdminEvent, type EventStatus } from '../../types/adminEvent';
 import type { AdminReadingLogResponse } from '../../types/adminReadingLogApi';
-import { chooseEventIdByStatus } from '../../utils/adminEvent';
+import { chooseAdminEventId } from '../../utils/adminEvent';
+import { useRememberedAdminEvent } from '../../hooks/useRememberedAdminEvent';
 import '../../styles/admin-operations.css';
 
 const EVENT_ORDER: EventStatus[] = [
@@ -41,6 +42,7 @@ function formatDateTime(value: string) {
 function AdminOperationsDashboardPage() {
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
+  useRememberedAdminEvent(selectedEventId);
   const [applications, setApplications] = useState<AdminApplicationListItem[]>([]);
   const [logs, setLogs] = useState<AdminReadingLogResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,7 +52,7 @@ function AdminOperationsDashboardPage() {
     getAdminEvents()
       .then((nextEvents) => {
         setEvents(nextEvents);
-        setSelectedEventId(chooseEventIdByStatus(nextEvents, EVENT_ORDER));
+        setSelectedEventId(chooseAdminEventId(nextEvents, EVENT_ORDER));
 
         if (nextEvents.length === 0) {
           setIsLoading(false);
