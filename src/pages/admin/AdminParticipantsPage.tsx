@@ -35,6 +35,19 @@ const CSV_HEADERS = [
   '신청일',
 ];
 
+/** 신청서(승인 대기)와 실제 참가자(승인)를 먼저 구분해 보여 주는 상태 탭 */
+const STATUS_TABS: ReadonlyArray<{
+  value: ParticipantStatusFilter;
+  label: string;
+  countKey: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'total';
+}> = [
+  { value: 'APPLIED', label: '승인 대기 신청서', countKey: 'pending' },
+  { value: 'APPROVED', label: '참가자(승인)', countKey: 'approved' },
+  { value: 'REJECTED', label: '반려', countKey: 'rejected' },
+  { value: 'CANCELLED', label: '참가 취소', countKey: 'cancelled' },
+  { value: 'ALL', label: '전체 신청', countKey: 'total' },
+];
+
 function escapeCsvValue(value: string) {
   return `"${value.replace(/"/g, '""')}"`;
 }
@@ -63,6 +76,7 @@ function AdminParticipantsPage() {
   const [feedbackMessage, setFeedbackMessage] = useState('');
   const [feedbackIsError, setFeedbackIsError] = useState(false);
   const dialogOpenerRef = useRef<HTMLElement | null>(null);
+  const [dialogStartsRejecting, setDialogStartsRejecting] = useState(false);
 
   useEffect(() => {
     let isActive = true;
@@ -170,11 +184,17 @@ function AdminParticipantsPage() {
     setAffiliationFilter('ALL');
   };
 
-  const handleOpenDialog = async (applicationId: number) => {
-    const requestSequence = detailRequestSequenceRef.current + 1;
-    detailRequestSequenceRef.current = requestSequence;
+  const handleOpenDialog = (applicationId: number, startRejecting = false) => {
     dialogOpenerRef.current =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setDialogStartsRejecting(startRejecting);
+    void showApplication(applicationId);
+  };
+
+  /** 상세 시트에 신청서를 표시합니다. 시트 안에서 이전·다음으로 이동할 때도 사용합니다. */
+  const showApplication = async (applicationId: number) => {
+    const requestSequence = detailRequestSequenceRef.current + 1;
+    detailRequestSequenceRef.current = requestSequence;
     setSelectedApplicationId(applicationId);
     setDetailApplication(null);
     setDetailError(null);
@@ -328,13 +348,10 @@ function AdminParticipantsPage() {
     );
   };
 
-  const handleReject = async (applicationId: number) => {
-    if (processingApplicationIdRef.current !== null || currentEventId === null) {
-      return;
+  const handleReject = async (applicationId: number, reason: string) => {
+    if (processingApplicationIdRef.current !== null || currentEventId === null || !reason.trim()) {
+      return false;
     }
-
-    const reason = window.prompt('참가 신청 반려 사유를 입력해 주세요.');
-    if (reason === null || !reason.trim()) return;
 
     processingApplicationIdRef.current = applicationId;
     setProcessingApplicationId(applicationId);
@@ -344,72 +361,66 @@ function AdminParticipantsPage() {
 
     try {
       await rejectAdminApplication(applicationId, reason);
-      const nextParticipants = await getAdminApplications(currentEventId);
-      setParticipants(nextParticipants);
-      setDetailApplication(await getAdminApplicationDetail(applicationId));
-      setFeedbackMessage('참가 신청을 반려했습니다.');
-    } catch (error) {
-      const message = getApiErrorMessage(error, '참가 신청을 반려하지 못했습니다.');
+    } catch (requestError) {
+      const message = getApiErrorMessage(requestError, '참가 신청을 반려하지 못했습니다.');
       setFeedbackMessage(message);
       setFeedbackIsError(true);
       setDetailActionError(message);
+      processingApplicationIdRef.current = null;
+      setProcessingApplicationId(null);
+      return false;
+    }
+
+    try {
+      setParticipants(await getAdminApplications(currentEventId));
+      setDetailApplication(await getAdminApplicationDetail(applicationId));
+      setFeedbackMessage('참가 신청을 반려했습니다.');
+    } catch (refreshError) {
+      const message = getApiErrorMessage(
+        refreshError,
+        '반려는 완료됐지만 목록을 다시 불러오지 못했습니다.',
+      );
+      setFeedbackMessage(message);
+      setFeedbackIsError(true);
     } finally {
       processingApplicationIdRef.current = null;
       setProcessingApplicationId(null);
     }
+
+    return true;
   };
+
+  const selectedIndex = filteredParticipants.findIndex(
+    (participant) => participant.applicationId === selectedApplicationId,
+  );
 
   return (
     <section className="admin-page admin-participants">
       <header className="admin-page__header admin-participants__header">
         <div>
           <h1>참가자 관리</h1>
-          <p>독서마라톤 참가 신청자를 확인하고 승인 상태와 참가 정보를 관리합니다.</p>
-        </div>
-
-        <div className="admin-participants__summary" aria-label="참가 신청 현황">
-          <button
-            type="button"
-            aria-pressed={statusFilter === 'ALL'}
-            onClick={() => setStatusFilter('ALL')}
-          >
-            <span>전체</span>
-            <strong>{statistics.total}</strong>
-          </button>
-          <button
-            type="button"
-            aria-pressed={statusFilter === 'APPLIED'}
-            onClick={() => setStatusFilter('APPLIED')}
-          >
-            <span>승인 대기</span>
-            <strong>{statistics.pending}</strong>
-          </button>
-          <button
-            type="button"
-            aria-pressed={statusFilter === 'APPROVED'}
-            onClick={() => setStatusFilter('APPROVED')}
-          >
-            <span>승인</span>
-            <strong>{statistics.approved}</strong>
-          </button>
-          <button
-            type="button"
-            aria-pressed={statusFilter === 'REJECTED'}
-            onClick={() => setStatusFilter('REJECTED')}
-          >
-            <span>반려</span>
-            <strong>{statistics.rejected}</strong>
-          </button>
-          <button
-            type="button"
-            aria-pressed={statusFilter === 'CANCELLED'}
-            onClick={() => setStatusFilter('CANCELLED')}
-          >
-            <span>참가 취소</span>
-            <strong>{statistics.cancelled}</strong>
-          </button>
+          <p>
+            참가 신청서를 검수하고, 승인된 참가자 정보를 확인합니다. 참가자 수는 승인된 신청만
+            집계합니다.
+          </p>
         </div>
       </header>
+
+      <div className="admin-participants__tabs">
+        <div className="admin-segmented" aria-label="신청 상태별 보기">
+          {STATUS_TABS.map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              aria-pressed={statusFilter === tab.value}
+              onClick={() => setStatusFilter(tab.value)}
+            >
+              {tab.label}
+              <b>{statistics[tab.countKey]}</b>
+            </button>
+          ))}
+        </div>
+      </div>
 
       <ParticipantFilters
         searchKeyword={searchKeyword}
@@ -441,12 +452,35 @@ function AdminParticipantsPage() {
         isLoading={isLoading}
         error={error}
         processingApplicationId={processingApplicationId}
-        onOpenDetails={handleOpenDialog}
+        onOpenDetails={(applicationId) => handleOpenDialog(applicationId)}
         onApprove={handleApprove}
+        onRejectStart={(applicationId) => handleOpenDialog(applicationId, true)}
       />
 
       {selectedListApplication && selectedApplicationId !== null && (
         <ParticipantDetailDialog
+          key={selectedApplicationId}
+          position={{
+            index: Math.max(selectedIndex, 0),
+            total: Math.max(filteredParticipants.length, 1),
+          }}
+          initialRejecting={dialogStartsRejecting}
+          onPrevious={
+            selectedIndex > 0
+              ? () => {
+                  setDialogStartsRejecting(false);
+                  void showApplication(filteredParticipants[selectedIndex - 1].applicationId);
+                }
+              : undefined
+          }
+          onNext={
+            selectedIndex >= 0 && selectedIndex < filteredParticipants.length - 1
+              ? () => {
+                  setDialogStartsRejecting(false);
+                  void showApplication(filteredParticipants[selectedIndex + 1].applicationId);
+                }
+              : undefined
+          }
           application={detailApplication}
           fallbackApplication={selectedListApplication}
           isLoading={isDetailLoading}

@@ -13,6 +13,7 @@ type ParticipantTableProps = {
   processingApplicationId: number | null;
   onOpenDetails: (applicationId: number) => void;
   onApprove: (applicationId: number) => void;
+  onRejectStart: (applicationId: number) => void;
 };
 
 function ParticipantTable({
@@ -23,6 +24,7 @@ function ParticipantTable({
   processingApplicationId,
   onOpenDetails,
   onApprove,
+  onRejectStart,
 }: ParticipantTableProps) {
   if (isLoading) {
     return (
@@ -106,8 +108,8 @@ function ParticipantTable({
                       <button
                         type="button"
                         className="admin-participants__table-button admin-participants__table-button--reject"
-                        disabled
-                        title="백엔드 반려 API 확인이 필요합니다."
+                        disabled={processingApplicationId === participant.applicationId}
+                        onClick={() => onRejectStart(participant.applicationId)}
                       >
                         반려
                       </button>
