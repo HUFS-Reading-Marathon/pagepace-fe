@@ -2,6 +2,11 @@ import { ApiError, apiRequest } from './apiClient';
 
 export type Ranking = {
   rank: number;
+  participationId: number;
+  courseId: number;
+  courseName: string;
+  targetDistance: number;
+  status: string;
   name: string;
   studentNo: string;
   approvedPages: number;

@@ -22,6 +22,7 @@ import {
 import ReadingLogStatusBadge from './ReadingLogStatusBadge';
 
 type ReadingLogDetailDialogProps = {
+  inline?: boolean;
   log: AdminReadingLog;
   initialMode: ReadingLogDialogMode;
   isLoading?: boolean;
@@ -34,6 +35,7 @@ type ReadingLogDetailDialogProps = {
 
 function ReadingLogDetailDialog({
   log,
+  inline = false,
   initialMode,
   isLoading = false,
   error = null,
@@ -60,6 +62,7 @@ function ReadingLogDetailDialog({
   }, [onClose]);
 
   useEffect(() => {
+    if (inline) return;
     const previousBodyOverflow = document.body.style.overflow;
 
     document.body.style.overflow = 'hidden';
@@ -77,7 +80,7 @@ function ReadingLogDetailDialog({
       window.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = previousBodyOverflow;
     };
-  }, []);
+  }, [inline]);
 
   const handleBackdropMouseDown = (event: MouseEvent<HTMLDivElement>) => {
     if (event.target === event.currentTarget) {
@@ -256,7 +259,7 @@ function ReadingLogDetailDialog({
           }
           onClick={() => setMode('approve-confirm')}
         >
-          승인
+          승인 검토
         </button>
         <button
           type="button"
@@ -279,13 +282,13 @@ function ReadingLogDetailDialog({
 
   return (
     <div
-      className="admin-reading-log-dialog__backdrop"
+      className={`admin-reading-log-dialog__backdrop ${inline ? 'ux-inline-review' : ''}`}
       onMouseDown={handleBackdropMouseDown}
     >
       <section
         className="admin-reading-log-dialog"
-        role="dialog"
-        aria-modal="true"
+        role={inline ? 'region' : 'dialog'}
+        aria-modal={inline ? undefined : true}
         aria-labelledby="readingLogDialogTitle"
       >
         <header className="admin-reading-log-dialog__header">
@@ -582,7 +585,7 @@ function ReadingLogDetailDialog({
                       }
                     }}
                   >
-                    {isProcessing ? '승인 중…' : '승인하기'}
+                    {isProcessing ? '승인 중…' : inline ? '승인하고 다음' : '승인하기'}
                   </button>
                   <button
                     type="button"

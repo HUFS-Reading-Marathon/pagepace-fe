@@ -1,13 +1,7 @@
-import { reorderAdminCourses } from '../../api/adminEventApi';
-import { preferredAdminEvent } from '../../utils/eventSelection';
-import { useAdminEventState } from '../../hooks/useAdminEventState';
-import {
-  type FormEvent,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { reorderAdminCourses } from "../../api/adminEventApi";
+import { preferredAdminEvent } from "../../utils/eventSelection";
+import { useAdminEventState } from "../../hooks/useAdminEventState";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   createAdminCourse,
   createAdminEvent,
@@ -18,8 +12,8 @@ import {
   getAdminEvents,
   updateAdminCourse,
   updateAdminEvent,
-} from '../../api/adminEventApi';
-import { ApiError } from '../../api/apiClient';
+} from "../../api/adminEventApi";
+import { ApiError } from "../../api/apiClient";
 import {
   EVENT_STATUSES,
   type AdminCourse,
@@ -27,8 +21,8 @@ import {
   type CreateCourseRequest,
   type CreateEventRequest,
   type EventStatus,
-} from '../../types/adminEvent';
-import '../../styles/admin-event-settings.css';
+} from "../../types/adminEvent";
+import "../../styles/admin-event-settings.css";
 
 type EventForm = {
   title: string;
@@ -57,74 +51,92 @@ type CourseForm = {
   displayOrder: string;
 };
 
-type CourseNumberField = Exclude<keyof CourseForm, 'name' | 'rewardType'>;
-type CoursePresetKey = 'SHORT' | 'HALF' | 'FULL';
+type CourseNumberField = Exclude<keyof CourseForm, "name" | "rewardType">;
+type CoursePresetKey = "SHORT" | "HALF" | "FULL";
 
 const REWARD_TYPE_OPTIONS = [
-  { value: 'GIFT_CARD', label: '문화상품권' },
-  { value: 'CASH', label: '상금' },
+  { value: "GIFT_CARD", label: "문화상품권" },
+  { value: "CASH", label: "상금" },
 ] as const;
 
 const EVENT_STATUS_LABELS: Record<EventStatus, string> = {
-  DRAFT: '작성 중',
-  READY: '준비',
-  APPLICATION_OPEN: '신청 접수 중',
-  APPLICATION_CLOSED: '신청 마감',
-  IN_PROGRESS: '진행 중',
-  ENDED: '종료',
-  FINALIZED: '최종 확정',
-  ARCHIVED: '보관',
+  DRAFT: "작성 중",
+  READY: "준비",
+  APPLICATION_OPEN: "신청 접수 중",
+  APPLICATION_CLOSED: "신청 마감",
+  IN_PROGRESS: "진행 중",
+  ENDED: "종료",
+  FINALIZED: "최종 확정",
+  ARCHIVED: "보관",
 };
 
 const DEFAULT_EVENT_SELECTION_ORDER: EventStatus[] = [
-  'APPLICATION_OPEN',
-  'READY',
-  'DRAFT',
+  "APPLICATION_OPEN",
+  "READY",
+  "DRAFT",
 ];
 
 const EMPTY_EVENT_FORM: EventForm = {
-  title: '',
-  roundNo: '',
-  applicationStartDate: '',
-  applicationEndDate: '',
-  eventStartDate: '',
-  eventEndDate: '',
-  status: 'DRAFT',
-  description: '',
-  contactPhone: '',
-  contactEmail: '',
-  kakaoOpenChatUrl: '',
+  title: "",
+  roundNo: "",
+  applicationStartDate: "",
+  applicationEndDate: "",
+  eventStartDate: "",
+  eventEndDate: "",
+  status: "DRAFT",
+  description: "",
+  contactPhone: "",
+  contactEmail: "",
+  kakaoOpenChatUrl: "",
   publicVisible: false,
 };
 
 const COURSE_PRESETS: Record<CoursePresetKey, CourseForm> = {
   SHORT: {
-    name: '단축 코스', targetDistanceMeter: '10000', standardBookCount: '7',
-    avgMonthlyReadingCount: '2.3', maxWinners: '15', extraLoanCount: '2',
-    rewardType: 'GIFT_CARD', rewardAmount: '30000', displayOrder: '1',
+    name: "단축 코스",
+    targetDistanceMeter: "10000",
+    standardBookCount: "7",
+    avgMonthlyReadingCount: "2.3",
+    maxWinners: "15",
+    extraLoanCount: "2",
+    rewardType: "GIFT_CARD",
+    rewardAmount: "30000",
+    displayOrder: "1",
   },
   HALF: {
-    name: '하프 코스', targetDistanceMeter: '21100', standardBookCount: '14',
-    avgMonthlyReadingCount: '4.6', maxWinners: '20', extraLoanCount: '2',
-    rewardType: 'GIFT_CARD', rewardAmount: '50000', displayOrder: '2',
+    name: "하프 코스",
+    targetDistanceMeter: "21100",
+    standardBookCount: "14",
+    avgMonthlyReadingCount: "4.6",
+    maxWinners: "20",
+    extraLoanCount: "2",
+    rewardType: "GIFT_CARD",
+    rewardAmount: "50000",
+    displayOrder: "2",
   },
   FULL: {
-    name: '풀 코스', targetDistanceMeter: '42195', standardBookCount: '28',
-    avgMonthlyReadingCount: '9.3', maxWinners: '3', extraLoanCount: '5',
-    rewardType: 'CASH', rewardAmount: '150000', displayOrder: '3',
+    name: "풀 코스",
+    targetDistanceMeter: "42195",
+    standardBookCount: "28",
+    avgMonthlyReadingCount: "9.3",
+    maxWinners: "3",
+    extraLoanCount: "5",
+    rewardType: "CASH",
+    rewardAmount: "150000",
+    displayOrder: "3",
   },
 };
 
 const EMPTY_COURSE_FORM: CourseForm = { ...COURSE_PRESETS.SHORT };
 
 const COURSE_NUMBER_FIELDS: CourseNumberField[] = [
-  'targetDistanceMeter',
-  'standardBookCount',
-  'avgMonthlyReadingCount',
-  'maxWinners',
-  'extraLoanCount',
-  'rewardAmount',
-  'displayOrder',
+  "targetDistanceMeter",
+  "standardBookCount",
+  "avgMonthlyReadingCount",
+  "maxWinners",
+  "extraLoanCount",
+  "rewardAmount",
+  "displayOrder",
 ];
 
 function getApiErrorMessage(error: unknown, fallback: string) {
@@ -140,10 +152,10 @@ function toEventForm(event: AdminEvent): EventForm {
     eventStartDate: event.eventStartDate,
     eventEndDate: event.eventEndDate,
     status: event.status,
-    description: event.description ?? '',
-    contactPhone: event.contactPhone ?? '',
-    contactEmail: event.contactEmail ?? '',
-    kakaoOpenChatUrl: event.kakaoOpenChatUrl ?? '',
+    description: event.description ?? "",
+    contactPhone: event.contactPhone ?? "",
+    contactEmail: event.contactEmail ?? "",
+    kakaoOpenChatUrl: event.kakaoOpenChatUrl ?? "",
     publicVisible: event.publicVisible,
   };
 }
@@ -156,7 +168,7 @@ function toCourseForm(course: AdminCourse): CourseForm {
     avgMonthlyReadingCount: String(course.avgMonthlyReadingCount),
     maxWinners: String(course.maxWinners),
     extraLoanCount: String(course.extraLoanCount),
-    rewardType: course.rewardType ?? '',
+    rewardType: course.rewardType ?? "",
     rewardAmount: String(course.rewardAmount),
     displayOrder: String(course.displayOrder),
   };
@@ -184,7 +196,7 @@ function chooseEventId(events: AdminEvent[], preferredEventId?: number) {
 }
 
 function getDateUtcValue(value: string) {
-  const [year, month, day] = value.split('-').map(Number);
+  const [year, month, day] = value.split("-").map(Number);
 
   if (!year || !month || !day) {
     return null;
@@ -203,7 +215,7 @@ function getEventCountdown(startDate: string, endDate: string) {
   const startUtc = getDateUtcValue(startDate);
 
   if (startUtc === null) {
-    return '일정 미설정';
+    return "일정 미설정";
   }
 
   const todayUtc = getTodayUtcValue();
@@ -216,39 +228,39 @@ function getEventCountdown(startDate: string, endDate: string) {
   }
 
   if (remainingDays === 0) {
-    return 'D-DAY';
+    return "D-DAY";
   }
 
   const endUtc = getDateUtcValue(endDate);
 
   if (endUtc !== null && todayUtc <= endUtc) {
-    return '행사 진행 중';
+    return "행사 진행 중";
   }
 
-  return endUtc !== null ? '행사 종료' : '시작일 경과';
+  return endUtc !== null ? "행사 종료" : "시작일 경과";
 }
 
 function formatDateLabel(value: string) {
   if (!value) {
-    return '접수 시작일을 입력해 주세요.';
+    return "접수 시작일을 입력해 주세요.";
   }
 
-  return new Intl.DateTimeFormat('ko-KR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   }).format(new Date(`${value}T00:00:00`));
 }
 
 function validateEventForm(form: EventForm) {
   if (!form.title.trim()) {
-    return '행사명을 입력해 주세요.';
+    return "행사명을 입력해 주세요.";
   }
 
   const roundNo = Number(form.roundNo);
 
   if (!Number.isInteger(roundNo) || roundNo <= 0) {
-    return '회차는 0보다 큰 정수여야 합니다.';
+    return "회차는 0보다 큰 정수여야 합니다.";
   }
 
   if (
@@ -257,15 +269,15 @@ function validateEventForm(form: EventForm) {
     !form.eventStartDate ||
     !form.eventEndDate
   ) {
-    return '독서일지 접수기간과 신청 기간의 날짜를 모두 입력해 주세요.';
+    return "독서일지 접수기간과 신청 기간의 날짜를 모두 입력해 주세요.";
   }
 
   if (form.applicationEndDate < form.applicationStartDate) {
-    return '신청 종료일은 신청 시작일보다 빠를 수 없습니다.';
+    return "신청 종료일은 신청 시작일보다 빠를 수 없습니다.";
   }
 
   if (form.eventEndDate < form.eventStartDate) {
-    return '접수 종료일은 접수 시작일보다 빠를 수 없습니다.';
+    return "접수 종료일은 접수 시작일보다 빠를 수 없습니다.";
   }
 
   return null;
@@ -290,14 +302,14 @@ function toEventRequest(form: EventForm): CreateEventRequest {
 
 function validateCourseForm(form: CourseForm) {
   if (!form.name.trim()) {
-    return '코스명을 입력해 주세요.';
+    return "코스명을 입력해 주세요.";
   }
 
   for (const field of COURSE_NUMBER_FIELDS) {
     const value = Number(form[field]);
 
     if (!Number.isFinite(value) || value < 0) {
-      return '코스 숫자 항목은 0 이상의 숫자여야 합니다.';
+      return "코스 숫자 항목은 0 이상의 숫자여야 합니다.";
     }
   }
 
@@ -305,11 +317,11 @@ function validateCourseForm(form: CourseForm) {
     Number(form.targetDistanceMeter) <= 0 ||
     Number(form.standardBookCount) <= 0
   ) {
-    return '목표 거리와 기준 도서 수는 0보다 커야 합니다.';
+    return "목표 거리와 기준 도서 수는 0보다 커야 합니다.";
   }
 
   if (!REWARD_TYPE_OPTIONS.some((option) => option.value === form.rewardType)) {
-    return '보상 유형을 선택해 주세요.';
+    return "보상 유형을 선택해 주세요.";
   }
 
   return null;
@@ -330,6 +342,9 @@ function toCourseRequest(form: CourseForm): CreateCourseRequest {
 }
 
 function AdminEventSettingsPage() {
+  const [editingSettings, setEditingSettings] = useState(false);
+  const draggedCourse = useRef<number | null>(null);
+
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [selectedEventId, setSelectedEventId] = useAdminEventState();
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
@@ -345,13 +360,13 @@ function AdminEventSettingsPage() {
   const [isCoursesLoading, setIsCoursesLoading] = useState(false);
   const [isSavingEvent, setIsSavingEvent] = useState(false);
   const [isDeletingEvent, setIsDeletingEvent] = useState(false);
-  const [savingCourseId, setSavingCourseId] = useState<number | 'new' | null>(
+  const [savingCourseId, setSavingCourseId] = useState<number | "new" | null>(
     null,
   );
   const [deletingCourseId, setDeletingCourseId] = useState<number | null>(null);
-  const [pageError, setPageError] = useState('');
-  const [courseError, setCourseError] = useState('');
-  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [pageError, setPageError] = useState("");
+  const [courseError, setCourseError] = useState("");
+  const [feedbackMessage, setFeedbackMessage] = useState("");
   const [feedbackIsError, setFeedbackIsError] = useState(false);
   const initialEventsRequestRef = useRef<Promise<AdminEvent[]> | null>(null);
   const detailRequestRef = useRef<{
@@ -369,7 +384,7 @@ function AdminEventSettingsPage() {
   );
 
   const clearFeedback = () => {
-    setFeedbackMessage('');
+    setFeedbackMessage("");
     setFeedbackIsError(false);
   };
 
@@ -412,7 +427,7 @@ function AdminEventSettingsPage() {
     try {
       const nextEvents = await getAdminEvents();
 
-      setPageError('');
+      setPageError("");
       return applyEvents(nextEvents, preferredEventId);
     } finally {
       setIsEventsLoading(false);
@@ -431,7 +446,7 @@ function AdminEventSettingsPage() {
           form: toCourseForm(course),
         })),
       );
-      setCourseError('');
+      setCourseError("");
     } finally {
       setIsCoursesLoading(false);
     }
@@ -462,7 +477,7 @@ function AdminEventSettingsPage() {
           setCourseForms([]);
         }
 
-        setPageError('');
+        setPageError("");
       })
       .catch((error: unknown) => {
         if (!isActive) {
@@ -470,7 +485,7 @@ function AdminEventSettingsPage() {
         }
 
         setPageError(
-          getApiErrorMessage(error, '행사 목록을 불러오지 못했습니다.'),
+          getApiErrorMessage(error, "행사 목록을 불러오지 못했습니다."),
         );
       })
       .finally(() => {
@@ -519,13 +534,13 @@ function AdminEventSettingsPage() {
       .then((event) => {
         if (isActive) {
           setEventForm(toEventForm(event));
-          setPageError('');
+          setPageError("");
         }
       })
       .catch((error: unknown) => {
         if (isActive) {
           setPageError(
-            getApiErrorMessage(error, '행사 상세를 불러오지 못했습니다.'),
+            getApiErrorMessage(error, "행사 상세를 불러오지 못했습니다."),
           );
         }
       })
@@ -548,13 +563,13 @@ function AdminEventSettingsPage() {
               form: toCourseForm(course),
             })),
           );
-          setCourseError('');
+          setCourseError("");
         }
       })
       .catch((error: unknown) => {
         if (isActive) {
           setCourseError(
-            getApiErrorMessage(error, '코스 목록을 불러오지 못했습니다.'),
+            getApiErrorMessage(error, "코스 목록을 불러오지 못했습니다."),
           );
         }
       })
@@ -588,9 +603,10 @@ function AdminEventSettingsPage() {
       return;
     }
 
+    setEditingSettings(false);
     clearFeedback();
-    setPageError('');
-    setCourseError('');
+    setPageError("");
+    setCourseError("");
     setIsAddingCourse(false);
     setIsEventDetailLoading(true);
     setIsCoursesLoading(true);
@@ -599,9 +615,10 @@ function AdminEventSettingsPage() {
   };
 
   const handleCreateEventStart = () => {
+    setEditingSettings(false);
     clearFeedback();
-    setPageError('');
-    setCourseError('');
+    setPageError("");
+    setCourseError("");
     setSelectedEventId(null);
     setIsCreatingEvent(true);
     setIsEventDetailLoading(false);
@@ -630,6 +647,34 @@ function AdminEventSettingsPage() {
       return;
     }
 
+    if (!isCreatingEvent) {
+      const before = events.find((e) => e.eventId === selectedEventId);
+      const changed = (Object.keys(eventForm) as (keyof EventForm)[]).filter(
+        (key) =>
+          String(before?.[key as keyof AdminEvent] ?? "") !==
+          String(eventForm[key]),
+      );
+      const labels: Record<string, string> = {
+        title: "행사명",
+        roundNo: "회차",
+        applicationStartDate: "신청 시작일",
+        applicationEndDate: "신청 종료일",
+        eventStartDate: "독서일지 접수 시작일",
+        eventEndDate: "독서일지 접수 종료일",
+        status: "운영 상태",
+        publicVisible: "공개 여부",
+        description: "설명",
+        contactPhone: "문의 전화",
+        contactEmail: "문의 이메일",
+        kakaoOpenChatUrl: "문의 링크",
+      };
+      if (
+        !window.confirm(
+          `선택한 행사에 아래 변경사항을 저장할까요?\n${changed.map((key) => `${labels[key] ?? key}: ${String(before?.[key as keyof AdminEvent] ?? "없음")} → ${String(eventForm[key])}`).join("\n")}`,
+        )
+      )
+        return;
+    }
     setIsSavingEvent(true);
     clearFeedback();
 
@@ -640,16 +685,17 @@ function AdminEventSettingsPage() {
         const createdEvent = await createAdminEvent(request);
 
         if (!createdEvent) {
-          throw new ApiError('생성된 행사 정보를 확인할 수 없습니다.', 200);
+          throw new ApiError("생성된 행사 정보를 확인할 수 없습니다.", 200);
         }
 
         try {
           await Promise.all(
-            (Object.keys(COURSE_PRESETS) as CoursePresetKey[]).map((presetKey) =>
-              createAdminCourse(
-                createdEvent.eventId,
-                toCourseRequest(COURSE_PRESETS[presetKey]),
-              ),
+            (Object.keys(COURSE_PRESETS) as CoursePresetKey[]).map(
+              (presetKey) =>
+                createAdminCourse(
+                  createdEvent.eventId,
+                  toCourseRequest(COURSE_PRESETS[presetKey]),
+                ),
             ),
           );
         } catch (courseCreationError: unknown) {
@@ -662,7 +708,7 @@ function AdminEventSettingsPage() {
           showError(
             getApiErrorMessage(
               courseCreationError,
-              '행사는 생성되었지만 기본 코스 일부를 만들지 못했습니다. 생성된 코스를 확인해 주세요.',
+              "행사는 생성되었지만 기본 코스 일부를 만들지 못했습니다. 생성된 코스를 확인해 주세요.",
             ),
           );
           return;
@@ -675,16 +721,30 @@ function AdminEventSettingsPage() {
           setEventForm(toEventForm(latestEvent));
         }
 
-        showSuccess('행사와 기본 코스 3개가 성공적으로 생성되었습니다.');
+        showSuccess("행사와 기본 코스 3개가 성공적으로 생성되었습니다.");
       } else if (selectedEventId !== null) {
         let updatedEvent;
         try {
           updatedEvent = await updateAdminEvent(selectedEventId, request);
         } catch (error) {
-          if (!(error instanceof ApiError) || error.code !== 'EVENT_CHANGE_CONFIRMATION_REQUIRED') throw error;
-          const previous = events.find(event => event.eventId === selectedEventId);
-          if (!window.confirm(`참가자가 있는 행사입니다. 아래 변경은 접수와 공개 화면에 영향을 줍니다.\n신청기간: ${previous?.applicationStartDate}~${previous?.applicationEndDate} → ${request.applicationStartDate}~${request.applicationEndDate}\n독서일지 접수기간: ${previous?.eventStartDate}~${previous?.eventEndDate} → ${request.eventStartDate}~${request.eventEndDate}\n상태: ${previous?.status} → ${request.status}\n공개: ${previous?.publicVisible} → ${request.publicVisible}\n변경을 확정할까요?`)) return;
-          updatedEvent = await updateAdminEvent(selectedEventId, {...request, confirmStructuralChange:true});
+          if (
+            !(error instanceof ApiError) ||
+            error.code !== "EVENT_CHANGE_CONFIRMATION_REQUIRED"
+          )
+            throw error;
+          const previous = events.find(
+            (event) => event.eventId === selectedEventId,
+          );
+          if (
+            !window.confirm(
+              `참가자가 있는 행사입니다. 아래 변경은 접수와 공개 화면에 영향을 줍니다.\n신청기간: ${previous?.applicationStartDate}~${previous?.applicationEndDate} → ${request.applicationStartDate}~${request.applicationEndDate}\n독서일지 접수기간: ${previous?.eventStartDate}~${previous?.eventEndDate} → ${request.eventStartDate}~${request.eventEndDate}\n상태: ${previous?.status} → ${request.status}\n공개: ${previous?.publicVisible} → ${request.publicVisible}\n변경을 확정할까요?`,
+            )
+          )
+            return;
+          updatedEvent = await updateAdminEvent(selectedEventId, {
+            ...request,
+            confirmStructuralChange: true,
+          });
         }
         await refreshEvents(selectedEventId);
 
@@ -695,10 +755,10 @@ function AdminEventSettingsPage() {
           setEventForm(toEventForm(latestEvent));
         }
 
-        showSuccess('행사 설정이 성공적으로 저장되었습니다.');
+        showSuccess("행사 설정이 성공적으로 저장되었습니다.");
       }
     } catch (error: unknown) {
-      showError(getApiErrorMessage(error, '행사 설정을 저장하지 못했습니다.'));
+      showError(getApiErrorMessage(error, "행사 설정을 저장하지 못했습니다."));
     } finally {
       setIsSavingEvent(false);
     }
@@ -713,7 +773,7 @@ function AdminEventSettingsPage() {
       (event) => event.eventId === selectedEventId,
     );
     const confirmed = window.confirm(
-      `“${selectedEvent?.title ?? '선택한 행사'}”를 보관하시겠습니까? 공개 화면에서 제외되며 기존 참가 기록은 유지됩니다.`,
+      `“${selectedEvent?.title ?? "선택한 행사"}”를 보관하시겠습니까? 공개 화면에서 제외되며 기존 참가 기록은 유지됩니다.`,
     );
 
     if (!confirmed) {
@@ -727,9 +787,9 @@ function AdminEventSettingsPage() {
       await deleteAdminEvent(selectedEventId, true);
       await refreshEvents();
       setCourseForms([]);
-      showSuccess('행사를 보관하고 공개를 해제했습니다.');
+      showSuccess("행사를 보관하고 공개를 해제했습니다.");
     } catch (error: unknown) {
-      showError(getApiErrorMessage(error, '행사를 삭제하지 못했습니다.'));
+      showError(getApiErrorMessage(error, "행사를 삭제하지 못했습니다."));
     } finally {
       setIsDeletingEvent(false);
     }
@@ -737,22 +797,38 @@ function AdminEventSettingsPage() {
 
   const moveCourse = async (courseId: number, offset: number) => {
     if (!selectedEventId || savingCourseId !== null) return;
-    const index = courseForms.findIndex(course => course.courseId === courseId);
+    const index = courseForms.findIndex(
+      (course) => course.courseId === courseId,
+    );
     const nextIndex = index + offset;
     if (nextIndex < 0 || nextIndex >= courseForms.length) return;
-    const ids = courseForms.map(course => course.courseId);
-    [ids[index],ids[nextIndex]] = [ids[nextIndex],ids[index]];
-    if (!window.confirm('코스 표시 순서를 저장할까요? 저장하지 않은 코스 입력은 유지됩니다.')) return;
+    const ids = courseForms.map((course) => course.courseId);
+    const [moving] = ids.splice(index, 1);
+    ids.splice(nextIndex, 0, moving);
+    if (
+      !window.confirm(
+        "코스 표시 순서를 저장할까요? 저장하지 않은 코스 입력은 유지됩니다.",
+      )
+    )
+      return;
     setSavingCourseId(courseId);
     try {
       await reorderAdminCourses(selectedEventId, ids);
-      setCourseForms(previous => ids.map((id, order) => {
-        const item = previous.find(course => course.courseId === id)!;
-        return {...item, form:{...item.form,displayOrder:String(order+1)}};
-      }));
-      showSuccess('코스 표시 순서를 저장했습니다.');
-    } catch (error) { showError(getApiErrorMessage(error, '순서를 저장하지 못했습니다.')); }
-    finally { setSavingCourseId(null); }
+      setCourseForms((previous) =>
+        ids.map((id, order) => {
+          const item = previous.find((course) => course.courseId === id)!;
+          return {
+            ...item,
+            form: { ...item.form, displayOrder: String(order + 1) },
+          };
+        }),
+      );
+      showSuccess("코스 표시 순서를 저장했습니다.");
+    } catch (error) {
+      showError(getApiErrorMessage(error, "순서를 저장하지 못했습니다."));
+    } finally {
+      setSavingCourseId(null);
+    }
   };
 
   const updateCourseForm = (
@@ -799,9 +875,9 @@ function AdminEventSettingsPage() {
     try {
       await updateAdminCourse(courseId, toCourseRequest(course.form));
       await refreshCourses(selectedEventId);
-      showSuccess('코스 설정이 저장되었습니다.');
+      showSuccess("코스 설정이 저장되었습니다.");
     } catch (error: unknown) {
-      showError(getApiErrorMessage(error, '코스 설정을 저장하지 못했습니다.'));
+      showError(getApiErrorMessage(error, "코스 설정을 저장하지 못했습니다."));
     } finally {
       setSavingCourseId(null);
     }
@@ -823,7 +899,7 @@ function AdminEventSettingsPage() {
       return;
     }
 
-    setSavingCourseId('new');
+    setSavingCourseId("new");
     clearFeedback();
 
     try {
@@ -831,9 +907,9 @@ function AdminEventSettingsPage() {
       await refreshCourses(selectedEventId);
       setNewCourseForm(EMPTY_COURSE_FORM);
       setIsAddingCourse(false);
-      showSuccess('코스가 생성되었습니다.');
+      showSuccess("코스가 생성되었습니다.");
     } catch (error: unknown) {
-      showError(getApiErrorMessage(error, '코스를 생성하지 못했습니다.'));
+      showError(getApiErrorMessage(error, "코스를 생성하지 못했습니다."));
     } finally {
       setSavingCourseId(null);
     }
@@ -858,9 +934,9 @@ function AdminEventSettingsPage() {
     try {
       await deleteAdminCourse(courseId);
       await refreshCourses(selectedEventId);
-      showSuccess('코스가 삭제되었습니다.');
+      showSuccess("코스가 삭제되었습니다.");
     } catch (error: unknown) {
-      showError(getApiErrorMessage(error, '코스를 삭제하지 못했습니다.'));
+      showError(getApiErrorMessage(error, "코스를 삭제하지 못했습니다."));
     } finally {
       setDeletingCourseId(null);
     }
@@ -877,7 +953,7 @@ function AdminEventSettingsPage() {
           type="text"
           required
           value={form.name}
-          onChange={(event) => updateField('name', event.target.value)}
+          onChange={(event) => updateField("name", event.target.value)}
         />
       </label>
 
@@ -891,7 +967,7 @@ function AdminEventSettingsPage() {
             required
             value={form.targetDistanceMeter}
             onChange={(event) =>
-              updateField('targetDistanceMeter', event.target.value)
+              updateField("targetDistanceMeter", event.target.value)
             }
           />
           <span>m</span>
@@ -908,7 +984,7 @@ function AdminEventSettingsPage() {
             required
             value={form.standardBookCount}
             onChange={(event) =>
-              updateField('standardBookCount', event.target.value)
+              updateField("standardBookCount", event.target.value)
             }
           />
           <span>권</span>
@@ -923,7 +999,7 @@ function AdminEventSettingsPage() {
           step="1"
           value={form.avgMonthlyReadingCount}
           onChange={(event) =>
-            updateField('avgMonthlyReadingCount', event.target.value)
+            updateField("avgMonthlyReadingCount", event.target.value)
           }
         />
       </label>
@@ -935,9 +1011,7 @@ function AdminEventSettingsPage() {
           min="0"
           step="1"
           value={form.maxWinners}
-          onChange={(event) =>
-            updateField('maxWinners', event.target.value)
-          }
+          onChange={(event) => updateField("maxWinners", event.target.value)}
         />
       </label>
 
@@ -949,7 +1023,7 @@ function AdminEventSettingsPage() {
           step="1"
           value={form.extraLoanCount}
           onChange={(event) =>
-            updateField('extraLoanCount', event.target.value)
+            updateField("extraLoanCount", event.target.value)
           }
         />
       </label>
@@ -959,13 +1033,22 @@ function AdminEventSettingsPage() {
         <select
           value={form.rewardType}
           required
-          onChange={(event) => updateField('rewardType', event.target.value)}
+          onChange={(event) => updateField("rewardType", event.target.value)}
         >
           <option value="">보상 유형 선택</option>
-          {!REWARD_TYPE_OPTIONS.some((option) => option.value === form.rewardType) && form.rewardType && (
-            <option value={form.rewardType} disabled>지원하지 않는 기존 값 ({form.rewardType})</option>
-          )}
-          {REWARD_TYPE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          {!REWARD_TYPE_OPTIONS.some(
+            (option) => option.value === form.rewardType,
+          ) &&
+            form.rewardType && (
+              <option value={form.rewardType} disabled>
+                지원하지 않는 기존 값 ({form.rewardType})
+              </option>
+            )}
+          {REWARD_TYPE_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
         </select>
       </label>
 
@@ -976,9 +1059,7 @@ function AdminEventSettingsPage() {
           min="0"
           step="1"
           value={form.rewardAmount}
-          onChange={(event) =>
-            updateField('rewardAmount', event.target.value)
-          }
+          onChange={(event) => updateField("rewardAmount", event.target.value)}
         />
       </label>
 
@@ -989,22 +1070,72 @@ function AdminEventSettingsPage() {
           min="0"
           step="1"
           value={form.displayOrder}
-          onChange={(event) =>
-            updateField('displayOrder', event.target.value)
-          }
+          onChange={(event) => updateField("displayOrder", event.target.value)}
         />
       </label>
     </div>
   );
 
-  const editingEvent = events.find((event) => event.eventId === selectedEventId) ?? null;
+  const editingEvent =
+    events.find((event) => event.eventId === selectedEventId) ?? null;
 
   return (
-    <section className="admin-page admin-event-settings">
+    <section
+      className={`admin-page admin-event-settings ${!editingSettings && !isCreatingEvent ? "is-viewing" : ""}`}
+    >
       <header className="admin-page__header admin-event-settings__header">
         <div>
           <h1>행사/코스 설정</h1>
-          <p>독서일지 접수기간, 신청 기간, 코스 기준, 보상 기준을 설정합니다.</p>
+          <p>
+            조회 후 수정 버튼을 눌러 변경하세요. 신청 기간, 독서일지 접수기간
+            순서로 설정합니다.
+          </p>
+          {!isCreatingEvent && (
+            <button
+              type="button"
+              disabled={isSavingEvent || savingCourseId !== null}
+              onClick={async () => {
+                if (!editingSettings) {
+                  setEditingSettings(true);
+                  return;
+                }
+                if (!selectedEventId) return;
+                if (
+                  !window.confirm(
+                    "조회 모드로 돌아갈까요? 저장하지 않은 입력은 취소됩니다.",
+                  )
+                )
+                  return;
+                setIsSavingEvent(true);
+                try {
+                  const [latest, courses] = await Promise.all([
+                    getAdminEvent(selectedEventId),
+                    getAdminEventCourses(selectedEventId),
+                  ]);
+                  setEventForm(toEventForm(latest));
+                  setCourseForms(
+                    courses.map((course) => ({
+                      courseId: course.courseId,
+                      form: toCourseForm(course),
+                    })),
+                  );
+                  setIsAddingCourse(false);
+                  setEditingSettings(false);
+                } catch (error) {
+                  showError(
+                    getApiErrorMessage(
+                      error,
+                      "저장된 설정을 불러오지 못했습니다.",
+                    ),
+                  );
+                } finally {
+                  setIsSavingEvent(false);
+                }
+              }}
+            >
+              {editingSettings ? "조회 모드로 전환" : "설정 수정"}
+            </button>
+          )}
         </div>
 
         <div className="admin-event-settings__countdown" aria-live="polite">
@@ -1026,14 +1157,21 @@ function AdminEventSettingsPage() {
         <div className="admin-event-settings__selector-controls">
           <select
             aria-label="관리할 행사"
-            value={selectedEventId ?? ''}
-            disabled={isEventsLoading || isCreatingEvent || events.length === 0}
+            value={selectedEventId ?? ""}
+            disabled={
+              isEventsLoading ||
+              isCreatingEvent ||
+              isSavingEvent ||
+              savingCourseId !== null ||
+              events.length === 0
+            }
             onChange={(event) => handleEventSelection(event.target.value)}
           >
             {events.length === 0 && <option value="">등록된 행사 없음</option>}
             {events.map((event) => (
               <option key={event.eventId} value={event.eventId}>
-                {event.roundNo}회 · {event.title} · {EVENT_STATUS_LABELS[event.status]}
+                {event.roundNo}회 · {event.title} ·{" "}
+                {EVENT_STATUS_LABELS[event.status]}
               </option>
             ))}
           </select>
@@ -1049,10 +1187,27 @@ function AdminEventSettingsPage() {
       </section>
 
       {(editingEvent || isCreatingEvent) && (
-        <div className={`admin-event-settings__editing-context ${isCreatingEvent ? 'is-new' : ''}`} aria-live="polite">
-          <span>{isCreatingEvent ? '새 행사 작성 중' : '현재 수정 중인 행사'}</span>
-          <strong>{isCreatingEvent ? '아직 저장되지 않은 새 행사' : `${editingEvent?.roundNo}회 · ${editingEvent?.title}`}</strong>
-          <small>{isCreatingEvent ? '저장하기 전까지 기존 행사에는 영향을 주지 않습니다.' : `${EVENT_STATUS_LABELS[editingEvent!.status]} · 행사와 아래 코스는 모두 이 행사에만 적용됩니다.`}</small>
+        <div
+          className={`admin-event-settings__editing-context ${isCreatingEvent ? "is-new" : ""}`}
+          aria-live="polite"
+        >
+          <span>
+            {isCreatingEvent
+              ? "새 행사 작성 중"
+              : editingSettings
+                ? "현재 수정 중인 행사"
+                : "조회 중인 행사"}
+          </span>
+          <strong>
+            {isCreatingEvent
+              ? "아직 저장되지 않은 새 행사"
+              : `${editingEvent?.roundNo}회 · ${editingEvent?.title}`}
+          </strong>
+          <small>
+            {isCreatingEvent
+              ? "저장하기 전까지 기존 행사에는 영향을 주지 않습니다."
+              : `${EVENT_STATUS_LABELS[editingEvent!.status]} · 행사와 아래 코스는 모두 이 행사에만 적용됩니다.`}
+          </small>
         </div>
       )}
 
@@ -1062,6 +1217,37 @@ function AdminEventSettingsPage() {
         </p>
       )}
 
+      {!editingSettings && !isCreatingEvent && editingEvent && (
+        <section className="admin-event-settings__panel ux-event-overview">
+          <h2>{editingEvent.title}</h2>
+          <div className="race-metrics">
+            <div>
+              <span>신청 기간</span>
+              <strong>
+                {editingEvent.applicationStartDate} ~{" "}
+                {editingEvent.applicationEndDate}
+              </strong>
+            </div>
+            <div>
+              <span>독서일지 접수기간</span>
+              <strong>
+                {editingEvent.eventStartDate} ~ {editingEvent.eventEndDate}
+              </strong>
+            </div>
+          </div>
+          <p>
+            {EVENT_STATUS_LABELS[editingEvent.status]} ·{" "}
+            {editingEvent.publicVisible ? "공개" : "비공개"}
+          </p>
+          <details>
+            <summary>행사 설명 및 문의</summary>
+            <p>{editingEvent.description || "등록된 설명 없음"}</p>
+            <p>
+              {editingEvent.contactPhone} · {editingEvent.contactEmail}
+            </p>
+          </details>
+        </section>
+      )}
       {isEventsLoading ? (
         <div className="admin-event-settings__empty" role="status">
           행사 목록을 불러오는 중입니다.
@@ -1079,271 +1265,313 @@ function AdminEventSettingsPage() {
         </div>
       ) : (
         <form
+          hidden={!editingSettings && !isCreatingEvent}
           className="admin-event-settings__form"
           noValidate
           onSubmit={handleEventSubmit}
         >
-          <section
-            className="admin-event-settings__panel"
-            aria-labelledby="eventBasicTitle"
+          <fieldset
+            disabled={(!editingSettings && !isCreatingEvent) || isSavingEvent}
           >
-            <div className="admin-event-settings__section-heading">
-              <div>
-                <h2 id="eventBasicTitle">
-                  {isCreatingEvent ? '새 행사 정보' : '행사 기본 정보'}
-                </h2>
-                <p>행사명, 회차, 운영 상태와 공개 여부를 설정합니다.</p>
-              </div>
-              <span>필수</span>
-            </div>
-
-            <fieldset
-              className="admin-event-settings__basic-grid"
-              disabled={isEventDetailLoading}
+            <section
+              className="admin-event-settings__panel"
+              aria-labelledby="eventBasicTitle"
             >
-              <label className="admin-event-settings__wide-field">
-                <span>행사명</span>
-                <input
-                  type="text"
-                  required
-                  value={eventForm.title}
-                  onChange={(event) =>
-                    handleEventFieldChange('title', event.target.value)
-                  }
-                />
-              </label>
-
-              <label>
-                <span>회차</span>
-                <input
-                  type="number"
-                  min="1"
-                  step="1"
-                  required
-                  value={eventForm.roundNo}
-                  onChange={(event) =>
-                    handleEventFieldChange('roundNo', event.target.value)
-                  }
-                />
-              </label>
-
-              <label>
-                <span>운영 상태</span>
-                <select
-                  value={eventForm.status}
-                  onChange={(event) =>
-                    handleEventFieldChange(
-                      'status',
-                      event.target.value as EventStatus,
-                    )
-                  }
-                >
-                  {EVENT_STATUSES.map((status) => (
-                    <option key={status} value={status}>
-                      {EVENT_STATUS_LABELS[status]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="admin-event-settings__visibility-field">
-                <input
-                  type="checkbox"
-                  checked={eventForm.publicVisible}
-                  onChange={(event) =>
-                    handleEventFieldChange('publicVisible', event.target.checked)
-                  }
-                />
-                <span>사용자 화면에 공개</span>
-              </label>
-            </fieldset>
-          </section>
-
-          <section
-            className="admin-event-settings__panel"
-            aria-labelledby="eventPeriodTitle"
-          >
-            <div className="admin-event-settings__section-heading">
-              <div>
-                <h2 id="eventPeriodTitle">기간 설정</h2>
-                <p>행사 운영 기간과 참가 신청을 받는 기간을 입력합니다.</p>
-              </div>
-              <span>필수</span>
-            </div>
-
-            <div className="admin-event-settings__period-grid">
-              <fieldset className="admin-event-settings__period-group">
-                <legend>독서일지 접수기간</legend>
-                <div className="admin-event-settings__date-range">
-                  <label>
-                    <span>접수 시작일</span>
-                    <input
-                      type="date"
-                      required
-                      value={eventForm.eventStartDate}
-                      onChange={(event) =>
-                        handleEventFieldChange(
-                          'eventStartDate',
-                          event.target.value,
-                        )
-                      }
-                    />
-                  </label>
-                  <span className="admin-event-settings__range-mark">~</span>
-                  <label>
-                    <span>접수 종료일</span>
-                    <input
-                      type="date"
-                      required
-                      value={eventForm.eventEndDate}
-                      onChange={(event) =>
-                        handleEventFieldChange('eventEndDate', event.target.value)
-                      }
-                    />
-                  </label>
+              <div className="admin-event-settings__section-heading">
+                <div>
+                  <h2 id="eventBasicTitle">
+                    {isCreatingEvent ? "새 행사 정보" : "행사 기본 정보"}
+                  </h2>
+                  <p>행사명, 회차, 운영 상태와 공개 여부를 설정합니다.</p>
                 </div>
-              </fieldset>
-
-              <fieldset className="admin-event-settings__period-group">
-                <legend>신청 기간</legend>
-                <div className="admin-event-settings__date-range">
-                  <label>
-                    <span>신청 시작일</span>
-                    <input
-                      type="date"
-                      required
-                      value={eventForm.applicationStartDate}
-                      onChange={(event) =>
-                        handleEventFieldChange(
-                          'applicationStartDate',
-                          event.target.value,
-                        )
-                      }
-                    />
-                  </label>
-                  <span className="admin-event-settings__range-mark">~</span>
-                  <label>
-                    <span>신청 종료일</span>
-                    <input
-                      type="date"
-                      required
-                      value={eventForm.applicationEndDate}
-                      onChange={(event) =>
-                        handleEventFieldChange(
-                          'applicationEndDate',
-                          event.target.value,
-                        )
-                      }
-                    />
-                  </label>
-                </div>
-              </fieldset>
-            </div>
-          </section>
-
-          <section
-            className="admin-event-settings__panel"
-            aria-labelledby="eventContactTitle"
-          >
-            <div className="admin-event-settings__section-heading">
-              <div>
-                <h2 id="eventContactTitle">행사 안내</h2>
-                <p>행사 설명과 문의 채널을 설정합니다.</p>
+                <span>필수</span>
               </div>
-              <span className="admin-event-settings__optional">선택</span>
-            </div>
 
-            <div className="admin-event-settings__contact-grid">
-              <label>
-                <span>문의 전화</span>
-                <input
-                  type="tel"
-                  value={eventForm.contactPhone}
-                  onChange={(event) =>
-                    handleEventFieldChange('contactPhone', event.target.value)
-                  }
-                />
-              </label>
-              <label>
-                <span>문의 이메일</span>
-                <input
-                  type="email"
-                  value={eventForm.contactEmail}
-                  onChange={(event) =>
-                    handleEventFieldChange('contactEmail', event.target.value)
-                  }
-                />
-              </label>
-              <label className="admin-event-settings__wide-field">
-                <span>카카오 오픈채팅 URL</span>
-                <input
-                  type="url"
-                  value={eventForm.kakaoOpenChatUrl}
-                  onChange={(event) =>
-                    handleEventFieldChange(
-                      'kakaoOpenChatUrl',
-                      event.target.value,
-                    )
-                  }
-                />
-              </label>
-              <label className="admin-event-settings__wide-field">
-                <span>행사 설명</span>
-                <textarea
-                  rows={4}
-                  value={eventForm.description}
-                  onChange={(event) =>
-                    handleEventFieldChange('description', event.target.value)
-                  }
-                />
-              </label>
-            </div>
-          </section>
+              <fieldset
+                className="admin-event-settings__basic-grid"
+                disabled={isEventDetailLoading}
+              >
+                <label className="admin-event-settings__wide-field">
+                  <span>행사명</span>
+                  <input
+                    type="text"
+                    required
+                    value={eventForm.title}
+                    onChange={(event) =>
+                      handleEventFieldChange("title", event.target.value)
+                    }
+                  />
+                </label>
 
-          {isCreatingEvent && (
-            <div className="admin-event-settings__default-courses-notice">
-              <div><span>자동 생성</span><strong>행사를 저장하면 기본 코스 3개를 함께 만듭니다.</strong></div>
-              <ul><li>단축 코스 · 10,000m</li><li>하프 코스 · 21,100m</li><li>풀 코스 · 42,195m</li></ul>
-              <p>생성 후 각 코스의 거리, 보상, 인원은 코스 설정에서 수정할 수 있습니다.</p>
-            </div>
-          )}
+                <label>
+                  <span>회차</span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    required
+                    value={eventForm.roundNo}
+                    onChange={(event) =>
+                      handleEventFieldChange("roundNo", event.target.value)
+                    }
+                  />
+                </label>
 
-          <div className="admin-event-settings__form-footer">
-            <div className="admin-event-settings__event-actions">
-              {!isCreatingEvent && selectedEventId !== null && (
-                <button
-                  type="button"
-                  className="admin-event-settings__danger-button"
-                  disabled={isDeletingEvent || isSavingEvent}
-                  onClick={handleEventDelete}
-                >
-                  {isDeletingEvent ? '보관 중…' : '행사 보관'}
-                </button>
-              )}
-              {isCreatingEvent && events.length > 0 && (
-                <button
-                  type="button"
-                  className="admin-event-settings__secondary-button"
-                  disabled={isSavingEvent}
-                  onClick={handleCreateEventCancel}
-                >
-                  취소
-                </button>
-              )}
-            </div>
+                <label>
+                  <span>운영 상태</span>
+                  <select
+                    value={eventForm.status}
+                    onChange={(event) =>
+                      handleEventFieldChange(
+                        "status",
+                        event.target.value as EventStatus,
+                      )
+                    }
+                  >
+                    {EVENT_STATUSES.map((status) => (
+                      <option key={status} value={status}>
+                        {EVENT_STATUS_LABELS[status]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-            <button
-              type="submit"
-              className="admin-event-settings__save-button"
-              disabled={isSavingEvent || isEventDetailLoading}
+                <label className="admin-event-settings__visibility-field">
+                  <input
+                    type="checkbox"
+                    checked={eventForm.publicVisible}
+                    onChange={(event) =>
+                      handleEventFieldChange(
+                        "publicVisible",
+                        event.target.checked,
+                      )
+                    }
+                  />
+                  <span>사용자 화면에 공개</span>
+                </label>
+              </fieldset>
+            </section>
+
+            <section
+              className="admin-event-settings__panel"
+              aria-labelledby="eventPeriodTitle"
             >
-              {isSavingEvent
-                ? '저장 중…'
-                : isCreatingEvent
-                  ? '행사 생성'
-                  : '행사 설정 저장'}
-            </button>
-          </div>
+              <div className="admin-event-settings__section-heading">
+                <div>
+                  <h2 id="eventPeriodTitle">기간 설정</h2>
+                  <p>
+                    참가 신청 기간 다음에 독서일지를 접수하는 기간을 설정합니다.
+                  </p>
+                  {events
+                    .filter(
+                      (e) =>
+                        e.eventId !== selectedEventId &&
+                        e.roundNo <
+                          (editingEvent?.roundNo ?? Number(eventForm.roundNo)),
+                    )
+                    .sort((a, b) => b.roundNo - a.roundNo)
+                    .slice(0, 1)
+                    .map((e) => (
+                      <p className="ux-form-note" key={e.eventId}>
+                        이전 행사 참고 · {e.title}
+                        <br />
+                        신청 {e.applicationStartDate} ~ {e.applicationEndDate}
+                        <br />
+                        독서일지 접수 {e.eventStartDate} ~ {e.eventEndDate}
+                      </p>
+                    ))}
+                </div>
+                <span>필수</span>
+              </div>
+
+              <div className="admin-event-settings__period-grid">
+                <fieldset className="admin-event-settings__period-group">
+                  <legend>신청 기간</legend>
+                  <div className="admin-event-settings__date-range">
+                    <label>
+                      <span>신청 시작일</span>
+                      <input
+                        type="date"
+                        required
+                        value={eventForm.applicationStartDate}
+                        onChange={(event) =>
+                          handleEventFieldChange(
+                            "applicationStartDate",
+                            event.target.value,
+                          )
+                        }
+                      />
+                    </label>
+                    <span className="admin-event-settings__range-mark">~</span>
+                    <label>
+                      <span>신청 종료일</span>
+                      <input
+                        type="date"
+                        required
+                        value={eventForm.applicationEndDate}
+                        onChange={(event) =>
+                          handleEventFieldChange(
+                            "applicationEndDate",
+                            event.target.value,
+                          )
+                        }
+                      />
+                    </label>
+                  </div>
+                </fieldset>
+                <fieldset className="admin-event-settings__period-group">
+                  <legend>독서일지 접수기간</legend>
+                  <div className="admin-event-settings__date-range">
+                    <label>
+                      <span>접수 시작일</span>
+                      <input
+                        type="date"
+                        required
+                        value={eventForm.eventStartDate}
+                        onChange={(event) =>
+                          handleEventFieldChange(
+                            "eventStartDate",
+                            event.target.value,
+                          )
+                        }
+                      />
+                    </label>
+                    <span className="admin-event-settings__range-mark">~</span>
+                    <label>
+                      <span>접수 종료일</span>
+                      <input
+                        type="date"
+                        required
+                        value={eventForm.eventEndDate}
+                        onChange={(event) =>
+                          handleEventFieldChange(
+                            "eventEndDate",
+                            event.target.value,
+                          )
+                        }
+                      />
+                    </label>
+                  </div>
+                </fieldset>
+              </div>
+            </section>
+
+            <section
+              className="admin-event-settings__panel"
+              aria-labelledby="eventContactTitle"
+            >
+              <div className="admin-event-settings__section-heading">
+                <div>
+                  <h2 id="eventContactTitle">행사 안내</h2>
+                  <p>행사 설명과 문의 채널을 설정합니다.</p>
+                </div>
+                <span className="admin-event-settings__optional">선택</span>
+              </div>
+
+              <div className="admin-event-settings__contact-grid">
+                <label>
+                  <span>문의 전화</span>
+                  <input
+                    type="tel"
+                    value={eventForm.contactPhone}
+                    onChange={(event) =>
+                      handleEventFieldChange("contactPhone", event.target.value)
+                    }
+                  />
+                </label>
+                <label>
+                  <span>문의 이메일</span>
+                  <input
+                    type="email"
+                    value={eventForm.contactEmail}
+                    onChange={(event) =>
+                      handleEventFieldChange("contactEmail", event.target.value)
+                    }
+                  />
+                </label>
+                <label className="admin-event-settings__wide-field">
+                  <span>카카오 오픈채팅 URL</span>
+                  <input
+                    type="url"
+                    value={eventForm.kakaoOpenChatUrl}
+                    onChange={(event) =>
+                      handleEventFieldChange(
+                        "kakaoOpenChatUrl",
+                        event.target.value,
+                      )
+                    }
+                  />
+                </label>
+                <label className="admin-event-settings__wide-field">
+                  <span>행사 설명</span>
+                  <textarea
+                    rows={4}
+                    value={eventForm.description}
+                    onChange={(event) =>
+                      handleEventFieldChange("description", event.target.value)
+                    }
+                  />
+                </label>
+              </div>
+            </section>
+
+            {isCreatingEvent && (
+              <div className="admin-event-settings__default-courses-notice">
+                <div>
+                  <span>자동 생성</span>
+                  <strong>
+                    행사를 저장하면 기본 코스 3개를 함께 만듭니다.
+                  </strong>
+                </div>
+                <ul>
+                  <li>단축 코스 · 10,000m</li>
+                  <li>하프 코스 · 21,100m</li>
+                  <li>풀 코스 · 42,195m</li>
+                </ul>
+                <p>
+                  생성 후 각 코스의 거리, 보상, 인원은 코스 설정에서 수정할 수
+                  있습니다.
+                </p>
+              </div>
+            )}
+
+            <div className="admin-event-settings__form-footer">
+              <div className="admin-event-settings__event-actions">
+                {!isCreatingEvent && selectedEventId !== null && (
+                  <button
+                    type="button"
+                    className="admin-event-settings__danger-button"
+                    disabled={isDeletingEvent || isSavingEvent}
+                    onClick={handleEventDelete}
+                  >
+                    {isDeletingEvent ? "보관 중…" : "행사 보관"}
+                  </button>
+                )}
+                {isCreatingEvent && events.length > 0 && (
+                  <button
+                    type="button"
+                    className="admin-event-settings__secondary-button"
+                    disabled={isSavingEvent}
+                    onClick={handleCreateEventCancel}
+                  >
+                    취소
+                  </button>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                className="admin-event-settings__save-button"
+                disabled={isSavingEvent || isEventDetailLoading}
+              >
+                {isSavingEvent
+                  ? "저장 중…"
+                  : isCreatingEvent
+                    ? "행사 생성"
+                    : "행사 설정 저장"}
+              </button>
+            </div>
+          </fieldset>
         </form>
       )}
 
@@ -1354,13 +1582,20 @@ function AdminEventSettingsPage() {
         >
           <div className="admin-event-settings__section-heading">
             <div>
-              <h2 id="courseStandardsTitle">{editingEvent?.title} 코스 기준·보상 설정</h2>
-              <p>아래 변경사항은 현재 선택된 {editingEvent?.roundNo}회 행사에만 적용됩니다.</p>
+              <h2 id="courseStandardsTitle">
+                {editingEvent?.title} 코스 기준·보상 설정
+              </h2>
+              <p>
+                아래 변경사항은 현재 선택된 {editingEvent?.roundNo}회 행사에만
+                적용됩니다.
+              </p>
             </div>
             <button
               type="button"
               className="admin-event-settings__secondary-button"
-              disabled={isCoursesLoading || savingCourseId !== null}
+              disabled={
+                !editingSettings || isCoursesLoading || savingCourseId !== null
+              }
               onClick={() => {
                 clearFeedback();
                 setNewCourseForm(EMPTY_COURSE_FORM);
@@ -1382,111 +1617,197 @@ function AdminEventSettingsPage() {
               코스 목록을 불러오는 중입니다.
             </div>
           ) : (
-            <div className="admin-event-settings__course-grid">
-              {courseForms.map(({ courseId, form }) => (
-                <form
-                  key={courseId}
-                  className="admin-event-settings__course-card"
-                  onSubmit={(event) =>
-                    handleExistingCourseSubmit(event, courseId)
-                  }
-                >
-                  {renderCourseFields(form, (field, value) =>
-                    updateCourseForm(courseId, field, value),
-                  )}
-                  <div className="admin-event-settings__course-actions">
-                    <button type="button" disabled={savingCourseId !== null || courseForms[0]?.courseId === courseId} onClick={() => void moveCourse(courseId,-1)}>위로 이동</button>
-                    <button type="button" disabled={savingCourseId !== null || courseForms.at(-1)?.courseId === courseId} onClick={() => void moveCourse(courseId,1)}>아래로 이동</button>
-                    <button
-                      type="button"
-                      className="admin-event-settings__danger-button"
-                      disabled={
-                        deletingCourseId !== null || savingCourseId !== null
-                      }
-                      onClick={() => handleCourseDelete(courseId, form.name)}
+            <>
+              <div hidden={editingSettings} className="table-scroll">
+                <table className="registration-table">
+                  <thead>
+                    <tr>
+                      <th>순서</th>
+                      <th>코스</th>
+                      <th>목표 거리</th>
+                      <th>기준 도서 수</th>
+                      <th>보상</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {courseForms.map((c) => (
+                      <tr key={c.courseId}>
+                        <td>{c.form.displayOrder}</td>
+                        <th>{c.form.name}</th>
+                        <td>
+                          {Number(c.form.targetDistanceMeter).toLocaleString()}m
+                        </td>
+                        <td>{c.form.standardBookCount}권</td>
+                        <td>
+                          {c.form.rewardType === "GIFT_CARD"
+                            ? "문화상품권"
+                            : "상금"}{" "}
+                          {Number(c.form.rewardAmount).toLocaleString()}원
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="admin-event-settings__course-grid">
+                {courseForms.map(({ courseId, form }) => (
+                  <form
+                    key={courseId}
+                    className="admin-event-settings__course-card"
+                    draggable={editingSettings && savingCourseId === null}
+                    onDragStart={() => {
+                      draggedCourse.current = courseId;
+                    }}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      const from = draggedCourse.current;
+                      draggedCourse.current = null;
+                      if (from !== null && from !== courseId && editingSettings)
+                        void moveCourse(
+                          from,
+                          courseForms.findIndex(
+                            (c) => c.courseId === courseId,
+                          ) - courseForms.findIndex((c) => c.courseId === from),
+                        );
+                    }}
+                    onSubmit={(event) =>
+                      handleExistingCourseSubmit(event, courseId)
+                    }
+                  >
+                    <fieldset
+                      disabled={!editingSettings || savingCourseId !== null}
                     >
-                      {deletingCourseId === courseId ? '삭제 중…' : '삭제'}
-                    </button>
-                    <button
-                      type="submit"
-                      className="admin-event-settings__save-button"
-                      disabled={
-                        deletingCourseId !== null || savingCourseId !== null
-                      }
-                    >
-                      {savingCourseId === courseId ? '저장 중…' : '코스 저장'}
-                    </button>
-                  </div>
-                </form>
-              ))}
+                      <legend>
+                        ⋮⋮ {form.name} · 표시 순서 {form.displayOrder}
+                      </legend>
+                      {renderCourseFields(form, (field, value) =>
+                        updateCourseForm(courseId, field, value),
+                      )}
+                      <div className="admin-event-settings__course-actions">
+                        <button
+                          type="button"
+                          disabled={
+                            savingCourseId !== null ||
+                            courseForms[0]?.courseId === courseId
+                          }
+                          onClick={() => void moveCourse(courseId, -1)}
+                        >
+                          위로 이동
+                        </button>
+                        <button
+                          type="button"
+                          disabled={
+                            savingCourseId !== null ||
+                            courseForms.at(-1)?.courseId === courseId
+                          }
+                          onClick={() => void moveCourse(courseId, 1)}
+                        >
+                          아래로 이동
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-event-settings__danger-button"
+                          disabled={
+                            deletingCourseId !== null || savingCourseId !== null
+                          }
+                          onClick={() =>
+                            handleCourseDelete(courseId, form.name)
+                          }
+                        >
+                          {deletingCourseId === courseId ? "삭제 중…" : "삭제"}
+                        </button>
+                        <button
+                          type="submit"
+                          className="admin-event-settings__save-button"
+                          disabled={
+                            deletingCourseId !== null || savingCourseId !== null
+                          }
+                        >
+                          {savingCourseId === courseId
+                            ? "저장 중…"
+                            : "코스 저장"}
+                        </button>
+                      </div>
+                    </fieldset>
+                  </form>
+                ))}
 
-              {isAddingCourse && (
-                <form
-                  className="admin-event-settings__course-card admin-event-settings__course-card--new"
-                  onSubmit={handleNewCourseSubmit}
-                >
-                  <div className="admin-event-settings__preset-selector">
-                    <label>
-                      <span>코스 기본값</span>
-                      <select
-                        defaultValue="SHORT"
-                        onChange={(event) => {
-                          clearFeedback();
-                          setNewCourseForm({ ...COURSE_PRESETS[event.target.value as CoursePresetKey] });
-                        }}
+                {isAddingCourse && (
+                  <form
+                    className="admin-event-settings__course-card admin-event-settings__course-card--new"
+                    onSubmit={handleNewCourseSubmit}
+                  >
+                    <div className="admin-event-settings__preset-selector">
+                      <label>
+                        <span>코스 기본값</span>
+                        <select
+                          defaultValue="SHORT"
+                          onChange={(event) => {
+                            clearFeedback();
+                            setNewCourseForm({
+                              ...COURSE_PRESETS[
+                                event.target.value as CoursePresetKey
+                              ],
+                            });
+                          }}
+                        >
+                          <option value="SHORT">단축 코스 · 10,000m</option>
+                          <option value="HALF">하프 코스 · 21,100m</option>
+                          <option value="FULL">풀 코스 · 42,195m</option>
+                        </select>
+                      </label>
+                      <p>
+                        선택한 코스의 거리, 독서량, 보상과 인원 기본값을
+                        자동으로 채웁니다.
+                      </p>
+                    </div>
+                    {renderCourseFields(newCourseForm, (field, value) => {
+                      clearFeedback();
+                      setNewCourseForm((current) => ({
+                        ...current,
+                        [field]: value,
+                      }));
+                    })}
+                    <div className="admin-event-settings__course-actions">
+                      <button
+                        type="button"
+                        className="admin-event-settings__secondary-button"
+                        disabled={savingCourseId !== null}
+                        onClick={() => setIsAddingCourse(false)}
                       >
-                        <option value="SHORT">단축 코스 · 10,000m</option>
-                        <option value="HALF">하프 코스 · 21,100m</option>
-                        <option value="FULL">풀 코스 · 42,195m</option>
-                      </select>
-                    </label>
-                    <p>선택한 코스의 거리, 독서량, 보상과 인원 기본값을 자동으로 채웁니다.</p>
-                  </div>
-                  {renderCourseFields(newCourseForm, (field, value) => {
-                    clearFeedback();
-                    setNewCourseForm((current) => ({
-                      ...current,
-                      [field]: value,
-                    }));
-                  })}
-                  <div className="admin-event-settings__course-actions">
-                    <button
-                      type="button"
-                      className="admin-event-settings__secondary-button"
-                      disabled={savingCourseId !== null}
-                      onClick={() => setIsAddingCourse(false)}
-                    >
-                      취소
-                    </button>
-                    <button
-                      type="submit"
-                      className="admin-event-settings__save-button"
-                      disabled={savingCourseId !== null}
-                    >
-                      {savingCourseId === 'new' ? '생성 중…' : '코스 생성'}
-                    </button>
-                  </div>
-                </form>
-              )}
+                        취소
+                      </button>
+                      <button
+                        type="submit"
+                        className="admin-event-settings__save-button"
+                        disabled={savingCourseId !== null}
+                      >
+                        {savingCourseId === "new" ? "생성 중…" : "코스 생성"}
+                      </button>
+                    </div>
+                  </form>
+                )}
 
-              {courseForms.length === 0 && !isAddingCourse && (
-                <div className="admin-event-settings__empty">
-                  등록된 코스가 없습니다.
-                </div>
-              )}
-            </div>
+                {courseForms.length === 0 && !isAddingCourse && (
+                  <div className="admin-event-settings__empty">
+                    등록된 코스가 없습니다.
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </section>
       )}
 
       <p
         className={[
-          'admin-event-settings__feedback',
-          feedbackIsError ? 'admin-event-settings__feedback--error' : '',
+          "admin-event-settings__feedback",
+          feedbackIsError ? "admin-event-settings__feedback--error" : "",
         ]
           .filter(Boolean)
-          .join(' ')}
-        role={feedbackIsError ? 'alert' : 'status'}
+          .join(" ")}
+        role={feedbackIsError ? "alert" : "status"}
         aria-live="polite"
       >
         {feedbackMessage}

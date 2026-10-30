@@ -1,13 +1,19 @@
-import { useEffect, useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../../auth';
-import { getCurrentEvent, getEventCourses, getEventSummary, type EventSummary, type CurrentEvent } from '../../api/eventApi';
-import { getCurrentParticipation } from '../../api/participationApi';
-import { getMyReadingLogs } from '../../api/readingLogApi';
-import { getNotices, type Notice } from '../../api/noticeApi';
-import type { MyParticipation } from '../../types/participation';
-import './MainPage.css'
+import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../../auth";
+import {
+  getCurrentEvent,
+  getEventCourses,
+  getEventSummary,
+  type EventSummary,
+  type CurrentEvent,
+} from "../../api/eventApi";
+import { getCurrentParticipation } from "../../api/participationApi";
+import { getMyReadingLogs } from "../../api/readingLogApi";
+import { getNotices, type Notice } from "../../api/noticeApi";
+import type { MyParticipation } from "../../types/participation";
+import "./MainPage.css";
 
 type ExternalLink = {
   eyebrow: string;
@@ -27,59 +33,61 @@ type Course = {
   people: string;
 };
 
-const APPLY_FORM_URL = '/apply';
+const APPLY_FORM_URL = "/apply";
 
 const QUICK_LINKS: ExternalLink[] = [
-  { eyebrow: 'Step 1', title: '코스 선택하기', href: '#courses' },
-  { eyebrow: 'Step 2', title: '참여방법 확인', href: '#process' },
+  { eyebrow: "Step 1", title: "코스 선택하기", href: "#courses" },
+  { eyebrow: "Step 2", title: "참여방법 확인", href: "#process" },
   {
-    eyebrow: 'Step 3',
-    title: '참가신청 작성',
+    eyebrow: "Step 3",
+    title: "참가신청 작성",
     href: APPLY_FORM_URL,
     external: false,
   },
-  { eyebrow: 'Status', title: '대회 현황 보기', href: '#status' },
+  { eyebrow: "Status", title: "대회 현황 보기", href: "#status" },
 ];
 
 const SUMMARY_ITEMS: [string, string][] = [
-  ['환산기준', '책 1쪽을 5m로 환산'],
-  ['기록방법', '독서일지에 도서 정보와 읽은 페이지 수 입력'],
-  ['서평작성', '도서관 홈페이지 로그인 후 해당 도서 상세페이지에서 작성'],
-  ['결과확인', '누적 거리와 코스별 완주 여부를 대회 현황에서 확인'],
+  ["환산기준", "책 1쪽을 5m로 환산"],
+  ["기록방법", "독서일지에 도서 정보와 읽은 페이지 수 입력"],
+  ["서평작성", "도서관 홈페이지 로그인 후 해당 도서 상세페이지에서 작성"],
+  ["결과확인", "누적 거리와 코스별 완주 여부를 대회 현황에서 확인"],
 ];
 
 const PROCESS_STEPS = [
   {
     no: 1,
-    title: '참가 신청',
-    desc: '참가신청서를 작성하고 신청 정보를 제출합니다. 제출 후 승인 안내를 확인해 주세요.',
+    title: "참가 신청",
+    desc: "참가신청서를 작성하고 신청 정보를 제출합니다. 제출 후 승인 안내를 확인해 주세요.",
   },
   {
     no: 2,
-    title: '코스 선택',
-    desc: '단축·하프·풀코스 중 목표 독서량에 맞는 코스를 선택합니다.',
+    title: "코스 선택",
+    desc: "단축·하프·풀코스 중 목표 독서량에 맞는 코스를 선택합니다.",
   },
   {
     no: 3,
-    title: '독서일지 제출',
-    desc: '도서명, 저자, 출판사, 읽은 페이지 수를 입력합니다. 페이지 수는 거리로 자동 환산됩니다.',
+    title: "독서일지 제출",
+    desc: "도서명, 저자, 출판사, 읽은 페이지 수를 입력합니다. 일지 승인 시 쪽수가 반영됩니다.",
   },
   {
     no: 4,
-    title: '현황 확인',
-    desc: '누적 거리, 달성률, 완주 여부와 공지사항을 대회 현황에서 확인합니다.',
+    title: "도서관 서평 작성",
+    desc: "도서관 홈페이지에 로그인해 서평을 저장한 뒤, 행사 사이트에서 작성 완료를 알려주세요. 담당자 확인 후 거리가 반영됩니다.",
   },
 ];
 
 const CHECK_ITEMS = [
-  '독서일지에는 도서 정보와 읽은 페이지 수를 정확히 입력해야 합니다.',
-  '만화, 전공서적, 수험서, 원서, 정기간행물 등은 인정 대상에서 제외될 수 있습니다.',
-  '서평은 도서관 홈페이지 로그인 후 해당 도서 상세페이지에서 작성합니다.',
-  '상금 및 문화상품권 지급 대상과 기준은 도서관 공지사항을 따릅니다.',
+  "독서일지에는 도서 정보와 읽은 페이지 수를 정확히 입력해야 합니다.",
+  "만화, 전공서적, 수험서, 원서, 정기간행물 등은 인정 대상에서 제외될 수 있습니다.",
+  "서평은 도서관 홈페이지 로그인 후 해당 도서 상세페이지에서 작성합니다.",
+  "상금 및 문화상품권 지급 대상과 기준은 도서관 공지사항을 따릅니다.",
 ];
 
 function externalAttrs(link: { external?: boolean }) {
-  return link.external ? { target: '_blank' as const, rel: 'noopener noreferrer' } : {};
+  return link.external
+    ? { target: "_blank" as const, rel: "noopener noreferrer" }
+    : {};
 }
 
 function formatDistance(distance: number) {
@@ -90,41 +98,50 @@ function formatDistance(distance: number) {
 
 function MainPage() {
   const { user, isAuthenticated } = useAuth();
-  const displayName = user?.name || '참가자';
+  const displayName = user?.name || "참가자";
   const [currentEvent, setCurrentEvent] = useState<CurrentEvent | null>(null);
   const [eventCourses, setEventCourses] = useState<Course[]>([]);
-  const [myParticipation, setMyParticipation] = useState<MyParticipation | null>(null);
+  const [myParticipation, setMyParticipation] =
+    useState<MyParticipation | null>(null);
   const [approvedLogs, setApprovedLogs] = useState(0);
-  const [lastSubmittedAt, setLastSubmittedAt] = useState('-');
+  const [lastSubmittedAt, setLastSubmittedAt] = useState("-");
   const [notices, setNotices] = useState<Notice[]>([]);
-  const [summary,setSummary] = useState<EventSummary|null>(null);
-  const [eventError,setEventError] = useState('');
-  const [noticeError,setNoticeError] = useState('');
+  const [summary, setSummary] = useState<EventSummary | null>(null);
+  const [eventError, setEventError] = useState("");
+  const [noticeError, setNoticeError] = useState("");
 
   useEffect(() => {
-    getNotices().then(setNotices).catch(() => setNoticeError('공지사항을 불러오지 못했습니다.'));
+    getNotices()
+      .then(setNotices)
+      .catch(() => setNoticeError("공지사항을 불러오지 못했습니다."));
   }, []);
 
   useEffect(() => {
     getCurrentEvent()
       .then(async (event) => {
         setCurrentEvent(event);
-        const [courses, totals] = await Promise.all([getEventCourses(event.eventId), getEventSummary(event.eventId)]);
+        const [courses, totals] = await Promise.all([
+          getEventCourses(event.eventId),
+          getEventSummary(event.eventId),
+        ]);
         setSummary(totals);
-        setEventCourses(courses.map((course) => ({
-          name: course.name,
-          distance: `${course.targetDistanceMeter.toLocaleString()}m`,
-          pages: `${Math.ceil(course.targetDistanceMeter / 5).toLocaleString()}쪽`,
-          books: `${course.standardBookCount}권`,
-          monthly: `${course.avgMonthlyReadingCount}권`,
-          reward: course.rewardAmount > 0
-            ? `${course.rewardType === 'GIFT_CARD' ? '문화상품권' : course.rewardType === 'CASH' ? '상금' : course.rewardType} ${course.rewardAmount.toLocaleString()}원`
-            : course.rewardType,
-          loan: `${course.extraLoanCount}권`,
-          people: `${course.maxWinners}명`,
-        })));
+        setEventCourses(
+          courses.map((course) => ({
+            name: course.name,
+            distance: `${course.targetDistanceMeter.toLocaleString()}m`,
+            pages: `${Math.ceil(course.targetDistanceMeter / 5).toLocaleString()}쪽`,
+            books: `${course.standardBookCount}권`,
+            monthly: `${course.avgMonthlyReadingCount}권`,
+            reward:
+              course.rewardAmount > 0
+                ? `${course.rewardType === "GIFT_CARD" ? "문화상품권" : course.rewardType === "CASH" ? "상금" : course.rewardType} ${course.rewardAmount.toLocaleString()}원`
+                : course.rewardType,
+            loan: `${course.extraLoanCount}권`,
+            people: `${course.maxWinners}명`,
+          })),
+        );
       })
-      .catch(() => setEventError('현재 행사 정보를 불러오지 못했습니다.'));
+      .catch(() => setEventError("현재 행사 정보를 불러오지 못했습니다."));
   }, []);
 
   useEffect(() => {
@@ -136,22 +153,30 @@ function MainPage() {
         setMyParticipation(participation);
         const logs = await getMyReadingLogs(participation.participationId);
         if (!active) return;
-        setApprovedLogs(logs.filter((log) => log.status === 'APPROVED').length);
+        setApprovedLogs(logs.filter((log) => log.status === "APPROVED").length);
         setLastSubmittedAt(
           [...logs].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
-            ?.readingDate ?? '-',
+            ?.readingDate ?? "-",
         );
       })
       .catch(() => undefined);
-  return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [isAuthenticated, currentEvent]);
 
-  const eventTitle = currentEvent?.title ?? '독서마라톤';
+  const eventTitle = currentEvent?.title ?? "독서마라톤";
   const heroInfo: [string, string][] = currentEvent
     ? [
-        ['독서일지 접수기간', `${currentEvent.eventStartDate} — ${currentEvent.eventEndDate}`],
-        ['신청기간', `${currentEvent.applicationStartDate} — ${currentEvent.applicationEndDate}`],
-        ['문의', currentEvent.contactPhone || currentEvent.contactEmail],
+        [
+          "독서일지 접수기간",
+          `${currentEvent.eventStartDate} — ${currentEvent.eventEndDate}`,
+        ],
+        [
+          "신청기간",
+          `${currentEvent.applicationStartDate} — ${currentEvent.applicationEndDate}`,
+        ],
+        ["문의", currentEvent.contactPhone || currentEvent.contactEmail],
       ]
     : [];
   const myRecord = myParticipation
@@ -163,20 +188,29 @@ function MainPage() {
         approvedLogs,
         lastSubmittedAt,
       }
-    : {course:'참가 정보 없음',targetDistance:0,totalDistance:0,totalPages:0,approvedLogs:0,lastSubmittedAt:'-'};
+    : {
+        course: "참가 정보 없음",
+        targetDistance: 0,
+        totalDistance: 0,
+        totalPages: 0,
+        approvedLogs: 0,
+        lastSubmittedAt: "-",
+      };
 
   const progressRate = useMemo(() => {
     return Math.min(
-      myRecord.targetDistance > 0 ? Math.round((myRecord.totalDistance / myRecord.targetDistance) * 100) : 0,
+      myRecord.targetDistance > 0
+        ? Math.round((myRecord.totalDistance / myRecord.targetDistance) * 100)
+        : 0,
       100,
     );
   }, [myRecord.targetDistance, myRecord.totalDistance]);
 
   useEffect(() => {
-    const elements = document.querySelectorAll('.fade-up');
+    const elements = document.querySelectorAll(".fade-up");
 
-    if (!('IntersectionObserver' in window)) {
-      elements.forEach((element) => element.classList.add('is-visible'));
+    if (!("IntersectionObserver" in window)) {
+      elements.forEach((element) => element.classList.add("is-visible"));
       return;
     }
 
@@ -184,7 +218,7 @@ function MainPage() {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add('is-visible');
+            entry.target.classList.add("is-visible");
             observer.unobserve(entry.target);
           }
         });
@@ -201,17 +235,19 @@ function MainPage() {
 
   return (
     <>
-      <main id="main">{eventError && <p role="alert">{eventError}</p>}{noticeError && <p role="alert">{noticeError}</p>}
+      <main id="main">
+        {eventError && <p role="alert">{eventError}</p>}
+        {noticeError && <p role="alert">{noticeError}</p>}
         <section className="hero" aria-labelledby="heroTitle">
           <div className="wrap hero-inner">
             <div
               className={[
-                'hero-content',
-                'hero-content-nude',
-                showMyRecord ? 'hero-content-personal' : 'hero-content-public',
+                "hero-content",
+                "hero-content-nude",
+                showMyRecord ? "hero-content-personal" : "hero-content-public",
               ]
                 .filter(Boolean)
-                .join(' ')}
+                .join(" ")}
             >
               <div className="eyebrow">HUFS Global Campus Library</div>
 
@@ -234,10 +270,10 @@ function MainPage() {
                   </h1>
 
                   <p className="hero-copy-public">
-                    한국외국어대학교 글로벌캠퍼스 도서관은 구성원의 지속적인 독서
-                    활동을 지원하기 위해 {eventTitle}을 운영합니다. 참가자는
-                    읽은 페이지 수를 기록하고 누적 거리에 따라 선택한 코스의 완주
-                    여부를 확인할 수 있습니다.
+                    한국외국어대학교 글로벌캠퍼스 도서관은 구성원의 지속적인
+                    독서 활동을 지원하기 위해 {eventTitle}을 운영합니다.
+                    참가자는 읽은 페이지 수를 기록하고 누적 거리에 따라 선택한
+                    코스의 완주 여부를 확인할 수 있습니다.
                   </p>
                 </>
               )}
@@ -264,7 +300,9 @@ function MainPage() {
 
             <aside
               className="hero-visual fade-up"
-              aria-label={showMyRecord ? '나의 독서마라톤 기록' : '독서마라톤 운영 정보'}
+              aria-label={
+                showMyRecord ? "나의 독서마라톤 기록" : "독서마라톤 운영 정보"
+              }
             >
               {showMyRecord ? (
                 <div className="my-record-dashboard">
@@ -280,7 +318,7 @@ function MainPage() {
                     <span>누적 독서 거리</span>
                     <strong>{formatDistance(myRecord.totalDistance)}</strong>
                     <p>
-                      목표 거리 {formatDistance(myRecord.targetDistance)} 중{' '}
+                      목표 거리 {formatDistance(myRecord.targetDistance)} 중{" "}
                       {progressRate}% 달성했습니다.
                     </p>
                   </div>
@@ -321,7 +359,18 @@ function MainPage() {
                 <div className="status-board">
                   <div className="status-board-head">
                     <span>{currentEvent?.title ?? "행사 조회 중"}</span>
-                    <b>{currentEvent ? ({APPLICATION_OPEN:'신청 접수 중',IN_PROGRESS:'진행 중',APPLICATION_CLOSED:'신청 마감',ENDED:'종료',FINALIZED:'최종 확정',READY:'준비 중'}[currentEvent.status] ?? currentEvent.status) : '정보 없음'}</b>
+                    <b>
+                      {currentEvent
+                        ? ({
+                            APPLICATION_OPEN: "신청 접수 중",
+                            IN_PROGRESS: "진행 중",
+                            APPLICATION_CLOSED: "신청 마감",
+                            ENDED: "종료",
+                            FINALIZED: "최종 확정",
+                            READY: "준비 중",
+                          }[currentEvent.status] ?? currentEvent.status)
+                        : "정보 없음"}
+                    </b>
                   </div>
 
                   <ul className="hero-info-list">
@@ -337,7 +386,8 @@ function MainPage() {
                     <span>환산 기준</span>
                     <strong>1쪽 = 5m</strong>
                     <p>
-                      일지 승인 쪽수 중 서평 확인된 분량이 거리와 완주율에 반영됩니다.
+                      일지 승인 쪽수 중 서평 확인된 분량이 거리와 완주율에
+                      반영됩니다.
                     </p>
                   </div>
                 </div>
@@ -366,8 +416,8 @@ function MainPage() {
             <div className="library-search-card fade-up">
               <label htmlFor="libSearch">도서관 소장자료 검색</label>
               <p>
-                독서마라톤 참여 도서를 찾을 때 도서명, 저자명, 키워드로
-                도서관 자료를 검색할 수 있습니다.
+                독서마라톤 참여 도서를 찾을 때 도서명, 저자명, 키워드로 도서관
+                자료를 검색할 수 있습니다.
               </p>
               <form
                 className="search-row"
@@ -398,7 +448,11 @@ function MainPage() {
           </div>
         </section>
 
-        <section className="section compact" id="about" aria-labelledby="aboutTitle">
+        <section
+          className="section compact"
+          id="about"
+          aria-labelledby="aboutTitle"
+        >
           <div className="wrap">
             <div className="section-head fade-up">
               <div className="section-title">
@@ -406,8 +460,8 @@ function MainPage() {
                 <h2 id="aboutTitle">행사 개요</h2>
               </div>
               <p className="section-desc">
-                독서마라톤은 독서량을 거리로 환산하여 목표 코스 완주를
-                지원하는 도서관 독서기록 프로그램입니다.
+                독서마라톤은 독서량을 거리로 환산하여 목표 코스 완주를 지원하는
+                도서관 독서기록 프로그램입니다.
               </p>
             </div>
 
@@ -416,12 +470,15 @@ function MainPage() {
                 <h3>독서마라톤이란?</h3>
                 <p>
                   책 1쪽을 5m로 환산하여 누적 거리를 계산하고, 참가자가 선택한
-                  코스의 목표 거리에 도달하면 완주로 인정하는 독서기록 행사입니다.
-                  운영 기간 동안 독서일지를 제출하며, 도서관 안내 기준에 따라
-                  기록 인정 여부가 결정됩니다.
+                  코스의 목표 거리에 도달하면 완주로 인정하는 독서기록
+                  행사입니다. 운영 기간 동안 독서일지를 제출하며, 도서관 안내
+                  기준에 따라 기록 인정 여부가 결정됩니다.
                 </p>
 
-                <div className="about-highlight" aria-label="독서마라톤 핵심 수치">
+                <div
+                  className="about-highlight"
+                  aria-label="독서마라톤 핵심 수치"
+                >
                   <div>
                     <b>1쪽 = 5m</b>
                     <span>독서량을 거리로 환산</span>
@@ -436,64 +493,15 @@ function MainPage() {
                   </div>
                 </div>
               </article>
-
-              <aside
-                className="official-card news-card fade-up"
-                id="notice"
-                aria-labelledby="noticeTitle"
-              >
-                <div className="card-title-row">
-                  <h3 id="noticeTitle">공지사항</h3>
-                  <a href="#contact">문의하기</a>
-                </div>
-                <ul className="notice-list">
-                  {notices.length === 0 && <li>{noticeError || '등록된 공지사항이 없습니다.'}</li>}
-                  {notices.slice(0,4).map(notice=><li key={notice.noticeId}><Link to={`/notices/${notice.noticeId}`}>
-                    <span className="badge">{notice.pinned?'중요':'공지'}</span><strong>{notice.title}</strong>
-                    <time dateTime={notice.publishedAt??notice.updatedAt}>{new Date(notice.publishedAt??notice.updatedAt).toLocaleDateString('ko-KR')}</time>
-                  </Link></li>)}
-                </ul>
-              </aside>
             </div>
           </div>
         </section>
 
-        <section className="section tone-section" id="status" aria-labelledby="statusTitle">
-          <div className="wrap">
-            <div className="section-head fade-up">
-              <div className="section-title">
-                <p>Marathon Status</p>
-                <h2 id="statusTitle">대회 현황</h2>
-              </div>
-
-              <p className="section-desc">
-                실제 참가 기록을 집계합니다. 쪽수는 일지 승인 후, 거리는 서평 확인 후 반영됩니다.
-              </p>
-            </div>
-
-            <div className="status-grid fade-up">
-              {[
-                {title:'실제 참가자',value:summary ? `${summary.participantCount}명` : eventError ? '집계 불가' : '집계 확인 중',desc:'승인·완주 참가자, 독서 기록이 없는 참가자 포함'},
-                {title:'완주자',value:summary ? `${summary.completedCount}명` : '—',desc:'서평 확인 후 코스 목표 거리를 달성한 참가자'},
-                {title:'서평 확인 인정 거리',value:summary ? formatDistance(summary.verifiedDistanceMeter) : '—',desc:'일지 승인과 서평 확인을 모두 마친 분량'}
-              ].map((item) => (
-                <article className="status-card" key={item.title}>
-                  <span>{item.title}</span>
-                  <strong>{item.value}</strong>
-                  <p>{item.desc}</p>
-                </article>
-              ))}
-            </div>
-
-            <div className="status-detail-row fade-up">
-              <Link to="/status" className="status-detail-link">
-                대회 현황 보러가기
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        <section className="section" id="courses" aria-labelledby="coursesTitle">
+        <section
+          className="section"
+          id="courses"
+          aria-labelledby="coursesTitle"
+        >
           <div className="wrap">
             <div className="section-head fade-up">
               <div className="section-title">
@@ -501,14 +509,16 @@ function MainPage() {
                 <h2 id="coursesTitle">코스 및 혜택</h2>
               </div>
               <p className="section-desc">
-                각 코스는 목표 거리와 목표 페이지 수를 기준으로 운영됩니다.
-                완주 기준과 혜택은 코스별로 다릅니다.
+                각 코스는 목표 거리와 목표 페이지 수를 기준으로 운영됩니다. 완주
+                기준과 혜택은 코스별로 다릅니다.
               </p>
             </div>
 
             <div className="table-scroll official-card fade-up">
               <table className="program-table">
-                <caption className="sr-only">{eventTitle} 코스 및 혜택 표</caption>
+                <caption className="sr-only">
+                  {eventTitle} 코스 및 혜택 표
+                </caption>
                 <thead>
                   <tr>
                     <th scope="col">코스명</th>
@@ -547,13 +557,17 @@ function MainPage() {
             </div>
 
             <p className="table-note fade-up">
-              추가대출기간과 상품 지급 기준은 해당 회차의 도서관
-              공지사항 및 최종 운영 기준을 따릅니다.
+              추가대출기간과 상품 지급 기준은 해당 회차의 도서관 공지사항 및
+              최종 운영 기준을 따릅니다.
             </p>
           </div>
         </section>
 
-        <section className="section" id="process" aria-labelledby="processTitle">
+        <section
+          className="section"
+          id="process"
+          aria-labelledby="processTitle"
+        >
           <div className="wrap">
             <div className="section-head fade-up">
               <div className="section-title">
@@ -578,7 +592,62 @@ function MainPage() {
           </div>
         </section>
 
-        <section className="section" id="contact" aria-labelledby="contactTitle">
+        <section className="section" id="notice" aria-labelledby="noticeTitle">
+          <div className="wrap">
+            <aside
+              className="official-card news-card fade-up"
+              aria-labelledby="noticeTitle"
+            >
+              <div className="card-title-row">
+                <h3 id="noticeTitle">공지사항</h3>
+                <a href="#contact">문의하기</a>
+              </div>
+              <ul className="notice-list">
+                {notices.length === 0 && (
+                  <li>{noticeError || "등록된 공지사항이 없습니다."}</li>
+                )}
+                {notices.slice(0, 4).map((notice) => (
+                  <li key={notice.noticeId}>
+                    <Link to={`/notices/${notice.noticeId}`}>
+                      <span className="badge">
+                        {notice.pinned ? "중요" : "공지"}
+                      </span>
+                      <strong>{notice.title}</strong>
+                      <time dateTime={notice.publishedAt ?? notice.updatedAt}>
+                        {new Date(
+                          notice.publishedAt ?? notice.updatedAt,
+                        ).toLocaleDateString("ko-KR")}
+                      </time>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </aside>
+          </div>
+        </section>
+        <section className="section tone-section" id="status">
+          <div className="wrap">
+            <div className="ux-section-heading">
+              <div>
+                <h2>대회 현황 · 랭킹</h2>
+                <p>함께하는 참가자들의 독서 여정을 확인하세요.</p>
+              </div>
+              <Link className="btn btn-primary" to="/status">
+                현황·랭킹 보기 →
+              </Link>
+            </div>
+            <p>
+              {summary
+                ? `현재 참가자 ${summary.participantCount}명 · 완주자 ${summary.completedCount}명`
+                : "선택한 행사의 실적을 현황 화면에서 확인할 수 있습니다."}
+            </p>
+          </div>
+        </section>
+        <section
+          className="section"
+          id="contact"
+          aria-labelledby="contactTitle"
+        >
           <div className="wrap two-col">
             <aside className="check-card fade-up">
               <h2>참여 전 확인사항</h2>
@@ -596,28 +665,39 @@ function MainPage() {
             <div className="contact-card fade-up">
               <h3 id="contactTitle">문의 및 운영 정보</h3>
               <p>
-                행사 관련 공지, 신청 확인, 기록 제출 및 서평 작성 문의는
-                도서관 안내 채널을 통해 확인해 주세요.
+                행사 관련 공지, 신청 확인, 기록 제출 및 서평 작성 문의는 도서관
+                안내 채널을 통해 확인해 주세요.
               </p>
 
               <div className="contact-grid">
                 <div className="contact-item">
                   <span>전화 문의</span>
-                  <b>{currentEvent?.contactPhone || '문의 전화 미등록'}</b>
+                  <b>{currentEvent?.contactPhone || "문의 전화 미등록"}</b>
                 </div>
                 <div className="contact-item">
                   <span>이메일</span>
-                  {currentEvent?.contactEmail ? <a href={`mailto:${currentEvent.contactEmail}`}>{currentEvent.contactEmail}</a> : <span>문의 이메일 미등록</span>}
+                  {currentEvent?.contactEmail ? (
+                    <a href={`mailto:${currentEvent.contactEmail}`}>
+                      {currentEvent.contactEmail}
+                    </a>
+                  ) : (
+                    <span>문의 이메일 미등록</span>
+                  )}
                 </div>
                 <div className="contact-item">
                   <span>운영 채널</span>
-                  {currentEvent?.kakaoOpenChatUrl && /^https?:\/\//.test(currentEvent.kakaoOpenChatUrl) ? <a
-                    href={currentEvent.kakaoOpenChatUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    카카오톡 오픈채팅
-                  </a> : <span>운영 채널 미등록</span>}
+                  {currentEvent?.kakaoOpenChatUrl &&
+                  /^https?:\/\//.test(currentEvent.kakaoOpenChatUrl) ? (
+                    <a
+                      href={currentEvent.kakaoOpenChatUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      카카오톡 오픈채팅
+                    </a>
+                  ) : (
+                    <span>운영 채널 미등록</span>
+                  )}
                 </div>
                 <div className="contact-item">
                   <span>소속</span>
@@ -631,13 +711,13 @@ function MainPage() {
             <div>
               <h2>
                 {showMyRecord
-                  ? '오늘 읽은 기록을 독서일지로 남겨보세요'
+                  ? "오늘 읽은 기록을 독서일지로 남겨보세요"
                   : `${eventTitle} 참가신청`}
               </h2>
               <p>
                 {showMyRecord
-                  ? '일지 승인 시 쪽수, 서평 확인 시 거리와 완주율에 반영됩니다.'
-                  : '신청 기간과 참가 대상 확인 후 참가신청서를 제출해 주세요.'}
+                  ? "일지 승인 시 쪽수, 서평 확인 시 거리와 완주율에 반영됩니다."
+                  : "신청 기간과 참가 대상 확인 후 참가신청서를 제출해 주세요."}
               </p>
             </div>
 

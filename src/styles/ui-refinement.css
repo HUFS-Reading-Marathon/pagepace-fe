@@ -1,0 +1,691 @@
+/* Shared restrained layout: retain the library's navy and pale blue palette. */
+.ux-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid #dce5ee;
+  margin: 20px 0;
+}
+.ux-tabs button,
+.ux-tabs a {
+  border: 0;
+  background: none;
+  padding: 12px 18px;
+  color: #506580;
+  text-decoration: none;
+}
+.ux-tabs [aria-selected="true"],
+.ux-tabs .active {
+  border-bottom: 3px solid #183c60;
+  color: #183c60;
+  font-weight: 700;
+}
+.ux-split {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.5fr);
+  gap: 22px;
+  align-items: start;
+}
+.ux-list {
+  border: 1px solid #dce5ee;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.ux-list > button {
+  display: block;
+  width: 100%;
+  padding: 16px;
+  text-align: left;
+  background: white;
+  border: 0;
+  border-bottom: 1px solid #e4eaf1;
+  color: #20364e;
+}
+.ux-list > button[aria-pressed="true"] {
+  background: #edf4fb;
+  box-shadow: inset 3px 0 #294e75;
+}
+.ux-list strong,
+.ux-list small {
+  display: block;
+  margin-bottom: 5px;
+}
+.ux-list small {
+  color: #65758a;
+}
+.ux-detail {
+  border: 1px solid #dce5ee;
+  padding: 24px;
+  border-radius: 6px;
+  background: white;
+}
+.ux-detail h2 {
+  font-size: 22px;
+  margin: 0 0 12px;
+}
+.ux-detail dl {
+  display: flex;
+  gap: 12px;
+  margin: 24px 0;
+}
+.ux-detail dl > div {
+  flex: 1;
+  padding: 16px;
+  background: #f2f6fa;
+}
+.ux-detail dd {
+  margin: 8px 0 0;
+  font-size: 25px;
+  font-weight: 700;
+  color: #1d405e;
+}
+.ux-detail dt {
+  font-size: 13px;
+  color: #5e7084;
+}
+.ux-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+.ux-actions button,
+.ux-actions a {
+  border: 1px solid #c7d5e2;
+  border-radius: 4px;
+  padding: 11px 16px;
+  background: white;
+  color: #1b3d5f;
+}
+.ux-actions button:last-child {
+  background: #1f4368;
+  color: white;
+}
+.review-guide {
+  padding: 18px;
+  background: #f3f7fb;
+  border: 1px solid #dce5ee;
+  border-radius: 6px;
+  margin: 12px 0;
+  font-size: 14px;
+}
+.review-guide summary {
+  font-weight: 700;
+  cursor: pointer;
+  color: #203e5d;
+}
+.review-guide p {
+  line-height: 1.7;
+  color: #53677f;
+}
+.review-guide ol {
+  padding-left: 20px;
+}
+.review-guide li {
+  margin: 14px 0;
+}
+.review-guide li span {
+  display: block;
+  color: #53677f;
+  margin-top: 5px;
+}
+.reading-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 310px;
+  gap: 24px;
+  align-items: start;
+}
+.reading-workspace > .reading-review-aside {
+  grid-column: 2;
+  grid-row: 1;
+}
+.reading-workspace > .reading-log-card:not(.reading-review-aside) {
+  grid-column: 1;
+  grid-row: 1;
+}
+.reading-workspace:has(> .reading-log-card:only-child) {
+  grid-template-columns: 1fr;
+}
+.reading-review-aside .reading-book-row {
+  display: block;
+}
+.reading-review-aside .reading-detail-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.reading-log-write form > .reading-log-form-actions {
+  position: sticky;
+  bottom: 12px;
+  background: white;
+  border-top: 1px solid #dce5ee;
+  padding: 16px;
+}
+.admin-header__brand {
+  min-width: 0;
+}
+.admin-header__title {
+  border: 0 !important;
+  padding: 0 !important;
+  font-size: 18px !important;
+}
+.admin-header-user-link {
+  font-size: 13px;
+  white-space: nowrap;
+  color: #244563;
+}
+.admin-layout .admin-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: white;
+}
+.admin-operations__queues {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+.admin-operations__queue-list {
+  min-height: 120px !important;
+}
+.admin-dashboard__enter {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+.admin-dashboard__grid--distribution {
+  grid-template-columns: 1fr !important;
+}
+.admin-page h1 {
+  font-size: 28px;
+}
+.admin-layout button,
+.admin-layout input,
+.admin-layout select {
+  font: inherit;
+}
+.admin-layout button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.admin-layout input,
+.admin-layout select,
+.admin-layout textarea {
+  max-width: 100%;
+}
+.admin-layout input:focus-visible,
+.admin-layout select:focus-visible,
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible {
+  outline: 2px solid #497cac;
+  outline-offset: 3px;
+}
+.notice-layout {
+  grid-template-columns: 1fr !important;
+}
+#notice .news-card {
+  width: 100%;
+}
+#notice .notice-list a {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  width: 100%;
+}
+#notice .notice-list time {
+  margin-left: auto;
+}
+.fade-up {
+  opacity: 1 !important;
+  transform: none !important;
+  animation: none !important;
+}
+.admin-event-settings__form > fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.admin-event-settings__form > fieldset:disabled {
+  opacity: 0.85;
+}
+.admin-event-settings__course-grid {
+  display: flex !important;
+  flex-direction: column;
+}
+.admin-event-settings__course-card {
+  box-shadow: none !important;
+}
+.admin-event-settings__course-card > div:first-child {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+.admin-event-settings__wide-field:has(input) {
+  max-width: 600px;
+}
+.registration-form fieldset {
+  border: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  padding: 16px 0;
+}
+.registration-form label {
+  display: grid;
+  gap: 6px;
+}
+.registration-form input,
+.registration-form select {
+  padding: 10px;
+  border: 1px solid #cbd7e2;
+  border-radius: 4px;
+}
+.registration-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.registration-table th,
+.registration-table td {
+  padding: 14px;
+  border-bottom: 1px solid #e2e9f0;
+  text-align: left;
+}
+.registration-table th {
+  background: #f0f5fa;
+}
+.admin-notices__preview {
+  white-space: pre-wrap;
+  line-height: 1.8;
+  padding: 20px;
+  background: #f4f7fa;
+  border: 1px solid #dce5ee;
+}
+.admin-notices__list article[aria-current="true"] {
+  background: #eef5fc;
+}
+.admin-reading-logs__summary {
+  gap: 8px !important;
+}
+.admin-reading-logs__policy {
+  font-size: 13px;
+}
+.admin-reading-logs__table-wrapper {
+  overflow: auto;
+}
+.admin-reading-logs__dialog-backdrop.ux-inline-review {
+  position: static;
+  background: none;
+  padding: 0;
+  display: block;
+}
+.ux-inline-review .admin-reading-logs__dialog {
+  width: 100%;
+  max-width: none;
+  max-height: none;
+  box-shadow: none;
+}
+.ux-inline-review .admin-reading-logs__dialog-footer {
+  position: sticky;
+  bottom: 0;
+  background: white;
+}
+.ux-log-queue {
+  max-height: 75vh;
+  overflow: auto;
+}
+.ux-log-queue button {
+  min-height: 80px;
+}
+.ux-form-note {
+  padding: 12px 16px;
+  border-left: 3px solid #54789c;
+  background: #f3f7fa;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.admin-event-settings__course-card[draggable="true"] {
+  cursor: grab;
+}
+.admin-event-settings__course-card[draggable="true"]:active {
+  cursor: grabbing;
+}
+@media (max-width: 1100px) {
+  .admin-operations__queues {
+    grid-template-columns: 1fr !important;
+  }
+  .reading-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .reading-workspace > .reading-review-aside {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .ux-split {
+    grid-template-columns: 1fr;
+  }
+  .admin-event-settings__course-card > div:first-child {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .registration-form fieldset {
+    grid-template-columns: 1fr;
+  }
+  .admin-header-user-link {
+    display: none;
+  }
+  .admin-header__title {
+    font-size: 14px !important;
+  }
+  .ux-detail {
+    padding: 16px;
+  }
+  .ux-detail dl {
+    flex-wrap: wrap;
+  }
+  .ux-detail dl > div {
+    min-width: 120px;
+  }
+  #notice .notice-list a {
+    flex-wrap: wrap;
+  }
+  .admin-event-settings__course-card > div:first-child {
+    grid-template-columns: 1fr;
+  }
+}
+.admin-reading-log-dialog__backdrop.ux-inline-review {
+  position: static;
+  display: block;
+  padding: 0;
+  background: none;
+  z-index: auto;
+}
+.ux-inline-review .admin-reading-log-dialog {
+  width: 100%;
+  max-width: none;
+  max-height: none;
+  box-shadow: none;
+}
+.ux-inline-review .admin-reading-log-dialog__content {
+  overflow: visible;
+  max-height: none;
+}
+.ux-inline-review .admin-reading-log-dialog__footer {
+  position: sticky;
+  bottom: 0;
+  background: white;
+}
+.admin-event-settings__course-card > fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.admin-event-settings__course-card > fieldset > div:first-of-type {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+.admin-event-settings__course-card legend {
+  font-weight: 700;
+  padding: 0 0 16px;
+}
+.admin-notices__form > fieldset {
+  border: 0;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 16px;
+}
+.admin-participants__summary[hidden] {
+  display: none !important;
+}
+@media (max-width: 1100px) {
+  .admin-event-settings__course-card > fieldset > div:first-of-type {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .admin-event-settings__course-card > fieldset > div:first-of-type {
+    grid-template-columns: 1fr;
+  }
+}
+.registration-detail {
+  margin-top: 20px;
+  border-left: 3px solid #385d83;
+}
+.admin-event-settings__course-card {
+  border-radius: 4px !important;
+}
+.admin-event-settings__course-grid {
+  gap: 0 !important;
+}
+.admin-event-settings__course-grid > .admin-event-settings__course-card + form {
+  border-top: 0;
+}
+.admin-reading-logs__bulk-actions {
+  display: none !important;
+}
+.admin-participants > label {
+  display: block;
+  margin: 16px 0;
+}
+.admin-participants > label select {
+  padding: 10px;
+  border: 1px solid #cbd7e2;
+  border-radius: 4px;
+  margin-left: 12px;
+}
+.admin-reviews > label {
+  display: block;
+  margin: 16px 0;
+}
+.admin-reviews > label input {
+  padding: 10px;
+  border: 1px solid #cbd7e2;
+  border-radius: 4px;
+}
+.admin-page__header > label {
+  display: grid;
+  gap: 6px;
+}
+.admin-page__header > label select {
+  padding: 10px;
+  border: 1px solid #cbd7e2;
+  border-radius: 4px;
+}
+.race-search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+}
+.race-search input {
+  padding: 10px;
+  border: 1px solid #cbd7e2;
+  border-radius: 4px;
+}
+.admin-page__header {
+  gap: 20px;
+}
+.admin-page__header > label {
+  max-width: 320px;
+}
+.admin-notices__list > label {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.admin-notices__list > label input {
+  padding: 10px;
+  border: 1px solid #cbd7e2;
+  border-radius: 4px;
+}
+.admin-event-settings__panel details > summary {
+  cursor: pointer;
+}
+.admin-event-settings__panel > details > label {
+  display: block;
+  margin: 16px 0;
+}
+.admin-event-settings__panel > details > label input {
+  padding: 9px;
+  border: 1px solid #cbd7e2;
+  border-radius: 4px;
+}
+@media (max-width: 700px) {
+  .admin-layout__body {
+    display: block;
+  }
+  .admin-sidebar {
+    position: static;
+    width: 100%;
+    height: auto;
+    padding: 8px;
+    border-right: 0;
+    border-bottom: 1px solid #dce5ee;
+    overflow-x: auto;
+  }
+  .admin-sidebar__menu {
+    flex-direction: row;
+    gap: 4px;
+    min-width: max-content;
+  }
+  .admin-sidebar__group {
+    display: none;
+  }
+  .admin-sidebar__link {
+    white-space: nowrap;
+    padding: 10px !important;
+  }
+  .admin-layout__main {
+    padding: 20px 14px;
+  }
+  .admin-header__inner {
+    gap: 8px !important;
+    min-height: 64px !important;
+    padding: 0 14px !important;
+  }
+  .admin-header__mode-badge {
+    display: none !important;
+  }
+  .admin-header__actions {
+    gap: 8px !important;
+  }
+  .admin-header__account-label {
+    max-width: 80px;
+  }
+  .ux-section-heading {
+    flex-wrap: wrap;
+  }
+  .admin-page__header {
+    flex-wrap: wrap;
+  }
+  .admin-page h1 {
+    font-size: 24px;
+  }
+  .admin-page__header > label {
+    max-width: 100%;
+    width: 100%;
+  }
+  .admin-header__title {
+    white-space: normal !important;
+  }
+  .admin-event-settings__panel {
+    padding: 16px !important;
+  }
+}
+.registration-workspace {
+  margin-top: 24px;
+  grid-template-columns: minmax(0, 1.3fr) minmax(260px, 0.8fr);
+}
+.registration-workspace > details {
+  min-width: 0;
+}
+.registration-workspace > .registration-detail {
+  margin-top: 0;
+}
+.admin-event-settings__selector {
+  gap: 20px;
+}
+.admin-dashboard__grid--distribution {
+  max-width: 100%;
+}
+.admin-reading-logs__filters {
+  padding: 16px !important;
+}
+@media (max-width: 1100px) {
+  .registration-workspace {
+    grid-template-columns: 1fr;
+  }
+}
+.admin-event-settings__form[hidden] {
+  display: none !important;
+}
+.admin-event-settings.is-viewing .admin-event-settings__course-grid {
+  display: none !important;
+}
+.ux-event-overview .race-metrics {
+  margin-top: 20px;
+}
+.ux-event-overview .race-metrics strong {
+  font-size: 16px;
+}
+.ux-event-overview details {
+  margin-top: 20px;
+}
+.admin-event-settings.is-viewing .admin-event-settings__countdown {
+  display: none;
+}
+.admin-reviews > .admin-page__header,
+.admin-notices > .admin-page__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.admin-page__header > button,
+.admin-event-settings__header button,
+.ux-section-heading > button,
+.registration-table button {
+  border: 1px solid #c4d2df;
+  border-radius: 4px;
+  padding: 10px 16px;
+  background: #fff;
+  color: #244768;
+  cursor: pointer;
+}
+.admin-status__publish-panel {
+  padding: 16px !important;
+}
+.admin-status__publish-heading h2 {
+  font-size: 16px !important;
+}
+.admin-status__publish-heading p {
+  font-size: 13px !important;
+}
+.ux-course-summary {
+  padding: 14px;
+  border: 1px solid #dce5ee;
+  border-radius: 4px;
+  margin: 16px 0;
+}
+.ux-course-summary > summary {
+  cursor: pointer;
+  color: #355675;
+}
+.admin-reading-log-dialog__actions {
+  position: sticky;
+  bottom: 0;
+  background: white;
+  z-index: 1;
+}
+@media (max-width: 700px) {
+  .admin-reviews > .admin-page__header,
+  .admin-notices > .admin-page__header {
+    display: block;
+  }
+  .admin-reviews > .admin-page__header label {
+    margin-top: 16px;
+  }
+}

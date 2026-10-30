@@ -1,24 +1,18 @@
-import { preferredAdminEvent } from '../../utils/eventSelection';
-import { useAdminEventState } from '../../hooks/useAdminEventState';
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { preferredAdminEvent } from "../../utils/eventSelection";
+import { useAdminEventState } from "../../hooks/useAdminEventState";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   approveAdminReadingLog,
   getAdminReadingLogDetail,
   getAdminReadingLogs,
   rejectAdminReadingLog,
-} from '../../api/adminReadingLogApi';
-import { ApiError } from '../../api/apiClient';
-import { getAdminEvents } from '../../api/adminEventApi';
-import ReadingLogDetailDialog from '../../components/admin/readingLogs/ReadingLogDetailDialog';
-import ReadingLogFilters from '../../components/admin/readingLogs/ReadingLogFilters';
-import ReadingLogTable from '../../components/admin/readingLogs/ReadingLogTable';
-import type { AdminEvent } from '../../types/adminEvent';
+} from "../../api/adminReadingLogApi";
+import { ApiError } from "../../api/apiClient";
+import { getAdminEvents } from "../../api/adminEventApi";
+import ReadingLogDetailDialog from "../../components/admin/readingLogs/ReadingLogDetailDialog";
+import ReadingLogFilters from "../../components/admin/readingLogs/ReadingLogFilters";
+import ReadingLogTable from "../../components/admin/readingLogs/ReadingLogTable";
+import type { AdminEvent } from "../../types/adminEvent";
 import {
   validateReadingLog,
   type AdminReadingLog,
@@ -26,12 +20,12 @@ import {
   type ReadingLogReviewFilter,
   type ReadingLogStatus,
   type ReadingLogStatusFilter,
-} from '../../types/adminReadingLog';
+} from "../../types/adminReadingLog";
 import type {
   AdminReadingLogResponse,
   AdminReadingLogStatus,
-} from '../../types/adminReadingLogApi';
-import '../../styles/admin-reading-logs.css';
+} from "../../types/adminReadingLogApi";
+import "../../styles/admin-reading-logs.css";
 
 type DialogRequest = {
   readingLogId: number;
@@ -39,16 +33,16 @@ type DialogRequest = {
 };
 
 const STATUS_MAP: Record<AdminReadingLogStatus, ReadingLogStatus> = {
-  SUBMITTED: 'submit',
-  APPROVED: 'approve',
-  REJECTED: 'rejected',
+  SUBMITTED: "submit",
+  APPROVED: "approve",
+  REJECTED: "rejected",
 };
 
 const DEFAULT_EVENT_SELECTION_ORDER = [
-  'APPLICATION_OPEN',
-  'READY',
-  'IN_PROGRESS',
-  'DRAFT',
+  "APPLICATION_OPEN",
+  "READY",
+  "IN_PROGRESS",
+  "DRAFT",
 ] as const;
 
 function getApiErrorMessage(error: unknown, fallback: string) {
@@ -77,14 +71,14 @@ function toDisplayLog(log: AdminReadingLogResponse): AdminReadingLog {
   return {
     id: String(log.readingLogId),
     participantId: String(log.participationId),
-    participantName: log.userName || '-',
-    studentNumber: log.studentNo || '-',
+    participantName: log.userName || "-",
+    studentNumber: log.studentNo || "-",
     readingDate: log.readingDate,
     submittedAt: log.createdAt,
     status: STATUS_MAP[log.status],
     approvedAt: log.reviewedAt || undefined,
     rejectionReason:
-      log.status === 'REJECTED' ? log.adminComment || undefined : undefined,
+      log.status === "REJECTED" ? log.adminComment || undefined : undefined,
     adminMemo: log.adminComment || undefined,
     totalReadPages: log.totalReadPages,
     convertedDistanceMeter: log.convertedDistanceMeter,
@@ -94,9 +88,9 @@ function toDisplayLog(log: AdminReadingLogResponse): AdminReadingLog {
     books: sortedBooks.map((book) => ({
       id: String(book.readingLogBookId),
       bookId: String(book.readingLogBookId),
-      title: book.bookTitle || '-',
-      author: book.author || '-',
-      publisher: book.publisher || '-',
+      title: book.bookTitle || "-",
+      author: book.author || "-",
+      publisher: book.publisher || "-",
       totalPages: book.totalBookPages,
       previouslyApprovedPages: book.existingApprovedReadPages,
       readPages: book.submittedReadPages,
@@ -110,43 +104,45 @@ function toDisplayLog(log: AdminReadingLogResponse): AdminReadingLog {
 }
 
 function AdminReadingLogsPage() {
+  const [tableView, setTableView] = useState(false);
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [selectedEventId, setSelectedEventId] = useAdminEventState();
   const [logs, setLogs] = useState<AdminReadingLog[]>([]);
-  const [searchKeyword, setSearchKeyword] = useState('');
+  const [searchKeyword, setSearchKeyword] = useState("");
   const [statusFilter, setStatusFilter] =
-    useState<ReadingLogStatusFilter>('ALL');
+    useState<ReadingLogStatusFilter>("ALL");
   const [reviewFilter, setReviewFilter] =
-    useState<ReadingLogReviewFilter>('ALL');
-  const [dateFilter, setDateFilter] = useState('');
+    useState<ReadingLogReviewFilter>("ALL");
+  const [dateFilter, setDateFilter] = useState("");
   const [selectedLogIds, setSelectedLogIds] = useState<string[]>([]);
-  const [dialogRequest, setDialogRequest] =
-    useState<DialogRequest | null>(null);
+  const [dialogRequest, setDialogRequest] = useState<DialogRequest | null>(
+    null,
+  );
   const [detailLog, setDetailLog] = useState<AdminReadingLog | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [processingLogId, setProcessingLogId] = useState<number | null>(null);
-  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [feedbackMessage, setFeedbackMessage] = useState("");
   const [feedbackIsError, setFeedbackIsError] = useState(false);
-  const initialRequestRef = useRef<
-    Promise<{ events: AdminEvent[]; eventId: number | null }> | null
-  >(null);
+  const initialRequestRef = useRef<Promise<{
+    events: AdminEvent[];
+    eventId: number | null;
+  }> | null>(null);
   const requestSequenceRef = useRef(0);
   const detailRequestSequenceRef = useRef(0);
   const dialogOpenerRef = useRef<HTMLElement | null>(null);
 
   const statistics = useMemo(() => {
-    const approvedLogs = logs.filter((log) => log.status === 'approve');
+    const approvedLogs = logs.filter((log) => log.status === "approve");
 
     return {
       total: logs.length,
-      submit: logs.filter((log) => log.status === 'submit').length,
+      submit: logs.filter((log) => log.status === "submit").length,
       approve: approvedLogs.length,
-      rejected: logs.filter((log) => log.status === 'rejected').length,
-      warning: logs.filter((log) => validateReadingLog(log).length > 0)
-        .length,
+      rejected: logs.filter((log) => log.status === "rejected").length,
+      warning: logs.filter((log) => validateReadingLog(log).length > 0).length,
     };
   }, [logs]);
 
@@ -158,7 +154,7 @@ function AdminReadingLogsPage() {
         const searchableValues = [
           log.participantName,
           log.studentNumber,
-          log.courseName ?? '',
+          log.courseName ?? "",
           ...log.books.flatMap((book) => [
             book.title,
             book.author,
@@ -171,11 +167,11 @@ function AdminReadingLogsPage() {
             value.toLowerCase().includes(normalizedKeyword),
           );
         const matchesStatus =
-          statusFilter === 'ALL' || log.status === statusFilter;
+          statusFilter === "ALL" || log.status === statusFilter;
         const hasWarning = validateReadingLog(log).length > 0;
         const matchesReview =
-          reviewFilter === 'ALL' ||
-          (reviewFilter === 'warning' ? hasWarning : !hasWarning);
+          reviewFilter === "ALL" ||
+          (reviewFilter === "warning" ? hasWarning : !hasWarning);
         const matchesDate = !dateFilter || log.readingDate === dateFilter;
 
         return matchesKeyword && matchesStatus && matchesReview && matchesDate;
@@ -188,8 +184,8 @@ function AdminReadingLogsPage() {
   }, [dateFilter, logs, reviewFilter, searchKeyword, statusFilter]);
 
   const selectedLog = dialogRequest
-    ? detailLog ??
-      logs.find((log) => log.id === String(dialogRequest.readingLogId))
+    ? (detailLog ??
+      logs.find((log) => log.id === String(dialogRequest.readingLogId)))
     : undefined;
 
   const visibleEligibleLogIds = useMemo(
@@ -197,7 +193,7 @@ function AdminReadingLogsPage() {
       filteredLogs
         .filter(
           (log) =>
-            log.status === 'submit' && validateReadingLog(log).length === 0,
+            log.status === "submit" && validateReadingLog(log).length === 0,
         )
         .map((log) => log.id),
     [filteredLogs],
@@ -231,7 +227,7 @@ function AdminReadingLogsPage() {
 
       setLogs([]);
       setListError(
-        getApiErrorMessage(error, '독서일지 목록을 불러오지 못했습니다.'),
+        getApiErrorMessage(error, "독서일지 목록을 불러오지 못했습니다."),
       );
     } finally {
       if (requestSequence === requestSequenceRef.current) {
@@ -261,7 +257,7 @@ function AdminReadingLogsPage() {
 
         if (eventId === null) {
           setIsLoading(false);
-          setListError('관리할 행사가 없습니다.');
+          setListError("관리할 행사가 없습니다.");
         } else {
           void loadLogs(eventId);
         }
@@ -270,7 +266,7 @@ function AdminReadingLogsPage() {
         if (isActive) {
           setIsLoading(false);
           setListError(
-            getApiErrorMessage(error, '행사 목록을 불러오지 못했습니다.'),
+            getApiErrorMessage(error, "행사 목록을 불러오지 못했습니다."),
           );
         }
       });
@@ -295,10 +291,10 @@ function AdminReadingLogsPage() {
   };
 
   const handleResetFilters = () => {
-    setSearchKeyword('');
-    setStatusFilter('ALL');
-    setReviewFilter('ALL');
-    setDateFilter('');
+    setSearchKeyword("");
+    setStatusFilter("ALL");
+    setReviewFilter("ALL");
+    setDateFilter("");
     setSelectedLogIds([]);
   };
 
@@ -335,10 +331,7 @@ function AdminReadingLogsPage() {
       .catch((error: unknown) => {
         if (requestSequence === detailRequestSequenceRef.current) {
           setDetailError(
-            getApiErrorMessage(
-              error,
-              '독서일지 상세를 불러오지 못했습니다.',
-            ),
+            getApiErrorMessage(error, "독서일지 상세를 불러오지 못했습니다."),
           );
         }
       })
@@ -365,7 +358,7 @@ function AdminReadingLogsPage() {
   const handleToggleLog = (logId: string, checked: boolean) => {
     const targetLog = logs.find((log) => log.id === logId);
     const isEligible =
-      targetLog?.status === 'submit' &&
+      targetLog?.status === "submit" &&
       validateReadingLog(targetLog).length === 0;
 
     if (!isEligible) {
@@ -414,22 +407,20 @@ function AdminReadingLogsPage() {
     }
 
     setProcessingLogId(readingLogId);
-    setFeedbackMessage('');
+    setFeedbackMessage("");
     setDetailError(null);
 
     try {
       await approveAdminReadingLog(readingLogId);
       await refreshAfterMutation(readingLogId);
-      setSelectedLogIds((current) =>
-        current.filter((id) => id !== logId),
-      );
-      setFeedbackMessage('독서일지를 승인했습니다.');
+      setSelectedLogIds((current) => current.filter((id) => id !== logId));
+      setFeedbackMessage("독서일지를 승인했습니다.");
       setFeedbackIsError(false);
       return true;
     } catch (error: unknown) {
       const message = getApiErrorMessage(
         error,
-        '독서일지를 승인하지 못했습니다.',
+        "독서일지를 승인하지 못했습니다.",
       );
       setFeedbackMessage(message);
       setFeedbackIsError(true);
@@ -454,7 +445,7 @@ function AdminReadingLogsPage() {
     }
 
     setProcessingLogId(readingLogId);
-    setFeedbackMessage('');
+    setFeedbackMessage("");
     setDetailError(null);
 
     try {
@@ -462,16 +453,14 @@ function AdminReadingLogsPage() {
         reason: normalizedReason,
       });
       await refreshAfterMutation(readingLogId);
-      setSelectedLogIds((current) =>
-        current.filter((id) => id !== logId),
-      );
-      setFeedbackMessage('독서일지를 반려했습니다.');
+      setSelectedLogIds((current) => current.filter((id) => id !== logId));
+      setFeedbackMessage("독서일지를 반려했습니다.");
       setFeedbackIsError(false);
       return true;
     } catch (error: unknown) {
       const message = getApiErrorMessage(
         error,
-        '독서일지를 반려하지 못했습니다.',
+        "독서일지를 반려하지 못했습니다.",
       );
       setFeedbackMessage(message);
       setFeedbackIsError(true);
@@ -495,7 +484,7 @@ function AdminReadingLogsPage() {
     setDialogRequest(null);
     detailRequestSequenceRef.current += 1;
     setDetailLog(null);
-    setFeedbackMessage('');
+    setFeedbackMessage("");
     void loadLogs(eventId);
   };
 
@@ -514,8 +503,10 @@ function AdminReadingLogsPage() {
           <label htmlFor="readingLogEvent">관리 행사</label>
           <select
             id="readingLogEvent"
-            value={selectedEventId ?? ''}
-            disabled={events.length === 0 || isLoading}
+            value={selectedEventId ?? ""}
+            disabled={
+              events.length === 0 || isLoading || processingLogId !== null
+            }
             onChange={(event) => handleEventChange(event.target.value)}
           >
             {events.length === 0 && <option value="">등록된 행사 없음</option>}
@@ -532,16 +523,20 @@ function AdminReadingLogsPage() {
           aria-label="독서일지 검토 현황"
         >
           {[
-            ['ALL', 'ALL', '전체', statistics.total],
-            ['submit', 'ALL', '제출', statistics.submit],
-            ['approve', 'ALL', '승인', statistics.approve],
-            ['rejected', 'ALL', '반려', statistics.rejected],
-            ['ALL', 'warning', '확인 필요', statistics.warning],
+            ["ALL", "ALL", "전체", statistics.total],
+            ["submit", "ALL", "제출", statistics.submit],
+            ["approve", "ALL", "승인", statistics.approve],
+            ["rejected", "ALL", "반려", statistics.rejected],
+            ["ALL", "warning", "확인 필요", statistics.warning],
           ].map(([status, review, label, count]) => (
             <button
               key={`${status}-${review}`}
               type="button"
-              className={review === 'warning' ? 'admin-reading-logs__summary-warning' : undefined}
+              className={
+                review === "warning"
+                  ? "admin-reading-logs__summary-warning"
+                  : undefined
+              }
               aria-pressed={statusFilter === status && reviewFilter === review}
               onClick={() =>
                 handleSummaryFilter(
@@ -589,18 +584,18 @@ function AdminReadingLogsPage() {
       <div className="admin-reading-logs__bulk-actions">
         <div
           className={[
-            'admin-reading-logs__feedback',
-            feedbackIsError ? 'admin-reading-logs__feedback--error' : '',
+            "admin-reading-logs__feedback",
+            feedbackIsError ? "admin-reading-logs__feedback--error" : "",
           ]
             .filter(Boolean)
-            .join(' ')}
-          role={feedbackIsError ? 'alert' : 'status'}
+            .join(" ")}
+          role={feedbackIsError ? "alert" : "status"}
           aria-live="polite"
         >
           {feedbackMessage ||
             (selectedLogIds.length > 0
-              ? '일괄 승인 API가 확인되지 않아 단건 검토만 가능합니다.'
-              : '')}
+              ? "일괄 승인 API가 확인되지 않아 단건 검토만 가능합니다."
+              : "")}
         </div>
         <button
           type="button"
@@ -612,31 +607,107 @@ function AdminReadingLogsPage() {
         </button>
       </div>
 
-      <ReadingLogTable
-        logs={filteredLogs}
-        hasLogs={logs.length > 0}
-        isLoading={isLoading}
-        error={listError}
-        processingLogId={processingLogId ? String(processingLogId) : null}
-        selectedLogIds={selectedLogIds}
-        onToggleLog={handleToggleLog}
-        onToggleAll={handleToggleAll}
-        onOpenDialog={handleOpenDialog}
-      />
-
-      {selectedLog && dialogRequest && (
-        <ReadingLogDetailDialog
-          key={dialogRequest.readingLogId}
-          log={selectedLog}
-          initialMode={dialogRequest.initialMode}
-          isLoading={isDetailLoading}
-          error={detailError}
-          isProcessing={processingLogId === dialogRequest.readingLogId}
-          onClose={handleCloseDialog}
-          onApprove={handleApprove}
-          onReject={handleReject}
-        />
-      )}
+      <div className="ux-tabs">
+        <button aria-pressed={!tableView} onClick={() => setTableView(false)}>
+          목록 · 상세 검토
+        </button>
+        <button aria-pressed={tableView} onClick={() => setTableView(true)}>
+          전체 표 보기
+        </button>
+      </div>
+      <div className={tableView ? "" : "ux-split"}>
+        {tableView ? (
+          <ReadingLogTable
+            logs={filteredLogs}
+            hasLogs={logs.length > 0}
+            isLoading={isLoading}
+            error={listError}
+            processingLogId={processingLogId ? String(processingLogId) : null}
+            selectedLogIds={selectedLogIds}
+            onToggleLog={handleToggleLog}
+            onToggleAll={handleToggleAll}
+            onOpenDialog={handleOpenDialog}
+          />
+        ) : (
+          <div className="ux-list ux-log-queue">
+            {isLoading ? (
+              <p>일지를 불러오고 있습니다.</p>
+            ) : listError ? (
+              <p role="alert">{listError}</p>
+            ) : filteredLogs.length ? (
+              filteredLogs.map((log) => (
+                <button
+                  key={log.id}
+                  disabled={processingLogId !== null}
+                  aria-pressed={dialogRequest?.readingLogId === Number(log.id)}
+                  onClick={() => handleOpenDialog(log.id, "detail")}
+                >
+                  <strong>
+                    {log.participantName} · {log.studentNumber}
+                  </strong>
+                  <span>{log.books.map((b) => b.title).join(", ")}</span>
+                  <small>
+                    {log.readingDate} ·{" "}
+                    {
+                      {
+                        submit: "검토 대기",
+                        approve: "승인",
+                        rejected: "반려",
+                      }[log.status]
+                    }{" "}
+                    · {log.books.reduce((sum, b) => sum + b.readPages, 0)}쪽
+                  </small>
+                </button>
+              ))
+            ) : (
+              <p className="ux-detail">조건에 맞는 일지가 없습니다.</p>
+            )}
+          </div>
+        )}
+        {selectedLog && dialogRequest && (
+          <ReadingLogDetailDialog
+            key={dialogRequest.readingLogId}
+            inline={!tableView}
+            log={selectedLog}
+            initialMode={dialogRequest.initialMode}
+            isLoading={isDetailLoading}
+            error={detailError}
+            isProcessing={processingLogId === dialogRequest.readingLogId}
+            onClose={handleCloseDialog}
+            onApprove={async (id) => {
+              const next = filteredLogs.find(
+                (log) => log.id !== id && log.status === "submit",
+              );
+              const success = await handleApprove(id);
+              if (success && !tableView) {
+                if (next) handleOpenDialog(next.id, "detail");
+                else handleCloseDialog();
+              }
+              return success;
+            }}
+            onReject={async (id, reason) => {
+              const next = filteredLogs.find(
+                (log) => log.id !== id && log.status === "submit",
+              );
+              const success = await handleReject(id, reason);
+              if (success && !tableView) {
+                if (next) handleOpenDialog(next.id, "detail");
+                else handleCloseDialog();
+              }
+              return success;
+            }}
+          />
+        )}
+        {!tableView && !selectedLog && (
+          <div className="ux-detail">
+            <h2>검토할 일지를 선택해 주세요</h2>
+            <p>
+              도서 정보와 이번 제출량을 확인합니다. 승인 시 쪽수만 반영되며
+              거리는 서평 확인 후 인정됩니다.
+            </p>
+          </div>
+        )}
+      </div>
     </section>
   );
 }

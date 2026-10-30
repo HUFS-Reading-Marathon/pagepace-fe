@@ -34,7 +34,7 @@ const ADMIN_MENUS = [
     enabled: true,
   },
   {
-    label: '대회 현황 관리',
+    label: '대회 현황·랭킹',
     path: '/admin/status',
     group: '운영 관리',
     enabled: true,
@@ -42,12 +42,6 @@ const ADMIN_MENUS = [
   {
     label: '공지사항 관리',
     path: '/admin/notices',
-    group: '운영 관리',
-    enabled: true,
-  },
-  {
-    label: '참가자 랭킹',
-    path: '/admin/rankings',
     group: '운영 관리',
     enabled: true,
   },
@@ -67,7 +61,8 @@ const INITIAL_OPEN_GROUPS = ADMIN_MENUS.reduce(
 );
 
 function AdminSidebar() {
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const pathname=location.pathname==='/admin/rankings'?'/admin/status':location.pathname;
   const [openGroups, setOpenGroups] = useState(INITIAL_OPEN_GROUPS);
   const activeGroup = ADMIN_MENUS.find((menu) =>
     matchPath(
@@ -136,7 +131,7 @@ function AdminSidebar() {
                   className={({ isActive }) =>
                     [
                       'admin-sidebar__link',
-                      isActive ? 'admin-sidebar__link--active' : '',
+                      (isActive || (menu.path==='/admin/status'&&pathname==='/admin/status')) ? 'admin-sidebar__link--active' : '',
                     ]
                       .filter(Boolean)
                       .join(' ')

@@ -1,3 +1,4 @@
+import { NavLink } from 'react-router-dom';
 import { downloadCsv } from '../../utils/csv';
 import { preferredAdminEvent } from '../../utils/eventSelection';
 import { useAdminEventState } from '../../hooks/useAdminEventState';
@@ -383,6 +384,7 @@ function AdminStatusPage() {
 
   return (
     <section className="admin-page admin-status">
+      <nav className="ux-tabs" aria-label="대회 현황 보기"><NavLink to="/admin/status">참가자 현황</NavLink><NavLink to="/admin/rankings">랭킹</NavLink></nav>
       <header className="admin-page__header admin-status__header">
         <div className="admin-status__heading">
           <h1>대회 현황 관리</h1><p>누적 쪽수·인정 거리·완주 여부는 현재 기준입니다. 날짜 선택은 해당 날짜의 독서량 조회에만 적용됩니다.</p>
@@ -457,7 +459,7 @@ function AdminStatusPage() {
         {feedbackMessage}
       </div>
 
-      <StatusCourseSummary summaries={courseSummaries} />
+      <details className="ux-course-summary"><summary>코스별 현황 펼쳐보기</summary><StatusCourseSummary summaries={courseSummaries} /></details>
 
       <div className="admin-status__section-heading admin-status__table-heading">
         <div>
