@@ -1,3 +1,23 @@
+/* 행사 정보 조회 결과 안내(공개 행사 없음/조회 실패) */
+.main-load-message {
+  padding-top: 20px;
+}
+
+.main-load-message p {
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--navy-strong);
+  border-radius: var(--radius);
+  background: var(--blue-10);
+  color: var(--body);
+  font-size: 15px;
+}
+
+.main-load-message p[role='alert'] {
+  border-left-color: var(--gold);
+}
+
 .hero {
   position: relative;
   overflow: hidden;

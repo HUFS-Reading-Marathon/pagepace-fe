@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth';
+import { ApiError } from '../../api/apiClient';
 import { getCurrentEvent, getEventCourses, type CurrentEvent } from '../../api/eventApi';
 import { getCurrentParticipation } from '../../api/participationApi';
 import { getMyReadingLogs } from '../../api/readingLogApi';
@@ -42,7 +43,8 @@ function MainPage() {
   const [approvedLogs, setApprovedLogs] = useState(0);
   const [lastSubmittedAt, setLastSubmittedAt] = useState('-');
   const [notices, setNotices] = useState<Notice[]>([]);
-  const [eventError, setEventError] = useState('');
+  // 'missing': 공개된 행사가 없음(404 EVENT_NOT_FOUND), 'failed': 그 외 조회 실패
+  const [eventError, setEventError] = useState<'missing' | 'failed' | null>(null);
   const [noticeError, setNoticeError] = useState('');
 
   useEffect(() => {
@@ -66,7 +68,11 @@ function MainPage() {
         const courses = await getEventCourses(event.eventId);
         setEventCourses(courses.map(toCourseRow));
       })
-      .catch(() => setEventError('행사 정보를 불러오지 못했습니다.'));
+      .catch((error: unknown) =>
+        setEventError(
+          error instanceof ApiError && error.code === 'EVENT_NOT_FOUND' ? 'missing' : 'failed',
+        ),
+      );
   }, []);
 
   useEffect(() => {
@@ -144,7 +150,15 @@ function MainPage() {
 
   return (
     <main id="main">
-      {eventError && <p role="alert">{eventError}</p>}
+      {eventError && (
+        <div className="wrap main-load-message">
+          {eventError === 'missing' ? (
+            <p role="status">현재 공개된 독서마라톤 행사가 없습니다.</p>
+          ) : (
+            <p role="alert">행사 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</p>
+          )}
+        </div>
+      )}
       <section className="hero" aria-labelledby="heroTitle">
         <div className="wrap hero-inner">
           <div
