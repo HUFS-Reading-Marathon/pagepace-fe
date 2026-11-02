@@ -26,8 +26,11 @@ export type CourseRow = {
   people: string;
 };
 
+export type ProcessStepIconName = 'apply' | 'log' | 'review' | 'finish';
+
 export type ProcessStep = {
   no: number;
+  icon: ProcessStepIconName;
   title: string;
   desc: string;
 };
@@ -121,23 +124,27 @@ export const FALLBACK_COURSES: CourseRow[] = [
 export const PROCESS_STEPS: ProcessStep[] = [
   {
     no: 1,
+    icon: 'apply',
     title: '참가 신청',
-    desc: '참가신청서를 작성하고 신청 정보를 제출합니다. 제출 후 승인 안내를 확인해 주세요.',
+    desc: '참가신청서를 작성하고 원하는 코스를 선택합니다.',
   },
   {
     no: 2,
-    title: '코스 선택',
-    desc: '단축·하프·풀코스 중 목표 독서량에 맞는 코스를 선택합니다.',
+    icon: 'log',
+    title: '독서일지 작성',
+    desc: '읽은 책과 페이지 수를 기록해 독서일지를 제출합니다.',
   },
   {
     no: 3,
-    title: '독서일지 제출',
-    desc: '도서명, 저자, 출판사, 읽은 페이지 수를 입력합니다. 일지 승인 시 쪽수, 서평 확인 시 거리가 반영됩니다.',
+    icon: 'review',
+    title: '도서관 서평 작성',
+    desc: '도서관 홈페이지에서 읽은 책의 서평을 작성합니다. 완독 전에도 가능합니다.',
   },
   {
     no: 4,
-    title: '현황 확인',
-    desc: '누적 거리, 달성률, 완주 여부와 공지사항을 대회 현황에서 확인합니다.',
+    icon: 'finish',
+    title: '거리 인정 및 완주',
+    desc: '독서일지 승인과 서평 확인을 거쳐 거리가 인정되고, 목표 달성 여부를 확인합니다.',
   },
 ];
 

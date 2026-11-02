@@ -11,7 +11,7 @@ type MainNoticeListProps = {
 type NoticeListItem = {
   key: string | number;
   to: string;
-  badge: string;
+  pinned: boolean;
   title: string;
   dateTime: string;
   dateLabel: string;
@@ -23,7 +23,7 @@ function toNoticeListItem(notice: Notice): NoticeListItem {
   return {
     key: notice.noticeId,
     to: `/notices/${notice.noticeId}`,
-    badge: notice.pinned ? '중요' : '공지',
+    pinned: notice.pinned,
     title: notice.title,
     dateTime: publishedAt,
     dateLabel: new Date(publishedAt).toLocaleDateString('ko-KR'),
@@ -34,7 +34,7 @@ function toFallbackListItem(notice: FallbackNotice): NoticeListItem {
   return {
     key: notice.title,
     to: notice.href,
-    badge: notice.badge,
+    pinned: false,
     title: notice.title,
     dateTime: notice.dateTime,
     dateLabel: notice.date,
@@ -43,18 +43,19 @@ function toFallbackListItem(notice: FallbackNotice): NoticeListItem {
 
 /** 메인 공지사항 섹션의 목록 (서버 공지가 없으면 fallback 안내 표시) */
 function MainNoticeList({ notices, fallbackNotices, maxCount }: MainNoticeListProps) {
-  const items =
-    notices.length > 0
-      ? notices.slice(0, maxCount).map(toNoticeListItem)
-      : fallbackNotices.map(toFallbackListItem);
+  const items = (
+    notices.length > 0 ? notices.map(toNoticeListItem) : fallbackNotices.map(toFallbackListItem)
+  ).slice(0, maxCount);
 
   return (
     <ul className="notice-list">
       {items.map((item) => (
         <li key={item.key}>
           <Link to={item.to}>
-            <span className="badge">{item.badge}</span>
-            <strong>{item.title}</strong>
+            <strong>
+              {item.pinned && <span className="notice-badge">중요</span>}
+              <span className="notice-title">{item.title}</span>
+            </strong>
             <time dateTime={item.dateTime}>{item.dateLabel}</time>
           </Link>
         </li>

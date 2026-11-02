@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth';
+import { ApiError } from '../../api/apiClient';
 import { getCurrentEvent, getEventCourses, type CurrentEvent } from '../../api/eventApi';
 import { getCurrentParticipation } from '../../api/participationApi';
 import { getMyReadingLogs } from '../../api/readingLogApi';
@@ -9,6 +10,8 @@ import CourseBenefitTable from '../../components/main/CourseBenefitTable';
 import EventStatusBoard from '../../components/main/EventStatusBoard';
 import MainNoticeList from '../../components/main/MainNoticeList';
 import MyRecordDashboard from '../../components/main/MyRecordDashboard';
+import ProcessStepIcon from '../../components/main/ProcessStepIcon';
+import { METERS_PER_PAGE } from '../../constants/reading';
 import type { MyParticipation } from '../../types/participation';
 import { getExternalLinkAttrs } from '../../utils/links';
 import {
@@ -23,7 +26,7 @@ import {
 } from './mainPageContent';
 import './MainPage.css';
 
-const NOTICE_PREVIEW_COUNT = 4;
+const NOTICE_PREVIEW_COUNT = 3;
 
 /** 앱 내부 라우트('/status' 등)면 true. '#courses' 같은 hash와 외부 URL은 <a>로 렌더링합니다. */
 function isRouteHref(link: { href: string; external?: boolean }) {
@@ -40,7 +43,8 @@ function MainPage() {
   const [approvedLogs, setApprovedLogs] = useState(0);
   const [lastSubmittedAt, setLastSubmittedAt] = useState('-');
   const [notices, setNotices] = useState<Notice[]>([]);
-  const [eventError, setEventError] = useState('');
+  // 'missing': 공개된 행사가 없음(404 EVENT_NOT_FOUND), 'failed': 그 외 조회 실패
+  const [eventError, setEventError] = useState<'missing' | 'failed' | null>(null);
   const [noticeError, setNoticeError] = useState('');
 
   useEffect(() => {
@@ -64,7 +68,11 @@ function MainPage() {
         const courses = await getEventCourses(event.eventId);
         setEventCourses(courses.map(toCourseRow));
       })
-      .catch(() => setEventError('행사 정보를 불러오지 못했습니다.'));
+      .catch((error: unknown) =>
+        setEventError(
+          error instanceof ApiError && error.code === 'EVENT_NOT_FOUND' ? 'missing' : 'failed',
+        ),
+      );
   }, []);
 
   useEffect(() => {
@@ -142,7 +150,15 @@ function MainPage() {
 
   return (
     <main id="main">
-      {eventError && <p role="alert">{eventError}</p>}
+      {eventError && (
+        <div className="wrap main-load-message">
+          {eventError === 'missing' ? (
+            <p role="status">현재 공개된 독서마라톤 행사가 없습니다.</p>
+          ) : (
+            <p role="alert">행사 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</p>
+          )}
+        </div>
+      )}
       <section className="hero" aria-labelledby="heroTitle">
         <div className="wrap hero-inner">
           <div
@@ -344,14 +360,32 @@ function MainPage() {
             </p>
           </div>
 
-          <div className="process fade-up">
+          <ol className="process fade-up">
             {PROCESS_STEPS.map((step) => (
-              <article className="process-step" key={step.no}>
-                <span className="step-no">{step.no}</span>
+              <li className="process-step" key={step.no}>
+                <span className="process-icon">
+                  <ProcessStepIcon name={step.icon} />
+                  <span className="step-no" aria-hidden="true">
+                    {step.no}
+                  </span>
+                </span>
                 <h3>{step.title}</h3>
                 <p>{step.desc}</p>
-              </article>
+              </li>
             ))}
+          </ol>
+
+          <div className="process-note fade-up">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 11v5M12 8h.01" />
+            </svg>
+            <p>
+              <span>책 1쪽 = {METERS_PER_PAGE}m</span>
+              <span>독서일지 승인으로 인정 쪽수 확정</span>
+              <span>서평 확인을 거친 분량이 최종 인정 거리에 반영</span>
+              <small>서평 확인을 기다리는 동안에도 다음 독서일지를 제출할 수 있습니다.</small>
+            </p>
           </div>
         </div>
       </section>
@@ -369,13 +403,15 @@ function MainPage() {
             </p>
           </div>
 
-          <div className="official-card news-card fade-up">
+          <div className="news-card fade-up">
             <div className="card-title-row">
               <h3>최근 공지</h3>
               <a href="#contact">문의하기</a>
             </div>
             {notices.length === 0 && (
-              <p role="status">{noticeError || '등록된 공지사항이 없습니다.'}</p>
+              <p className="notice-empty" role="status">
+                {noticeError || '등록된 공지사항이 없습니다.'}
+              </p>
             )}
             <MainNoticeList
               notices={notices}
