@@ -8,6 +8,8 @@ import {
 import type { AdminCourse } from '../../../types/adminEvent';
 
 type StatusFiltersProps = {
+  completionFilter: string;
+  onCompletionFilterChange: (value: string) => void;
   searchKeyword: string;
   courseFilter: AdminCompetitionCourseFilter;
   courses: AdminCourse[];
@@ -23,6 +25,8 @@ type StatusFiltersProps = {
 };
 
 function StatusFilters({
+  completionFilter,
+  onCompletionFilterChange,
   searchKeyword,
   courseFilter,
   courses,
@@ -57,9 +61,7 @@ function StatusFilters({
             value={courseFilter}
             onChange={(event) =>
               onCourseFilterChange(
-                event.target.value === 'ALL'
-                  ? 'ALL'
-                  : Number(event.target.value),
+                event.target.value === 'ALL' ? 'ALL' : Number(event.target.value),
               )
             }
           >
@@ -76,10 +78,12 @@ function StatusFilters({
           <label htmlFor="statusCompletionFilter">완주 상태</label>
           <select
             id="statusCompletionFilter"
-            value="unsupported"
-            disabled
+            value={completionFilter}
+            onChange={(event) => onCompletionFilterChange(event.target.value)}
           >
-            <option value="unsupported">서버 판정 미지원</option>
+            <option value="ALL">전체</option>
+            <option value="completed">완주</option>
+            <option value="incomplete">진행 중</option>
           </select>
         </div>
 
@@ -88,11 +92,7 @@ function StatusFilters({
           <select
             id="statusActivityFilter"
             value={activityFilter}
-            onChange={(event) =>
-              onActivityFilterChange(
-                event.target.value as StatusActivityFilter,
-              )
-            }
+            onChange={(event) => onActivityFilterChange(event.target.value as StatusActivityFilter)}
           >
             {STATUS_ACTIVITY_FILTER_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -108,9 +108,7 @@ function StatusFilters({
             id="statusSortOption"
             value={sortOption}
             onChange={(event) =>
-              onSortOptionChange(
-                event.target.value as AdminCompetitionSortOption,
-              )
+              onSortOptionChange(event.target.value as AdminCompetitionSortOption)
             }
           >
             {ADMIN_COMPETITION_SORT_OPTIONS.map((option) => (
@@ -135,4 +133,3 @@ function StatusFilters({
 }
 
 export default StatusFilters;
-

@@ -26,15 +26,12 @@ export type CourseRow = {
   people: string;
 };
 
+export type ProcessStepIconName = 'apply' | 'log' | 'review' | 'finish';
+
 export type ProcessStep = {
   no: number;
+  icon: ProcessStepIconName;
   title: string;
-  desc: string;
-};
-
-export type StatusItem = {
-  title: string;
-  value: string;
   desc: string;
 };
 
@@ -75,7 +72,7 @@ export const QUICK_LINKS: QuickLink[] = [
     href: APPLY_FORM_URL,
     external: true,
   },
-  { eyebrow: 'Status', title: '대회 현황 보기', href: '#status' },
+  { eyebrow: 'Status', title: '대회 현황 보기', href: '/status' },
 ];
 
 export const SUMMARY_ITEMS: [string, string][] = [
@@ -127,41 +124,27 @@ export const FALLBACK_COURSES: CourseRow[] = [
 export const PROCESS_STEPS: ProcessStep[] = [
   {
     no: 1,
+    icon: 'apply',
     title: '참가 신청',
-    desc: '참가신청서를 작성하고 신청 정보를 제출합니다. 제출 후 승인 안내를 확인해 주세요.',
+    desc: '참가신청서를 작성하고 원하는 코스를 선택합니다.',
   },
   {
     no: 2,
-    title: '코스 선택',
-    desc: '단축·하프·풀코스 중 목표 독서량에 맞는 코스를 선택합니다.',
+    icon: 'log',
+    title: '독서일지 작성',
+    desc: '읽은 책과 페이지 수를 기록해 독서일지를 제출합니다.',
   },
   {
     no: 3,
-    title: '독서일지 제출',
-    desc: '도서명, 저자, 출판사, 읽은 페이지 수를 입력합니다. 페이지 수는 거리로 자동 환산됩니다.',
+    icon: 'review',
+    title: '도서관 서평 작성',
+    desc: '도서관 홈페이지에서 읽은 책의 서평을 작성합니다. 완독 전에도 가능합니다.',
   },
   {
     no: 4,
-    title: '현황 확인',
-    desc: '누적 거리, 달성률, 완주 여부와 공지사항을 대회 현황에서 확인합니다.',
-  },
-];
-
-export const STATUS_ITEMS: StatusItem[] = [
-  {
-    title: '나의 누적 거리',
-    value: '운영 시작 후 공개',
-    desc: '인정된 독서일지를 기준으로 자동 집계됩니다.',
-  },
-  {
-    title: '코스별 완주 현황',
-    value: '준비 중',
-    desc: '단축·하프·풀코스별 달성 현황을 제공합니다.',
-  },
-  {
-    title: '공개 순위',
-    value: '이름 마스킹 적용',
-    desc: '개인정보 보호 기준에 따라 일부 정보만 공개합니다.',
+    icon: 'finish',
+    title: '거리 인정 및 완주',
+    desc: '독서일지 승인과 서평 확인을 거쳐 거리가 인정되고, 목표 달성 여부를 확인합니다.',
   },
 ];
 

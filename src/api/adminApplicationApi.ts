@@ -1,28 +1,17 @@
 import { ApiError, apiRequest } from './apiClient';
-import type {
-  AdminApplicationDetail,
-  AdminApplicationListItem,
-} from '../types/adminApplication';
+import type { AdminApplicationDetail, AdminApplicationListItem } from '../types/adminApplication';
 
 const ADMIN_APPLICATIONS_PATH = '/api/admin/applications';
 
 function validateEventId(eventId: number) {
   if (!Number.isInteger(eventId) || eventId <= 0) {
-    throw new ApiError(
-      '행사 ID가 올바르지 않습니다.',
-      0,
-      'INVALID_EVENT_ID',
-    );
+    throw new ApiError('행사 ID가 올바르지 않습니다.', 0, 'INVALID_EVENT_ID');
   }
 }
 
 function validateApplicationId(applicationId: number) {
   if (!Number.isInteger(applicationId) || applicationId <= 0) {
-    throw new ApiError(
-      '참가신청 ID가 올바르지 않습니다.',
-      0,
-      'INVALID_APPLICATION_ID',
-    );
+    throw new ApiError('참가신청 ID가 올바르지 않습니다.', 0, 'INVALID_APPLICATION_ID');
   }
 }
 
@@ -61,16 +50,12 @@ export async function getAdminApplicationDetail(applicationId: number) {
 export async function approveAdminApplication(applicationId: number) {
   validateApplicationId(applicationId);
 
-  return apiRequest<AdminApplicationDetail>(
-    `${ADMIN_APPLICATIONS_PATH}/${applicationId}/approve`,
-    { method: 'PATCH' },
-  );
+  return apiRequest<AdminApplicationDetail>(`${ADMIN_APPLICATIONS_PATH}/${applicationId}/approve`, {
+    method: 'PATCH',
+  });
 }
 
-export async function rejectAdminApplication(
-  applicationId: number,
-  reason: string,
-) {
+export async function rejectAdminApplication(applicationId: number, reason: string) {
   validateApplicationId(applicationId);
   const normalizedReason = reason.trim();
 
@@ -78,12 +63,9 @@ export async function rejectAdminApplication(
     throw new ApiError('반려 사유를 입력해 주세요.', 0, 'INVALID_REASON');
   }
 
-  return apiRequest<AdminApplicationDetail>(
-    `${ADMIN_APPLICATIONS_PATH}/${applicationId}/reject`,
-    {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reason: normalizedReason }),
-    },
-  );
+  return apiRequest<AdminApplicationDetail>(`${ADMIN_APPLICATIONS_PATH}/${applicationId}/reject`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason: normalizedReason }),
+  });
 }

@@ -1,18 +1,18 @@
+import { selectedEventId, eventQuery } from '../utils/eventSelection';
 import type { MyParticipation } from '../types/participation';
 import { ApiError, apiRequest } from './apiClient';
 
 export async function getMyParticipations() {
-  const participations = await apiRequest<MyParticipation[]>(
-    '/api/me/participations',
-    { method: 'GET' },
-  );
+  const participations = await apiRequest<MyParticipation[]>('/api/me/participations', {
+    method: 'GET',
+  });
 
   return participations ?? [];
 }
 
-export async function getCurrentParticipation() {
+export async function getCurrentParticipation(eventId = selectedEventId('personal')) {
   const participation = await apiRequest<MyParticipation>(
-    '/api/me/participations/current',
+    `/api/me/participations/current${eventQuery(eventId)}`,
     { method: 'GET' },
   );
 

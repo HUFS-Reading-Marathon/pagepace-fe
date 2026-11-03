@@ -44,10 +44,7 @@ function LoginPage() {
       navigate(returnPath, { replace: true });
     } catch (error) {
       setErrorMessage(
-        getApiErrorMessage(
-          error,
-          '로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
-        ),
+        getApiErrorMessage(error, '로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'),
       );
     }
   };
@@ -61,9 +58,7 @@ function LoginPage() {
       <section className="auth-shell" aria-label="로그인 영역">
         <div className="auth-heading">
           <h1>로그인</h1>
-          <p className="auth-description">
-            로그인 후 나의 현황과 독서일지를 확인할 수 있습니다.
-          </p>
+          <p className="auth-description">로그인 후 나의 현황과 독서일지를 확인할 수 있습니다.</p>
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit}>
@@ -124,8 +119,8 @@ function LoginPage() {
 
         <div className="auth-footer-info">
           <p className="auth-note">
-            참가 신청을 완료한 사용자는 로그인 후 독서일지 작성과 나의 현황 확인을
-            이용할 수 있습니다.
+            참가 신청을 완료한 사용자는 로그인 후 독서일지 작성과 나의 현황 확인을 이용할 수
+            있습니다.
           </p>
 
           <Link to="/" className="auth-back-link">

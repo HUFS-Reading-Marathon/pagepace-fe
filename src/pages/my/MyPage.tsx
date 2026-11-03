@@ -2,7 +2,7 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { getApiErrorMessage } from '../../api/apiClient';
 import { getCurrentParticipation } from '../../api/participationApi';
-import { getMyReadingBooks, getMyReadingLogs } from '../../api/readingLogApi';
+import { getMyBookProgress, getMyReadingLogs } from '../../api/readingLogApi';
 import type { MyParticipation } from '../../types/participation';
 import {
   READING_LOG_STATUS_LABELS,
@@ -27,7 +27,7 @@ function MyPage() {
       .then(async (nextParticipation) => {
         const [nextLogs, nextReadingBooks] = await Promise.all([
           getMyReadingLogs(nextParticipation.participationId),
-          getMyReadingBooks(),
+          getMyBookProgress(nextParticipation.eventId),
         ]);
         if (isActive) {
           setParticipation(nextParticipation);
@@ -37,9 +37,7 @@ function MyPage() {
       })
       .catch((error: unknown) => {
         if (isActive) {
-          setErrorMessage(
-            getApiErrorMessage(error, '나의 현황을 불러오지 못했습니다.'),
-          );
+          setErrorMessage(getApiErrorMessage(error, '나의 현황을 불러오지 못했습니다.'));
         }
       })
       .finally(() => {
@@ -77,9 +75,7 @@ function MyPage() {
   const recentLog = [...logs].sort((left, right) =>
     right.createdAt.localeCompare(left.createdAt),
   )[0];
-  const recentLogStatusLabel = recentLog
-    ? READING_LOG_STATUS_LABELS[recentLog.status]
-    : null;
+  const recentLogStatusLabel = recentLog ? READING_LOG_STATUS_LABELS[recentLog.status] : null;
   const progressStyle = {
     '--progress-position': isProgressStarted ? `${progressRate}%` : '0%',
   } as CSSProperties;
@@ -97,8 +93,8 @@ function MyPage() {
           <span>현재 코스</span>
           <h2>{participation.courseName}</h2>
           <p>
-            {formatDistance(participation.targetDistanceMeter)} 완주를 목표로
-            독서기록을 누적하고 있습니다.
+            {formatDistance(participation.targetDistanceMeter)} 완주를 목표로 독서기록을 누적하고
+            있습니다.
           </p>
         </div>
         <div className="my-progress-area" style={progressStyle}>
@@ -143,7 +139,7 @@ function MyPage() {
         <article>
           <span>누적 거리</span>
           <strong>{formatDistance(participation.totalDistanceMeter)}</strong>
-          <p>1쪽 = 5m 기준</p>
+          <p>서평 확인된 승인 쪽수 × 5m</p>
         </article>
         <article>
           <span>인정 기록</span>
@@ -186,7 +182,7 @@ function MyPage() {
                 <dd>{recentLog.totalReadPages.toLocaleString()}쪽</dd>
               </div>
               <div>
-                <dt>환산 거리</dt>
+                <dt>예상 환산 거리</dt>
                 <dd>{formatDistance(recentLog.convertedDistanceMeter)}</dd>
               </div>
             </dl>
@@ -202,7 +198,7 @@ function MyPage() {
           <div className="my-section-head">
             <div>
               <p className="my-section-kicker">Reading Books</p>
-              <h2>읽는 중인 책</h2>
+              <h2>책별 독서·서평 현황</h2>
             </div>
           </div>
           {readingBooks.map((book) => (
@@ -211,6 +207,15 @@ function MyPage() {
                 <h3>{book.bookTitle}</h3>
                 <p>
                   {book.author || '저자 미상'} · {book.publisher || '출판사 미상'}
+                </p>
+                <p>
+                  {book.completed ? '완독' : '읽는 중'} ·{' '}
+                  {book.reviewVerified
+                    ? '서평 확인 완료'
+                    : book.reviewCompleted
+                      ? '서평 확인 대기'
+                      : '서평 작성 필요'}{' '}
+                  · 인정 거리 {formatDistance(book.creditedReadPages * 5)}
                 </p>
               </div>
               <dl>

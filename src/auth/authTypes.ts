@@ -18,12 +18,7 @@ export type UserRole = 'USER' | 'ADMIN' | 'SUPER_ADMIN';
 
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'BANNED' | 'DELETED';
 
-export type AffiliationType =
-  | 'UNDERGRADUATE'
-  | 'GRADUATE'
-  | 'PROFESSOR'
-  | 'STAFF'
-  | 'OTHER';
+export type AffiliationType = 'UNDERGRADUATE' | 'GRADUATE' | 'PROFESSOR' | 'STAFF' | 'OTHER';
 
 export type AuthUser = {
   userId: number;

@@ -48,6 +48,8 @@ export function saveAccessToken(accessToken: string) {
 }
 
 export function clearAuthStorage() {
+  sessionStorage.removeItem('pagepace:personal:event');
+  sessionStorage.removeItem('pagepace:admin:event');
   localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
   localStorage.removeItem(LOGIN_STATE_STORAGE_KEY);
   localStorage.removeItem(LOGIN_ID_STORAGE_KEY);

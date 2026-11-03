@@ -1,7 +1,4 @@
-import {
-  READING_LOG_STATUS_LABELS,
-  type ReadingLogStatus,
-} from '../../../types/adminReadingLog';
+import { READING_LOG_STATUS_LABELS, type ReadingLogStatus } from '../../../types/adminReadingLog';
 
 type ReadingLogStatusBadgeProps = {
   status: ReadingLogStatus;
@@ -9,13 +6,10 @@ type ReadingLogStatusBadgeProps = {
 
 function ReadingLogStatusBadge({ status }: ReadingLogStatusBadgeProps) {
   return (
-    <span
-      className={`admin-reading-log-status admin-reading-log-status--${status}`}
-    >
+    <span className={`admin-reading-log-status admin-reading-log-status--${status}`}>
       {READING_LOG_STATUS_LABELS[status]}
     </span>
   );
 }
 
 export default ReadingLogStatusBadge;
-

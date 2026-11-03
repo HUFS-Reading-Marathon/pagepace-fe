@@ -76,4 +76,7 @@ export type ParticipantBook = {
   completedAt: string | null;
   reviewRequired: boolean;
   reviewSearchUrl: string | null;
+  reviewCompleted: boolean;
+  reviewVerified: boolean;
+  creditedReadPages: number;
 };

@@ -15,13 +15,14 @@ const TOPBAR_LINKS: HeaderLink[] = [
   { label: '문의', href: '/#contact' },
 ];
 
+// 홈 섹션(hash) 메뉴는 MainPage의 DOM 배치 순서(#about → #courses → #process → #notice)를
+// 그대로 따르고, 별도 페이지로 이동하는 '대회 현황'은 그 뒤에 배치합니다.
 const NAV_ITEMS: HeaderLink[] = [
   { label: '행사안내', href: '/#about' },
   { label: '코스 및 혜택', href: '/#courses' },
   { label: '참여방법', href: '/#process' },
-  { label: '대회 현황', href: '/#status' },
-  { label: '랭킹', href: '/rankings' },
   { label: '공지사항', href: '/#notice' },
+  { label: '대회 현황', href: '/status' },
 ];
 
 const MY_LIBRARY_ITEMS: HeaderLink[] = [
@@ -46,8 +47,7 @@ function getElementTop(element: HTMLElement) {
 }
 
 function getScrollSpySections() {
-  return NAV_ITEMS
-    .filter((item) => isHashLink(item.href))
+  return NAV_ITEMS.filter((item) => isHashLink(item.href))
     .map((item) => document.getElementById(hashFromHref(item.href).slice(1)))
     .filter((element): element is HTMLElement => element instanceof HTMLElement)
     .sort((a, b) => getElementTop(a) - getElementTop(b));
@@ -103,8 +103,7 @@ function isMyLibraryItemActive(href: string, pathname: string) {
 function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSectionHash, setActiveSectionHash] = useState(DEFAULT_HASH);
-  const [isMyLibraryDropdownHidden, setIsMyLibraryDropdownHidden] =
-    useState(false);
+  const [isMyLibraryDropdownHidden, setIsMyLibraryDropdownHidden] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isAuthenticated, isInitializing, logout } = useAuth();
@@ -112,9 +111,7 @@ function Header() {
   const hasAdminRole = isAdminRole(user?.role);
 
   const activeHash =
-    location.pathname === '/'
-      ? activeSectionHash || location.hash || DEFAULT_HASH
-      : location.hash;
+    location.pathname === '/' ? activeSectionHash || location.hash || DEFAULT_HASH : location.hash;
   const isMyLibraryActive = isMyLibraryPath(location.pathname);
 
   const closeMobileMenu = () => {
@@ -144,9 +141,7 @@ function Header() {
     const updateActiveSection = () => {
       const nextHash = getCurrentSectionHash();
 
-      setActiveSectionHash((prevHash) =>
-        prevHash === nextHash ? prevHash : nextHash,
-      );
+      setActiveSectionHash((prevHash) => (prevHash === nextHash ? prevHash : nextHash));
     };
 
     let animationFrameId = 0;
@@ -182,11 +177,7 @@ function Header() {
 
           <nav className="topbar-links" aria-label="상단 유틸리티">
             {TOPBAR_LINKS.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                {...getExternalLinkAttrs(link)}
-              >
+              <a key={link.label} href={link.href} {...getExternalLinkAttrs(link)}>
                 {link.label}
               </a>
             ))}
@@ -201,19 +192,12 @@ function Header() {
             to="/"
             aria-label="한국외국어대학교 글로벌캠퍼스 도서관 독서마라톤 홈"
           >
-            <img
-              src="/hufs_global_library_logo.png"
-              alt="한국외국어대학교 글로벌캠퍼스 도서관"
-            />
+            <img src="/hufs_global_library_logo.png" alt="한국외국어대학교 글로벌캠퍼스 도서관" />
           </Link>
 
           <nav className="global-nav" aria-label="주메뉴">
             {NAV_ITEMS.map((item) => {
-              const isActive = isActiveNavItem(
-                item.href,
-                location.pathname,
-                activeHash,
-              );
+              const isActive = isActiveNavItem(item.href, location.pathname, activeHash);
 
               const className = isActive ? 'is-active' : undefined;
 
@@ -249,10 +233,7 @@ function Header() {
               </Link>
             ) : (
               <div
-                className={[
-                  'nav-dropdown',
-                  isMyLibraryDropdownHidden ? 'is-hidden' : '',
-                ]
+                className={['nav-dropdown', isMyLibraryDropdownHidden ? 'is-hidden' : '']
                   .filter(Boolean)
                   .join(' ')}
                 onMouseLeave={() => setIsMyLibraryDropdownHidden(false)}
@@ -271,10 +252,7 @@ function Header() {
                 </button>
                 <div className="nav-dropdown-menu" aria-label="My Library">
                   {MY_LIBRARY_ITEMS.map((item) => {
-                    const isActive = isMyLibraryItemActive(
-                      item.href,
-                      location.pathname,
-                    );
+                    const isActive = isMyLibraryItemActive(item.href, location.pathname);
 
                     return (
                       <Link
@@ -303,10 +281,7 @@ function Header() {
               <Link
                 to="/login"
                 aria-current={location.pathname === '/login' ? 'page' : undefined}
-                className={[
-                  location.pathname === '/login' ? 'is-active' : '',
-                  'nav-login-link',
-                ]
+                className={[location.pathname === '/login' ? 'is-active' : '', 'nav-login-link']
                   .filter(Boolean)
                   .join(' ')}
               >
@@ -342,11 +317,7 @@ function Header() {
         >
           <div className="wrap">
             {NAV_ITEMS.map((item) => {
-              const isActive = isActiveNavItem(
-                item.href,
-                location.pathname,
-                activeHash,
-              );
+              const isActive = isActiveNavItem(item.href, location.pathname, activeHash);
 
               if (isHashLink(item.href)) {
                 return (
@@ -384,20 +355,14 @@ function Header() {
                 <Link
                   to="/my"
                   onClick={closeMobileMenu}
-                  className={[
-                    'mobile-library-title',
-                    isMyLibraryActive ? 'is-active' : '',
-                  ]
+                  className={['mobile-library-title', isMyLibraryActive ? 'is-active' : '']
                     .filter(Boolean)
                     .join(' ')}
                 >
                   My Library
                 </Link>
                 {MY_LIBRARY_ITEMS.map((item) => {
-                  const isActive = isMyLibraryItemActive(
-                    item.href,
-                    location.pathname,
-                  );
+                  const isActive = isMyLibraryItemActive(item.href, location.pathname);
 
                   return (
                     <Link
@@ -415,11 +380,7 @@ function Header() {
             )}
 
             {hasAuthSession ? (
-              <button
-                type="button"
-                className="mobile-auth-button"
-                onClick={handleLogout}
-              >
+              <button type="button" className="mobile-auth-button" onClick={handleLogout}>
                 로그아웃
               </button>
             ) : (

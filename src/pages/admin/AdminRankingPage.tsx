@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { preferredAdminEvent } from '../../utils/eventSelection';
+import { useAdminEventState } from '../../hooks/useAdminEventState';
+import { useEffect, useRef, useState } from 'react';
 import { getApiErrorMessage } from '../../api/apiClient';
 import { getAdminEventCourses, getAdminEvents } from '../../api/adminEventApi';
-import {
-  getAdminRankings,
-  type Ranking,
-  type RankingSort,
-} from '../../api/rankingApi';
+import { getAdminRankings, type Ranking, type RankingSort } from '../../api/rankingApi';
+import AdminPageTabs from '../../components/admin/AdminPageTabs';
+import { COMPETITION_TABS } from '../../constants/adminNavigation';
 import RankingBoard from '../../components/ranking/RankingBoard';
 import type { AdminCourse, AdminEvent } from '../../types/adminEvent';
 import '../../styles/ranking.css';
@@ -13,8 +13,9 @@ import '../../styles/ranking.css';
 const RANKING_ERROR_MESSAGE = '관리자 랭킹을 불러오지 못했습니다.';
 
 function AdminRankingPage() {
+  const sequence = useRef(0);
   const [events, setEvents] = useState<AdminEvent[]>([]);
-  const [eventId, setEventId] = useState<number | null>(null);
+  const [eventId, setEventId] = useAdminEventState();
   const [courses, setCourses] = useState<AdminCourse[]>([]);
   const [courseId, setCourseId] = useState<number | undefined>();
   const [sort, setSort] = useState<RankingSort>('RANK');
@@ -26,25 +27,14 @@ function AdminRankingPage() {
     getAdminEvents()
       .then((nextEvents) => {
         setEvents(nextEvents);
-        setEventId(
-          nextEvents.find((event) =>
-            ['IN_PROGRESS', 'APPLICATION_OPEN'].includes(event.status),
-          )?.eventId ??
-            nextEvents[0]?.eventId ??
-            null,
-        );
-
-        if (nextEvents.length === 0) {
-          setIsLoading(false);
-        }
+        setEventId(preferredAdminEvent(nextEvents)?.eventId ?? null);
+        if (nextEvents.length === 0) setIsLoading(false);
       })
       .catch((requestError: unknown) => {
-        setError(
-          getApiErrorMessage(requestError, '행사를 불러오지 못했습니다.'),
-        );
+        setError(getApiErrorMessage(requestError, '행사를 불러오지 못했습니다.'));
         setIsLoading(false);
       });
-  }, []);
+  }, [setEventId]);
 
   useEffect(() => {
     if (!eventId) {
@@ -52,12 +42,10 @@ function AdminRankingPage() {
     }
 
     let active = true;
-
+    const request = ++sequence.current;
     Promise.all([getAdminEventCourses(eventId), getAdminRankings(eventId)])
       .then(([nextCourses, nextRankings]) => {
-        if (!active) {
-          return;
-        }
+        if (!active || sequence.current !== request) return;
 
         setCourses(nextCourses);
         setCourseId(undefined);
@@ -80,43 +68,32 @@ function AdminRankingPage() {
       active = false;
     };
   }, [eventId]);
-
-  const reloadRankings = async (
-    nextCourseId: number | undefined,
-    nextSort: RankingSort,
-  ) => {
-    if (!eventId) {
-      return;
-    }
+  const loadFiltered = async (nextCourseId: number | undefined, nextSort: RankingSort) => {
+    if (!eventId) return;
+    const request = ++sequence.current;
 
     setIsLoading(true);
 
     try {
-      setRankings(await getAdminRankings(eventId, nextCourseId, nextSort));
-      setError('');
-    } catch (requestError) {
-      setError(getApiErrorMessage(requestError, RANKING_ERROR_MESSAGE));
+      const rows = await getAdminRankings(eventId, nextCourseId, nextSort);
+      if (sequence.current === request) {
+        setRankings(rows);
+        setError('');
+      }
+    } catch (error) {
+      if (sequence.current === request)
+        setError(error instanceof Error ? error.message : '조회 실패');
     } finally {
-      setIsLoading(false);
+      if (sequence.current === request) setIsLoading(false);
     }
   };
-
-  const filterCourse = (nextCourseId?: number) => {
-    if (!eventId) {
-      return;
-    }
-
-    setCourseId(nextCourseId);
-    void reloadRankings(nextCourseId, sort);
+  const filterCourse = (id?: number) => {
+    setCourseId(id);
+    void loadFiltered(id, sort);
   };
-
-  const changeSort = (nextSort: RankingSort) => {
-    if (!eventId) {
-      return;
-    }
-
-    setSort(nextSort);
-    void reloadRankings(courseId, nextSort);
+  const changeSort = (value: RankingSort) => {
+    setSort(value);
+    void loadFiltered(courseId, value);
   };
 
   const selectedEvent = events.find((event) => event.eventId === eventId);
@@ -125,25 +102,25 @@ function AdminRankingPage() {
     <section className="admin-page admin-ranking ranking-page is-admin">
       <header className="admin-page__header ranking-admin-header">
         <div>
-          <h1>참가자 랭킹</h1>
+          <h1>대회 현황·랭킹</h1>
           <p>마스킹되지 않은 참가자 정보와 코스별 진행 순위를 확인합니다.</p>
         </div>
         <div className="ranking-admin-summary">
           <span>현재 1위</span>
           <strong>{rankings[0]?.name ?? '-'}</strong>
-          <small>
-            {rankings[0]
-              ? `${(rankings[0].distance / 1000).toFixed(2)}km`
-              : '집계 전'}
-          </small>
+          <small>{rankings[0] ? `${(rankings[0].distance / 1000).toFixed(2)}km` : '집계 전'}</small>
         </div>
       </header>
+      <AdminPageTabs label="대회 현황·랭킹 화면" tabs={COMPETITION_TABS} />
       <section className="ranking-toolbar is-admin">
         <label>
           <span>행사</span>
           <select
             value={eventId ?? ''}
             onChange={(event) => {
+              ++sequence.current;
+              setCourses([]);
+              setRankings([]);
               setIsLoading(true);
               setEventId(Number(event.target.value));
             }}
@@ -160,9 +137,7 @@ function AdminRankingPage() {
           <select
             value={courseId ?? ''}
             onChange={(event) =>
-              filterCourse(
-                event.target.value ? Number(event.target.value) : undefined,
-              )
+              filterCourse(event.target.value ? Number(event.target.value) : undefined)
             }
           >
             <option value="">전체 코스</option>
@@ -175,17 +150,14 @@ function AdminRankingPage() {
         </label>
         <label>
           <span>정렬</span>
-          <select
-            value={sort}
-            onChange={(event) => changeSort(event.target.value as RankingSort)}
-          >
+          <select value={sort} onChange={(event) => changeSort(event.target.value as RankingSort)}>
             <option value="RANK">거리 순</option>
             <option value="NAME">이름 순</option>
           </select>
         </label>
         <div>
           <strong>{selectedEvent?.title ?? '행사 선택'}</strong>
-          <span>총 {rankings.length}명</span>
+          <span>독서 기록이 있는 참가자 {rankings.length}명</span>
         </div>
       </section>
       {isLoading ? (

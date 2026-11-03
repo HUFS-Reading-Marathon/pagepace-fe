@@ -210,7 +210,7 @@
   content: '';
   position: absolute;
   left: 50%;
-  bottom: -5px; 
+  bottom: -5px;
   width: 7px;
   height: 7px;
   border: 2px solid #ffffff;
@@ -443,5 +443,4 @@
     align-items: flex-start;
     flex-direction: column;
   }
-
 }

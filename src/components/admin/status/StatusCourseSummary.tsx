@@ -7,14 +7,11 @@ type StatusCourseSummaryProps = {
 
 function StatusCourseSummary({ summaries }: StatusCourseSummaryProps) {
   return (
-    <section
-      className="admin-status__course-summary"
-      aria-labelledby="statusCourseSummaryTitle"
-    >
+    <section className="admin-status__course-summary" aria-labelledby="statusCourseSummaryTitle">
       <div className="admin-status__section-heading">
         <div>
           <h2 id="statusCourseSummaryTitle">코스별 요약</h2>
-          <p>현재 기준 날짜까지의 승인 기록을 코스별로 집계했습니다.</p>
+          <p>현재 누적 승인 쪽수와 서평 인정 거리를 코스별로 집계했습니다.</p>
         </div>
       </div>
 
@@ -36,9 +33,7 @@ function StatusCourseSummary({ summaries }: StatusCourseSummaryProps) {
                 <th scope="row">{summary.courseName}</th>
                 <td>{summary.participantCount}명</td>
                 <td>
-                  {summary.completedCount === null
-                    ? '판정 미지원'
-                    : `${summary.completedCount}명`}
+                  {summary.completedCount === null ? '판정 미지원' : `${summary.completedCount}명`}
                 </td>
                 <td>
                   {summary.averageProgressRate === null
@@ -46,9 +41,7 @@ function StatusCourseSummary({ summaries }: StatusCourseSummaryProps) {
                     : `${summary.averageProgressRate.toFixed(1)}%`}
                 </td>
                 <td>{summary.totalPages.toLocaleString('ko-KR')}쪽</td>
-                <td>
-                  {formatStatusDistance(summary.totalDistanceMeters)}
-                </td>
+                <td>{formatStatusDistance(summary.totalDistanceMeters)}</td>
               </tr>
             ))}
           </tbody>
@@ -59,4 +52,3 @@ function StatusCourseSummary({ summaries }: StatusCourseSummaryProps) {
 }
 
 export default StatusCourseSummary;
-

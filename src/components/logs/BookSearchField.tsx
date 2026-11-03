@@ -15,12 +15,7 @@ type BookSearchFieldProps = {
 };
 
 /** 도서관 소장 도서 검색 입력 + 자동완성 결과 목록 */
-function BookSearchField({
-  query,
-  selectedBook,
-  onQueryChange,
-  onSelect,
-}: BookSearchFieldProps) {
+function BookSearchField({ query, selectedBook, onQueryChange, onSelect }: BookSearchFieldProps) {
   const [results, setResults] = useState<BookSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchMessage, setSearchMessage] = useState('');
@@ -44,16 +39,12 @@ function BookSearchField({
         .then((nextResults) => {
           if (requestSequenceRef.current !== sequence) return;
           setResults(nextResults);
-          setSearchMessage(
-            nextResults.length === 0 ? '검색 결과가 없습니다.' : '',
-          );
+          setSearchMessage(nextResults.length === 0 ? '검색 결과가 없습니다.' : '');
         })
         .catch((error: unknown) => {
           if (requestSequenceRef.current !== sequence) return;
           setResults([]);
-          setSearchMessage(
-            getApiErrorMessage(error, '도서를 검색하지 못했습니다.'),
-          );
+          setSearchMessage(getApiErrorMessage(error, '도서를 검색하지 못했습니다.'));
         })
         .finally(() => {
           if (requestSequenceRef.current === sequence) {
@@ -85,11 +76,9 @@ function BookSearchField({
             placeholder="책 제목 또는 ISBN을 입력해 주세요"
             autoComplete="off"
           />
-          {isSearching &&
-            !selectedBook &&
-            normalizedQuery.length >= SEARCH_MIN_LENGTH && (
-              <span className="reading-book-search-spinner" />
-            )}
+          {isSearching && !selectedBook && normalizedQuery.length >= SEARCH_MIN_LENGTH && (
+            <span className="reading-book-search-spinner" />
+          )}
         </div>
       </label>
 
@@ -127,9 +116,7 @@ function BookSearchField({
                       {result.pageCount
                         ? `${result.pageCount.toLocaleString()}쪽`
                         : '전체 페이지 정보 없음'}
-                      {result.libraries.length > 0
-                        ? ` · ${result.libraries.join(', ')}`
-                        : ''}
+                      {result.libraries.length > 0 ? ` · ${result.libraries.join(', ')}` : ''}
                     </small>
                   </span>
                   <span className="reading-book-search-select">

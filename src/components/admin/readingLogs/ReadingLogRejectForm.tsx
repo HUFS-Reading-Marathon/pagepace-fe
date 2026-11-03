@@ -25,9 +25,7 @@ function ReadingLogRejectForm({
   const [suggestedReason, setSuggestedReason] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [rejectionError, setRejectionError] = useState('');
-  const reasonOptions = [
-    ...new Set([...recommendedReasons, ...READING_LOG_REJECTION_REASONS]),
-  ];
+  const reasonOptions = [...new Set([...recommendedReasons, ...READING_LOG_REJECTION_REASONS])];
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -64,17 +62,14 @@ function ReadingLogRejectForm({
         <section className="admin-reading-log-dialog__section">
           <h3>반려 사유 입력</h3>
           <p className="admin-reading-log-dialog__mode-description">
-            참가자는 이 사유를 확인하고 독서일지를 수정해 다시 제출할 수
-            있습니다.
+            참가자는 이 사유를 확인하고 독서일지를 수정해 다시 제출할 수 있습니다.
           </p>
 
           <label className="admin-reading-log-dialog__field">
             <span>사유 선택</span>
             <select
               value={suggestedReason}
-              onChange={(event) =>
-                handleSuggestedReasonChange(event.target.value)
-              }
+              onChange={(event) => handleSuggestedReasonChange(event.target.value)}
             >
               <option value="">사유를 선택해 주세요</option>
               {reasonOptions.map((reason) => (
@@ -104,18 +99,11 @@ function ReadingLogRejectForm({
               }}
             />
           </label>
-          <p
-            id="readingLogRejectHint"
-            className="admin-reading-log-dialog__field-hint"
-          >
+          <p id="readingLogRejectHint" className="admin-reading-log-dialog__field-hint">
             공백만 입력한 사유로는 반려할 수 없습니다.
           </p>
           {rejectionError && (
-            <p
-              id="readingLogRejectError"
-              className="admin-reading-log-dialog__error"
-              role="alert"
-            >
+            <p id="readingLogRejectError" className="admin-reading-log-dialog__error" role="alert">
               {rejectionError}
             </p>
           )}

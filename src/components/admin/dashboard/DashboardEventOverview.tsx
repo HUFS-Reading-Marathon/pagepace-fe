@@ -89,20 +89,12 @@ function DashboardEventOverview({
         <div>
           <dt>신청</dt>
           <dd>
-            {formatPeriod(
-              event?.applicationStartDate ?? '',
-              event?.applicationEndDate ?? '',
-            )}
+            {formatPeriod(event?.applicationStartDate ?? '', event?.applicationEndDate ?? '')}
           </dd>
         </div>
         <div>
           <dt>운영</dt>
-          <dd>
-            {formatPeriod(
-              event?.eventStartDate ?? '',
-              event?.eventEndDate ?? '',
-            )}
-          </dd>
+          <dd>{formatPeriod(event?.eventStartDate ?? '', event?.eventEndDate ?? '')}</dd>
         </div>
       </dl>
 
@@ -119,8 +111,9 @@ function DashboardEventOverview({
         <small>
           {approvedPageTotal === null || approvedDistanceMeters === null
             ? '데이터를 불러오는 중'
-            : `${approvedPageTotal.toLocaleString('ko-KR')}쪽 · ${approvedDistanceMeters.toLocaleString('ko-KR')}m`}
+            : `승인 ${approvedPageTotal.toLocaleString('ko-KR')}쪽 · 인정 ${approvedDistanceMeters.toLocaleString('ko-KR')}m`}
         </small>
+        <small>인정 거리는 서평 확인분 기준</small>
       </div>
     </section>
   );

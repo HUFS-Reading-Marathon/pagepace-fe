@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 function Footer() {
   return (
     <footer className="site-footer">
@@ -11,7 +13,7 @@ function Footer() {
           <a href="/#about">행사안내</a>
           <a href="/#courses">코스</a>
           <a href="/#process">참여방법</a>
-          <a href="/#status">대회 현황</a>
+          <Link to="/status">대회 현황</Link>
           <a href="/#contact">문의</a>
         </nav>
       </div>

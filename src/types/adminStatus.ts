@@ -1,7 +1,4 @@
-import type {
-  AdminApplicationAffiliationType,
-  AdminApplicationStatus,
-} from './adminApplication';
+import type { AdminApplicationAffiliationType, AdminApplicationStatus } from './adminApplication';
 
 export type CourseType = 'short' | 'half' | 'full';
 
@@ -36,8 +33,8 @@ export type AdminCompetitionParticipantRow = {
   dailyIncreasePages: number;
   dailyIncreaseDistanceMeters: number;
   approvedLogCount: number;
-  completionStatus: null;
-  completedAt: null;
+  completionStatus: 'completed' | 'incomplete';
+  completedAt: string | null;
   lastReadingDate: string | null;
   lastProgressAt: string | null;
 };
@@ -46,17 +43,14 @@ export type AdminCompetitionCourseSummary = {
   courseId: number;
   courseName: string;
   participantCount: number;
-  completedCount: null;
+  completedCount: number;
   averageProgressRate: number | null;
   totalPages: number;
   totalDistanceMeters: number;
 };
 
 export type AdminCompetitionCourseFilter = 'ALL' | number;
-export type AdminCompetitionSortOption =
-  | 'distance-desc'
-  | 'pages-desc'
-  | 'name-asc';
+export type AdminCompetitionSortOption = 'distance-desc' | 'pages-desc' | 'name-asc';
 
 export const ADMIN_COMPETITION_SORT_OPTIONS: ReadonlyArray<{
   value: AdminCompetitionSortOption;

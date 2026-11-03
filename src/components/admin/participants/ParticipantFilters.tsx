@@ -18,9 +18,7 @@ type ParticipantFiltersProps = {
   onSearchKeywordChange: (value: string) => void;
   onStatusFilterChange: (value: ParticipantStatusFilter) => void;
   onCourseFilterChange: (value: ParticipantCourseFilter) => void;
-  onAffiliationFilterChange: (
-    value: ParticipantAffiliationFilter,
-  ) => void;
+  onAffiliationFilterChange: (value: ParticipantAffiliationFilter) => void;
   onReset: () => void;
   onDownload: () => void;
 };
@@ -41,10 +39,7 @@ function ParticipantFilters({
   onDownload,
 }: ParticipantFiltersProps) {
   return (
-    <section
-      className="admin-participants__toolbar"
-      aria-label="참가자 검색 및 필터"
-    >
+    <section className="admin-participants__toolbar" aria-label="참가자 검색 및 필터">
       <div className="admin-participants__filter-grid">
         <div className="admin-participants__field admin-participants__search">
           <label htmlFor="participantSearch">통합 검색</label>
@@ -63,9 +58,7 @@ function ParticipantFilters({
             id="participantStatusFilter"
             value={statusFilter}
             onChange={(event) =>
-              onStatusFilterChange(
-                event.target.value as ParticipantStatusFilter,
-              )
+              onStatusFilterChange(event.target.value as ParticipantStatusFilter)
             }
           >
             <option value="ALL">전체</option>
@@ -83,9 +76,7 @@ function ParticipantFilters({
             id="participantCourseFilter"
             value={courseFilter}
             onChange={(event) =>
-              onCourseFilterChange(
-                event.target.value as ParticipantCourseFilter,
-              )
+              onCourseFilterChange(event.target.value as ParticipantCourseFilter)
             }
           >
             <option value="ALL">전체</option>
@@ -103,9 +94,7 @@ function ParticipantFilters({
             id="participantAffiliationFilter"
             value={affiliationFilter}
             onChange={(event) =>
-              onAffiliationFilterChange(
-                event.target.value as ParticipantAffiliationFilter,
-              )
+              onAffiliationFilterChange(event.target.value as ParticipantAffiliationFilter)
             }
           >
             <option value="ALL">전체</option>
@@ -119,10 +108,7 @@ function ParticipantFilters({
       </div>
 
       <div className="admin-participants__toolbar-footer">
-        <p
-          className="admin-participants__result-count"
-          aria-live="polite"
-        >
+        <p className="admin-participants__result-count" aria-live="polite">
           검색 결과 <strong>{resultCount}</strong>명
         </p>
 

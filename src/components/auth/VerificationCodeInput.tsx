@@ -1,9 +1,4 @@
-import {
-  type ClipboardEvent,
-  type KeyboardEvent,
-  useEffect,
-  useRef,
-} from 'react';
+import { type ClipboardEvent, type KeyboardEvent, useEffect, useRef } from 'react';
 
 type VerificationCodeInputProps = {
   value: string;
@@ -66,10 +61,7 @@ function VerificationCodeInput({
     }
   };
 
-  const handleDigitKeyDown = (
-    event: KeyboardEvent<HTMLInputElement>,
-    index: number,
-  ) => {
+  const handleDigitKeyDown = (event: KeyboardEvent<HTMLInputElement>, index: number) => {
     if (event.key === 'Backspace') {
       event.preventDefault();
 
@@ -94,10 +86,7 @@ function VerificationCodeInput({
     }
   };
 
-  const handlePaste = (
-    event: ClipboardEvent<HTMLInputElement>,
-    index: number,
-  ) => {
+  const handlePaste = (event: ClipboardEvent<HTMLInputElement>, index: number) => {
     const pastedDigits = event.clipboardData.getData('text').replace(/\D/g, '');
 
     if (!pastedDigits) {

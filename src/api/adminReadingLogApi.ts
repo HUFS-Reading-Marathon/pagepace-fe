@@ -33,10 +33,7 @@ function validateId(id: number, label: '행사' | '독서일지') {
   }
 }
 
-export async function getAdminReadingLogs({
-  eventId,
-  status,
-}: AdminReadingLogListParams) {
+export async function getAdminReadingLogs({ eventId, status }: AdminReadingLogListParams) {
   validateId(eventId, '행사');
 
   const searchParams = new URLSearchParams({
@@ -94,10 +91,9 @@ export function verifyAdminReview(participantBookId: number) {
 export async function approveAdminReadingLog(readingLogId: number) {
   validateId(readingLogId, '독서일지');
 
-  return apiRequest<AdminReadingLogResponse>(
-    `${ADMIN_READING_LOGS_PATH}/${readingLogId}/approve`,
-    { method: 'PATCH' },
-  );
+  return apiRequest<AdminReadingLogResponse>(`${ADMIN_READING_LOGS_PATH}/${readingLogId}/approve`, {
+    method: 'PATCH',
+  });
 }
 
 export async function rejectAdminReadingLog(
@@ -109,21 +105,14 @@ export async function rejectAdminReadingLog(
   const reason = request.reason.trim();
 
   if (!reason) {
-    throw new ApiError(
-      '반려 사유를 입력해 주세요.',
-      0,
-      'INVALID_REJECTION_REASON',
-    );
+    throw new ApiError('반려 사유를 입력해 주세요.', 0, 'INVALID_REJECTION_REASON');
   }
 
-  return apiRequest<AdminReadingLogResponse>(
-    `${ADMIN_READING_LOGS_PATH}/${readingLogId}/reject`,
-    {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ reason }),
+  return apiRequest<AdminReadingLogResponse>(`${ADMIN_READING_LOGS_PATH}/${readingLogId}/reject`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
     },
-  );
+    body: JSON.stringify({ reason }),
+  });
 }

@@ -40,14 +40,12 @@ export type AdminEvent = {
   updatedAt?: string;
 };
 
-export type CreateEventRequest = Omit<
-  AdminEvent,
-  'eventId' | 'createdAt' | 'updatedAt'
->;
+export type CreateEventRequest = Omit<AdminEvent, 'eventId' | 'createdAt' | 'updatedAt'>;
 
-export type UpdateEventRequest = CreateEventRequest;
+export type UpdateEventRequest = CreateEventRequest & { confirmStructuralChange?: boolean };
 
 export type AdminCourse = {
+  active?: boolean;
   courseId: number;
   name: string;
   targetDistanceMeter: number;

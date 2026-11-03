@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     server: proxyTarget
       ? {
+          watch: env.VITE_DEV_POLL === 'true' ? { usePolling: true, interval: 500 } : undefined,
           proxy: {
             '/api': {
               target: proxyTarget,

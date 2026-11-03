@@ -153,7 +153,10 @@
   line-height: 1.55;
 }
 
-.auth-reset-guide strong { color: #1f4f82; font-size: 13px; }
+.auth-reset-guide strong {
+  color: #1f4f82;
+  font-size: 13px;
+}
 
 .auth-submit-link {
   display: flex;

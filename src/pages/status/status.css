@@ -1,5 +1,18 @@
+/* 대회 현황 페이지 (.page-container 등 공통 레이아웃은 global.css, 랭킹 보드는 ranking.css) */
 .page-section {
   max-width: 780px;
+}
+
+.status-privacy {
+  margin: 14px 0 0;
+  color: #7c8996;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.status-privacy time {
+  color: inherit;
+  font: inherit;
 }
 
 .status-grid {
@@ -41,7 +54,7 @@
   line-height: 1.55;
 }
 
-.table-section {
+.status-ranking-section {
   margin-top: 42px;
 }
 
@@ -63,64 +76,41 @@
 }
 
 .section-row p {
-  margin: 0;
+  margin: 6px 0 0;
   color: #7c8996;
   font-size: 14px;
   line-height: 1.55;
 }
 
-.table-scroll {
-  overflow-x: auto;
+.status-course-filter {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10px;
 }
 
-.official-card {
-  background: #ffffff;
-  border: 1px solid #d9e2ec;
-  border-radius: 8px;
-  box-shadow: 0 8px 22px rgba(26, 72, 115, 0.045);
-}
-
-.program-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: #ffffff;
-  font-size: 15px;
-}
-
-.program-table th,
-.program-table td {
-  padding: 15px 13px;
-  border-bottom: 1px solid #d9e2ec;
-  text-align: center;
-  vertical-align: middle;
+.status-course-filter label {
+  color: #536271;
+  font-size: 13px;
+  font-weight: 650;
   white-space: nowrap;
 }
 
-.program-table thead th {
-  background: #eef5fc;
-  color: #1c2d3d;
-  font-weight: 700;
+.status-course-filter select {
+  min-width: 190px;
+  height: 40px;
+  padding: 0 36px 0 12px;
+  border: 1px solid #cedae6;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #263849;
+  font: inherit;
+  font-size: 13px;
 }
 
-.program-table tbody tr:last-child th,
-.program-table tbody tr:last-child td {
-  border-bottom: 0;
-}
-
-.program-table tbody td {
-  color: #536271;
-}
-
-.program-table tbody td:nth-child(1),
-.program-table tbody td:nth-child(2),
-.program-table tbody td:nth-child(3) {
-  color: #1d2733;
-  font-weight: 650;
-}
-
-.program-table tbody td:last-child {
-  font-weight: 700;
-  color: #1f4f82;
+.status-course-filter select:disabled {
+  color: #8a97a4;
+  background: #f5f8fb;
 }
 
 @media (max-width: 960px) {
@@ -132,8 +122,13 @@
     display: block;
   }
 
-  .section-row p {
-    margin-top: 8px;
+  .status-course-filter {
+    margin-top: 14px;
+  }
+
+  .status-course-filter select {
+    flex: 1;
+    min-width: 0;
   }
 }
 

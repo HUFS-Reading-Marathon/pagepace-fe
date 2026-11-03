@@ -11,22 +11,11 @@ import type {
 const LOGIN_PATH = '/api/auth/login';
 const CURRENT_USER_PATH = '/api/me';
 const LOGOUT_PATH = '/api/auth/logout';
-const PASSWORD_RESET_SEND_PATH =
-  '/api/auth/password-reset/email-verifications/send';
-const PASSWORD_RESET_CONFIRM_PATH =
-  '/api/auth/password-reset/email-verifications/confirm';
+const PASSWORD_RESET_SEND_PATH = '/api/auth/password-reset/email-verifications/send';
+const PASSWORD_RESET_CONFIRM_PATH = '/api/auth/password-reset/email-verifications/confirm';
 
-const USER_ROLES: ReadonlyArray<UserRole> = [
-  'USER',
-  'ADMIN',
-  'SUPER_ADMIN',
-];
-const USER_STATUSES: ReadonlyArray<UserStatus> = [
-  'ACTIVE',
-  'INACTIVE',
-  'BANNED',
-  'DELETED',
-];
+const USER_ROLES: ReadonlyArray<UserRole> = ['USER', 'ADMIN', 'SUPER_ADMIN'];
+const USER_STATUSES: ReadonlyArray<UserStatus> = ['ACTIVE', 'INACTIVE', 'BANNED', 'DELETED'];
 const AFFILIATION_TYPES: ReadonlyArray<AffiliationType> = [
   'UNDERGRADUATE',
   'GRADUATE',
@@ -69,11 +58,7 @@ export async function login(credentials: LoginRequest) {
   const accessToken = response?.accessToken?.trim();
 
   if (!accessToken) {
-    throw new ApiError(
-      '로그인 응답에 Access Token이 없습니다.',
-      200,
-      'INVALID_LOGIN_RESPONSE',
-    );
+    throw new ApiError('로그인 응답에 Access Token이 없습니다.', 200, 'INVALID_LOGIN_RESPONSE');
   }
 
   return { accessToken } satisfies AccessTokenResponse;
@@ -111,11 +96,7 @@ export async function sendPasswordResetCode(studentNo: string, email: string) {
   });
 }
 
-export async function confirmPasswordReset(
-  studentNo: string,
-  email: string,
-  code: string,
-) {
+export async function confirmPasswordReset(studentNo: string, email: string, code: string) {
   await apiRequest<null>(PASSWORD_RESET_CONFIRM_PATH, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
