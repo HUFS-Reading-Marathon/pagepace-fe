@@ -46,7 +46,7 @@ export default function ReviewRecommendations({
     ),
   }));
   const actions = (target: ReviewTargetBook) => (
-    <div className="reading-detail-actions">
+    <div className="review-actions">
       <a
         className="btn btn-secondary"
         href={target.reviewSearchUrl}

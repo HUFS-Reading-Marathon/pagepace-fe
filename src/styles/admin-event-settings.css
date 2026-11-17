@@ -51,7 +51,14 @@
   margin-top: 24px;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  flex-wrap: wrap;
+  gap: 16px 20px;
+}
+
+/* 사이드바가 있는 태블릿 폭에서 제목이 한 글자 폭으로 눌리지 않도록 최소 폭을 둡니다. */
+.admin-event-settings__selector > div:first-child {
+  flex: 1 1 220px;
+  min-width: 0;
 }
 
 .admin-event-settings__selector h2 {

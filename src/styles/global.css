@@ -512,6 +512,76 @@ img {
   line-height: 1.7;
 }
 
+.text-link {
+  display: inline-block;
+  margin-top: 20px;
+  color: var(--navy-strong);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* 나의 현황·독서일지 상단 참가 회차 선택 (PersonalEventSelector) */
+.personal-event-selector {
+  display: flex;
+  padding-top: 18px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px 12px;
+}
+
+.personal-event-selector label {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 10px;
+  color: #536271;
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.personal-event-selector select {
+  width: 300px;
+  max-width: 100%;
+  min-width: 0;
+  height: 40px;
+  padding: 0 36px 0 12px;
+  border: 1px solid #cedae6;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #263849;
+  font-size: 13px;
+}
+
+.personal-event-selector select:disabled {
+  color: #8a97a4;
+  background: #f5f8fb;
+}
+
+.personal-event-selector [role='alert'] {
+  margin: 0;
+  flex-basis: 100%;
+  color: #8c3d3d;
+  font-size: 13px;
+  text-align: right;
+}
+
+@media (max-width: 560px) {
+  .personal-event-selector {
+    justify-content: stretch;
+  }
+
+  .personal-event-selector label {
+    width: 100%;
+  }
+
+  .personal-event-selector select {
+    flex: 1;
+    width: auto;
+  }
+}
+
 @media (max-width: 720px) {
   .page-container {
     width: min(100% - 28px, 1120px);

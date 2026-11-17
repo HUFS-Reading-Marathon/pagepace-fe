@@ -66,7 +66,7 @@ function RankingBoard({
                   <b>{ranking.name}</b>
                   {showIdentity && <small>{ranking.studentNo}</small>}
                   {ranking.participationId === myParticipationId && (
-                    <span className="race-my-badge"> · 나</span>
+                    <span className="race-my-badge">나</span>
                   )}
                 </span>
                 {completed && (

@@ -631,3 +631,21 @@
     height: 23px;
   }
 }
+
+/* 로그인 사용자 본인 행 표시 (메달 배경보다 뒤에 선언해 우선 적용) */
+.ranking-race-list > article.race-row-mine {
+  background: #f3f8fd;
+  box-shadow: inset 3px 0 0 #1f4f82;
+}
+
+.race-my-badge {
+  display: inline-flex;
+  width: max-content;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #e4eef8;
+  color: #1f4f82;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+}

@@ -411,8 +411,8 @@ function AdminParticipantsPage() {
         </div>
       </header>
 
-      <label>
-        관리할 행사{' '}
+      <label className="admin-participants__event">
+        <span>관리할 행사</span>
         <select
           aria-label="관리할 행사"
           value={currentEventId ?? ''}

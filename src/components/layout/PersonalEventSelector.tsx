@@ -29,7 +29,7 @@ export default function PersonalEventSelector() {
   if (!isAuthenticated || !(pathname.startsWith('/my') || pathname.startsWith('/logs')))
     return null;
   return (
-    <div className="wrap">
+    <div className="wrap personal-event-selector">
       <label>
         조회할 참가 회차{' '}
         <select

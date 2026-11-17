@@ -95,7 +95,7 @@ export default function ParticipantRegistration({ eventId }: { eventId: number }
     }
   };
   return (
-    <section className="admin-event-settings__panel">
+    <section className="admin-participants__registration">
       <h2>승인 참가자 · 직접 등록</h2>
       <p>
         {summary
@@ -107,7 +107,7 @@ export default function ParticipantRegistration({ eventId }: { eventId: number }
         <summary>참가자 직접 등록</summary>
         <form onSubmit={submit}>
           <fieldset disabled={busy}>
-            <label>
+            <label className="admin-participants__registration-check">
               <input
                 type="checkbox"
                 checked={newAccount}
@@ -212,7 +212,12 @@ export default function ParticipantRegistration({ eventId }: { eventId: number }
                   ))}
               </select>
             </label>
-            <button disabled={busy}>{busy ? '등록 중…' : '참가자 등록'}</button>
+            <button
+              className="admin-participants__button admin-participants__button--primary"
+              disabled={busy}
+            >
+              {busy ? '등록 중…' : '참가자 등록'}
+            </button>
           </fieldset>
         </form>
       </details>
