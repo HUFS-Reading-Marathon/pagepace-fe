@@ -10,6 +10,7 @@ import {
 import { getAdminEventCourses } from '../../../api/adminEventApi';
 import { getEventSummary, type EventSummary } from '../../../api/eventApi';
 import type { AdminCourse } from '../../../types/adminEvent';
+import { getParticipationStatusLabel } from '../../../types/participation';
 
 export default function ParticipantRegistration({ eventId }: { eventId: number }) {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -241,7 +242,7 @@ export default function ParticipantRegistration({ eventId }: { eventId: number }
                   <td>{p.name}</td>
                   <td>{p.studentNo}</td>
                   <td>{p.courseName}</td>
-                  <td>{p.status}</td>
+                  <td>{getParticipationStatusLabel(p.status)}</td>
                   <td>{p.totalPages}</td>
                   <td>{(p.totalDistanceMeter / 1000).toFixed(2)}km</td>
                 </tr>

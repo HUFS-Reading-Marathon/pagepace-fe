@@ -142,12 +142,12 @@ function MyPage() {
           <p>서평 확인된 승인 쪽수 × 5m</p>
         </article>
         <article>
-          <span>인정 기록</span>
+          <span>승인 일지</span>
           <strong>{approvedCount}건</strong>
-          <p>관리자 확인 완료</p>
+          <p>승인으로 쪽수가 확정된 기록</p>
         </article>
         <article>
-          <span>검토중</span>
+          <span>검토 대기</span>
           <strong>{pendingCount}건</strong>
           <p>승인 대기 중인 기록</p>
         </article>
@@ -166,7 +166,7 @@ function MyPage() {
         {recentLog ? (
           <article className="my-latest-card">
             <div>
-              <span className={`my-status-badge status-${recentLogStatusLabel}`}>
+              <span className={`my-status-badge status-${recentLog.status}`}>
                 {recentLogStatusLabel}
               </span>
               <h3>{recentLog.books.map((book) => book.bookTitle).join(', ')}</h3>

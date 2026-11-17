@@ -266,9 +266,7 @@ function MyReadingLogsPage() {
                       to={`/logs/${log.readingLogId}`}
                       className="my-library-log-row"
                     >
-                      <span className={`log-status-badge status-${statusLabel}`}>
-                        {statusLabel}
-                      </span>
+                      <span className={`log-status-badge status-${log.status}`}>{statusLabel}</span>
                       <div>
                         <strong>{log.books.map((book) => book.bookTitle).join(', ')}</strong>
                         <span>

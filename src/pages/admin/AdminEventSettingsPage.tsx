@@ -36,7 +36,7 @@ import {
   COURSE_PRESETS,
   EMPTY_COURSE_FORM,
   EMPTY_EVENT_FORM,
-  getEventCountdown,
+  describeEventCountdown,
   formatDateLabel,
   formatShortDateRange,
   getCourseFormChanges,
@@ -131,7 +131,7 @@ function AdminEventSettingsPage() {
   } | null>(null);
 
   const eventCountdown = useMemo(
-    () => getEventCountdown(eventForm.eventStartDate, eventForm.eventEndDate),
+    () => describeEventCountdown(eventForm.eventStartDate, eventForm.eventEndDate),
     [eventForm.eventEndDate, eventForm.eventStartDate],
   );
 
@@ -753,9 +753,14 @@ function AdminEventSettingsPage() {
         </div>
 
         <div className="admin-event-settings__countdown" aria-live="polite">
-          <span>행사 시작까지</span>
-          <strong>{eventCountdown}</strong>
-          <small>{formatDateLabel(eventForm.eventStartDate)}</small>
+          <span>{eventCountdown.label}</span>
+          <strong>{eventCountdown.value}</strong>
+          {eventCountdown.date === 'start' && (
+            <small>{formatDateLabel(eventForm.eventStartDate)} 시작</small>
+          )}
+          {eventCountdown.date === 'end' && (
+            <small>{formatDateLabel(eventForm.eventEndDate)} 종료</small>
+          )}
         </div>
       </header>
 

@@ -590,19 +590,19 @@ img {
 }
 
 /* ===== 독서일지 상태 배지 색상 (.my-status-badge / .log-status-badge 공용) ===== */
-.status-인정 {
+.status-APPROVED {
   color: #1f4f82;
   background: #eef5fc;
   border: 1px solid #c5d7ea;
 }
 
-.status-검토중 {
+.status-SUBMITTED {
   color: #8a6a29;
   background: #fff8e6;
   border: 1px solid #ead8a8;
 }
 
-.status-반려 {
+.status-REJECTED {
   color: #8c3d3d;
   background: #fff1f1;
   border: 1px solid #edc5c5;

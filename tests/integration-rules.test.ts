@@ -1,4 +1,5 @@
 import { toCsv } from '../src/utils/csv';
+import { describeEventCountdown } from '../src/utils/adminEventForms';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   canApply,
@@ -173,4 +174,28 @@ describe('실제 참가 기록 기반 관리자 집계', () => {
 
 it('CSV는 쉼표·따옴표·줄바꿈을 보존하고 수식 입력을 이스케이프한다', () => {
   expect(toCsv([['가,나', 'a"b', '=1+1', 42]])).toBe('\uFEFF"가,나","a""b","\'=1+1","42"');
+});
+
+describe('행사 설정 카운트다운 라벨', () => {
+  it('값과 같은 기준 날짜로 라벨을 정한다', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 10, 17, 12));
+    try {
+      expect(describeEventCountdown('2026-11-20', '2026-12-12')).toEqual({
+        label: '행사 시작까지',
+        value: 'D-3',
+        date: 'start',
+      });
+      expect(describeEventCountdown('2026-11-17', '2026-12-12').label).toBe('행사 시작일');
+      expect(describeEventCountdown('2026-09-22', '2026-12-12')).toEqual({
+        label: '행사 기간',
+        value: '행사 진행 중',
+        date: 'end',
+      });
+      expect(describeEventCountdown('2026-03-02', '2026-06-12').value).toBe('행사 종료');
+      expect(describeEventCountdown('', '').date).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

@@ -92,7 +92,7 @@ function ReadingLogDetailPage() {
               {log.readingDate} · {log.books.length}권 기록
             </p>
           </div>
-          <span className={`log-status-badge status-${statusLabel}`}>{statusLabel}</span>
+          <span className={`log-status-badge status-${log.status}`}>{statusLabel}</span>
         </header>
 
         <dl className="reading-detail-summary">

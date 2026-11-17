@@ -331,6 +331,8 @@
   min-height: 26px;
   padding: 0 10px;
   border-radius: 999px;
+  white-space: nowrap;
+  flex: none;
   font-size: 12px;
   font-weight: 650;
 }

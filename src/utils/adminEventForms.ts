@@ -195,6 +195,28 @@ export function getEventCountdown(startDate: string, endDate: string) {
   return endUtc !== null ? '행사 종료' : '시작일 경과';
 }
 
+/**
+ * 행사 설정 상단 카드의 라벨과 보조 날짜를 getEventCountdown 결과와 같은 기준(행사 기간 시작·종료일)으로 정합니다.
+ * date: 'start'면 시작일, 'end'면 종료일을 보조 문구로 보여 줍니다.
+ */
+export function describeEventCountdown(startDate: string, endDate: string) {
+  const value = getEventCountdown(startDate, endDate);
+
+  if (value === '일정 미설정') {
+    return { label: '행사 일정', value, date: null } as const;
+  }
+  if (value === 'D-DAY') {
+    return { label: '행사 시작일', value, date: 'start' } as const;
+  }
+  if (value.startsWith('D-')) {
+    return { label: '행사 시작까지', value, date: 'start' } as const;
+  }
+  if (value === '시작일 경과') {
+    return { label: '행사 기간', value, date: 'start' } as const;
+  }
+  return { label: '행사 기간', value, date: 'end' } as const;
+}
+
 export function formatDateLabel(value: string) {
   if (!value) {
     return '행사 시작일을 입력해 주세요.';

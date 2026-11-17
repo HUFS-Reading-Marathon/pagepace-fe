@@ -1,5 +1,5 @@
-import type { AdminEvent } from '../../../types/adminEvent';
-import { formatKoDateKey, getLocalDateKey } from '../../../utils/date';
+import { EVENT_STATUS_LABELS, type AdminEvent, type EventStatus } from '../../../types/adminEvent';
+import { formatKoDateKey } from '../../../utils/date';
 
 type DashboardEventOverviewProps = {
   event: AdminEvent | null;
@@ -28,6 +28,18 @@ function formatPeriod(startDate: string, endDate: string) {
   return `${startLabel} ~ ${endLabel}`;
 }
 
+/** 서버 행사 상태를 배지 색 구분으로 묶습니다. 라벨은 관리자 홈·행사 설정과 같은 EVENT_STATUS_LABELS를 씁니다. */
+const EVENT_STATE_TONE: Record<EventStatus, 'upcoming' | 'active' | 'ended'> = {
+  DRAFT: 'upcoming',
+  READY: 'upcoming',
+  APPLICATION_OPEN: 'active',
+  APPLICATION_CLOSED: 'active',
+  IN_PROGRESS: 'active',
+  ENDED: 'ended',
+  FINALIZED: 'ended',
+  ARCHIVED: 'ended',
+};
+
 function getEventState(event: AdminEvent | null) {
   if (!event) {
     return {
@@ -36,25 +48,9 @@ function getEventState(event: AdminEvent | null) {
     } as const;
   }
 
-  const todayKey = getLocalDateKey();
-
-  if (todayKey < event.eventStartDate) {
-    return {
-      label: '운영 예정',
-      tone: 'upcoming',
-    } as const;
-  }
-
-  if (todayKey > event.eventEndDate) {
-    return {
-      label: '운영 종료',
-      tone: 'ended',
-    } as const;
-  }
-
   return {
-    label: '운영 중',
-    tone: 'active',
+    label: EVENT_STATUS_LABELS[event.status] ?? event.status,
+    tone: EVENT_STATE_TONE[event.status] ?? 'active',
   } as const;
 }
 
