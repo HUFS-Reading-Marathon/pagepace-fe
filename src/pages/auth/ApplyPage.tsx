@@ -474,7 +474,7 @@ function ApplyPage() {
                   {isEmailVerified
                     ? '인증완료'
                     : isSendingVerification
-                      ? '발송 중'
+                      ? '발송 중...'
                       : isCodeSent
                         ? '재전송'
                         : '인증하기'}

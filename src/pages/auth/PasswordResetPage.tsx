@@ -108,7 +108,7 @@ function PasswordResetPage() {
                 onClick={handleSend}
                 disabled={isSending || completed}
               >
-                {isSending ? '발송 중' : codeSent ? '재발송' : '인증번호 발송'}
+                {isSending ? '발송 중...' : codeSent ? '재발송' : '인증번호 발송'}
               </button>
             </div>
           </div>
