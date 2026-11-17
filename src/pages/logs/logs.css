@@ -1623,9 +1623,15 @@
   }
 
   .reading-book-row-title {
+    flex: 1 1 auto;
     align-items: flex-start;
     flex-direction: column;
     gap: 4px;
+  }
+
+  /* 세로 배치에서도 긴 도서명이 카드 폭 안에서 말줄임되도록 폭을 제한합니다. */
+  .reading-book-row-preview {
+    max-width: 100%;
   }
 
   .reading-log-summary {

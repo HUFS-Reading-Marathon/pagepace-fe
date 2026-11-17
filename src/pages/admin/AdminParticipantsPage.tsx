@@ -246,9 +246,22 @@ function AdminParticipantsPage() {
       return;
     }
 
-    const participantName =
-      participants.find((participant) => participant.applicationId === applicationId)?.name ??
-      '참가자';
+    const targetApplication = participants.find(
+      (participant) => participant.applicationId === applicationId,
+    );
+    const participantName = targetApplication?.name ?? '참가자';
+
+    // 목록과 상세 다이얼로그 모두 이 함수를 거치므로, 승인 요청 전에 대상과 코스를 한 번 확인합니다.
+    const confirmTarget = targetApplication
+      ? `${targetApplication.name}(${targetApplication.studentNo}) · ${targetApplication.courseName}`
+      : participantName;
+    if (
+      !window.confirm(
+        `${confirmTarget}\n\n이 참가 신청을 승인할까요? 승인하면 참가자로 등록됩니다.`,
+      )
+    ) {
+      return;
+    }
 
     processingApplicationIdRef.current = applicationId;
     setProcessingApplicationId(applicationId);
