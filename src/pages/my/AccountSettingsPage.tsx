@@ -33,7 +33,9 @@ function AccountSettingsPage() {
   const [originalEmail, setOriginalEmail] = useState('');
   const [verifiedEmail, setVerifiedEmail] = useState('');
   const [code, setCode] = useState('');
-  const [verifying, setVerifying] = useState(false);
+  // 인증 코드 발송과 확인이 같은 잠금을 쓰되, 버튼 문구는 진행 중인 작업에만 표시하도록 구분합니다.
+  const [verifyingAction, setVerifyingAction] = useState<'send' | 'confirm' | null>(null);
+  const verifying = verifyingAction !== null;
   const [pw, setPw] = useState({ current: '', next: '', confirm: '' });
   const [message, setMessage] = useState('');
 
@@ -120,20 +122,22 @@ function AccountSettingsPage() {
             <div>
               <button
                 type="button"
+                className="account-verify-send"
                 disabled={verifying}
+                aria-busy={verifyingAction === 'send'}
                 onClick={async () => {
-                  setVerifying(true);
+                  setVerifyingAction('send');
                   try {
                     await sendApplicationEmailVerification(form.email);
                     setMessage('인증 코드를 보냈습니다.');
                   } catch (error) {
                     setMessage(error instanceof Error ? error.message : '발송 실패');
                   } finally {
-                    setVerifying(false);
+                    setVerifyingAction(null);
                   }
                 }}
               >
-                인증 코드 발송
+                {verifyingAction === 'send' ? '발송 중...' : '인증 코드 발송'}
               </button>
               <label>
                 인증 코드
@@ -144,7 +148,7 @@ function AccountSettingsPage() {
                 disabled={verifying || !code}
                 onClick={async () => {
                   const email = form.email;
-                  setVerifying(true);
+                  setVerifyingAction('confirm');
                   try {
                     await confirmApplicationEmailVerification(email, code);
                     setVerifiedEmail(email);
@@ -152,7 +156,7 @@ function AccountSettingsPage() {
                   } catch (error) {
                     setMessage(error instanceof Error ? error.message : '인증 실패');
                   } finally {
-                    setVerifying(false);
+                    setVerifyingAction(null);
                   }
                 }}
               >

@@ -71,6 +71,10 @@
   color: #fff;
   font-weight: 750;
 }
+/* 인증 코드 발송 버튼: 가장 긴 문구('인증 코드 발송') 기준 폭으로 고정해 '발송 중...'에도 크기가 같습니다. */
+.account-grid .account-verify-send {
+  min-width: calc(5.9em + 12px);
+}
 .account-message {
   margin-top: 20px;
   padding: 12px;

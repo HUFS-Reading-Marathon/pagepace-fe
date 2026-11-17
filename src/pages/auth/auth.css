@@ -802,3 +802,17 @@ main.auth-page.auth-page-pending > .auth-watermark {
     min-width: 0;
   }
 }
+
+/*
+ * 비밀번호 찾기 인증번호 발송 버튼: 가장 긴 문구('인증번호 발송')가 들어가는 폭으로 고정해
+ * '발송 중...'·'재발송'으로 바뀌어도 크기가 같게 합니다. (참가신청 버튼 크기는 그대로)
+ */
+.auth-shell-reset .auth-email-verification__button {
+  min-width: calc(5.8em + 28px);
+}
+
+@media (max-width: 560px) {
+  .auth-shell-reset .auth-email-verification__button {
+    min-width: calc(5.8em + 22px);
+  }
+}
