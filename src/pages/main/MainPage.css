@@ -291,16 +291,6 @@
   border-bottom: 1px solid var(--line);
 }
 
-.summary-head p,
-.section-title p {
-  margin: 0 0 7px;
-  color: var(--navy-strong);
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.075em;
-  text-transform: uppercase;
-}
-
 .summary-head h2 {
   margin: 0;
   color: var(--navy-strong);
@@ -424,8 +414,6 @@
   color: var(--gold);
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
 }
 
 .quick-grid strong {
