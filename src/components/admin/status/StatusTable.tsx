@@ -41,13 +41,13 @@ function StatusTable({ participants, hasParticipants, isLoading, error }: Status
         <caption className="sr-only">관리자용 참가자별 대회 현황</caption>
         <thead>
           <tr>
-            <th scope="col">소속</th>
-            <th scope="col">승인 일지</th>
             <th scope="col">이름</th>
             <th scope="col">학번</th>
+            <th scope="col">소속</th>
             <th scope="col">코스</th>
-            <th scope="col">누적 페이지</th>
-            <th scope="col">누적 거리</th>
+            <th scope="col">승인 일지</th>
+            <th scope="col">인정 쪽수</th>
+            <th scope="col">인정 거리</th>
             <th scope="col">선택일 독서량</th>
             <th scope="col">달성률</th>
             <th scope="col">완주 여부</th>
@@ -58,11 +58,16 @@ function StatusTable({ participants, hasParticipants, isLoading, error }: Status
         <tbody>
           {participants.map((participant) => (
             <tr key={participant.applicationId}>
-              <td>{participant.department || '—'}</td>
-              <td className="admin-status__number">{participant.approvedLogCount}건</td>
               <td className="admin-status__name">{participant.name}</td>
               <td className="admin-status__nowrap">{participant.studentNumber}</td>
+              <td>
+                {/* 집계 단계에서 빈 소속은 '미입력'(CSV용)으로 채워지므로 표에서는 다른 빈 칸과 같이 표시합니다. */}
+                {participant.department && participant.department !== '미입력'
+                  ? participant.department
+                  : '—'}
+              </td>
               <td className="admin-status__nowrap">{participant.courseName}</td>
+              <td className="admin-status__number">{participant.approvedLogCount}건</td>
               <td className="admin-status__number">
                 {participant.cumulativePages.toLocaleString('ko-KR')}쪽
               </td>

@@ -8,14 +8,6 @@
   justify-content: space-between;
   gap: 28px;
 }
-.admin-operations__eyebrow {
-  display: block;
-  margin-bottom: 7px;
-  color: var(--navy-strong);
-  font-size: 11px;
-  font-weight: var(--admin-fw-semibold);
-  letter-spacing: 0.09em;
-}
 .admin-operations__event-select {
   display: grid;
   min-width: 320px;

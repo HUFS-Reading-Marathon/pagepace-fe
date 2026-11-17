@@ -355,8 +355,8 @@ const EVENT_FIELD_LABELS: Record<keyof EventForm, string> = {
 };
 
 const EVENT_FIELD_IMPACTS: Partial<Record<keyof EventForm, string>> = {
-  applicationStartDate: '참가 신청 가능 기간이 바뀝니다.',
-  applicationEndDate: '참가 신청 가능 기간이 바뀝니다.',
+  applicationStartDate: '참가신청 가능 기간이 바뀝니다.',
+  applicationEndDate: '참가신청 가능 기간이 바뀝니다.',
   eventStartDate: '독서일지 제출 가능 기간이 바뀝니다.',
   eventEndDate: '독서일지 제출 가능 기간이 바뀝니다.',
   status: '사용자 화면의 신청·기록 가능 여부가 바뀔 수 있습니다.',

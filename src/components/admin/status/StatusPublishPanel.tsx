@@ -34,12 +34,12 @@ export default function StatusPublishPanel({
       <div className="admin-status__publish-body">
         <dl className="admin-status__publish-meta">
           <div>
-            <dt>마지막 서버 조회</dt>
+            <dt>마지막 조회</dt>
             <dd>{lastCalculatedAt ? formatKoDateTime24(lastCalculatedAt) : '조회 이력 없음'}</dd>
           </div>
           <div>
             <dt>완주 판정</dt>
-            <dd>서버 참가 상태 기준</dd>
+            <dd>참가 상태 기준</dd>
           </div>
           <div>
             <dt>공개 이름</dt>

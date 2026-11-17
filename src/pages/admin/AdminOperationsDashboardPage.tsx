@@ -172,7 +172,7 @@ function AdminOperationsDashboardPage() {
   const queues: QueueConfig[] = [
     {
       step: '01',
-      title: '참가 신청 승인',
+      title: '참가신청 승인',
       description: '오래 기다린 신청부터 확인합니다.',
       rows: pendingApplications.map((item) => ({
         key: item.applicationId,
@@ -182,7 +182,7 @@ function AdminOperationsDashboardPage() {
         submittedAt: item.appliedAt,
       })),
       unavailableMessage: null,
-      emptyText: '처리할 참가 신청서가 없습니다.',
+      emptyText: '처리할 참가신청서가 없습니다.',
       actionTo: '/admin/participants?status=APPLIED',
       actionLabel: '신청서 검수하기',
     },
@@ -279,12 +279,11 @@ function AdminOperationsDashboardPage() {
     <section className="admin-page admin-operations">
       <header className="admin-page__header admin-operations__header">
         <div>
-          <span className="admin-operations__eyebrow">TODAY'S WORK</span>
           <h1>오늘의 운영 업무</h1>
-          <p>신청·독서일지·서평 처리 대기를 한곳에서 확인하고, 오래 기다린 요청부터 처리하세요.</p>
+          <p>처리를 기다리는 신청·독서일지·서평입니다. 오래 기다린 요청부터 처리하세요.</p>
         </div>
         <label className="admin-operations__event-select">
-          <span>업무 대상 행사</span>
+          <span>관리 행사</span>
           <select
             value={selectedEventId ?? ''}
             onChange={(event) => {

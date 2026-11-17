@@ -40,7 +40,7 @@ const CSV_HEADERS = [
   '신청일',
 ];
 
-/** 참가 신청서를 승인 대기·승인·반려·취소 상태로 구분해 보여 주는 탭(직접 등록 참가자는 위 목록에서 관리) */
+/** 참가신청서를 승인 대기·승인·반려·취소 상태로 구분해 보여 주는 탭(직접 등록 참가자는 위 목록에서 관리) */
 const STATUS_TABS: ReadonlyArray<{
   value: ParticipantStatusFilter;
   label: string;
@@ -256,9 +256,7 @@ function AdminParticipantsPage() {
       ? `${targetApplication.name}(${targetApplication.studentNo}) · ${targetApplication.courseName}`
       : participantName;
     if (
-      !window.confirm(
-        `${confirmTarget}\n\n이 참가 신청을 승인할까요? 승인하면 참가자로 등록됩니다.`,
-      )
+      !window.confirm(`${confirmTarget}\n\n이 참가신청을 승인할까요? 승인하면 참가자로 등록됩니다.`)
     ) {
       return;
     }
@@ -272,7 +270,7 @@ function AdminParticipantsPage() {
     try {
       await approveAdminApplication(applicationId);
     } catch (requestError) {
-      const message = getApiErrorMessage(requestError, '참가 신청을 승인하지 못했습니다.');
+      const message = getApiErrorMessage(requestError, '참가신청을 승인하지 못했습니다.');
 
       setFeedbackMessage(message);
       setFeedbackIsError(true);
@@ -308,7 +306,7 @@ function AdminParticipantsPage() {
         }
       }
 
-      setFeedbackMessage(`${participantName}님의 참가 신청을 승인했습니다.`);
+      setFeedbackMessage(`${participantName}님의 참가신청을 승인했습니다.`);
     } catch (refreshError) {
       const message = getApiErrorMessage(
         refreshError,
@@ -380,7 +378,7 @@ function AdminParticipantsPage() {
     try {
       await rejectAdminApplication(applicationId, reason);
     } catch (requestError) {
-      const message = getApiErrorMessage(requestError, '참가 신청을 반려하지 못했습니다.');
+      const message = getApiErrorMessage(requestError, '참가신청을 반려하지 못했습니다.');
       setFeedbackMessage(message);
       setFeedbackIsError(true);
       setDetailActionError(message);
@@ -392,7 +390,7 @@ function AdminParticipantsPage() {
     try {
       setParticipants(await getAdminApplications(currentEventId));
       setDetailApplication(await getAdminApplicationDetail(applicationId));
-      setFeedbackMessage('참가 신청을 반려했습니다.');
+      setFeedbackMessage('참가신청을 반려했습니다.');
     } catch (refreshError) {
       const message = getApiErrorMessage(
         refreshError,
@@ -417,17 +415,14 @@ function AdminParticipantsPage() {
       <header className="admin-page__header admin-participants__header">
         <div>
           <h1>참가자 관리</h1>
-          <p>
-            참가 신청서를 검수하고, 승인 참가자 확인과 직접 등록을 관리합니다. 신청서 상태와 실제
-            참가자 목록(직접 등록 포함)은 구분해 표시합니다.
-          </p>
+          <p>참가신청을 검토하고 참가자를 관리합니다.</p>
         </div>
       </header>
 
       <label className="admin-participants__event">
-        <span>관리할 행사</span>
+        <span>관리 행사</span>
         <select
-          aria-label="관리할 행사"
+          aria-label="관리 행사"
           value={currentEventId ?? ''}
           disabled={processingApplicationId !== null}
           onChange={(e) => {
@@ -450,7 +445,7 @@ function AdminParticipantsPage() {
           eventId={currentEventId}
         />
       )}
-      <h2>참가 신청서</h2>
+      <h2>참가신청서</h2>
       <div className="admin-participants__tabs">
         <div className="admin-segmented" aria-label="신청 상태별 보기">
           {STATUS_TABS.map((tab) => (

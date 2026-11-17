@@ -1,5 +1,6 @@
 import { EVENT_STATUS_LABELS, type AdminEvent, type EventStatus } from '../../../types/adminEvent';
 import { formatKoDateKey } from '../../../utils/date';
+import { formatDistance } from '../../../utils/reading';
 
 type DashboardEventOverviewProps = {
   event: AdminEvent | null;
@@ -107,7 +108,7 @@ function DashboardEventOverview({
         <small>
           {approvedPageTotal === null || approvedDistanceMeters === null
             ? '데이터를 불러오는 중'
-            : `승인 ${approvedPageTotal.toLocaleString('ko-KR')}쪽 · 인정 ${approvedDistanceMeters.toLocaleString('ko-KR')}m`}
+            : `인정 ${approvedPageTotal.toLocaleString('ko-KR')}쪽 · 인정 거리 ${formatDistance(approvedDistanceMeters)}`}
         </small>
         <small>인정 거리는 서평 확인분 기준</small>
       </div>

@@ -770,12 +770,12 @@ function AdminEventSettingsPage() {
       >
         <div>
           <h2 id="eventSelectionTitle">관리 행사 선택</h2>
-          <p>관리자 행사 목록에서 수정할 행사를 선택합니다.</p>
+          <p>수정할 행사를 선택하세요.</p>
         </div>
 
         <div className="admin-event-settings__selector-controls">
           <select
-            aria-label="관리할 행사"
+            aria-label="관리 행사"
             value={selectedEventId ?? ''}
             disabled={isEventsLoading || isCreatingEvent || events.length === 0}
             onChange={(event) => handleEventSelection(event.target.value)}
@@ -816,7 +816,7 @@ function AdminEventSettingsPage() {
               {isCreatingEvent
                 ? '저장하기 전까지 기존 행사에는 영향을 주지 않습니다.'
                 : fieldsLocked
-                  ? '내용을 안전하게 확인하는 중입니다. 값을 바꾸려면 "설정 수정"을 눌러주세요.'
+                  ? '값을 바꾸려면 "설정 수정"을 누르세요.'
                   : `${EVENT_STATUS_LABELS[editingEvent!.status]} · 행사와 아래 코스는 모두 이 행사에만 적용됩니다.`}
             </small>
           </div>
@@ -927,7 +927,7 @@ function AdminEventSettingsPage() {
               <div>
                 <h2 id="eventPeriodTitle">기간 설정</h2>
                 <p>
-                  참가 신청을 받는 기간과 행사 운영 기간(독서일지 접수기간)을 순서대로 입력합니다.
+                  참가신청을 받는 기간과 행사 운영 기간(독서일지 접수기간)을 순서대로 입력합니다.
                 </p>
               </div>
               <span>필수</span>

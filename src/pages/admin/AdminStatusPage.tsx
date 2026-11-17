@@ -351,10 +351,8 @@ function AdminStatusPage() {
         <div className="admin-status__heading">
           <h1>대회 현황·랭킹</h1>
           <p>
-            누적 쪽수·인정 거리·완주 여부는 현재 기준입니다. 날짜 선택은 해당 날짜의 독서량 조회에만
-            적용됩니다.
+            인정 쪽수·인정 거리·완주 여부는 현재 기준입니다. 기준 날짜는 당일 독서량에만 적용됩니다.
           </p>
-          <p>승인된 참가자와 독서일지를 기준으로 실제 서버 현황을 조회합니다.</p>
         </div>
 
         <div className="admin-status__header-controls">
@@ -401,7 +399,7 @@ function AdminStatusPage() {
         <strong>집계 정책</strong>
         <span>승인·완주 참가자 포함</span>
         <span>승인된 독서일지만 반영</span>
-        <span>서버 페이지·거리 값 사용</span>
+        <span>인정 쪽수·거리 기준</span>
         <span>완주는 참가 상태 기준</span>
       </aside>
 

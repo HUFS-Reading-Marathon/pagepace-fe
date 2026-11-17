@@ -241,6 +241,8 @@ function AdminDashboardPage() {
     }
   };
 
+  const hasNoEvents = !isEventsLoading && events.length === 0 && !pageError;
+
   return (
     <section className="admin-page admin-dashboard">
       <header className="admin-page__header admin-dashboard__header admin-dashboard__enter admin-dashboard__enter--header">
@@ -322,7 +324,7 @@ function AdminDashboardPage() {
         </div>
       )}
 
-      {!isEventsLoading && events.length === 0 && !pageError && (
+      {hasNoEvents && (
         <div className="admin-dashboard__empty admin-dashboard__empty--page">
           관리할 행사가 없습니다. 행사/코스 설정에서 행사를 등록해 주세요.
         </div>
@@ -334,112 +336,111 @@ function AdminDashboardPage() {
         </div>
       )}
 
-      <DashboardEventOverview
-        event={selectedEvent}
-        approvedParticipantCount={dashboardData?.summary.participantCount ?? null}
-        approvedPageTotal={dashboardData?.summary.approvedPages ?? null}
-        approvedDistanceMeters={dashboardData?.summary.verifiedDistanceMeter ?? null}
-      />
+      {/* 행사가 없으면 빈 지표 카드·차트 대신 위 안내만 보여 줍니다. */}
+      {!hasNoEvents && (
+        <>
+          <DashboardEventOverview
+            event={selectedEvent}
+            approvedParticipantCount={dashboardData?.summary.participantCount ?? null}
+            approvedPageTotal={dashboardData?.summary.approvedPages ?? null}
+            approvedDistanceMeters={dashboardData?.summary.verifiedDistanceMeter ?? null}
+          />
 
-      <section className="admin-dashboard__metrics" aria-label="핵심 운영 지표">
-        <DashboardMetricCard
-          label="총 신청자"
-          value={analytics?.totalApplicants ?? null}
-          unit="명"
-          description={
-            analytics ? `승인 대기 ${analytics.pendingApplicantCount}명` : '서버 집계 대기'
-          }
-          to="/admin/participants"
-          linkLabel="참가자 관리"
-          tone="navy"
-        />
-        <DashboardMetricCard
-          label="승인 참가자"
-          value={dashboardData?.summary.participantCount ?? null}
-          unit="명"
-          description={
-            analytics
-              ? `직접 등록 포함 · 신청서 승인율 ${approvedRate.toFixed(1)}%`
-              : '서버 집계 대기'
-          }
-          to="/admin/participants"
-          linkLabel="승인 현황 보기"
-          tone="green"
-        />
-        <DashboardMetricCard
-          label="오늘 제출"
-          value={analytics?.todaySubmissionCount ?? null}
-          unit="건"
-          description={
-            analytics
-              ? getSubmissionComparison(
-                  analytics.todaySubmissionCount,
-                  analytics.yesterdaySubmissionCount,
-                )
-              : '서버 집계 대기'
-          }
-          to="/admin/logs"
-          linkLabel="독서일지 검토"
-          tone="blue"
-        />
-        <DashboardMetricCard
-          label="검토 대기"
-          value={analytics?.pendingLogs.length ?? null}
-          unit="건"
-          description={
-            analytics ? `서버 경고 ${analytics.warningPendingCount}건` : '서버 집계 대기'
-          }
-          to="/admin/logs"
-          linkLabel="대기 목록 보기"
-          tone="gold"
-        />
-        <DashboardMetricCard
-          label="총 완주자"
-          value={dashboardData?.summary.completedCount ?? null}
-          unit="명"
-          description="서평 인정 거리와 참가 완주 상태 기준"
-          to="/admin/status"
-          linkLabel="대회 현황 보기"
-          tone="teal"
-        />
-      </section>
+          <section className="admin-dashboard__metrics" aria-label="핵심 운영 지표">
+            <DashboardMetricCard
+              label="총 신청자"
+              value={analytics?.totalApplicants ?? null}
+              unit="명"
+              description={analytics ? `승인 대기 ${analytics.pendingApplicantCount}명` : '집계 중'}
+              to="/admin/participants"
+              linkLabel="참가자 관리"
+              tone="navy"
+            />
+            <DashboardMetricCard
+              label="승인 참가자"
+              value={dashboardData?.summary.participantCount ?? null}
+              unit="명"
+              description={
+                analytics ? `직접 등록 포함 · 신청서 승인율 ${approvedRate.toFixed(1)}%` : '집계 중'
+              }
+              to="/admin/participants"
+              linkLabel="승인 현황 보기"
+              tone="green"
+            />
+            <DashboardMetricCard
+              label="오늘 제출"
+              value={analytics?.todaySubmissionCount ?? null}
+              unit="건"
+              description={
+                analytics
+                  ? getSubmissionComparison(
+                      analytics.todaySubmissionCount,
+                      analytics.yesterdaySubmissionCount,
+                    )
+                  : '집계 중'
+              }
+              to="/admin/logs"
+              linkLabel="독서일지 검토"
+              tone="blue"
+            />
+            <DashboardMetricCard
+              label="검토 대기"
+              value={analytics?.pendingLogs.length ?? null}
+              unit="건"
+              description={analytics ? `확인 필요 ${analytics.warningPendingCount}건` : '집계 중'}
+              to="/admin/logs"
+              linkLabel="대기 목록 보기"
+              tone="gold"
+            />
+            <DashboardMetricCard
+              label="총 완주자"
+              value={dashboardData?.summary.completedCount ?? null}
+              unit="명"
+              description="서평 인정 거리와 참가 완주 상태 기준"
+              to="/admin/status"
+              linkLabel="대회 현황 보기"
+              tone="teal"
+            />
+          </section>
 
-      {/*
+          {/*
         서버 응답으로 집계할 수 있는 지표만 표시합니다. 성별 통계는 집계 데이터가 없어 제외했고,
         최근 신청·검토 대기 목록은 오늘의 업무와 각 관리 화면에서 처리합니다.
       */}
-      <div className="admin-dashboard__grid admin-dashboard__grid--primary">
-        <DashboardReadingTrend
-          logs={dashboardData?.logs ?? []}
-          now={dashboardData?.fetchedAt ?? new Date()}
-        />
-        <DashboardCourseCompletion
-          summaries={
-            dashboardData
-              ? getAdminCompetitionCourseSummaries(
-                  buildAdminCompetitionRows(
-                    dashboardData.participants,
-                    dashboardData.logs,
-                    dashboardData.courses,
-                    '',
-                  ),
-                  dashboardData.courses,
-                )
-              : []
-          }
-        />
-      </div>
+          <div className="admin-dashboard__grid admin-dashboard__grid--primary">
+            <DashboardReadingTrend
+              logs={dashboardData?.logs ?? []}
+              now={dashboardData?.fetchedAt ?? new Date()}
+            />
+            <DashboardCourseCompletion
+              summaries={
+                dashboardData
+                  ? getAdminCompetitionCourseSummaries(
+                      buildAdminCompetitionRows(
+                        dashboardData.participants,
+                        dashboardData.logs,
+                        dashboardData.courses,
+                        '',
+                      ),
+                      dashboardData.courses,
+                    )
+                  : []
+              }
+            />
+          </div>
 
-      <div className="admin-dashboard__grid">
-        <DashboardAffiliationChart
-          distribution={getAffiliationDistribution(
-            dashboardData?.participants.filter(
-              (p) => p.status === 'APPROVED' || p.status === 'COMPLETED',
-            ) ?? [],
-          )}
-          participantCount={dashboardData?.summary.participantCount ?? 0}
-        />
-      </div>
+          <div className="admin-dashboard__grid">
+            <DashboardAffiliationChart
+              distribution={getAffiliationDistribution(
+                dashboardData?.participants.filter(
+                  (p) => p.status === 'APPROVED' || p.status === 'COMPLETED',
+                ) ?? [],
+              )}
+              participantCount={dashboardData?.summary.participantCount ?? 0}
+            />
+          </div>
+        </>
+      )}
     </section>
   );
 }

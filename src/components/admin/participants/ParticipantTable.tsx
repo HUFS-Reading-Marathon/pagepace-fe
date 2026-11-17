@@ -45,7 +45,7 @@ function ParticipantTable({
   if (participants.length === 0) {
     return (
       <div className="admin-participants__empty">
-        {hasParticipants ? '조건에 맞는 참가자가 없습니다.' : '등록된 참가 신청이 없습니다.'}
+        {hasParticipants ? '조건에 맞는 참가자가 없습니다.' : '등록된 참가신청이 없습니다.'}
       </div>
     );
   }
@@ -53,7 +53,7 @@ function ParticipantTable({
   return (
     <div className="admin-participants__table-wrapper">
       <table className="admin-participants__table">
-        <caption className="sr-only">독서마라톤 참가 신청자 목록</caption>
+        <caption className="sr-only">독서마라톤 참가신청자 목록</caption>
         <thead>
           <tr>
             <th scope="col">신청 상태</th>

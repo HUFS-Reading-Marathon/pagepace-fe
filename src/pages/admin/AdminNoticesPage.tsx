@@ -166,7 +166,7 @@ function AdminNoticesPage() {
       <header className="admin-page__header admin-notices__header">
         <div>
           <h1>공지사항 관리</h1>
-          <p>사용자 홈 공지사항에 표시할 운영 공지를 작성하고 게시 상태를 관리합니다.</p>
+          <p>메인 화면 공지사항에 게시할 공지를 작성하고 공개 여부를 정합니다.</p>
         </div>
         <button
           type="button"
