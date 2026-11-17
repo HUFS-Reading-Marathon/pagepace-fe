@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth';
 import { ApiError } from '../../api/apiClient';
@@ -27,6 +27,22 @@ import {
 import './MainPage.css';
 
 const NOTICE_PREVIEW_COUNT = 3;
+
+const LIBRARY_SEARCH_URL = 'https://lib.hufs.ac.kr/global/search/i-discovery';
+
+/** 도서관 통합검색(i-discovery) 결과 URL을 만듭니다. 검색어는 `ALL=k|a|<검색어>` 형식으로 전달합니다. */
+function buildLibrarySearchUrl(keyword: string) {
+  const url = new URL(LIBRARY_SEARCH_URL);
+  url.search = new URLSearchParams({ ALL: `k|a|${keyword}`, offset: '0' }).toString();
+  return url.toString();
+}
+
+function handleLibrarySearchSubmit(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault();
+  const keyword = String(new FormData(event.currentTarget).get('keyword') ?? '').trim();
+  if (!keyword) return;
+  window.open(buildLibrarySearchUrl(keyword), '_blank', 'noopener,noreferrer');
+}
 
 /** 앱 내부 라우트('/status' 등)면 true. '#courses' 같은 hash와 외부 URL은 <a>로 렌더링합니다. */
 function isRouteHref(link: { href: string; external?: boolean }) {
@@ -253,14 +269,12 @@ function MainPage() {
             </p>
             <form
               className="search-row"
-              action="https://lib.hufs.ac.kr/global/search/tot/result"
-              method="get"
-              target="_blank"
+              onSubmit={handleLibrarySearchSubmit}
               aria-label="도서관 자료 검색"
             >
               <input
                 id="libSearch"
-                name="q"
+                name="keyword"
                 type="search"
                 placeholder="도서명, 저자, 키워드 검색"
                 autoComplete="off"
