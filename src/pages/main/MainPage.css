@@ -1228,6 +1228,13 @@
   min-width: 178px;
 }
 
+/* 신청 기간이 아닐 때 히어로 버튼 아래 안내 */
+.hero-apply-note {
+  margin: 14px 0 0;
+  color: var(--body);
+  font-size: 14px;
+}
+
 .hero-text-links {
   display: inline-flex;
   align-items: center;

@@ -15,6 +15,10 @@ import { METERS_PER_PAGE } from '../../constants/reading';
 import type { MyParticipation } from '../../types/participation';
 import { getExternalLinkAttrs } from '../../utils/links';
 import {
+  getApplicationAvailability,
+  getApplicationClosedMessage,
+} from '../../utils/eventSelection';
+import {
   CHECK_ITEMS,
   PROCESS_STEPS,
   QUICK_LINKS,
@@ -111,12 +115,19 @@ function MainPage() {
   }, [isAuthenticated, isInitializing, user?.userId]);
 
   const eventTitle = currentEvent?.title ?? '독서마라톤';
+  const contactPhone = currentEvent?.contactPhone?.trim() ?? '';
+  const contactEmail = currentEvent?.contactEmail?.trim() ?? '';
+  const kakaoOpenChatUrl = currentEvent?.kakaoOpenChatUrl?.trim() ?? '';
+  const hasKakaoOpenChat = /^https?:\/\//.test(kakaoOpenChatUrl);
+  // 행사에 등록되지 않은 값은 빈 행으로 두지 않고 숨깁니다.
   const heroInfo: [string, string][] = currentEvent
-    ? [
-        ['신청기간', `${currentEvent.applicationStartDate} — ${currentEvent.applicationEndDate}`],
-        ['독서일지 접수기간', `${currentEvent.eventStartDate} — ${currentEvent.eventEndDate}`],
-        ['문의', currentEvent.contactPhone || currentEvent.contactEmail],
-      ]
+    ? (
+        [
+          ['신청기간', `${currentEvent.applicationStartDate} — ${currentEvent.applicationEndDate}`],
+          ['독서일지 접수기간', `${currentEvent.eventStartDate} — ${currentEvent.eventEndDate}`],
+          ['문의', contactPhone || contactEmail],
+        ] as [string, string][]
+      ).filter(([, value]) => value !== '')
     : [];
   const myRecord: MyRecordSummary = myParticipation
     ? {
@@ -162,6 +173,16 @@ function MainPage() {
   }, []);
 
   const showMyRecord = isAuthenticated && !isInitializing && myParticipation !== null;
+  // 행사 조회 전(null)에는 기존 신청 버튼을 그대로 두어 화면이 깜빡이지 않게 합니다.
+  const applyAvailability = currentEvent
+    ? getApplicationAvailability(currentEvent)
+    : eventError
+      ? getApplicationAvailability(null)
+      : null;
+  const applyClosedMessage =
+    applyAvailability && applyAvailability.state !== 'open'
+      ? getApplicationClosedMessage(applyAvailability)
+      : null;
 
   return (
     <main id="main">
@@ -218,16 +239,31 @@ function MainPage() {
                 <Link className="btn btn-primary" to="/logs/new">
                   독서일지 작성하기
                 </Link>
+              ) : applyClosedMessage && !isAuthenticated ? (
+                <Link className="btn btn-primary" to="/login">
+                  로그인
+                </Link>
+              ) : applyClosedMessage ? (
+                <Link className="btn btn-primary" to="/status">
+                  대회 현황 보기
+                </Link>
               ) : (
                 <Link className="btn btn-primary" to="/apply">
                   참가신청 바로가기
                 </Link>
               )}
 
-              <div className="hero-text-links">
-                <Link to="/status">대회 현황 보기</Link>
-              </div>
+              {!(applyClosedMessage && isAuthenticated && !showMyRecord) && (
+                <div className="hero-text-links">
+                  <Link to="/status">대회 현황 보기</Link>
+                </div>
+              )}
             </div>
+            {!showMyRecord && applyClosedMessage && (
+              <p className="hero-apply-note" role="status">
+                {applyClosedMessage}
+              </p>
+            )}
           </div>
 
           <aside
@@ -461,29 +497,26 @@ function MainPage() {
             </p>
 
             <div className="contact-grid">
-              <div className="contact-item">
-                <span>전화 문의</span>
-                <b>{currentEvent?.contactPhone || '문의 전화 미등록'}</b>
-              </div>
-              <div className="contact-item">
-                <span>이메일</span>
-                {currentEvent?.contactEmail ? (
-                  <a href={`mailto:${currentEvent.contactEmail}`}>{currentEvent.contactEmail}</a>
-                ) : (
-                  <span>문의 이메일 미등록</span>
-                )}
-              </div>
-              <div className="contact-item">
-                <span>운영 채널</span>
-                {currentEvent?.kakaoOpenChatUrl &&
-                /^https?:\/\//.test(currentEvent.kakaoOpenChatUrl) ? (
-                  <a href={currentEvent.kakaoOpenChatUrl} target="_blank" rel="noopener noreferrer">
+              {contactPhone && (
+                <div className="contact-item">
+                  <span>전화 문의</span>
+                  <b>{contactPhone}</b>
+                </div>
+              )}
+              {contactEmail && (
+                <div className="contact-item">
+                  <span>이메일</span>
+                  <a href={`mailto:${contactEmail}`}>{contactEmail}</a>
+                </div>
+              )}
+              {hasKakaoOpenChat && (
+                <div className="contact-item">
+                  <span>운영 채널</span>
+                  <a href={kakaoOpenChatUrl} target="_blank" rel="noopener noreferrer">
                     카카오톡 오픈채팅
                   </a>
-                ) : (
-                  <span>운영 채널 미등록</span>
-                )}
-              </div>
+                </div>
+              )}
               <div className="contact-item">
                 <span>소속</span>
                 <b>글로벌캠퍼스 도서관</b>
@@ -495,18 +528,27 @@ function MainPage() {
         <div className="wrap cta-band fade-up">
           <div>
             <h2>
-              {showMyRecord ? '오늘 읽은 기록을 독서일지로 남겨보세요' : `${eventTitle} 참가신청`}
+              {showMyRecord
+                ? '오늘 읽은 기록을 독서일지로 남겨보세요'
+                : applyClosedMessage
+                  ? eventTitle
+                  : `${eventTitle} 참가신청`}
             </h2>
             <p>
               {showMyRecord
                 ? '일지 승인 시 쪽수, 서평 확인 시 거리와 완주율에 반영됩니다.'
-                : '신청 기간과 참가 대상 확인 후 참가신청서를 제출해 주세요.'}
+                : (applyClosedMessage ??
+                  '신청 기간과 참가 대상 확인 후 참가신청서를 제출해 주세요.')}
             </p>
           </div>
 
           {showMyRecord ? (
             <Link className="btn btn-navy" to="/logs/new">
               독서일지 작성하기
+            </Link>
+          ) : applyClosedMessage ? (
+            <Link className="btn btn-navy" to="/status">
+              대회 현황 보기
             </Link>
           ) : (
             <Link className="btn btn-navy" to="/apply">

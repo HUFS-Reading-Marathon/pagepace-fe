@@ -2,6 +2,8 @@ import { toCsv } from '../src/utils/csv';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   canApply,
+  getApplicationAvailability,
+  getApplicationClosedMessage,
   koreaToday,
   preferredAdminEvent,
   selectEvent,
@@ -38,6 +40,32 @@ describe('행사 선택과 신청 기간', () => {
     expect(canApply(event, '2026-10-30')).toBe(true);
     expect(canApply(event, '2026-10-31')).toBe(false);
     expect(canApply({ ...event, status: 'ENDED' }, '2026-10-20')).toBe(false);
+  });
+  it('신청 불가 사유를 canApply와 같은 기준으로 구분한다', () => {
+    const event = {
+      status: 'APPLICATION_OPEN',
+      applicationStartDate: '2026-10-01',
+      applicationEndDate: '2026-10-30',
+    };
+    expect(getApplicationAvailability(null).state).toBe('none');
+    expect(getApplicationAvailability(event, '2026-10-15').state).toBe('open');
+    expect(getApplicationAvailability(event, '2026-09-30')).toEqual({
+      state: 'before',
+      startDate: '2026-10-01',
+    });
+    expect(getApplicationAvailability(event, '2026-10-31')).toEqual({
+      state: 'after',
+      endDate: '2026-10-30',
+    });
+    expect(getApplicationAvailability({ ...event, status: 'READY' }, '2026-10-15').state).toBe(
+      'notStarted',
+    );
+    expect(
+      getApplicationAvailability({ ...event, status: 'APPLICATION_CLOSED' }, '2026-10-15').state,
+    ).toBe('closed');
+    expect(getApplicationClosedMessage({ state: 'after', endDate: '2026-10-30' })).toBe(
+      '참가신청이 2026년 10월 30일에 마감되었습니다.',
+    );
   });
   it('관리자와 개인 행사 선택은 서로 영향을 주지 않는다', () => {
     selectEvent('personal', 2);

@@ -1,6 +1,10 @@
-import { canApply } from '../../utils/eventSelection';
+import {
+  canApply,
+  getApplicationAvailability,
+  getApplicationClosedMessage,
+} from '../../utils/eventSelection';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { GENERAL_AFFILIATIONS, STUDENT_DEPARTMENT_GROUPS } from '../../constants/departments';
 import {
   confirmApplicationEmailVerification,
@@ -86,6 +90,14 @@ function ApplyPage() {
   const isSubmittingRef = useRef(false);
   const [errorMessage, setErrorMessage] = useState('');
   const normalizedEmail = email.trim();
+  // 행사 조회가 끝난 뒤 신청 가능 기간이 아니면 폼 대신 안내를 보여 줍니다. 최종 검증은 서버가 합니다.
+  const applicationAvailability = getApplicationAvailability(currentEvent);
+  const closedMessage =
+    isEventCourseLoading || applicationAvailability.state === 'open'
+      ? null
+      : currentEvent
+        ? getApplicationClosedMessage(applicationAvailability)
+        : eventCourseError || getApplicationClosedMessage({ state: 'none' });
   const isEmailVerified = verifiedEmail !== null && verifiedEmail === normalizedEmail;
   const isVerificationPending = isSendingVerification || isVerifyingCode;
   const isVerificationExpired = isCodeSent && verificationSecondsRemaining === 0;
@@ -386,247 +398,264 @@ function ApplyPage() {
             <p>
               {currentEvent.title} · 신청기간 {currentEvent.applicationStartDate} ~{' '}
               {currentEvent.applicationEndDate}
-              {!canApply(currentEvent) && ' · 현재 신청기간이 아니거나 접수가 마감되었습니다.'}
             </p>
           )}
-          <p className="auth-description">독서마라톤 참가를 위한 정보를 입력해 주세요.</p>
+          {!closedMessage && (
+            <p className="auth-description">독서마라톤 참가를 위한 정보를 입력해 주세요.</p>
+          )}
         </div>
 
-        <form className="auth-form" onSubmit={handleSubmit}>
-          <div className="auth-form-group">
-            <label htmlFor="name">성명</label>
-            <input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="이름"
-              autoComplete="name"
-            />
+        {closedMessage ? (
+          <div className="auth-closed" role="status">
+            <strong>{closedMessage}</strong>
+            {(applicationAvailability.state === 'after' ||
+              applicationAvailability.state === 'closed') && (
+              <p>이미 참가 중이라면 로그인 후 독서일지를 작성할 수 있습니다.</p>
+            )}
+            <div className="auth-closed-actions">
+              <Link to="/login" className="auth-closed-primary">
+                로그인
+              </Link>
+              <Link to="/status">대회 현황 보기</Link>
+            </div>
           </div>
-
-          <div className="auth-form-group">
-            <label htmlFor="studentNumber">학번/사번</label>
-            <input
-              id="studentNumber"
-              type="text"
-              value={studentNumber}
-              onChange={(event) => setStudentNumber(event.target.value)}
-              placeholder="학번 또는 사번"
-              autoComplete="username"
-            />
-            <p className="auth-field-help">입력한 학번/사번은 로그인 아이디로 사용됩니다.</p>
-          </div>
-
-          <div className="auth-form-group auth-email-verification">
-            <label htmlFor="email">학교 이메일</label>
-            <div className="auth-email-verification__row">
+        ) : (
+          <form className="auth-form" onSubmit={handleSubmit}>
+            <div className="auth-form-group">
+              <label htmlFor="name">성명</label>
               <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(event) => handleEmailChange(event.target.value)}
-                onInvalid={(event) => {
-                  event.preventDefault();
-                  setVerificationError('학교 이메일을 정확히 입력해 주세요.');
-                }}
-                placeholder="학교 이메일"
-                autoComplete="email"
-                disabled={isVerificationPending}
-                aria-describedby="email-verification-message"
+                id="name"
+                type="text"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="이름"
+                autoComplete="name"
               />
-              <button
-                type="button"
-                className={`auth-email-verification__button${
-                  isEmailVerified ? ' is-verified' : ''
-                }`}
-                onClick={handleSendVerification}
-                disabled={isVerificationPending || isEmailVerified}
-                aria-busy={isSendingVerification}
-              >
-                {isEmailVerified
-                  ? '인증완료'
-                  : isSendingVerification
-                    ? '발송 중'
-                    : isCodeSent
-                      ? '재전송'
-                      : '인증하기'}
-              </button>
             </div>
 
-            {isCodeSent && !isEmailVerified && (
-              <div className="auth-email-verification__row auth-email-verification__code-row">
-                <VerificationCodeInput
-                  value={verificationCode}
-                  length={VERIFICATION_CODE_LENGTH}
+            <div className="auth-form-group">
+              <label htmlFor="studentNumber">학번/사번</label>
+              <input
+                id="studentNumber"
+                type="text"
+                value={studentNumber}
+                onChange={(event) => setStudentNumber(event.target.value)}
+                placeholder="학번 또는 사번"
+                autoComplete="username"
+              />
+              <p className="auth-field-help">입력한 학번/사번은 로그인 아이디로 사용됩니다.</p>
+            </div>
+
+            <div className="auth-form-group auth-email-verification">
+              <label htmlFor="email">학교 이메일</label>
+              <div className="auth-email-verification__row">
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(event) => handleEmailChange(event.target.value)}
+                  onInvalid={(event) => {
+                    event.preventDefault();
+                    setVerificationError('학교 이메일을 정확히 입력해 주세요.');
+                  }}
+                  placeholder="학교 이메일"
+                  autoComplete="email"
                   disabled={isVerificationPending}
-                  describedById="email-verification-message"
-                  onChange={handleVerificationCodeChange}
-                  focusRequestKey={codeInputFocusKey}
+                  aria-describedby="email-verification-message"
                 />
-                <span
-                  className="auth-email-verification__timer"
-                  role="timer"
-                  aria-live="off"
-                  aria-label={`인증번호 입력 남은 시간 ${formatVerificationTime(
-                    verificationSecondsRemaining ?? VERIFICATION_TIME_LIMIT_SECONDS,
-                  )}`}
-                >
-                  {formatVerificationTime(
-                    verificationSecondsRemaining ?? VERIFICATION_TIME_LIMIT_SECONDS,
-                  )}
-                </span>
                 <button
                   type="button"
-                  className="auth-email-verification__button auth-email-verification__confirm"
-                  onClick={handleConfirmVerification}
-                  disabled={
-                    isVerificationPending ||
-                    verificationCode.length !== VERIFICATION_CODE_LENGTH ||
-                    isVerificationExpired
-                  }
-                  aria-busy={isVerifyingCode}
+                  className={`auth-email-verification__button${
+                    isEmailVerified ? ' is-verified' : ''
+                  }`}
+                  onClick={handleSendVerification}
+                  disabled={isVerificationPending || isEmailVerified}
+                  aria-busy={isSendingVerification}
                 >
-                  {isVerifyingCode ? '확인 중' : '확인'}
+                  {isEmailVerified
+                    ? '인증완료'
+                    : isSendingVerification
+                      ? '발송 중'
+                      : isCodeSent
+                        ? '재전송'
+                        : '인증하기'}
                 </button>
               </div>
-            )}
 
-            <p
-              id="email-verification-message"
-              className={`auth-email-verification__message${verificationError ? ' is-error' : ''}`}
-              role={verificationError ? 'alert' : 'status'}
-              aria-live="polite"
-            >
-              {verificationStatusMessage}
-            </p>
-          </div>
-
-          <div className="auth-form-group">
-            <label htmlFor="phone">연락처</label>
-            <input
-              id="phone"
-              type="tel"
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-              placeholder="예: 010-1234-5678"
-              autoComplete="tel"
-            />
-          </div>
-
-          <fieldset className="auth-form-group auth-affiliation-group">
-            <legend>신분</legend>
-            <div className="auth-affiliation-options">
-              {AFFILIATION_OPTIONS.map((option) => (
-                <label className="auth-affiliation-option" key={option.value}>
-                  <input
-                    type="radio"
-                    name="affiliation"
-                    value={option.value}
-                    checked={affiliation === option.value}
-                    onChange={() => handleAffiliationChange(option.value)}
+              {isCodeSent && !isEmailVerified && (
+                <div className="auth-email-verification__row auth-email-verification__code-row">
+                  <VerificationCodeInput
+                    value={verificationCode}
+                    length={VERIFICATION_CODE_LENGTH}
+                    disabled={isVerificationPending}
+                    describedById="email-verification-message"
+                    onChange={handleVerificationCodeChange}
+                    focusRequestKey={codeInputFocusKey}
                   />
-                  <span>{option.label}</span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-
-          <div className="auth-form-group">
-            <label htmlFor="department">
-              {affiliation === 'undergraduate' ? '소속 학과' : '소속 학과/부서'}
-            </label>
-            <select
-              id="department"
-              value={department}
-              onChange={(event) => setDepartment(event.target.value)}
-            >
-              <option value="" disabled>
-                소속을 선택해 주세요
-              </option>
-              {STUDENT_DEPARTMENT_GROUPS.map((group) => (
-                <optgroup key={group.label} label={group.label}>
-                  {group.departments.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-              {affiliation !== 'undergraduate' && (
-                <optgroup label="교직원·대학원·기타">
-                  {GENERAL_AFFILIATIONS.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </optgroup>
+                  <span
+                    className="auth-email-verification__timer"
+                    role="timer"
+                    aria-live="off"
+                    aria-label={`인증번호 입력 남은 시간 ${formatVerificationTime(
+                      verificationSecondsRemaining ?? VERIFICATION_TIME_LIMIT_SECONDS,
+                    )}`}
+                  >
+                    {formatVerificationTime(
+                      verificationSecondsRemaining ?? VERIFICATION_TIME_LIMIT_SECONDS,
+                    )}
+                  </span>
+                  <button
+                    type="button"
+                    className="auth-email-verification__button auth-email-verification__confirm"
+                    onClick={handleConfirmVerification}
+                    disabled={
+                      isVerificationPending ||
+                      verificationCode.length !== VERIFICATION_CODE_LENGTH ||
+                      isVerificationExpired
+                    }
+                    aria-busy={isVerifyingCode}
+                  >
+                    {isVerifyingCode ? '확인 중' : '확인'}
+                  </button>
+                </div>
               )}
-            </select>
-            <small className="auth-department-guide">
-              목록에 없는 소속은 도서관 담당자에게 문의해 주세요.
-            </small>
-          </div>
 
-          <div className="auth-form-row">
+              <p
+                id="email-verification-message"
+                className={`auth-email-verification__message${verificationError ? ' is-error' : ''}`}
+                role={verificationError ? 'alert' : 'status'}
+                aria-live="polite"
+              >
+                {verificationStatusMessage}
+              </p>
+            </div>
+
             <div className="auth-form-group">
-              <label htmlFor="course">참가 코스</label>
+              <label htmlFor="phone">연락처</label>
+              <input
+                id="phone"
+                type="tel"
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                placeholder="예: 010-1234-5678"
+                autoComplete="tel"
+              />
+            </div>
+
+            <fieldset className="auth-form-group auth-affiliation-group">
+              <legend>신분</legend>
+              <div className="auth-affiliation-options">
+                {AFFILIATION_OPTIONS.map((option) => (
+                  <label className="auth-affiliation-option" key={option.value}>
+                    <input
+                      type="radio"
+                      name="affiliation"
+                      value={option.value}
+                      checked={affiliation === option.value}
+                      onChange={() => handleAffiliationChange(option.value)}
+                    />
+                    <span>{option.label}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            <div className="auth-form-group">
+              <label htmlFor="department">
+                {affiliation === 'undergraduate' ? '소속 학과' : '소속 학과/부서'}
+              </label>
               <select
-                id="course"
-                value={selectedCourseId ?? ''}
-                onChange={(event) => setSelectedCourseId(Number(event.target.value))}
-                disabled={isEventCourseLoading || !canApply(currentEvent) || courses.length === 0}
+                id="department"
+                value={department}
+                onChange={(event) => setDepartment(event.target.value)}
               >
                 <option value="" disabled>
-                  {isEventCourseLoading
-                    ? '코스 정보를 불러오는 중입니다'
-                    : courses.length === 0
-                      ? '신청 가능한 코스 없음'
-                      : '코스를 선택해 주세요'}
+                  소속을 선택해 주세요
                 </option>
-                {courses.map((course) => (
-                  <option key={course.courseId} value={course.courseId}>
-                    {course.name}
-                  </option>
+                {STUDENT_DEPARTMENT_GROUPS.map((group) => (
+                  <optgroup key={group.label} label={group.label}>
+                    {group.departments.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
+                {affiliation !== 'undergraduate' && (
+                  <optgroup label="교직원·대학원·기타">
+                    {GENERAL_AFFILIATIONS.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
-              {eventCourseError && (
-                <p className="auth-error" role="alert">
-                  {eventCourseError}
-                </p>
-              )}
+              <small className="auth-department-guide">
+                목록에 없는 소속은 도서관 담당자에게 문의해 주세요.
+              </small>
             </div>
-          </div>
 
-          <label className="auth-check auth-agreement">
-            <input
-              type="checkbox"
-              checked={isAgreed}
-              onChange={(event) => setIsAgreed(event.target.checked)}
-            />
-            <span>
-              도서관 문화행사 참가자 파악 및 행사 안내를 위한 개인정보 수집 및 이용에 동의합니다.
-            </span>
-          </label>
+            <div className="auth-form-row">
+              <div className="auth-form-group">
+                <label htmlFor="course">참가 코스</label>
+                <select
+                  id="course"
+                  value={selectedCourseId ?? ''}
+                  onChange={(event) => setSelectedCourseId(Number(event.target.value))}
+                  disabled={isEventCourseLoading || !canApply(currentEvent) || courses.length === 0}
+                >
+                  <option value="" disabled>
+                    {isEventCourseLoading
+                      ? '코스 정보를 불러오는 중입니다'
+                      : courses.length === 0
+                        ? '신청 가능한 코스 없음'
+                        : '코스를 선택해 주세요'}
+                  </option>
+                  {courses.map((course) => (
+                    <option key={course.courseId} value={course.courseId}>
+                      {course.name}
+                    </option>
+                  ))}
+                </select>
+                {eventCourseError && (
+                  <p className="auth-error" role="alert">
+                    {eventCourseError}
+                  </p>
+                )}
+              </div>
+            </div>
 
-          {errorMessage && <p className="auth-error">{errorMessage}</p>}
+            <label className="auth-check auth-agreement">
+              <input
+                type="checkbox"
+                checked={isAgreed}
+                onChange={(event) => setIsAgreed(event.target.checked)}
+              />
+              <span>
+                도서관 문화행사 참가자 파악 및 행사 안내를 위한 개인정보 수집 및 이용에 동의합니다.
+              </span>
+            </label>
 
-          <button
-            type="submit"
-            className="auth-submit-button"
-            disabled={
-              !isEmailVerified ||
-              isVerificationPending ||
-              isSubmitting ||
-              isEventCourseLoading ||
-              !canApply(currentEvent) ||
-              selectedCourseId === null
-            }
-            aria-busy={isSubmitting}
-          >
-            {isSubmitting ? '신청 중...' : '참가신청하기'}
-          </button>
-        </form>
+            {errorMessage && <p className="auth-error">{errorMessage}</p>}
+
+            <button
+              type="submit"
+              className="auth-submit-button"
+              disabled={
+                !isEmailVerified ||
+                isVerificationPending ||
+                isSubmitting ||
+                isEventCourseLoading ||
+                !canApply(currentEvent) ||
+                selectedCourseId === null
+              }
+              aria-busy={isSubmitting}
+            >
+              {isSubmitting ? '신청 중...' : '참가신청하기'}
+            </button>
+          </form>
+        )}
       </section>
     </main>
   );
