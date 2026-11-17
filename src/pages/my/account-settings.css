@@ -69,7 +69,12 @@
   border-radius: 5px;
   background: #1f4f82;
   color: #fff;
-  font-weight: 750;
+  font-weight: 600;
+}
+/* 정보 저장·비밀번호 변경: 카드 전체 폭 대신 오른쪽 정렬된 고정 폭 버튼 */
+.account-grid form > button {
+  justify-self: end;
+  width: 190px;
 }
 /* 인증 코드 발송 버튼: 가장 긴 문구('인증 코드 발송') 기준 폭으로 고정해 '발송 중...'에도 크기가 같습니다. */
 .account-grid .account-verify-send {
@@ -88,5 +93,11 @@
 @media (max-width: 720px) {
   .account-grid {
     grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 560px) {
+  .account-grid form > button {
+    justify-self: stretch;
+    width: 100%;
   }
 }

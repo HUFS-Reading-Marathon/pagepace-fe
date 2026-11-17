@@ -27,6 +27,7 @@ import EventChangeReviewDialog from '../../components/admin/eventSettings/EventC
 import {
   EVENT_STATUSES,
   EVENT_STATUS_LABELS,
+  getEventStatusLabel,
   type AdminCourse,
   type AdminEvent,
   type EventStatus,
@@ -515,9 +516,13 @@ function AdminEventSettingsPage() {
           if (!(error instanceof ApiError) || error.code !== 'EVENT_CHANGE_CONFIRMATION_REQUIRED')
             throw error;
           const previous = events.find((event) => event.eventId === selectedEventId);
+          // 확인창에는 내부 코드 대신 화면과 같은 한국어 명칭을 보여 줍니다.
+          const statusLabel = (status?: string) => getEventStatusLabel(status) ?? status ?? '-';
+          const visibleLabel = (visible?: boolean) =>
+            visible === undefined ? '-' : visible ? '공개' : '비공개';
           if (
             !window.confirm(
-              `참가자가 있는 행사입니다. 아래 변경은 접수와 공개 화면에 영향을 줍니다.\n신청기간: ${previous?.applicationStartDate}~${previous?.applicationEndDate} → ${request.applicationStartDate}~${request.applicationEndDate}\n독서일지 접수기간: ${previous?.eventStartDate}~${previous?.eventEndDate} → ${request.eventStartDate}~${request.eventEndDate}\n상태: ${previous?.status} → ${request.status}\n공개: ${previous?.publicVisible} → ${request.publicVisible}\n변경을 확정할까요?`,
+              `참가자가 있는 행사입니다. 아래 변경은 접수와 공개 화면에 영향을 줍니다.\n신청기간: ${previous?.applicationStartDate}~${previous?.applicationEndDate} → ${request.applicationStartDate}~${request.applicationEndDate}\n독서일지 접수기간: ${previous?.eventStartDate}~${previous?.eventEndDate} → ${request.eventStartDate}~${request.eventEndDate}\n상태: ${statusLabel(previous?.status)} → ${statusLabel(request.status)}\n공개: ${visibleLabel(previous?.publicVisible)} → ${visibleLabel(request.publicVisible)}\n변경을 확정할까요?`,
             )
           )
             return;
