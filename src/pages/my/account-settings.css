@@ -45,6 +45,14 @@
   font-size: 12px;
   font-weight: 700;
 }
+/* 단과대학·소속 2단계 선택 칸: 다른 label 칸과 같은 간격 */
+.account-grid .account-field {
+  display: grid;
+  gap: 6px;
+  color: #394b5c;
+  font-size: 12px;
+  font-weight: 700;
+}
 .account-grid input,
 .account-grid select {
   height: 44px;

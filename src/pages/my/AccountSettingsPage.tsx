@@ -6,11 +6,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getApiErrorMessage } from '../../api/apiClient';
 import { changeMyPassword, getMe, updateMe, type MeUpdateRequest } from '../../api/meApi';
-import {
-  GENERAL_AFFILIATIONS,
-  STUDENT_DEPARTMENT_GROUPS,
-  getUnlistedDepartment,
-} from '../../constants/departments';
+import DepartmentSelect from '../../components/forms/DepartmentSelect';
 import { useAuth } from '../../auth';
 import './account-settings.css';
 
@@ -40,7 +36,6 @@ function AccountSettingsPage() {
   const [verifying, setVerifying] = useState(false);
   const [pw, setPw] = useState({ current: '', next: '', confirm: '' });
   const [message, setMessage] = useState('');
-  const unlistedDepartment = getUnlistedDepartment(form.department);
 
   useEffect(() => {
     getMe()
@@ -191,30 +186,15 @@ function AccountSettingsPage() {
               ))}
             </select>
           </label>
-          <label>
-            소속
-            <select
-              value={form.department}
-              onChange={(event) => setForm({ ...form, department: event.target.value })}
-            >
-              <option value="">선택</option>
-              {unlistedDepartment && (
-                <option value={unlistedDepartment}>{unlistedDepartment}</option>
-              )}
-              {STUDENT_DEPARTMENT_GROUPS.map((group) => (
-                <optgroup key={group.label} label={group.label}>
-                  {group.departments.map((department) => (
-                    <option key={department}>{department}</option>
-                  ))}
-                </optgroup>
-              ))}
-              <optgroup label="기타 소속">
-                {GENERAL_AFFILIATIONS.map((department) => (
-                  <option key={department}>{department}</option>
-                ))}
-              </optgroup>
-            </select>
-          </label>
+          <DepartmentSelect
+            idPrefix="accountDepartment"
+            value={form.department}
+            onChange={(department) => setForm((current) => ({ ...current, department }))}
+            includeGeneral
+            collegeLabel={form.affiliationType === 'UNDERGRADUATE' ? '단과대학' : '소속 구분'}
+            departmentLabel="소속"
+            fieldClassName="account-field"
+          />
           <button>정보 저장</button>
         </form>
         <form onSubmit={change}>

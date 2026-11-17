@@ -6,7 +6,7 @@ import {
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { formatKoDateKey } from '../../utils/date';
 import { Link, useNavigate } from 'react-router-dom';
-import { GENERAL_AFFILIATIONS, STUDENT_DEPARTMENT_GROUPS } from '../../constants/departments';
+import DepartmentSelect from '../../components/forms/DepartmentSelect';
 import {
   confirmApplicationEmailVerification,
   createApplication,
@@ -560,36 +560,14 @@ function ApplyPage() {
             </fieldset>
 
             <div className="auth-form-group">
-              <label htmlFor="department">
-                {affiliation === 'undergraduate' ? '소속 학과' : '소속 학과/부서'}
-              </label>
-              <select
-                id="department"
+              <DepartmentSelect
+                idPrefix="department"
                 value={department}
-                onChange={(event) => setDepartment(event.target.value)}
-              >
-                <option value="" disabled>
-                  소속을 선택해 주세요
-                </option>
-                {STUDENT_DEPARTMENT_GROUPS.map((group) => (
-                  <optgroup key={group.label} label={group.label}>
-                    {group.departments.map((item) => (
-                      <option key={item} value={item}>
-                        {item}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-                {affiliation !== 'undergraduate' && (
-                  <optgroup label="교직원·대학원·기타">
-                    {GENERAL_AFFILIATIONS.map((item) => (
-                      <option key={item} value={item}>
-                        {item}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-              </select>
+                onChange={setDepartment}
+                includeGeneral={affiliation !== 'undergraduate'}
+                collegeLabel={affiliation === 'undergraduate' ? '단과대학' : '소속 구분'}
+                departmentLabel={affiliation === 'undergraduate' ? '소속 학과' : '소속 학과/부서'}
+              />
               <small className="auth-department-guide">
                 목록에 없는 소속은 도서관 담당자에게 문의해 주세요.
               </small>

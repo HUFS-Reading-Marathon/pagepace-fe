@@ -91,6 +91,11 @@ export function isKnownDepartment(value: string) {
   );
 }
 
+// 학과명으로 소속 단과대학 그룹을 찾습니다. 목록에 없으면 undefined를 돌려줍니다.
+export function findDepartmentGroup(value: string) {
+  return STUDENT_DEPARTMENT_GROUPS.find((group) => group.departments.includes(value));
+}
+
 // 현재 목록에 없는 기존 저장 소속(과거 학과명 등)을 선택지에 그대로 보여주기 위한 값
 export function getUnlistedDepartment(value: string) {
   const trimmed = value.trim();
