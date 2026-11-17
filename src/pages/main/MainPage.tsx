@@ -15,7 +15,6 @@ import { METERS_PER_PAGE } from '../../constants/reading';
 import type { MyParticipation } from '../../types/participation';
 import { getExternalLinkAttrs } from '../../utils/links';
 import {
-  APPLY_FORM_URL,
   CHECK_ITEMS,
   PROCESS_STEPS,
   QUICK_LINKS,
@@ -114,8 +113,8 @@ function MainPage() {
   const eventTitle = currentEvent?.title ?? '독서마라톤';
   const heroInfo: [string, string][] = currentEvent
     ? [
-        ['독서일지 접수기간', `${currentEvent.eventStartDate} — ${currentEvent.eventEndDate}`],
         ['신청기간', `${currentEvent.applicationStartDate} — ${currentEvent.applicationEndDate}`],
+        ['독서일지 접수기간', `${currentEvent.eventStartDate} — ${currentEvent.eventEndDate}`],
         ['문의', currentEvent.contactPhone || currentEvent.contactEmail],
       ]
     : [];
@@ -238,7 +237,11 @@ function MainPage() {
             {showMyRecord ? (
               <MyRecordDashboard record={myRecord} />
             ) : (
-              <EventStatusBoard heroInfo={heroInfo} />
+              <EventStatusBoard
+                heroInfo={heroInfo}
+                roundNo={currentEvent?.roundNo}
+                status={currentEvent?.status}
+              />
             )}
           </aside>
         </div>
@@ -506,14 +509,9 @@ function MainPage() {
               독서일지 작성하기
             </Link>
           ) : (
-            <a
-              className="btn btn-navy"
-              href={APPLY_FORM_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              참가신청서 열기
-            </a>
+            <Link className="btn btn-navy" to="/apply">
+              참가신청하기
+            </Link>
           )}
         </div>
       </section>
