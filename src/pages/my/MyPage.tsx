@@ -10,6 +10,7 @@ import {
   type ReadingLog,
 } from '../../types/readingLog';
 import { formatDistance } from '../../utils/reading';
+import { formatKoDateKey } from '../../utils/date';
 import './my.css';
 
 function MyPage() {
@@ -58,7 +59,6 @@ function MyPage() {
     return (
       <main className="my-page">
         <section className="my-hero">
-          <p className="my-label">My Status</p>
           <h1>{errorMessage || '나의 현황을 불러오고 있습니다.'}</h1>
         </section>
       </main>
@@ -83,19 +83,15 @@ function MyPage() {
   return (
     <main className="my-page">
       <section className="my-hero">
-        <p className="my-label">My Status</p>
         <h1>나의 현황</h1>
-        <p>승인된 독서일지를 기준으로 코스 달성 현황을 확인할 수 있습니다.</p>
+        <p>독서일지 승인과 서평 확인이 반영된 코스 진행 상황입니다.</p>
       </section>
 
       <section className="my-course-board">
         <div className="my-course-info">
           <span>현재 코스</span>
           <h2>{participation.courseName}</h2>
-          <p>
-            {formatDistance(participation.targetDistanceMeter)} 완주를 목표로 독서기록을 누적하고
-            있습니다.
-          </p>
+          <p>목표 거리 {formatDistance(participation.targetDistanceMeter)}</p>
         </div>
         <div className="my-progress-area" style={progressStyle}>
           <div className="my-progress-summary">
@@ -132,14 +128,14 @@ function MyPage() {
 
       <section className="my-stat-grid" aria-label="나의 독서마라톤 요약">
         <article>
-          <span>누적 페이지</span>
+          <span>인정 쪽수</span>
           <strong>{participation.totalPages.toLocaleString()}쪽</strong>
           <p>승인된 독서일지 기준</p>
         </article>
         <article>
-          <span>누적 거리</span>
+          <span>인정 거리</span>
           <strong>{formatDistance(participation.totalDistanceMeter)}</strong>
-          <p>서평 확인된 승인 쪽수 × 5m</p>
+          <p>서평 확인을 거친 쪽수 × 5m</p>
         </article>
         <article>
           <span>승인 일지</span>
@@ -156,7 +152,6 @@ function MyPage() {
       <section className="my-latest-section">
         <div className="my-section-head">
           <div>
-            <p className="my-section-kicker">Recent Log</p>
             <h2>최근 제출한 독서일지</h2>
           </div>
           <Link to="/logs" className="my-outline-link">
@@ -175,7 +170,7 @@ function MyPage() {
             <dl>
               <div>
                 <dt>독서 날짜</dt>
-                <dd>{recentLog.readingDate}</dd>
+                <dd>{formatKoDateKey(recentLog.readingDate)}</dd>
               </div>
               <div>
                 <dt>읽은 페이지</dt>
@@ -183,7 +178,11 @@ function MyPage() {
               </div>
               <div>
                 <dt>예상 환산 거리</dt>
-                <dd>{formatDistance(recentLog.convertedDistanceMeter)}</dd>
+                <dd>
+                  {recentLog.status === 'REJECTED'
+                    ? '반영 안 됨'
+                    : formatDistance(recentLog.convertedDistanceMeter)}
+                </dd>
               </div>
             </dl>
           </article>
@@ -197,7 +196,6 @@ function MyPage() {
         <section className="my-latest-section">
           <div className="my-section-head">
             <div>
-              <p className="my-section-kicker">Reading Books</p>
               <h2>책별 독서·서평 현황</h2>
             </div>
           </div>

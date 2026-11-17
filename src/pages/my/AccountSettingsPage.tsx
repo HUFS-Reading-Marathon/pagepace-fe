@@ -99,9 +99,8 @@ function AccountSettingsPage() {
   return (
     <main className="account-page">
       <header>
-        <p>MY ACCOUNT</p>
         <h1>계정 설정</h1>
-        <span>연락처와 소속 정보를 최신 상태로 관리하세요.</span>
+        <span>연락처·소속 정보와 비밀번호를 변경합니다.</span>
       </header>
       {message && <div className="account-message">{message}</div>}
       <div className="account-grid">

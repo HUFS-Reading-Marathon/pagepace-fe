@@ -4,6 +4,7 @@ import {
   getApplicationClosedMessage,
 } from '../../utils/eventSelection';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { formatKoDateKey } from '../../utils/date';
 import { Link, useNavigate } from 'react-router-dom';
 import { GENERAL_AFFILIATIONS, STUDENT_DEPARTMENT_GROUPS } from '../../constants/departments';
 import {
@@ -396,13 +397,11 @@ function ApplyPage() {
           <h1>참가신청</h1>
           {currentEvent && (
             <p>
-              {currentEvent.title} · 신청기간 {currentEvent.applicationStartDate} ~{' '}
-              {currentEvent.applicationEndDate}
+              {currentEvent.title} · 신청기간 {formatKoDateKey(currentEvent.applicationStartDate)} ~{' '}
+              {formatKoDateKey(currentEvent.applicationEndDate)}
             </p>
           )}
-          {!closedMessage && (
-            <p className="auth-description">독서마라톤 참가를 위한 정보를 입력해 주세요.</p>
-          )}
+          {!closedMessage && <p className="auth-description">참가 정보를 입력해 주세요.</p>}
         </div>
 
         {closedMessage ? (

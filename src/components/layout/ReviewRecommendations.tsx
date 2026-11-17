@@ -83,7 +83,7 @@ export default function ReviewRecommendations({
         <article className="review-suggestion" key={target.participantBookId}>
           <strong>{target.bookTitle}</strong>
           <p>
-            승인된 독서량 {target.approvedReadPages} / {target.totalBookPages}쪽
+            인정 쪽수 {target.approvedReadPages} / {target.totalBookPages}쪽
           </p>
           {kind === 'ask' ? (
             <>

@@ -58,7 +58,9 @@ function LoginPage() {
       <section className="auth-shell" aria-label="로그인 영역">
         <div className="auth-heading">
           <h1>로그인</h1>
-          <p className="auth-description">로그인 후 나의 현황과 독서일지를 확인할 수 있습니다.</p>
+          <p className="auth-description">
+            참가자는 로그인 후 독서일지를 작성하고 나의 현황을 볼 수 있습니다.
+          </p>
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit}>
@@ -118,11 +120,6 @@ function LoginPage() {
         <div className="auth-divider" />
 
         <div className="auth-footer-info">
-          <p className="auth-note">
-            참가 신청을 완료한 사용자는 로그인 후 독서일지 작성과 나의 현황 확인을 이용할 수
-            있습니다.
-          </p>
-
           <Link to="/" className="auth-back-link">
             ← 행사 안내로 돌아가기
           </Link>

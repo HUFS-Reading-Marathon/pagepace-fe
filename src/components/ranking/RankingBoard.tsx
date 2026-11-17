@@ -36,12 +36,10 @@ function RankingBoard({
     >
       <header>
         <div>
-          <span>LIVE MARATHON</span>
           <h2>전체 독서 레이스</h2>
-          <small>책장을 넘길 때마다 결승선에 가까워집니다.</small>
         </div>
         <p>
-          <i /> 누적 거리 <i /> 승인 페이지
+          <i /> 인정 거리 <i /> 인정 쪽수
         </p>
       </header>
       <div className="ranking-race-list">
@@ -102,7 +100,7 @@ function RankingBoard({
                       쪽
                     </span>
                     <small>
-                      <i aria-hidden="true" /> 승인 {ranking.approvedPages.toLocaleString()}쪽
+                      <i aria-hidden="true" /> 인정 {ranking.approvedPages.toLocaleString()}쪽
                     </small>
                   </div>
                 </div>
@@ -136,7 +134,7 @@ function RankingBoard({
               )}
               <div className="ranking-race-percent">
                 <strong>{ranking.progressPercent.toFixed(1)}%</strong>
-                <span>{completed ? '목표 달성' : '완주까지 진행 중'}</span>
+                <span>{completed ? '완주' : '진행 중'}</span>
               </div>
               {showIdentity && completed && <span className="ranking-complete-badge">완주자</span>}
             </article>
