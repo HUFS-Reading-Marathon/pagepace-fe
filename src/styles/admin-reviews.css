@@ -42,6 +42,7 @@
   border-radius: var(--radius);
   background: var(--surface);
   font: inherit;
+  font-size: 14px;
 }
 
 .admin-reviews__tabs {

@@ -63,6 +63,31 @@ textarea {
   font: inherit;
 }
 
+/*
+ * 드롭다운 화살표: 브라우저 기본 화살표는 padding-right와 상관없이 오른쪽 테두리에 붙어 그려지므로
+ * 기본 화살표를 끄고 같은 위치(오른쪽 14px)에 화살표를 직접 그립니다.
+ * 화면별 select 규칙이 background 축약 속성을 써도 화살표가 지워지지 않도록 :root로 우선순위를 높였습니다.
+ * 좁은 칸에서는 --select-arrow-inset / --select-arrow-space로 간격만 조정합니다.
+ */
+:root select:not([multiple]):not([size]) {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: var(--select-arrow-space, 40px);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.75 6 6.25l4.5-4.5' fill='none' stroke='%23536271' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--select-arrow-inset, 14px) center;
+  background-size: 12px 8px;
+  text-overflow: ellipsis;
+}
+
+:root select:not([multiple]):not([size]):disabled {
+  cursor: not-allowed;
+}
+
+:root select:not([multiple]):not([size])::-ms-expand {
+  display: none;
+}
+
 img {
   display: block;
   max-width: 100%;

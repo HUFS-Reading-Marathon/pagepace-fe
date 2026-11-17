@@ -616,6 +616,11 @@
   font-size: 13px;
 }
 
+.admin-event-settings__course-table select {
+  --select-arrow-inset: 8px;
+  --select-arrow-space: 26px;
+}
+
 .admin-event-settings__course-table input[type='number'] {
   text-align: right;
 }
