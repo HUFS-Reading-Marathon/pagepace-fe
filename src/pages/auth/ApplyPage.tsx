@@ -393,15 +393,31 @@ function ApplyPage() {
       </div>
 
       <section className="auth-shell auth-shell-apply" aria-label="참가신청 영역">
-        <div className="auth-heading">
+        <div className="auth-heading auth-heading-apply">
           <h1>참가신청</h1>
           {currentEvent && (
-            <p>
-              {currentEvent.title} · 신청기간 {formatKoDateKey(currentEvent.applicationStartDate)} ~{' '}
-              {formatKoDateKey(currentEvent.applicationEndDate)}
-            </p>
+            <div className="auth-apply-event">
+              <p className="auth-apply-event__title">{currentEvent.title}</p>
+              <p className="auth-apply-event__period">
+                <span className="auth-apply-event__label">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="4" y="5.5" width="16" height="14" rx="2" />
+                    <path d="M4 10h16M8.5 3.5v4M15.5 3.5v4" />
+                  </svg>
+                  신청기간
+                </span>
+                <span className="auth-apply-event__dates">
+                  <time dateTime={currentEvent.applicationStartDate}>
+                    {formatKoDateKey(currentEvent.applicationStartDate)}
+                  </time>{' '}
+                  ~{' '}
+                  <time dateTime={currentEvent.applicationEndDate}>
+                    {formatKoDateKey(currentEvent.applicationEndDate)}
+                  </time>
+                </span>
+              </p>
+            </div>
           )}
-          {!closedMessage && <p className="auth-description">참가 정보를 입력해 주세요.</p>}
         </div>
 
         {closedMessage ? (

@@ -727,6 +727,83 @@ main.auth-page.auth-page-apply > .auth-watermark img {
   filter: none !important;
 }
 
+/* 참가신청 상단: 제목 → 행사명 → 신청기간 순으로 위계를 두고 폼과의 간격을 줄입니다. */
+.auth-apply-event {
+  margin-top: 12px;
+  word-break: keep-all;
+}
+
+.auth-apply-event__title {
+  margin: 0;
+  color: #374151;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+
+.auth-apply-event__period {
+  display: flex;
+  margin: 6px 0 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 2px 8px;
+  color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.auth-apply-event__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #4b5563;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.auth-apply-event__label svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  fill: none;
+  stroke: var(--navy-strong);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.auth-apply-event__dates {
+  font-variant-numeric: tabular-nums;
+}
+
+.auth-apply-event__dates time {
+  white-space: nowrap;
+}
+
+.auth-shell-apply .auth-heading-apply + .auth-form {
+  margin-top: 32px;
+}
+
+@media (max-width: 520px) {
+  .auth-apply-event {
+    margin-top: 10px;
+  }
+
+  .auth-apply-event__title {
+    font-size: 15px;
+  }
+
+  .auth-apply-event__period {
+    font-size: 13px;
+  }
+
+  .auth-shell-apply .auth-heading-apply + .auth-form {
+    margin-top: 28px;
+  }
+}
+
 /* 로그인, 참가신청, 승인대기 페이지의 footer 위 여백 통일 */
 main.auth-page {
   margin-bottom: 0 !important;
