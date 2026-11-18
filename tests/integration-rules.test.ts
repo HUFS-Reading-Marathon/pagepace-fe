@@ -1,7 +1,10 @@
 import { toCsv } from '../src/utils/csv';
+import { describeEventCountdown } from '../src/utils/adminEventForms';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   canApply,
+  getApplicationAvailability,
+  getApplicationClosedMessage,
   koreaToday,
   preferredAdminEvent,
   selectEvent,
@@ -38,6 +41,32 @@ describe('행사 선택과 신청 기간', () => {
     expect(canApply(event, '2026-10-30')).toBe(true);
     expect(canApply(event, '2026-10-31')).toBe(false);
     expect(canApply({ ...event, status: 'ENDED' }, '2026-10-20')).toBe(false);
+  });
+  it('신청 불가 사유를 canApply와 같은 기준으로 구분한다', () => {
+    const event = {
+      status: 'APPLICATION_OPEN',
+      applicationStartDate: '2026-10-01',
+      applicationEndDate: '2026-10-30',
+    };
+    expect(getApplicationAvailability(null).state).toBe('none');
+    expect(getApplicationAvailability(event, '2026-10-15').state).toBe('open');
+    expect(getApplicationAvailability(event, '2026-09-30')).toEqual({
+      state: 'before',
+      startDate: '2026-10-01',
+    });
+    expect(getApplicationAvailability(event, '2026-10-31')).toEqual({
+      state: 'after',
+      endDate: '2026-10-30',
+    });
+    expect(getApplicationAvailability({ ...event, status: 'READY' }, '2026-10-15').state).toBe(
+      'notStarted',
+    );
+    expect(
+      getApplicationAvailability({ ...event, status: 'APPLICATION_CLOSED' }, '2026-10-15').state,
+    ).toBe('closed');
+    expect(getApplicationClosedMessage({ state: 'after', endDate: '2026-10-30' })).toBe(
+      '참가신청이 2026년 10월 30일에 마감되었습니다.',
+    );
   });
   it('관리자와 개인 행사 선택은 서로 영향을 주지 않는다', () => {
     selectEvent('personal', 2);
@@ -145,4 +174,28 @@ describe('실제 참가 기록 기반 관리자 집계', () => {
 
 it('CSV는 쉼표·따옴표·줄바꿈을 보존하고 수식 입력을 이스케이프한다', () => {
   expect(toCsv([['가,나', 'a"b', '=1+1', 42]])).toBe('\uFEFF"가,나","a""b","\'=1+1","42"');
+});
+
+describe('행사 설정 카운트다운 라벨', () => {
+  it('값과 같은 기준 날짜로 라벨을 정한다', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 10, 17, 12));
+    try {
+      expect(describeEventCountdown('2026-11-20', '2026-12-12')).toEqual({
+        label: '행사 시작까지',
+        value: 'D-3',
+        date: 'start',
+      });
+      expect(describeEventCountdown('2026-11-17', '2026-12-12').label).toBe('행사 시작일');
+      expect(describeEventCountdown('2026-09-22', '2026-12-12')).toEqual({
+        label: '행사 기간',
+        value: '행사 진행 중',
+        date: 'end',
+      });
+      expect(describeEventCountdown('2026-03-02', '2026-06-12').value).toBe('행사 종료');
+      expect(describeEventCountdown('', '').date).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

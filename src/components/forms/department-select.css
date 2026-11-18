@@ -1,0 +1,23 @@
+/* 단과대학 → 학과 2단계 선택. 입력 상자 모양은 각 화면의 select 규칙을 그대로 따릅니다. */
+.department-select {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 14px;
+}
+
+.department-select__field {
+  min-width: 0;
+}
+
+.department-select__field select {
+  width: 100%;
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 560px) {
+  .department-select {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

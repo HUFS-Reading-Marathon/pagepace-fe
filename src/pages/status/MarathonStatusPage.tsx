@@ -21,7 +21,7 @@ const STATUS_ERROR_MESSAGE = '대회 현황을 불러오지 못했습니다.';
 const COURSE_FILTER_ID = 'statusCourseFilter';
 
 /** initial: 첫 로딩, refreshing: 코스 변경으로 랭킹만 다시 조회 중 */
-type LoadState = 'initial' | 'refreshing' | 'ready' | 'error';
+type LoadState = 'initial' | 'refreshing' | 'ready' | 'empty' | 'error';
 
 function getEventDisplayTitle(event: CurrentEvent) {
   const title = event.title?.trim();
@@ -118,6 +118,13 @@ function MarathonStatusPage() {
 
       try {
         const nextEvents = await getPublicEvents();
+        // 공개 행사가 없는 것은 오류가 아니므로 중립 안내로 표시합니다.
+        if (nextEvents.length === 0) {
+          if (!active || requestSequenceRef.current !== sequence) return;
+          setEvents([]);
+          setLoadState('empty');
+          return;
+        }
         const preferred = nextEvents.find((item) => item.eventId === chosenEventId);
         const resolved = preferred ?? (await resolveStatusEvent(isAuthenticated));
         const nextEvent =
@@ -220,7 +227,11 @@ function MarathonStatusPage() {
   const isLoading = loadState === 'initial' || loadState === 'refreshing';
 
   const summaryItems: [string, string, string][] = [
-    ['총 참가자', isReady ? `${summary?.participantCount ?? 0}명` : '—', '현재 선택 코스 기준'],
+    [
+      '총 참가자',
+      isReady ? `${summary?.participantCount ?? 0}명` : '—',
+      '선택한 코스 기준 · 기록이 없는 참가자 포함',
+    ],
     [
       '완주자',
       isReady ? `${summary?.completedCount ?? 0}명` : '—',
@@ -236,11 +247,9 @@ function MarathonStatusPage() {
   return (
     <main className="page-container marathon-status">
       <section className="page-section" aria-labelledby="statusPageTitle">
-        <p className="page-label">Marathon Status</p>
         <h1 id="statusPageTitle">대회 현황</h1>
         <p className="page-description">
-          {event ? `${getEventDisplayTitle(event)} · ` : ''}일지 승인 시 쪽수가, 승인된 쪽수의 서평
-          확인 시 거리가 반영됩니다. 기록이 없는 승인 참가자도 총 참가자 수에 포함합니다.
+          독서일지 승인 시 인정 쪽수가, 서평 확인 시 인정 거리가 반영됩니다.
         </p>
         <p className="status-privacy">
           ※ 개인정보 보호를 위해 이름은 마스킹하고 학번은 공개하지 않습니다.
@@ -254,32 +263,34 @@ function MarathonStatusPage() {
         </p>
       </section>
 
-      <div className="status-course-filter">
-        <label htmlFor="statusEventFilter">행사</label>
-        <select
-          id="statusEventFilter"
-          value={event?.eventId ?? ''}
-          disabled={isLoading}
-          onChange={(e) => {
-            const id = Number(e.target.value);
-            selectEvent('public', id);
-            setChosenEventId(id);
-            setMine(null);
-            setLoadState('initial');
-          }}
-        >
-          {events.map((item) => (
-            <option key={item.eventId} value={item.eventId}>
-              {getEventDisplayTitle(item)}
-            </option>
-          ))}
-        </select>
-      </div>
+      {events.length > 0 && (
+        <div className="status-course-filter">
+          <label htmlFor="statusEventFilter">행사</label>
+          <select
+            id="statusEventFilter"
+            value={event?.eventId ?? ''}
+            disabled={isLoading}
+            onChange={(e) => {
+              const id = Number(e.target.value);
+              selectEvent('public', id);
+              setChosenEventId(id);
+              setMine(null);
+              setLoadState('initial');
+            }}
+          >
+            {events.map((item) => (
+              <option key={item.eventId} value={item.eventId}>
+                {getEventDisplayTitle(item)}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       {isAuthenticated && user && mine?.owner === user.userId && mine.participationId && (
         <section className="page-section" aria-label="내 순위">
           <h2>내 순위</h2>
           <p>
-            참가 코스 기준 {mine.rank ? `${mine.rank}위` : '집계 전'} · 승인{' '}
+            참가 코스 {mine.rank ? `${mine.rank}위` : '순위 집계 전'} · 인정 쪽수{' '}
             {mine.pages.toLocaleString()}쪽 · 인정 거리 {formatDistance(mine.distance)}
           </p>
         </section>
@@ -326,6 +337,8 @@ function MarathonStatusPage() {
         <div aria-live="polite" aria-busy={isLoading}>
           {isLoading ? (
             <div className="ranking-empty">대회 현황을 불러오고 있습니다.</div>
+          ) : loadState === 'empty' ? (
+            <div className="ranking-empty">공개된 대회 현황이 없습니다.</div>
           ) : loadState === 'error' ? (
             <div className="ranking-empty is-error">{errorMessage}</div>
           ) : (

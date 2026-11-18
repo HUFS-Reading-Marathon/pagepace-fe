@@ -79,7 +79,7 @@ function ParticipantDetailDialog({
         <header className="admin-participant-dialog__header">
           <div>
             <p className="admin-participant-dialog__eyebrow">
-              {displayedApplication.status === 'APPROVED' ? '참가자 상세' : '참가 신청서 상세'}
+              {displayedApplication.status === 'APPROVED' ? '참가자 상세' : '참가신청서 상세'}
             </p>
             <div className="admin-participant-dialog__title-row">
               <h2 id="participantDialogTitle">{displayedApplication.name}</h2>

@@ -114,7 +114,7 @@ function AdminRankingPage() {
       <AdminPageTabs label="대회 현황·랭킹 화면" tabs={COMPETITION_TABS} />
       <section className="ranking-toolbar is-admin">
         <label>
-          <span>행사</span>
+          <span>관리 행사</span>
           <select
             value={eventId ?? ''}
             onChange={(event) => {

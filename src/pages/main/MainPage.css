@@ -187,10 +187,8 @@
 
 .status-board-head span {
   color: var(--gold);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.055em;
-  text-transform: uppercase;
 }
 
 .status-board-head b {
@@ -215,7 +213,7 @@
 
 .hero-info-list li {
   display: grid;
-  grid-template-columns: 96px 1fr;
+  grid-template-columns: 116px 1fr;
   gap: 16px;
   padding: 18px 24px;
   border-bottom: 1px solid var(--line-soft);
@@ -291,16 +289,6 @@
   padding: 24px 30px;
   background: #fbfdff;
   border-bottom: 1px solid var(--line);
-}
-
-.summary-head p,
-.section-title p {
-  margin: 0 0 7px;
-  color: var(--navy-strong);
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.075em;
-  text-transform: uppercase;
 }
 
 .summary-head h2 {
@@ -426,8 +414,6 @@
   color: var(--gold);
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
 }
 
 .quick-grid strong {
@@ -1228,6 +1214,13 @@
 
 .hero-actions-minimal .btn-primary {
   min-width: 178px;
+}
+
+/* 신청 기간이 아닐 때 히어로 버튼 아래 안내 */
+.hero-apply-note {
+  margin: 14px 0 0;
+  color: var(--body);
+  font-size: 14px;
 }
 
 .hero-text-links {

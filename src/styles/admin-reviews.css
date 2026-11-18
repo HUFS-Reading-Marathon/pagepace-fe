@@ -7,7 +7,13 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 24px;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+}
+
+.admin-reviews__header > div {
+  flex: 1 1 320px;
+  min-width: 0;
 }
 
 .admin-reviews__header p {
@@ -16,7 +22,8 @@
 
 .admin-reviews__header label {
   display: grid;
-  min-width: 300px;
+  width: min(100%, 360px);
+  min-width: 0;
   gap: 5px;
 }
 
@@ -27,12 +34,15 @@
 }
 
 .admin-reviews__header select {
+  width: 100%;
+  min-width: 0;
   height: 42px;
   padding: 0 36px 0 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface);
   font: inherit;
+  font-size: 14px;
 }
 
 .admin-reviews__tabs {

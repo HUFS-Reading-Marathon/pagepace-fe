@@ -110,10 +110,7 @@ function AdminHeader() {
             className="admin-header__brand"
             aria-label="독서마라톤 관리자 대시보드로 이동"
           >
-            <span className="admin-header__title">
-              독서마라톤 관리자
-              <span className="admin-header__mode-badge">관리자 모드</span>
-            </span>
+            <span className="admin-header__title">독서마라톤 관리자</span>
           </Link>
 
           <div className="admin-header__actions">

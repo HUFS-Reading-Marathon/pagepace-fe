@@ -495,7 +495,7 @@ function AdminReadingLogsPage() {
       <header className="admin-page__header admin-reading-logs__header">
         <div className="admin-reading-logs__heading">
           <h1>독서일지 검토</h1>
-          <p>대기 목록에서 일지를 고르고, 도서 정보와 승인량을 비교한 뒤 승인 또는 반려합니다.</p>
+          <p>도서 정보와 제출 쪽수를 확인한 뒤 승인하거나 반려합니다.</p>
         </div>
 
         <div className="admin-reading-logs__event-selector">

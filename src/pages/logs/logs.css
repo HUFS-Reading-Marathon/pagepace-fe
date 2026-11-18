@@ -38,13 +38,15 @@
   min-height: 26px;
   padding: 0 10px;
   border-radius: 999px;
+  white-space: nowrap;
+  flex: none;
   font-size: 12px;
   font-weight: 600;
 }
 
 /* ===== 나의 서재 ===== */
 .my-library-page {
-  width: min(1180px, calc(100% - 40px));
+  width: min(1120px, calc(100% - 40px));
 }
 
 .my-library-hero {
@@ -57,10 +59,10 @@
 .my-library-hero h1 {
   margin: 0;
   color: #172838;
-  font-size: clamp(34px, 4vw, 48px);
-  line-height: 1.16;
+  font-size: clamp(32px, 4vw, 44px);
+  line-height: 1.2;
   letter-spacing: -0.055em;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .my-library-hero > div > p:last-child {
@@ -272,12 +274,6 @@
   color: #24476b;
 }
 
-.my-library-cover-fallback span {
-  font-size: 8px;
-  font-weight: 800;
-  letter-spacing: 0.11em;
-}
-
 .my-library-cover-fallback strong {
   display: -webkit-box;
   overflow: hidden;
@@ -331,7 +327,7 @@
   display: block;
   margin-top: 6px;
   color: #617181;
-  font-size: 11px;
+  font-size: 12px;
   text-align: right;
 }
 
@@ -355,7 +351,7 @@
 
 .my-library-log-row {
   display: grid;
-  grid-template-columns: 70px minmax(0, 1fr) auto 20px;
+  grid-template-columns: 78px minmax(0, 1fr) auto 20px;
   align-items: center;
   gap: 18px;
   padding: 17px 4px;
@@ -400,7 +396,7 @@
 
 .my-library-log-row dt {
   color: #8a97a4;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .my-library-log-row dd {
@@ -421,7 +417,7 @@
   }
 
   .my-library-log-row {
-    grid-template-columns: 70px minmax(0, 1fr) 18px;
+    grid-template-columns: 78px minmax(0, 1fr) 18px;
   }
 
   .my-library-log-row dl {
@@ -470,7 +466,7 @@
   }
 
   .my-library-log-row {
-    grid-template-columns: 62px minmax(0, 1fr) 16px;
+    grid-template-columns: 78px minmax(0, 1fr) 16px;
     gap: 10px;
   }
 }
@@ -575,6 +571,191 @@
   font-weight: 700;
 }
 
+/* 서평 할 일 패널 (ReviewGuide · ReviewRecommendations) */
+.reading-review-aside > p[role='status'] {
+  margin: 0 0 10px;
+  color: #1f4f82;
+  font-size: 13px;
+}
+
+.reading-review-aside > p[role='status']:empty {
+  display: none;
+}
+
+.review-guide {
+  margin: 0 0 14px;
+  border: 1px solid #e4ebf3;
+  border-radius: 6px;
+  background: #f7faff;
+}
+
+.review-guide summary {
+  display: flex;
+  padding: 10px 12px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #1f4f82;
+  font-size: 13px;
+  font-weight: 700;
+  list-style: none;
+  cursor: pointer;
+}
+
+.review-guide summary::-webkit-details-marker {
+  display: none;
+}
+
+.review-guide summary::after {
+  content: '▾';
+  color: #7c8996;
+  font-size: 12px;
+}
+
+.review-guide[open] summary::after {
+  content: '▴';
+}
+
+.review-guide > p,
+.review-guide > ol {
+  margin: 0;
+  padding: 0 12px 12px;
+  color: #536271;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.review-guide > ol {
+  display: grid;
+  padding-left: 30px;
+  gap: 8px;
+}
+
+.review-guide li strong {
+  display: block;
+  color: #1d2733;
+}
+
+.ux-form-note {
+  margin: 0 0 4px;
+  color: #536271;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.ux-muted {
+  margin: 12px 0 0;
+  color: #7c8996;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.review-suggestion {
+  display: grid;
+  padding: 14px 0 0;
+  margin-top: 14px;
+  gap: 8px;
+  border-top: 1px solid #edf2f7;
+}
+
+.review-suggestion > strong {
+  color: #1d2733;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.review-suggestion p {
+  margin: 0;
+  color: #536271;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.review-suggestion small {
+  color: #7c8996;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.review-actions {
+  display: grid;
+  margin-top: 4px;
+  gap: 10px;
+}
+
+.review-actions .btn {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 14px;
+  font-size: 14px;
+}
+
+.review-self-report {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: #1d2733;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.review-self-report input {
+  width: 16px;
+  height: 16px;
+  margin: 2px 0 0;
+  flex: none;
+  accent-color: #1f4f82;
+}
+
+.review-intent-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.review-intent-actions button {
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid #bfd2e6;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #1f4f82;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.review-intent-actions button:hover {
+  background: #f7fbff;
+}
+
+.review-intent-reset {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #1f4f82;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.review-optional {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #edf2f7;
+}
+
+.review-optional summary {
+  color: #1f4f82;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .reading-log-side-head a {
   color: #1f4f82;
   font-size: 12px;
@@ -648,7 +829,7 @@
   display: block;
   margin-top: 6px;
   color: #7c8996;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -726,7 +907,7 @@
 
 .reading-current-book-guide dt {
   color: #7c8996;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .reading-current-book-guide dd {
@@ -1046,7 +1227,7 @@
   border: 1px solid #c8d9ea;
   border-radius: 4px;
   color: #1f4f82;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -1084,7 +1265,7 @@
   display: block;
   margin-bottom: 6px;
   color: #1f4f82;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 750;
   letter-spacing: 0.04em;
 }
@@ -1436,9 +1617,15 @@
   }
 
   .reading-book-row-title {
+    flex: 1 1 auto;
     align-items: flex-start;
     flex-direction: column;
     gap: 4px;
+  }
+
+  /* 세로 배치에서도 긴 도서명이 카드 폭 안에서 말줄임되도록 폭을 제한합니다. */
+  .reading-book-row-preview {
+    max-width: 100%;
   }
 
   .reading-log-summary {
@@ -1582,15 +1769,6 @@
   margin-bottom: 12px;
 }
 
-.reading-detail-section-head p {
-  margin: 0 0 4px;
-  color: #1f4f82;
-  font-size: 11px;
-  font-weight: 750;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .reading-detail-section-head h2 {
   margin: 0;
   color: #172838;
@@ -1649,18 +1827,13 @@
   text-align: center;
 }
 
-.reading-detail-book-cover small {
-  font-size: 8px;
-  letter-spacing: 0.16em;
-}
-
 .reading-detail-book-content {
   min-width: 0;
 }
 
 .reading-detail-book-number {
   color: #1f4f82;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.09em;
 }
@@ -1716,7 +1889,7 @@
   justify-content: space-between;
   margin-bottom: 7px;
   color: #7c8996;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .reading-detail-book-progress strong {

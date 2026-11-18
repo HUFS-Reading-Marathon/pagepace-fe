@@ -22,6 +22,13 @@ export const EVENT_STATUS_LABELS: Record<EventStatus, string> = {
   ARCHIVED: '보관',
 };
 
+/** 서버 행사 상태 값을 화면 표시용 라벨로 바꿉니다. 알 수 없는 값이면 undefined를 돌려줍니다. */
+export function getEventStatusLabel(status: string | null | undefined) {
+  return status && status in EVENT_STATUS_LABELS
+    ? EVENT_STATUS_LABELS[status as EventStatus]
+    : undefined;
+}
+
 export type AdminEvent = {
   eventId: number;
   title: string;

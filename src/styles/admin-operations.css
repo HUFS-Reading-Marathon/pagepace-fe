@@ -8,14 +8,6 @@
   justify-content: space-between;
   gap: 28px;
 }
-.admin-operations__eyebrow {
-  display: block;
-  margin-bottom: 7px;
-  color: var(--navy-strong);
-  font-size: 11px;
-  font-weight: var(--admin-fw-semibold);
-  letter-spacing: 0.09em;
-}
 .admin-operations__event-select {
   display: grid;
   min-width: 320px;
@@ -70,6 +62,7 @@
 }
 .admin-operations__event-context > div:first-child {
   display: grid;
+  min-width: 0;
   gap: 4px;
 }
 .admin-operations__event-context > div:first-child span {
@@ -91,8 +84,11 @@
 }
 .admin-operations__task-total {
   display: flex;
+  flex: none;
   align-items: baseline;
   gap: 14px;
+  /* 좁은 화면에서 '처리 대기'와 건수·단위가 글자 단위로 나뉘지 않게 합니다. */
+  white-space: nowrap;
 }
 .admin-operations__task-total > span {
   color: var(--body);
@@ -311,6 +307,11 @@
   }
   .admin-operations__event-context {
     align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px 24px;
+  }
+  .admin-operations__event-context > div:first-child {
+    flex: 1 1 220px;
   }
   .admin-operations__secondary nav {
     grid-template-columns: 1fr;

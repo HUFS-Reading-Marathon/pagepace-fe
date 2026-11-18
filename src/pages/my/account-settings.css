@@ -3,17 +3,13 @@
   margin: auto;
   padding: 52px 0 80px;
 }
-.account-page header p {
-  margin: 0;
-  color: #1f4f82;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-}
 .account-page h1 {
-  margin: 9px 0;
+  margin: 0 0 12px;
   color: #172838;
-  font-size: 38px;
+  font-size: clamp(32px, 4vw, 44px);
+  line-height: 1.2;
+  letter-spacing: -0.055em;
+  font-weight: 700;
 }
 .account-page header span {
   color: #617181;
@@ -40,9 +36,17 @@
 .account-grid form > p {
   margin: 0;
   color: #7c8996;
-  font-size: 11px;
+  font-size: 12px;
 }
 .account-grid label {
+  display: grid;
+  gap: 6px;
+  color: #394b5c;
+  font-size: 12px;
+  font-weight: 700;
+}
+/* 단과대학·소속 2단계 선택 칸: 다른 label 칸과 같은 간격 */
+.account-grid .account-field {
   display: grid;
   gap: 6px;
   color: #394b5c;
@@ -65,7 +69,16 @@
   border-radius: 5px;
   background: #1f4f82;
   color: #fff;
-  font-weight: 750;
+  font-weight: 600;
+}
+/* 정보 저장·비밀번호 변경: 카드 전체 폭 대신 오른쪽 정렬된 고정 폭 버튼 */
+.account-grid form > button {
+  justify-self: end;
+  width: 190px;
+}
+/* 인증 코드 발송 버튼: 가장 긴 문구('인증 코드 발송') 기준 폭으로 고정해 '발송 중...'에도 크기가 같습니다. */
+.account-grid .account-verify-send {
+  min-width: calc(5.9em + 12px);
 }
 .account-message {
   margin-top: 20px;
@@ -80,5 +93,11 @@
 @media (max-width: 720px) {
   .account-grid {
     grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 560px) {
+  .account-grid form > button {
+    justify-self: stretch;
+    width: 100%;
   }
 }

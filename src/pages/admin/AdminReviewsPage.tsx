@@ -455,12 +455,12 @@ function AdminReviewsPage() {
         <div>
           <h1>서평 확인</h1>
           <p>
-            참여자 알림 또는 솔라스 자료로 서평을 확인한 뒤, 아직 인정되지 않은 분량만 거리(1쪽 ={' '}
-            {METERS_PER_PAGE}m)로 반영합니다.
+            참가자가 작성했다고 알린 서평이나 솔라스 자료를 확인하고, 아직 인정되지 않은 분량을
+            거리(1쪽 = {METERS_PER_PAGE}m)에 반영합니다.
           </p>
         </div>
         <label>
-          <span>행사</span>
+          <span>관리 행사</span>
           <select
             disabled={verifyingId !== null || importBusy}
             value={eventId ?? ''}

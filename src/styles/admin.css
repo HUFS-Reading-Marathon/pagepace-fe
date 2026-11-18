@@ -66,19 +66,6 @@
   white-space: nowrap;
 }
 
-.admin-header__mode-badge {
-  display: inline-flex;
-  min-height: 24px;
-  padding: 3px 8px;
-  align-items: center;
-  border-radius: 999px;
-  background: var(--blue-20);
-  color: var(--navy-strong);
-  font-size: 11px;
-  font-weight: var(--admin-fw-semibold);
-  letter-spacing: -0.02em;
-}
-
 .admin-header__actions {
   display: flex;
   flex: 0 0 auto;
@@ -687,7 +674,11 @@
   overflow-y: auto;
 }
 
+/* 패널이 화면 아래로 이어질 때도 승인·반려 버튼이 화면 하단에 보이도록 고정합니다. */
 .admin-detail-panel__actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
   display: flex;
   padding: 12px 20px;
   align-items: center;
@@ -879,10 +870,6 @@
     font-size: 14px;
   }
 
-  .admin-header__mode-badge {
-    display: none;
-  }
-
   .admin-header__account-trigger {
     min-height: 38px;
     padding-inline: 8px;
@@ -904,13 +891,25 @@
   }
 
   .admin-sidebar {
-    position: static;
+    position: relative;
     width: 100%;
     height: auto;
     flex-basis: auto;
     padding: 6px 12px;
     border-right: 0;
     border-bottom: 1px solid var(--line);
+  }
+
+  /* 오른쪽에 메뉴가 더 있음을 알 수 있도록 끝부분을 옅게 덮습니다. */
+  .admin-sidebar::after {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 1px;
+    width: 32px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0), var(--surface));
+    content: '';
+    pointer-events: none;
   }
 
   .admin-sidebar__menu {

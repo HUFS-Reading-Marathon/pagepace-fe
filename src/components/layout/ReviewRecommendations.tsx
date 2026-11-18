@@ -46,7 +46,7 @@ export default function ReviewRecommendations({
     ),
   }));
   const actions = (target: ReviewTargetBook) => (
-    <div className="reading-detail-actions">
+    <div className="review-actions">
       <a
         className="btn btn-secondary"
         href={target.reviewSearchUrl}
@@ -64,7 +64,10 @@ export default function ReviewRecommendations({
         />
         도서관에서 서평을 작성했어요
       </label>
-      <small>체크는 추천 숨김·작성 알림용입니다. 쪽수·거리·순위는 변하지 않습니다.</small>
+      <small>
+        체크하면 담당자에게 작성 사실이 전달됩니다. 인정 거리는 담당자가 서평을 확인한 뒤
+        반영됩니다.
+      </small>
     </div>
   );
   const recommendations = groups.filter((g) => ['completed', 'paused', 'ask'].includes(g.kind));
@@ -72,14 +75,15 @@ export default function ReviewRecommendations({
   return (
     <>
       <p className="ux-form-note">
-        서평은 선택 안내입니다. 미작성·확인 대기 중에도 다른 책이나 다음 날의 독서일지를 자유롭게
-        작성할 수 있습니다.
+        독서일지가 승인되면 인정 쪽수가 확정되고, 서평 확인을 거친 분량이 최종 인정 거리에
+        반영됩니다. 서평을 아직 쓰지 않았거나 확인을 기다리는 중이어도 다른 독서일지는 제출할 수
+        있습니다.
       </p>
       {recommendations.map(({ target, kind }) => (
         <article className="review-suggestion" key={target.participantBookId}>
           <strong>{target.bookTitle}</strong>
           <p>
-            승인된 독서량 {target.approvedReadPages} / {target.totalBookPages}쪽
+            인정 쪽수 {target.approvedReadPages} / {target.totalBookPages}쪽
           </p>
           {kind === 'ask' ? (
             <>
