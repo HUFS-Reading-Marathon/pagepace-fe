@@ -1,0 +1,829 @@
+/*
+ * 참가신청(/apply) 전용 스타일.
+ * 모든 규칙은 .apply-page 범위 안에서만 적용되어 로그인·비밀번호 찾기 화면에 영향을 주지 않습니다.
+ */
+
+.apply-page {
+  --apply-label-bg: #f7f8fa;
+  --apply-rule: #e6ebf0;
+  --apply-field-line: #d1d5db;
+  --apply-field-height: 48px;
+  --apply-field-radius: 8px;
+  --apply-focus-ring: 0 0 0 3px rgba(31, 79, 130, 0.12);
+  --apply-tint: #f3f7fc;
+  --apply-title: #102f51;
+  --apply-label: #4b5563;
+  --apply-error: #b91c1c;
+  --apply-success: #2f7a5f;
+
+  min-height: auto;
+  padding-top: 88px;
+  align-items: flex-start;
+  color: var(--ink);
+  word-break: keep-all;
+}
+
+.apply-shell {
+  position: relative;
+  width: min(100%, 960px);
+  margin: 0 auto;
+}
+
+/* ===== 상단: 상태 → 제목 → 행사명 → 설명 ===== */
+
+.apply-status {
+  display: flex;
+  margin: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  color: var(--body);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.apply-status__state {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.apply-status__state::before {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #aab4bf;
+  content: '';
+}
+
+.apply-status.is-open .apply-status__state {
+  color: var(--apply-success);
+}
+
+.apply-status.is-open .apply-status__state::before {
+  background: #22a06b;
+  box-shadow: 0 0 0 4px rgba(34, 160, 107, 0.14);
+}
+
+.apply-status__period,
+.apply-status__deadline {
+  font-variant-numeric: tabular-nums;
+}
+
+.apply-status__period::before,
+.apply-status__deadline::before {
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  margin-right: 12px;
+  border-radius: 50%;
+  background: #c3ccd6;
+  vertical-align: middle;
+  content: '';
+}
+
+.apply-status time {
+  white-space: nowrap;
+}
+
+.apply-status__deadline {
+  color: #374151;
+  font-weight: 500;
+}
+
+.apply-header h1 {
+  margin: 18px 0 0;
+  color: var(--apply-title);
+  font-size: 46px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+}
+
+.apply-event-title {
+  margin: 18px 0 0;
+  color: #374151;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: -0.02em;
+}
+
+.apply-description {
+  margin: 6px 0 0;
+  color: var(--body);
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+/* ===== 신청 폼: 왼쪽 회색 그룹 라벨 + 오른쪽 입력 영역 ===== */
+
+.apply-form {
+  margin-top: 56px;
+  border-top: 1px solid var(--apply-rule);
+}
+
+.apply-group {
+  display: grid;
+  grid-template-columns: minmax(168px, 21.5%) minmax(0, 1fr);
+  border-bottom: 1px solid var(--apply-rule);
+}
+
+.apply-group__label {
+  margin: 0;
+  padding: 30px 24px;
+  background: var(--apply-label-bg);
+  color: #374151;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: -0.02em;
+}
+
+.apply-group__body {
+  display: grid;
+  min-width: 0;
+  padding: 28px 0 30px 36px;
+  align-content: start;
+  gap: 22px;
+}
+
+.apply-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 20px 16px;
+}
+
+.apply-field {
+  min-width: 0;
+}
+
+.apply-field label,
+.apply-field__label {
+  display: block;
+  margin: 0 0 8px;
+  padding: 0;
+  color: var(--apply-label);
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.apply-optional {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.apply-fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.apply-page input[type='text'],
+.apply-page input[type='tel'],
+.apply-page select {
+  width: 100%;
+  min-width: 0;
+  height: var(--apply-field-height);
+  padding: 0 16px;
+  border: 1px solid var(--apply-field-line);
+  border-radius: var(--apply-field-radius);
+  background-color: #fff;
+  color: #111827;
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.apply-page select {
+  padding-right: 40px;
+  text-overflow: ellipsis;
+}
+
+.apply-page input::placeholder {
+  color: #9ca3af;
+}
+
+.apply-page input[type='text']:focus,
+.apply-page input[type='tel']:focus,
+.apply-page select:focus {
+  border-color: var(--navy-strong);
+  box-shadow: var(--apply-focus-ring);
+}
+
+.apply-page input:disabled,
+.apply-page select:disabled {
+  background-color: #f9fafb;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.apply-help {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.apply-group__body > .apply-help {
+  margin-top: -14px;
+}
+
+.apply-help.is-error {
+  color: var(--apply-error);
+}
+
+/* DepartmentSelect: 단과대학 → 학과 2열 */
+.apply-page .department-select {
+  gap: 16px;
+}
+
+/* ===== 이메일 인증 ===== */
+
+.apply-inline {
+  display: flex;
+  gap: 8px;
+}
+
+.apply-email {
+  display: flex;
+  min-width: 0;
+  height: var(--apply-field-height);
+  flex: 1;
+  overflow: hidden;
+  border: 1px solid var(--apply-field-line);
+  border-radius: var(--apply-field-radius);
+  background: #fff;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.apply-email:focus-within {
+  border-color: var(--navy-strong);
+  box-shadow: var(--apply-focus-ring);
+}
+
+.apply-email.is-disabled {
+  background: #f9fafb;
+}
+
+.apply-page .apply-email input[type='text'] {
+  height: 100%;
+  flex: 1;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.apply-email__suffix {
+  display: flex;
+  padding: 0 18px;
+  flex: none;
+  align-items: center;
+  border-left: 1px solid #e5e9ee;
+  background: var(--apply-label-bg);
+  color: var(--body);
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.apply-button {
+  display: inline-flex;
+  min-width: 112px;
+  height: var(--apply-field-height);
+  padding: 0 16px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--navy-strong);
+  border-radius: var(--apply-field-radius);
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.apply-button:focus-visible {
+  outline: 3px solid rgba(31, 79, 130, 0.2);
+  outline-offset: 2px;
+}
+
+.apply-button--outline {
+  background: #fff;
+  color: var(--navy-strong);
+}
+
+.apply-button--outline:hover:not(:disabled) {
+  background: var(--apply-tint);
+}
+
+.apply-button--primary {
+  background: var(--navy-strong);
+  color: #fff;
+}
+
+.apply-button--primary:hover:not(:disabled) {
+  border-color: #163a60;
+  background: #163a60;
+}
+
+.apply-button:disabled {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.apply-button--primary:disabled {
+  border-color: #94a3b8;
+  background: #94a3b8;
+  color: #fff;
+}
+
+.apply-button--outline.is-verified:disabled {
+  border-color: #b9cfe6;
+  background: var(--apply-tint);
+  color: var(--navy-strong);
+}
+
+.apply-otp-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+/* VerificationCodeInput가 만드는 6칸 입력 그룹 */
+.apply-otp-row .auth-email-verification__otp {
+  display: flex;
+  gap: 8px;
+}
+
+.apply-page .apply-otp-row .auth-email-verification__digit {
+  width: 46px;
+  height: var(--apply-field-height);
+  padding: 0;
+  color: var(--ink);
+  font-size: 19px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  caret-color: var(--navy-strong);
+}
+
+.apply-timer {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.apply-timer b {
+  color: #c2410c;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.apply-timer.is-expired b {
+  color: var(--apply-error);
+}
+
+.apply-verification-message {
+  margin-top: -14px;
+  color: var(--navy-strong);
+}
+
+.apply-verification-message.is-error {
+  color: var(--apply-error);
+}
+
+.apply-verification-message.is-success {
+  color: var(--apply-success);
+}
+
+/* ===== 소속 유형 · 참가 코스: 실제 radio 위에 그린 선택 UI ===== */
+
+.apply-segment,
+.apply-course {
+  position: relative;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.apply-segment input,
+.apply-course input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.apply-segments {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.apply-segment span {
+  display: flex;
+  min-height: var(--apply-field-height);
+  padding: 6px 8px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--apply-field-line);
+  border-radius: var(--apply-field-radius);
+  background: #fff;
+  color: #374151;
+  font-size: 14.5px;
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: center;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.apply-segment:hover span {
+  border-color: var(--navy);
+}
+
+.apply-segment input:checked + span {
+  border-color: var(--navy-strong);
+  background: var(--apply-tint);
+  box-shadow: inset 0 0 0 0.5px var(--navy-strong);
+  color: var(--navy-strong);
+  font-weight: 600;
+}
+
+.apply-segment input:focus-visible + span,
+.apply-course input:focus-visible + .apply-course__box {
+  outline: 3px solid rgba(31, 79, 130, 0.2);
+  outline-offset: 2px;
+}
+
+.apply-courses {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(212px, 1fr));
+  gap: 8px;
+}
+
+.apply-course__box {
+  display: flex;
+  min-height: var(--apply-field-height);
+  padding: 8px 14px;
+  align-items: center;
+  gap: 4px 8px;
+  flex-wrap: wrap;
+  border: 1px solid var(--apply-field-line);
+  border-radius: var(--apply-field-radius);
+  background: #fff;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.apply-course__box::before {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  box-sizing: border-box;
+  border: 1.5px solid #c3ccd6;
+  border-radius: 50%;
+  background: #fff;
+  content: '';
+}
+
+.apply-course__name {
+  color: #374151;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.apply-course__meta {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.apply-course:hover .apply-course__box {
+  border-color: var(--navy);
+}
+
+.apply-course input:checked + .apply-course__box {
+  border-color: var(--navy-strong);
+  background: var(--apply-tint);
+  box-shadow: inset 0 0 0 0.5px var(--navy-strong);
+}
+
+.apply-course input:checked + .apply-course__box::before {
+  border: 5.5px solid var(--navy-strong);
+}
+
+.apply-course input:checked + .apply-course__box .apply-course__name {
+  color: var(--navy-strong);
+}
+
+.apply-course input:checked + .apply-course__box .apply-course__meta {
+  color: var(--body);
+}
+
+.apply-course input:disabled + .apply-course__box {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.apply-course-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14.5px;
+  line-height: var(--apply-field-height);
+}
+
+/* ===== 동의 · 제출 ===== */
+
+.apply-footer {
+  margin-top: 28px;
+}
+
+.apply-agreement {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--body);
+  font-size: 14.5px;
+  line-height: 1.55;
+  cursor: pointer;
+}
+
+.apply-agreement input {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  flex: none;
+  accent-color: var(--navy-strong);
+  cursor: pointer;
+}
+
+.apply-error {
+  margin: 14px 0 0;
+  color: var(--apply-error);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.apply-submit {
+  display: flex;
+  margin-top: 28px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 24px;
+}
+
+.apply-submit__guide {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.apply-submit__button {
+  width: 200px;
+  font-size: 15.5px;
+}
+
+/* ===== 신청 기간이 아닐 때 폼 대신 보여 주는 안내 ===== */
+
+.apply-closed {
+  display: grid;
+  max-width: 640px;
+  margin-top: 48px;
+  padding: 24px 26px;
+  gap: 8px;
+  border-left: 3px solid var(--navy-strong);
+  background: var(--apply-label-bg);
+}
+
+.apply-closed strong {
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.apply-closed p {
+  margin: 0;
+  color: var(--body);
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+
+.apply-closed__actions {
+  display: flex;
+  margin-top: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.apply-closed__actions a {
+  display: inline-flex;
+  min-height: 44px;
+  padding: 0 18px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #bfd2e6;
+  border-radius: var(--apply-field-radius);
+  background: #fff;
+  color: var(--navy-strong);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.apply-closed__actions a.apply-closed__primary {
+  border-color: var(--navy-strong);
+  background: var(--navy-strong);
+  color: #fff;
+}
+
+/* ===== 반응형 ===== */
+
+@media (max-width: 1024px) {
+  .apply-page {
+    padding-top: 72px;
+  }
+
+  .apply-header h1 {
+    font-size: 42px;
+  }
+
+  .apply-group {
+    grid-template-columns: 168px minmax(0, 1fr);
+  }
+
+  .apply-group__label {
+    padding: 28px 20px;
+  }
+
+  .apply-group__body {
+    padding-left: 28px;
+  }
+
+  .apply-courses {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}
+
+/* 태블릿 이하: 그룹명이 입력 영역 위에 오는 세로형 구조 */
+@media (max-width: 768px) {
+  .apply-page {
+    padding-top: 56px;
+  }
+
+  .apply-header h1 {
+    margin-top: 14px;
+    font-size: 36px;
+  }
+
+  .apply-event-title {
+    margin-top: 14px;
+    font-size: 17px;
+  }
+
+  .apply-description {
+    font-size: 15px;
+  }
+
+  .apply-form {
+    margin-top: 40px;
+    border-top: 0;
+  }
+
+  .apply-group {
+    display: block;
+    border-bottom: 0;
+  }
+
+  .apply-group + .apply-group {
+    margin-top: 12px;
+  }
+
+  .apply-group__label {
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 15px;
+  }
+
+  .apply-group__body {
+    padding: 20px 0 24px;
+  }
+}
+
+@media (max-width: 560px) {
+  .apply-page {
+    padding-top: 40px;
+  }
+
+  .apply-header h1 {
+    font-size: 30px;
+  }
+
+  .apply-description br {
+    display: none;
+  }
+
+  /* 상태 행이 줄바꿈되면 구분 점이 줄 앞에 남지 않도록 간격만으로 구분합니다. */
+  .apply-status__period::before,
+  .apply-status__deadline::before {
+    display: none;
+  }
+
+  .apply-grid,
+  .apply-page .department-select {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .apply-group__body {
+    gap: 20px;
+  }
+
+  .apply-email__suffix {
+    padding: 0 12px;
+  }
+
+  .apply-button {
+    min-width: 96px;
+    padding: 0 12px;
+    font-size: 14px;
+  }
+
+  .apply-otp-row .auth-email-verification__otp {
+    width: 100%;
+    gap: 6px;
+  }
+
+  .apply-page .apply-otp-row .auth-email-verification__digit {
+    width: auto;
+    min-width: 0;
+    max-width: 52px;
+    flex: 1;
+  }
+
+  .apply-timer {
+    margin-left: 0;
+  }
+
+  .apply-otp-row .apply-button {
+    margin-left: auto;
+  }
+
+  .apply-segments {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .apply-segment:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .apply-courses {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .apply-submit {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .apply-submit__button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 360px) {
+  .apply-inline {
+    flex-wrap: wrap;
+  }
+
+  .apply-inline .apply-button {
+    width: 100%;
+  }
+}
