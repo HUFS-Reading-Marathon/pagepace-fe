@@ -5,9 +5,17 @@ import { MemoryRouter } from 'react-router-dom';
 import {
   GENERAL_AFFILIATIONS,
   STUDENT_DEPARTMENT_GROUPS,
+  findDepartmentGroup,
   getUnlistedDepartment,
   isKnownDepartment,
 } from '../src/constants/departments';
+import DepartmentSelect from '../src/components/forms/DepartmentSelect';
+import {
+  GENERAL_GROUP,
+  LEGACY_COLLEGE_KEY,
+  getCollegeOf,
+  getDepartmentGroups,
+} from '../src/components/forms/departmentSelectOptions';
 import ApplyPage from '../src/pages/auth/ApplyPage';
 import AccountSettingsPage from '../src/pages/my/AccountSettingsPage';
 
@@ -100,19 +108,72 @@ describe('글로벌캠퍼스 학과 목록', () => {
   });
 });
 
+describe('단과대학 → 학과 2단계 선택 로직', () => {
+  it('저장된 학과명으로 단과대학을 찾고, 목록에 없는 값은 보존용 키로 구분한다', () => {
+    expect(getCollegeOf('컴퓨터공학부')).toBe('공과대학');
+    expect(getCollegeOf('철학과')).toBe('인문대학');
+    expect(getCollegeOf('교원')).toBe(GENERAL_GROUP.label);
+    expect(getCollegeOf(LEGACY_DEPARTMENT)).toBe(LEGACY_COLLEGE_KEY);
+    expect(getCollegeOf('')).toBe('');
+    expect(findDepartmentGroup('컴퓨터공학부')?.label).toBe('공과대학');
+    expect(findDepartmentGroup(LEGACY_DEPARTMENT)).toBeUndefined();
+  });
+
+  it('선택지 묶음은 원본 학과 목록과 순서를 그대로 쓰고, 일반 소속은 필요할 때만 뒤에 붙인다', () => {
+    expect(getDepartmentGroups(false)).toBe(STUDENT_DEPARTMENT_GROUPS);
+    const withGeneral = getDepartmentGroups(true);
+    expect(withGeneral.slice(0, -1)).toEqual([...STUDENT_DEPARTMENT_GROUPS]);
+    expect(withGeneral.at(-1)?.departments).toBe(GENERAL_AFFILIATIONS);
+  });
+});
+
 describe('학과 선택 화면', () => {
-  it('참가신청 화면은 단과대학 optgroup으로 새 학과를 선택지에 보여준다', () => {
+  it('참가신청 화면은 단과대학을 먼저 고르고, 그 전에는 학과 선택을 비활성화한다', () => {
     const html = renderToStaticMarkup(
       <MemoryRouter>
         <ApplyPage />
       </MemoryRouter>,
     );
-    expect(html).toContain('<optgroup label="인문대학">');
-    expect(html).toContain('<option value="철학과">철학과</option>');
-    expect(html).toContain('<option value="영어통번역학부">영어통번역학부</option>');
-    expect(html).toContain(
-      '<option value="Global Business &amp; Technology학부">Global Business &amp; Technology학부</option>',
+    for (const group of STUDENT_DEPARTMENT_GROUPS) {
+      expect(html).toContain(`<option value="${group.label.replace(/&/g, '&amp;')}">`);
+    }
+    // 학부생(기본 신분)에게는 일반 소속 묶음을 보여 주지 않는다
+    expect(html).not.toContain(GENERAL_GROUP.label);
+    expect(html).toMatch(/<select id="department" disabled="">/);
+    expect(html).toContain('단과대학 먼저 선택');
+    expect(html).not.toContain('<option value="철학과">');
+  });
+
+  it('선택된 학과가 있으면 해당 단과대학의 학과만 보여 준다', () => {
+    const html = renderToStaticMarkup(
+      <DepartmentSelect
+        idPrefix="test"
+        value="컴퓨터공학부"
+        onChange={() => undefined}
+        includeGeneral={false}
+        collegeLabel="단과대학"
+        departmentLabel="소속 학과"
+      />,
     );
+    expect(html).toContain('<option value="공과대학" selected="">공과대학</option>');
+    expect(html).toContain('<option value="컴퓨터공학부" selected="">컴퓨터공학부</option>');
+    for (const name of departmentsOf('공과대학')) expect(html).toContain(`<option value="${name}"`);
+    expect(html).not.toContain('<option value="철학과"');
+  });
+
+  it('일반 소속 값은 교직원·대학원·기타 묶음으로 복원한다', () => {
+    const html = renderToStaticMarkup(
+      <DepartmentSelect
+        idPrefix="test"
+        value="교원"
+        onChange={() => undefined}
+        includeGeneral
+        collegeLabel="소속 구분"
+        departmentLabel="소속"
+      />,
+    );
+    expect(html).toContain(`<option value="${GENERAL_GROUP.label}" selected="">`);
+    expect(html).toContain('<option value="교원" selected="">교원</option>');
   });
 
   it('계정 설정 화면은 목록에 없는 기존 저장 학과명을 그대로 선택된 상태로 보여준다', () => {
@@ -121,10 +182,11 @@ describe('학과 선택 화면', () => {
         <AccountSettingsPage />
       </MemoryRouter>,
     );
+    expect(html).toContain(`<option value="${LEGACY_COLLEGE_KEY}" selected="">기존 소속</option>`);
     expect(html).toContain(
       `<option value="${LEGACY_DEPARTMENT}" selected="">${LEGACY_DEPARTMENT}</option>`,
     );
-    expect(html).toContain('<optgroup label="자연과학대학">');
-    expect(html).toContain('<option>수학과</option>');
+    expect(html).toContain('<option value="자연과학대학">자연과학대학</option>');
+    expect(html).toContain(`<option value="${GENERAL_GROUP.label}">`);
   });
 });

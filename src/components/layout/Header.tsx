@@ -27,7 +27,7 @@ const NAV_ITEMS: HeaderLink[] = [
 
 const MY_LIBRARY_ITEMS: HeaderLink[] = [
   { label: '나의 현황', href: '/my' },
-  { label: '독서기록', href: '/logs' },
+  { label: '나의 서재', href: '/logs' },
   { label: '계정 설정', href: '/my/settings' },
 ];
 
@@ -248,9 +248,9 @@ function Header() {
                     navigate('/my');
                   }}
                 >
-                  My Library
+                  나의 기록
                 </button>
-                <div className="nav-dropdown-menu" aria-label="My Library">
+                <div className="nav-dropdown-menu" aria-label="나의 기록">
                   {MY_LIBRARY_ITEMS.map((item) => {
                     const isActive = isMyLibraryItemActive(item.href, location.pathname);
 
@@ -359,7 +359,7 @@ function Header() {
                     .filter(Boolean)
                     .join(' ')}
                 >
-                  My Library
+                  나의 기록
                 </Link>
                 {MY_LIBRARY_ITEMS.map((item) => {
                   const isActive = isMyLibraryItemActive(item.href, location.pathname);

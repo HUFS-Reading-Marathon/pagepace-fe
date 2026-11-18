@@ -27,6 +27,7 @@ import EventChangeReviewDialog from '../../components/admin/eventSettings/EventC
 import {
   EVENT_STATUSES,
   EVENT_STATUS_LABELS,
+  getEventStatusLabel,
   type AdminCourse,
   type AdminEvent,
   type EventStatus,
@@ -36,7 +37,7 @@ import {
   COURSE_PRESETS,
   EMPTY_COURSE_FORM,
   EMPTY_EVENT_FORM,
-  getEventCountdown,
+  describeEventCountdown,
   formatDateLabel,
   formatShortDateRange,
   getCourseFormChanges,
@@ -131,7 +132,7 @@ function AdminEventSettingsPage() {
   } | null>(null);
 
   const eventCountdown = useMemo(
-    () => getEventCountdown(eventForm.eventStartDate, eventForm.eventEndDate),
+    () => describeEventCountdown(eventForm.eventStartDate, eventForm.eventEndDate),
     [eventForm.eventEndDate, eventForm.eventStartDate],
   );
 
@@ -515,9 +516,13 @@ function AdminEventSettingsPage() {
           if (!(error instanceof ApiError) || error.code !== 'EVENT_CHANGE_CONFIRMATION_REQUIRED')
             throw error;
           const previous = events.find((event) => event.eventId === selectedEventId);
+          // 확인창에는 내부 코드 대신 화면과 같은 한국어 명칭을 보여 줍니다.
+          const statusLabel = (status?: string) => getEventStatusLabel(status) ?? status ?? '-';
+          const visibleLabel = (visible?: boolean) =>
+            visible === undefined ? '-' : visible ? '공개' : '비공개';
           if (
             !window.confirm(
-              `참가자가 있는 행사입니다. 아래 변경은 접수와 공개 화면에 영향을 줍니다.\n신청기간: ${previous?.applicationStartDate}~${previous?.applicationEndDate} → ${request.applicationStartDate}~${request.applicationEndDate}\n독서일지 접수기간: ${previous?.eventStartDate}~${previous?.eventEndDate} → ${request.eventStartDate}~${request.eventEndDate}\n상태: ${previous?.status} → ${request.status}\n공개: ${previous?.publicVisible} → ${request.publicVisible}\n변경을 확정할까요?`,
+              `참가자가 있는 행사입니다. 아래 변경은 접수와 공개 화면에 영향을 줍니다.\n신청기간: ${previous?.applicationStartDate}~${previous?.applicationEndDate} → ${request.applicationStartDate}~${request.applicationEndDate}\n독서일지 접수기간: ${previous?.eventStartDate}~${previous?.eventEndDate} → ${request.eventStartDate}~${request.eventEndDate}\n상태: ${statusLabel(previous?.status)} → ${statusLabel(request.status)}\n공개: ${visibleLabel(previous?.publicVisible)} → ${visibleLabel(request.publicVisible)}\n변경을 확정할까요?`,
             )
           )
             return;
@@ -753,9 +758,14 @@ function AdminEventSettingsPage() {
         </div>
 
         <div className="admin-event-settings__countdown" aria-live="polite">
-          <span>행사 시작까지</span>
-          <strong>{eventCountdown}</strong>
-          <small>{formatDateLabel(eventForm.eventStartDate)}</small>
+          <span>{eventCountdown.label}</span>
+          <strong>{eventCountdown.value}</strong>
+          {eventCountdown.date === 'start' && (
+            <small>{formatDateLabel(eventForm.eventStartDate)} 시작</small>
+          )}
+          {eventCountdown.date === 'end' && (
+            <small>{formatDateLabel(eventForm.eventEndDate)} 종료</small>
+          )}
         </div>
       </header>
 
@@ -765,12 +775,12 @@ function AdminEventSettingsPage() {
       >
         <div>
           <h2 id="eventSelectionTitle">관리 행사 선택</h2>
-          <p>관리자 행사 목록에서 수정할 행사를 선택합니다.</p>
+          <p>수정할 행사를 선택하세요.</p>
         </div>
 
         <div className="admin-event-settings__selector-controls">
           <select
-            aria-label="관리할 행사"
+            aria-label="관리 행사"
             value={selectedEventId ?? ''}
             disabled={isEventsLoading || isCreatingEvent || events.length === 0}
             onChange={(event) => handleEventSelection(event.target.value)}
@@ -811,7 +821,7 @@ function AdminEventSettingsPage() {
               {isCreatingEvent
                 ? '저장하기 전까지 기존 행사에는 영향을 주지 않습니다.'
                 : fieldsLocked
-                  ? '내용을 안전하게 확인하는 중입니다. 값을 바꾸려면 "설정 수정"을 눌러주세요.'
+                  ? '값을 바꾸려면 "설정 수정"을 누르세요.'
                   : `${EVENT_STATUS_LABELS[editingEvent!.status]} · 행사와 아래 코스는 모두 이 행사에만 적용됩니다.`}
             </small>
           </div>
@@ -922,7 +932,7 @@ function AdminEventSettingsPage() {
               <div>
                 <h2 id="eventPeriodTitle">기간 설정</h2>
                 <p>
-                  참가 신청을 받는 기간과 행사 운영 기간(독서일지 접수기간)을 순서대로 입력합니다.
+                  참가신청을 받는 기간과 행사 운영 기간(독서일지 접수기간)을 순서대로 입력합니다.
                 </p>
               </div>
               <span>필수</span>

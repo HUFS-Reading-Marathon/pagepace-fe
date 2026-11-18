@@ -6,11 +6,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getApiErrorMessage } from '../../api/apiClient';
 import { changeMyPassword, getMe, updateMe, type MeUpdateRequest } from '../../api/meApi';
-import {
-  GENERAL_AFFILIATIONS,
-  STUDENT_DEPARTMENT_GROUPS,
-  getUnlistedDepartment,
-} from '../../constants/departments';
+import DepartmentSelect from '../../components/forms/DepartmentSelect';
 import { useAuth } from '../../auth';
 import './account-settings.css';
 
@@ -37,10 +33,11 @@ function AccountSettingsPage() {
   const [originalEmail, setOriginalEmail] = useState('');
   const [verifiedEmail, setVerifiedEmail] = useState('');
   const [code, setCode] = useState('');
-  const [verifying, setVerifying] = useState(false);
+  // 인증 코드 발송과 확인이 같은 잠금을 쓰되, 버튼 문구는 진행 중인 작업에만 표시하도록 구분합니다.
+  const [verifyingAction, setVerifyingAction] = useState<'send' | 'confirm' | null>(null);
+  const verifying = verifyingAction !== null;
   const [pw, setPw] = useState({ current: '', next: '', confirm: '' });
   const [message, setMessage] = useState('');
-  const unlistedDepartment = getUnlistedDepartment(form.department);
 
   useEffect(() => {
     getMe()
@@ -99,9 +96,8 @@ function AccountSettingsPage() {
   return (
     <main className="account-page">
       <header>
-        <p>MY ACCOUNT</p>
         <h1>계정 설정</h1>
-        <span>연락처와 소속 정보를 최신 상태로 관리하세요.</span>
+        <span>연락처·소속 정보와 비밀번호를 변경합니다.</span>
       </header>
       {message && <div className="account-message">{message}</div>}
       <div className="account-grid">
@@ -126,20 +122,22 @@ function AccountSettingsPage() {
             <div>
               <button
                 type="button"
+                className="account-verify-send"
                 disabled={verifying}
+                aria-busy={verifyingAction === 'send'}
                 onClick={async () => {
-                  setVerifying(true);
+                  setVerifyingAction('send');
                   try {
                     await sendApplicationEmailVerification(form.email);
                     setMessage('인증 코드를 보냈습니다.');
                   } catch (error) {
                     setMessage(error instanceof Error ? error.message : '발송 실패');
                   } finally {
-                    setVerifying(false);
+                    setVerifyingAction(null);
                   }
                 }}
               >
-                인증 코드 발송
+                {verifyingAction === 'send' ? '발송 중...' : '인증 코드 발송'}
               </button>
               <label>
                 인증 코드
@@ -150,7 +148,7 @@ function AccountSettingsPage() {
                 disabled={verifying || !code}
                 onClick={async () => {
                   const email = form.email;
-                  setVerifying(true);
+                  setVerifyingAction('confirm');
                   try {
                     await confirmApplicationEmailVerification(email, code);
                     setVerifiedEmail(email);
@@ -158,7 +156,7 @@ function AccountSettingsPage() {
                   } catch (error) {
                     setMessage(error instanceof Error ? error.message : '인증 실패');
                   } finally {
-                    setVerifying(false);
+                    setVerifyingAction(null);
                   }
                 }}
               >
@@ -192,30 +190,15 @@ function AccountSettingsPage() {
               ))}
             </select>
           </label>
-          <label>
-            소속
-            <select
-              value={form.department}
-              onChange={(event) => setForm({ ...form, department: event.target.value })}
-            >
-              <option value="">선택</option>
-              {unlistedDepartment && (
-                <option value={unlistedDepartment}>{unlistedDepartment}</option>
-              )}
-              {STUDENT_DEPARTMENT_GROUPS.map((group) => (
-                <optgroup key={group.label} label={group.label}>
-                  {group.departments.map((department) => (
-                    <option key={department}>{department}</option>
-                  ))}
-                </optgroup>
-              ))}
-              <optgroup label="기타 소속">
-                {GENERAL_AFFILIATIONS.map((department) => (
-                  <option key={department}>{department}</option>
-                ))}
-              </optgroup>
-            </select>
-          </label>
+          <DepartmentSelect
+            idPrefix="accountDepartment"
+            value={form.department}
+            onChange={(department) => setForm((current) => ({ ...current, department }))}
+            includeGeneral
+            collegeLabel={form.affiliationType === 'UNDERGRADUATE' ? '단과대학' : '소속 구분'}
+            departmentLabel="소속"
+            fieldClassName="account-field"
+          />
           <button>정보 저장</button>
         </form>
         <form onSubmit={change}>

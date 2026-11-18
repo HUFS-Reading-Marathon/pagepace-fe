@@ -9,6 +9,7 @@ import {
   type ReadingLogBook,
 } from '../../types/readingLog';
 import { formatDistance } from '../../utils/reading';
+import { formatKoDateKey } from '../../utils/date';
 import './logs.css';
 
 const PREVIEW_BOOK_COUNT = 5;
@@ -57,7 +58,6 @@ function BookCover({ book }: { book: ShelfBook }) {
         <img src={book.coverImageUrl} alt={`${book.bookTitle} 표지`} />
       ) : (
         <div className="my-library-cover-fallback" aria-hidden="true">
-          <span>PAGEPACE</span>
           <strong>{book.bookTitle}</strong>
         </div>
       )}
@@ -183,9 +183,8 @@ function MyReadingLogsPage() {
     <main className="log-page my-library-page">
       <section className="my-library-hero">
         <div>
-          <p className="log-label">My Library</p>
           <h1>나의 서재</h1>
-          <p>읽고 있는 책과 완독한 책을 한눈에 확인해 보세요.</p>
+          <p>읽고 있는 책과 완독한 책, 제출한 독서일지를 모아 봅니다.</p>
         </div>
         <Link to="/logs/new" className="log-primary-link">
           독서일지 작성
@@ -266,13 +265,11 @@ function MyReadingLogsPage() {
                       to={`/logs/${log.readingLogId}`}
                       className="my-library-log-row"
                     >
-                      <span className={`log-status-badge status-${statusLabel}`}>
-                        {statusLabel}
-                      </span>
+                      <span className={`log-status-badge status-${log.status}`}>{statusLabel}</span>
                       <div>
                         <strong>{log.books.map((book) => book.bookTitle).join(', ')}</strong>
                         <span>
-                          {log.readingDate} · {log.books.length}권
+                          {formatKoDateKey(log.readingDate)} · {log.books.length}권
                         </span>
                       </div>
                       <dl>
@@ -282,7 +279,11 @@ function MyReadingLogsPage() {
                         </div>
                         <div>
                           <dt>예상 환산 거리</dt>
-                          <dd>{formatDistance(log.convertedDistanceMeter)}</dd>
+                          <dd>
+                            {log.status === 'REJECTED'
+                              ? '반영 안 됨'
+                              : formatDistance(log.convertedDistanceMeter)}
+                          </dd>
                         </div>
                       </dl>
                       <span className="my-library-log-arrow" aria-hidden="true">

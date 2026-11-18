@@ -51,7 +51,14 @@
   margin-top: 24px;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  flex-wrap: wrap;
+  gap: 16px 20px;
+}
+
+/* 사이드바가 있는 태블릿 폭에서 제목이 한 글자 폭으로 눌리지 않도록 최소 폭을 둡니다. */
+.admin-event-settings__selector > div:first-child {
+  flex: 1 1 220px;
+  min-width: 0;
 }
 
 .admin-event-settings__selector h2 {
@@ -579,10 +586,16 @@
 .admin-event-settings__course-table thead th {
   background: var(--line-soft);
   color: var(--navy-strong);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: var(--admin-fw-semibold);
   white-space: nowrap;
   overflow: visible;
+}
+
+/* 조회 모드의 코스명·보상 유형도 숫자 칸과 같은 크기로 맞춥니다. */
+.admin-event-settings__course-table tbody td {
+  color: var(--ink);
+  font-size: 13px;
 }
 
 .admin-event-settings__course-table tbody tr:last-child td {
@@ -601,6 +614,11 @@
   padding: 0 6px;
   border-radius: var(--radius);
   font-size: 13px;
+}
+
+.admin-event-settings__course-table select {
+  --select-arrow-inset: 8px;
+  --select-arrow-space: 26px;
 }
 
 .admin-event-settings__course-table input[type='number'] {
@@ -669,12 +687,14 @@
   cursor: grabbing;
 }
 
+/* td를 flex로 바꾸면 표 셀이 아니게 되어 행 구분선이 끊기므로 셀 배치는 유지합니다. */
 .admin-event-settings__course-table-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 4px;
-  flex-wrap: wrap;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.admin-event-settings__course-table-actions > * + * {
+  margin-left: 4px;
 }
 
 .admin-event-settings__feedback {
@@ -778,10 +798,26 @@
 .admin-event-settings__save-button:disabled,
 .admin-event-settings__secondary-button:disabled,
 .admin-event-settings__danger-button:disabled,
-.admin-event-settings select:disabled,
-.admin-event-settings fieldset:disabled {
+.admin-event-settings__selector-controls select:disabled {
   cursor: not-allowed;
   opacity: 0.58;
+}
+
+/* 조회 모드(잠긴 fieldset)에서도 설정값은 읽기 쉬운 대비로 보여 줍니다. */
+.admin-event-settings fieldset:disabled {
+  cursor: not-allowed;
+}
+
+.admin-event-settings fieldset:disabled :is(input, select, textarea) {
+  color: var(--ink);
+  -webkit-text-fill-color: var(--ink);
+  opacity: 1;
+}
+
+/* 빈 칸의 안내 문구는 입력값과 구분되도록 옅게 유지합니다. */
+.admin-event-settings fieldset:disabled :is(input, textarea)::placeholder {
+  color: var(--muted);
+  -webkit-text-fill-color: var(--muted);
 }
 
 .admin-event-settings__save-button:hover {

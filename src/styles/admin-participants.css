@@ -541,3 +541,169 @@
 .admin-participants__tabs {
   margin-top: 20px;
 }
+
+/* 관리할 행사 선택 */
+.admin-participants__event {
+  display: grid;
+  width: min(100%, 420px);
+  margin-top: 24px;
+  gap: 6px;
+}
+
+.admin-participants__event span {
+  color: var(--body);
+  font-size: 12px;
+  font-weight: var(--admin-fw-medium);
+}
+
+.admin-participants__event select {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  padding: 0 36px 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 14px;
+}
+
+/* 승인 참가자 · 직접 등록 (ParticipantRegistration) */
+.admin-participants__registration {
+  min-width: 0;
+  margin-top: 20px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.admin-participants__registration h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 17px;
+}
+
+.admin-participants__registration > p {
+  margin: 6px 0 0;
+  color: var(--body);
+  font-size: 13px;
+}
+
+.admin-participants__registration details {
+  margin-top: 14px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.admin-participants__registration summary {
+  padding: 12px 0 0;
+  color: var(--navy-strong);
+  font-size: 13px;
+  font-weight: var(--admin-fw-semibold);
+  cursor: pointer;
+}
+
+.admin-participants__registration fieldset {
+  display: grid;
+  min-width: 0;
+  margin: 14px 0 0;
+  padding: 0;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  align-items: end;
+  gap: 12px 14px;
+  border: 0;
+}
+
+.admin-participants__registration fieldset > label {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+  color: var(--body);
+  font-size: 12px;
+  font-weight: var(--admin-fw-medium);
+}
+
+.admin-participants__registration fieldset input:not([type='checkbox']),
+.admin-participants__registration fieldset select {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.admin-participants__registration fieldset select {
+  padding-right: 36px;
+}
+
+.admin-participants__registration fieldset input:not([type='checkbox']):focus,
+.admin-participants__registration fieldset select:focus {
+  border-color: var(--navy-strong);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(31, 79, 130, 0.08);
+}
+
+.admin-participants__registration .admin-participants__registration-check {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.admin-participants__registration-check input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--navy-strong);
+}
+
+.admin-participants__registration fieldset > p {
+  margin: 0;
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.admin-participants__registration fieldset > button {
+  justify-self: start;
+  min-height: 42px;
+}
+
+.admin-participants__registration .table-scroll {
+  margin-top: 12px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.admin-participants__registration table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--body);
+  font-size: 13px;
+}
+
+.admin-participants__registration th,
+.admin-participants__registration td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line-soft);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.admin-participants__registration th {
+  background: var(--line-soft);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: var(--admin-fw-semibold);
+}
+
+.admin-participants__registration tbody tr:last-child td {
+  border-bottom: 0;
+}

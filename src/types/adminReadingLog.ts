@@ -49,7 +49,7 @@ export type ReadingLogValidationIssue = {
 };
 
 export const READING_LOG_STATUS_LABELS: Record<ReadingLogStatus, string> = {
-  submit: '제출',
+  submit: '검토 대기',
   approve: '승인',
   rejected: '반려',
 };

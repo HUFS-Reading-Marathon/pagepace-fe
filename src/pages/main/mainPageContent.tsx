@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { EventCourse } from '../../api/eventApi';
 import { METERS_PER_PAGE } from '../../constants/reading';
+import { getRewardTypeLabel } from '../../utils/adminEventForms';
 
 /*
  * 메인 페이지에서 사용하는 정적 콘텐츠와 서버 조회 실패 시 사용하는 fallback 값입니다.
@@ -53,8 +54,6 @@ export type MyRecordSummary = {
   lastSubmittedAt: string;
 };
 
-export const APPLY_FORM_URL = 'https://forms.gle/QxsWgxTH7AmRUbfB9';
-
 export const FALLBACK_EVENT_TITLE = '제5회 독서마라톤';
 
 export const FALLBACK_HERO_INFO: [string, string][] = [
@@ -64,15 +63,10 @@ export const FALLBACK_HERO_INFO: [string, string][] = [
 ];
 
 export const QUICK_LINKS: QuickLink[] = [
-  { eyebrow: 'Step 1', title: '코스 선택하기', href: '#courses' },
-  { eyebrow: 'Step 2', title: '참여방법 확인', href: '#process' },
-  {
-    eyebrow: 'Step 3',
-    title: '참가신청 작성',
-    href: APPLY_FORM_URL,
-    external: true,
-  },
-  { eyebrow: 'Status', title: '대회 현황 보기', href: '/status' },
+  { eyebrow: '1단계', title: '코스 선택하기', href: '#courses' },
+  { eyebrow: '2단계', title: '참여방법 확인', href: '#process' },
+  { eyebrow: '3단계', title: '참가신청 작성', href: '/apply' },
+  { eyebrow: '진행 상황', title: '대회 현황 보기', href: '/status' },
 ];
 
 export const SUMMARY_ITEMS: [string, string][] = [
@@ -125,7 +119,7 @@ export const PROCESS_STEPS: ProcessStep[] = [
   {
     no: 1,
     icon: 'apply',
-    title: '참가 신청',
+    title: '참가신청',
     desc: '참가신청서를 작성하고 원하는 코스를 선택합니다.',
   },
   {
@@ -151,7 +145,7 @@ export const PROCESS_STEPS: ProcessStep[] = [
 export const FALLBACK_NOTICES: FallbackNotice[] = [
   {
     badge: '신청',
-    title: '제5회 독서마라톤 참가 신청 안내',
+    title: '제5회 독서마라톤 참가신청 안내',
     href: '#process',
     date: '2025.11.24',
     dateTime: '2025-11-24',
@@ -206,8 +200,8 @@ export function toCourseRow(course: EventCourse): CourseRow {
     monthly: `${course.avgMonthlyReadingCount}권`,
     reward:
       course.rewardAmount > 0
-        ? `${course.rewardType} ${course.rewardAmount.toLocaleString()}원`
-        : course.rewardType,
+        ? `${getRewardTypeLabel(course.rewardType)} ${course.rewardAmount.toLocaleString()}원`
+        : getRewardTypeLabel(course.rewardType),
     loan: `${course.extraLoanCount}권`,
     people: `${course.maxWinners}명`,
   };

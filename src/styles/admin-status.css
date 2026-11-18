@@ -288,6 +288,7 @@
 }
 
 .admin-status__actions button,
+.admin-status__actions a,
 .admin-status__filter-footer button {
   display: inline-flex;
   min-height: 38px;
@@ -306,6 +307,7 @@
 }
 
 .admin-status__actions button:hover,
+.admin-status__actions a:hover,
 .admin-status__filter-footer button:hover {
   border-color: var(--navy);
   color: var(--navy-strong);

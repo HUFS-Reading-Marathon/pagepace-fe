@@ -8,6 +8,7 @@ import {
   type ReadingLogBook,
 } from '../../types/readingLog';
 import { formatDistance } from '../../utils/reading';
+import { formatKoDateKey } from '../../utils/date';
 import './logs.css';
 
 function DetailBookCover({ book }: { book: ReadingLogBook }) {
@@ -15,12 +16,7 @@ function DetailBookCover({ book }: { book: ReadingLogBook }) {
     return <img src={book.coverImageUrl} alt={`${book.bookTitle} 표지`} />;
   }
 
-  return (
-    <span aria-hidden="true">
-      <small>READING</small>
-      BOOK
-    </span>
-  );
+  return <span aria-hidden="true">표지 없음</span>;
 }
 
 function ReadingLogDetailPage() {
@@ -60,7 +56,6 @@ function ReadingLogDetailPage() {
     return (
       <main className="page-container">
         <section className="page-section">
-          <p className="page-label">Reading Log</p>
           <h1>
             {!hasValidReadingLogId
               ? '독서일지 번호가 올바르지 않습니다.'
@@ -80,19 +75,18 @@ function ReadingLogDetailPage() {
     <main className="reading-detail-page">
       <Link to="/logs" className="reading-detail-back">
         <span aria-hidden="true">←</span>
-        나의 독서기록
+        나의 서재
       </Link>
 
       <section className="reading-detail-card">
         <header className="reading-detail-head">
           <div>
-            <p className="page-label">Reading Log Detail</p>
             <h1>독서일지 상세</h1>
             <p>
-              {log.readingDate} · {log.books.length}권 기록
+              {formatKoDateKey(log.readingDate)} · {log.books.length}권 기록
             </p>
           </div>
-          <span className={`log-status-badge status-${statusLabel}`}>{statusLabel}</span>
+          <span className={`log-status-badge status-${log.status}`}>{statusLabel}</span>
         </header>
 
         <dl className="reading-detail-summary">
@@ -106,14 +100,17 @@ function ReadingLogDetailPage() {
           </div>
           <div>
             <dt>예상 환산 거리</dt>
-            <dd>{formatDistance(log.convertedDistanceMeter)}</dd>
+            <dd>
+              {log.status === 'REJECTED'
+                ? '반영 안 됨'
+                : formatDistance(log.convertedDistanceMeter)}
+            </dd>
           </div>
         </dl>
 
         <section className="reading-detail-books">
           <div className="reading-detail-section-head">
             <div>
-              <p>Books</p>
               <h2>기록한 도서</h2>
             </div>
             <span>전체 페이지는 도서관 서지정보 기준입니다.</span>
@@ -132,9 +129,7 @@ function ReadingLogDetailPage() {
                     <DetailBookCover book={book} />
                   </div>
                   <div className="reading-detail-book-content">
-                    <span className="reading-detail-book-number">
-                      BOOK {String(index + 1).padStart(2, '0')}
-                    </span>
+                    <span className="reading-detail-book-number">책 {index + 1}</span>
                     <h3>{book.bookTitle}</h3>
                     <p>
                       {book.author || '저자 미상'}

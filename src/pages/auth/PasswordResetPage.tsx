@@ -70,7 +70,6 @@ function PasswordResetPage() {
       </div>
       <section className="auth-shell auth-shell-reset" aria-label="비밀번호 찾기 영역">
         <div className="auth-heading">
-          <p className="auth-kicker">ACCOUNT RECOVERY</p>
           <h1>비밀번호 찾기</h1>
           <p className="auth-description">계정에 등록된 이메일로 본인 확인을 진행합니다.</p>
         </div>
@@ -109,7 +108,7 @@ function PasswordResetPage() {
                 onClick={handleSend}
                 disabled={isSending || completed}
               >
-                {isSending ? '발송 중' : codeSent ? '재발송' : '인증번호 발송'}
+                {isSending ? '발송 중...' : codeSent ? '재발송' : '인증번호 발송'}
               </button>
             </div>
           </div>

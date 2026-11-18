@@ -23,6 +23,7 @@ import type { BookSearchResult } from '../../types/book';
 import type { MyParticipation } from '../../types/participation';
 import type { ParticipantBook, ReadingLog, ReviewTargetBook } from '../../types/readingLog';
 import { formatDistance } from '../../utils/reading';
+import { METERS_PER_PAGE } from '../../constants/reading';
 import './logs.css';
 
 type BookEntry = {
@@ -268,11 +269,8 @@ function ReadingLogWritePage() {
   return (
     <main className="page-container reading-log-write">
       <section className="page-section">
-        <p className="page-label">Reading Log</p>
         <h1>{editingLogId ? '독서일지 수정' : '독서일지 작성'}</h1>
-        <p className="page-description">
-          도서관 소장 도서를 검색한 뒤 오늘 읽은 페이지만 기록해 주세요.
-        </p>
+        <p className="page-description">도서를 검색해 선택하고, 오늘 읽은 쪽수를 입력하세요.</p>
       </section>
 
       <div className="reading-workspace reading-log-write-layout">
@@ -493,7 +491,7 @@ function ReadingLogWritePage() {
               </div>
               <div className="reading-log-summary-item">
                 <span>예상 환산 거리</span>
-                <strong>{(totalReadPages * 5).toLocaleString()}m</strong>
+                <strong>{formatDistance(totalReadPages * METERS_PER_PAGE)}</strong>
               </div>
               <p>
                 표시된 거리는 예상 값입니다. 일지 승인과 서평 확인을 모두 거친 분량만 실제 거리로
@@ -534,7 +532,7 @@ function ReadingLogWritePage() {
               </p>
               <dl className="reading-log-side-stats">
                 <div>
-                  <dt>승인 쪽수</dt>
+                  <dt>인정 쪽수</dt>
                   <dd>{participation.totalPages.toLocaleString()}쪽</dd>
                 </div>
                 <div>
