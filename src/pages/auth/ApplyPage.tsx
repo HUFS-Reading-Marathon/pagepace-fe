@@ -451,11 +451,6 @@ function ApplyPage() {
           )}
           <h1 id="apply-title">독서마라톤 참가신청</h1>
           {currentEvent && <p className="apply-event-title">{currentEvent.title}</p>}
-          <p className="apply-description">
-            읽은 쪽수를 거리로 환산해 완주에 도전하는 독서마라톤입니다.
-            <br />
-            학교 이메일 인증 후 신청하면 관리자 확인을 거쳐 참가가 승인됩니다.
-          </p>
         </header>
 
         {closedMessage ? (
@@ -507,9 +502,7 @@ function ApplyPage() {
                     </p>
                   </div>
                   <div className="apply-field">
-                    <label htmlFor="phone">
-                      연락처 <span className="apply-optional">(선택)</span>
-                    </label>
+                    <label htmlFor="phone">연락처</label>
                     <input
                       id="phone"
                       type="tel"
@@ -529,7 +522,10 @@ function ApplyPage() {
               </h2>
               <div className="apply-group__body">
                 <div className="apply-field">
-                  <label htmlFor="email">학교 이메일</label>
+                  {/* 왼쪽 그룹명이 '이메일 인증'이므로 화면에는 숨기고 보조기기 이름만 유지합니다. */}
+                  <label htmlFor="email" className="sr-only">
+                    학교 이메일
+                  </label>
                   <div className="apply-inline">
                     <div
                       className={`apply-email${showEmailSuffix ? '' : ' is-full-address'}${

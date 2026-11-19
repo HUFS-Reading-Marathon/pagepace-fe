@@ -25,11 +25,11 @@
 
 .apply-shell {
   position: relative;
-  width: min(100%, 960px);
+  width: min(100%, 920px);
   margin: 0 auto;
 }
 
-/* ===== 상단: 상태 → 제목 → 행사명 → 설명 ===== */
+/* ===== 상단: 상태 → 제목 → 행사명 ===== */
 
 .apply-status {
   display: flex;
@@ -111,17 +111,10 @@
   letter-spacing: -0.02em;
 }
 
-.apply-description {
-  margin: 6px 0 0;
-  color: var(--body);
-  font-size: 16px;
-  line-height: 1.7;
-}
-
 /* ===== 신청 폼: 왼쪽 회색 그룹 라벨 + 오른쪽 입력 영역 ===== */
 
 .apply-form {
-  margin-top: 56px;
+  margin-top: 44px;
   border-top: 1px solid var(--apply-rule);
 }
 
@@ -161,7 +154,7 @@
   min-width: 0;
 }
 
-.apply-field label,
+.apply-field label:not(.sr-only),
 .apply-field__label {
   display: block;
   margin: 0 0 8px;
@@ -170,11 +163,6 @@
   font-size: 13.5px;
   font-weight: 500;
   line-height: 1.5;
-}
-
-.apply-optional {
-  color: var(--muted);
-  font-weight: 400;
 }
 
 .apply-fieldset {
@@ -489,7 +477,7 @@
 .apply-course__box {
   display: flex;
   min-height: var(--apply-field-height);
-  padding: 8px 14px;
+  padding: 8px 12px;
   align-items: center;
   gap: 4px 8px;
   flex-wrap: wrap;
@@ -522,7 +510,7 @@
 .apply-course__meta {
   margin-left: auto;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13.5px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -709,12 +697,8 @@
     font-size: 17px;
   }
 
-  .apply-description {
-    font-size: 15px;
-  }
-
   .apply-form {
-    margin-top: 40px;
+    margin-top: 32px;
     border-top: 0;
   }
 
@@ -745,10 +729,6 @@
 
   .apply-header h1 {
     font-size: 30px;
-  }
-
-  .apply-description br {
-    display: none;
   }
 
   /* 상태 행이 줄바꿈되면 구분 점이 줄 앞에 남지 않도록 간격만으로 구분합니다. */
