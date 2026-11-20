@@ -34,6 +34,37 @@
   line-height: 1.7;
 }
 
+/* 참가 정보 없음·조회 실패 안내: 카드 없이 구분선과 여백만 사용합니다. */
+.my-empty {
+  max-width: 780px;
+  margin-top: 36px;
+  padding-top: 28px;
+  border-top: 1px solid #e6ebf0;
+}
+
+.my-empty h2 {
+  margin: 0;
+  color: #172838;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: -0.03em;
+}
+
+.my-empty p {
+  margin: 10px 0 0;
+  color: #536271;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.my-empty__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 24px;
+}
+
 .my-course-board {
   display: grid;
   grid-template-columns: 320px 1fr;

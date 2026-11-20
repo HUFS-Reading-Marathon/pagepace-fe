@@ -38,6 +38,7 @@ function AccountSettingsPage() {
   const verifying = verifyingAction !== null;
   const [pw, setPw] = useState({ current: '', next: '', confirm: '' });
   const [message, setMessage] = useState('');
+  const isEmailChanged = form.email.toLowerCase() !== originalEmail.toLowerCase();
 
   useEffect(() => {
     getMe()
@@ -110,58 +111,69 @@ function AccountSettingsPage() {
               onChange={(event) => setForm({ ...form, name: event.target.value })}
             />
           </label>
-          <label>
-            이메일
-            <input
-              type="email"
-              value={form.email}
-              onChange={(event) => setForm({ ...form, email: event.target.value })}
-            />
-          </label>
-          {form.email.toLowerCase() !== originalEmail.toLowerCase() && (
-            <div>
-              <button
-                type="button"
-                className="account-verify-send"
-                disabled={verifying}
-                aria-busy={verifyingAction === 'send'}
-                onClick={async () => {
-                  setVerifyingAction('send');
-                  try {
-                    await sendApplicationEmailVerification(form.email);
-                    setMessage('인증 코드를 보냈습니다.');
-                  } catch (error) {
-                    setMessage(error instanceof Error ? error.message : '발송 실패');
-                  } finally {
-                    setVerifyingAction(null);
-                  }
-                }}
-              >
-                {verifyingAction === 'send' ? '발송 중...' : '인증 코드 발송'}
-              </button>
-              <label>
-                인증 코드
-                <input value={code} onChange={(e) => setCode(e.target.value)} />
-              </label>
-              <button
-                type="button"
-                disabled={verifying || !code}
-                onClick={async () => {
-                  const email = form.email;
-                  setVerifyingAction('confirm');
-                  try {
-                    await confirmApplicationEmailVerification(email, code);
-                    setVerifiedEmail(email);
-                    setMessage('이메일 인증이 완료되었습니다.');
-                  } catch (error) {
-                    setMessage(error instanceof Error ? error.message : '인증 실패');
-                  } finally {
-                    setVerifyingAction(null);
-                  }
-                }}
-              >
-                이메일 인증 확인
-              </button>
+          <div className="account-field">
+            <label htmlFor="account-email">이메일</label>
+            <div className="account-inline">
+              <input
+                id="account-email"
+                type="email"
+                value={form.email}
+                onChange={(event) => setForm({ ...form, email: event.target.value })}
+              />
+              {isEmailChanged && (
+                <button
+                  type="button"
+                  className="account-button account-button--outline account-verify-send"
+                  disabled={verifying}
+                  aria-busy={verifyingAction === 'send'}
+                  onClick={async () => {
+                    setVerifyingAction('send');
+                    try {
+                      await sendApplicationEmailVerification(form.email);
+                      setMessage('인증 코드를 보냈습니다.');
+                    } catch (error) {
+                      setMessage(error instanceof Error ? error.message : '발송 실패');
+                    } finally {
+                      setVerifyingAction(null);
+                    }
+                  }}
+                >
+                  {verifyingAction === 'send' ? '발송 중...' : '인증 코드 발송'}
+                </button>
+              )}
+            </div>
+          </div>
+          {isEmailChanged && (
+            <div className="account-field">
+              <label htmlFor="account-email-code">인증 코드</label>
+              <div className="account-inline">
+                <input
+                  id="account-email-code"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="account-button account-button--outline"
+                  disabled={verifying || !code}
+                  aria-busy={verifyingAction === 'confirm'}
+                  onClick={async () => {
+                    const email = form.email;
+                    setVerifyingAction('confirm');
+                    try {
+                      await confirmApplicationEmailVerification(email, code);
+                      setVerifiedEmail(email);
+                      setMessage('이메일 인증이 완료되었습니다.');
+                    } catch (error) {
+                      setMessage(error instanceof Error ? error.message : '인증 실패');
+                    } finally {
+                      setVerifyingAction(null);
+                    }
+                  }}
+                >
+                  {verifyingAction === 'confirm' ? '확인 중...' : '인증 확인'}
+                </button>
+              </div>
             </div>
           )}
           <label>
@@ -199,7 +211,7 @@ function AccountSettingsPage() {
             departmentLabel="소속"
             fieldClassName="account-field"
           />
-          <button>정보 저장</button>
+          <button className="account-button account-button--primary">정보 저장</button>
         </form>
         <form onSubmit={change}>
           <h2>비밀번호 변경</h2>
@@ -228,7 +240,7 @@ function AccountSettingsPage() {
               onChange={(event) => setPw({ ...pw, confirm: event.target.value })}
             />
           </label>
-          <button>비밀번호 변경</button>
+          <button className="account-button account-button--primary">비밀번호 변경</button>
         </form>
       </div>
     </main>
