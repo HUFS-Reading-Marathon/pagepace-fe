@@ -6,6 +6,8 @@ import {
   formatCourseDistance,
   getApplicationDaysLeft,
   getCourseTargetPages,
+  getPhoneInputError,
+  PHONE_REQUIRED_MESSAGE,
   normalizeEmailIdInput,
   toApplicationEmail,
   usesSchoolEmailSuffix,
@@ -35,6 +37,20 @@ describe('참가신청 이메일 아이디 + 학교 도메인', () => {
     expect(usesSchoolEmailSuffix('someone@example.com')).toBe(false);
     expect(toApplicationEmail('someone@example.com')).toBe('someone@example.com');
     expect(usesSchoolEmailSuffix('example')).toBe(true);
+  });
+});
+
+describe('참가신청 연락처 필수 입력', () => {
+  it('연락처를 비우거나 공백만 입력하면 신청을 막는 오류 문구를 돌려준다', () => {
+    expect(getPhoneInputError('')).toBe(PHONE_REQUIRED_MESSAGE);
+    expect(getPhoneInputError('   ')).toBe(PHONE_REQUIRED_MESSAGE);
+    expect(getPhoneInputError('\t\n')).toBe(PHONE_REQUIRED_MESSAGE);
+  });
+
+  it('연락처를 입력하면 형식을 제한하지 않고 통과시킨다', () => {
+    expect(getPhoneInputError('010-1234-5678')).toBeNull();
+    expect(getPhoneInputError('01012345678')).toBeNull();
+    expect(getPhoneInputError(' 031-330-4000 ')).toBeNull();
   });
 });
 
@@ -103,6 +119,8 @@ describe('참가신청 화면 구조', () => {
     expect(html).toContain('id="name"');
     expect(html).toContain('id="studentNumber"');
     expect(html).toContain('id="phone"');
+    expect(html).toMatch(/<input id="phone" type="tel"[^>]*required=""/);
+    expect(html).toContain('<label for="phone">연락처</label>');
     expect(html).toContain('name="affiliation"');
     expect(html).toContain('<select id="department" disabled="">');
   });
