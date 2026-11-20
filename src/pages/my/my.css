@@ -371,7 +371,8 @@
 .my-latest-card h3 {
   margin: 18px 0 10px;
   color: #172838;
-  font-size: 28px;
+  /* 섹션 제목(25px)보다 작게 두어 섹션 → 항목 위계를 유지합니다. */
+  font-size: 21px;
   letter-spacing: -0.05em;
 }
 

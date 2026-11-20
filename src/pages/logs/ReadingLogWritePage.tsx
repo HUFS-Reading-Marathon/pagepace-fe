@@ -506,9 +506,7 @@ function ReadingLogWritePage() {
                     <span aria-hidden="true">!</span>
                     {errorMessage}
                   </p>
-                ) : (
-                  <p>도서와 페이지를 확인한 뒤 제출해 주세요.</p>
-                )}
+                ) : null}
               </div>
               <button
                 className="reading-log-submit"
@@ -558,7 +556,7 @@ function ReadingLogWritePage() {
                 >
                   <span style={{ width: `${progressRate}%` }} />
                 </div>
-                <small>{progressRate}% · 인정 거리는 관리자 서평 확인 후 반영됩니다.</small>
+                <small>목표 거리의 {progressRate}% 달성</small>
               </div>
             </section>
           )}

@@ -310,7 +310,6 @@ function MarathonStatusPage() {
         <div className="section-row">
           <div>
             <h2 id="statusRankingTitle">참가자 현황</h2>
-            <p>코스별로 순위와 진행 상황을 확인할 수 있습니다.</p>
           </div>
           <div className="status-course-filter">
             <label htmlFor={COURSE_FILTER_ID}>코스</label>

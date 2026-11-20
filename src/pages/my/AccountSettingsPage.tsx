@@ -98,7 +98,6 @@ function AccountSettingsPage() {
     <main className="account-page">
       <header>
         <h1>계정 설정</h1>
-        <span>연락처·소속 정보와 비밀번호를 변경합니다.</span>
       </header>
       {message && <div className="account-message">{message}</div>}
       <div className="account-grid">
