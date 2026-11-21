@@ -27,6 +27,7 @@ import {
   formatCourseDistance,
   getApplicationDaysLeft,
   getCourseTargetPages,
+  getPhoneInputError,
   normalizeEmailIdInput,
   toApplicationEmail,
   usesSchoolEmailSuffix,
@@ -358,6 +359,12 @@ function ApplyPage() {
       return;
     }
 
+    const phoneError = getPhoneInputError(phone);
+    if (phoneError) {
+      setErrorMessage(phoneError);
+      return;
+    }
+
     if (studentNumber.trim().length < 4) {
       setErrorMessage('학번 또는 사번을 정확히 입력해 주세요.');
       return;
@@ -510,6 +517,7 @@ function ApplyPage() {
                       onChange={(event) => setPhone(event.target.value)}
                       placeholder="예: 010-1234-5678"
                       autoComplete="tel"
+                      required
                     />
                   </div>
                 </div>

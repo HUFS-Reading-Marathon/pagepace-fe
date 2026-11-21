@@ -64,3 +64,13 @@ export function formatCourseDistance(targetDistanceMeter: number) {
 export function getCourseTargetPages(targetDistanceMeter: number) {
   return Math.ceil(targetDistanceMeter / METERS_PER_PAGE);
 }
+
+export const PHONE_REQUIRED_MESSAGE = '연락처를 입력해 주세요.';
+
+/**
+ * 연락처는 필수 입력입니다. 빈 값이나 공백만 입력한 경우 오류 문구를 돌려줍니다.
+ * 번호 형식은 기존 신청을 막지 않도록 제한하지 않고, 전송 시에는 앞뒤 공백만 제거합니다.
+ */
+export function getPhoneInputError(phone: string) {
+  return phone.trim() ? null : PHONE_REQUIRED_MESSAGE;
+}

@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
-import { getApiErrorMessage } from '../../api/apiClient';
+import { ApiError, getApiErrorMessage } from '../../api/apiClient';
+import { getCurrentEvent } from '../../api/eventApi';
 import { getCurrentParticipation } from '../../api/participationApi';
 import { getMyBookProgress, getMyReadingLogs } from '../../api/readingLogApi';
 import type { MyParticipation } from '../../types/participation';
@@ -11,6 +12,7 @@ import {
 } from '../../types/readingLog';
 import { formatDistance } from '../../utils/reading';
 import { formatKoDateKey } from '../../utils/date';
+import { canApply } from '../../utils/eventSelection';
 import './my.css';
 
 function MyPage() {
@@ -19,6 +21,9 @@ function MyPage() {
   const [readingBooks, setReadingBooks] = useState<ParticipantBook[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  // 참가 기록이 없는 경우(404 PARTICIPATION_NOT_FOUND)와 조회 실패를 구분해 안내합니다.
+  const [isParticipationMissing, setIsParticipationMissing] = useState(false);
+  const [isApplicationOpen, setIsApplicationOpen] = useState(false);
   const [isProgressStarted, setIsProgressStarted] = useState(false);
 
   useEffect(() => {
@@ -37,9 +42,18 @@ function MyPage() {
         }
       })
       .catch((error: unknown) => {
-        if (isActive) {
-          setErrorMessage(getApiErrorMessage(error, '나의 현황을 불러오지 못했습니다.'));
+        if (!isActive) return;
+        if (error instanceof ApiError && error.code === 'PARTICIPATION_NOT_FOUND') {
+          setIsParticipationMissing(true);
+          // 참가신청 링크는 현재 행사가 실제로 신청을 받는 중일 때만 보여 줍니다.
+          getCurrentEvent()
+            .then((event) => {
+              if (isActive) setIsApplicationOpen(canApply(event));
+            })
+            .catch(() => undefined);
+          return;
         }
+        setErrorMessage(getApiErrorMessage(error, '나의 현황을 불러오지 못했습니다.'));
       })
       .finally(() => {
         if (isActive) setIsLoading(false);
@@ -59,8 +73,43 @@ function MyPage() {
     return (
       <main className="my-page">
         <section className="my-hero">
-          <h1>{errorMessage || '나의 현황을 불러오고 있습니다.'}</h1>
+          <h1>나의 현황</h1>
+          {isLoading && <p role="status">나의 현황을 불러오고 있습니다.</p>}
         </section>
+
+        {!isLoading && isParticipationMissing && (
+          <section className="my-empty" aria-labelledby="my-empty-title">
+            <h2 id="my-empty-title">이 행사의 참가 정보가 없습니다.</h2>
+            <p>참가가 승인된 행사의 코스 진행 상황과 독서 기록이 이곳에 표시됩니다.</p>
+            {isApplicationOpen && <p>현재 참가신청을 받고 있습니다.</p>}
+            <div className="my-empty__actions">
+              {isApplicationOpen && (
+                <Link to="/apply" className="btn btn-primary">
+                  참가신청하기
+                </Link>
+              )}
+              <Link to="/status" className="btn btn-secondary">
+                대회 현황 보기
+              </Link>
+            </div>
+          </section>
+        )}
+
+        {!isLoading && !isParticipationMissing && (
+          <section className="my-empty" role="alert">
+            <h2>나의 현황을 불러오지 못했습니다.</h2>
+            <p>{errorMessage || '잠시 후 다시 시도해 주세요.'}</p>
+            <div className="my-empty__actions">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => window.location.reload()}
+              >
+                다시 시도
+              </button>
+            </div>
+          </section>
+        )}
       </main>
     );
   }
