@@ -11,9 +11,6 @@
   letter-spacing: -0.055em;
   font-weight: 700;
 }
-.account-page header span {
-  color: #617181;
-}
 .account-grid {
   display: grid;
   margin-top: 30px;
@@ -35,50 +32,101 @@
 }
 .account-grid form > p {
   margin: 0;
-  color: #7c8996;
-  font-size: 12px;
+  color: #6b7280;
+  font-size: 13.5px;
 }
-.account-grid label {
-  display: grid;
-  gap: 6px;
-  color: #394b5c;
-  font-size: 12px;
-  font-weight: 700;
-}
-/* 단과대학·소속 2단계 선택 칸: 다른 label 칸과 같은 간격 */
+/* 입력 라벨·입력창은 참가신청 폼과 같은 규격(라벨 13.5px/500, 입력 15px/400, 높이 48px, 둥글기 8px)을 씁니다. */
+.account-grid label,
 .account-grid .account-field {
   display: grid;
-  gap: 6px;
-  color: #394b5c;
-  font-size: 12px;
-  font-weight: 700;
+  gap: 8px;
+  color: #4b5563;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.5;
 }
 .account-grid input,
 .account-grid select {
-  height: 44px;
-  padding: 0 12px;
-  border: 1px solid #d2dde8;
-  border-radius: 5px;
-  background: #fff;
+  width: 100%;
+  min-width: 0;
+  height: 48px;
+  padding: 0 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background-color: #fff;
+  color: #111827;
   font: inherit;
+  font-size: 15px;
+  font-weight: 400;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
-.account-grid button {
-  min-height: 46px;
-  margin-top: 8px;
-  border: 0;
-  border-radius: 5px;
-  background: #1f4f82;
-  color: #fff;
+.account-grid input:focus,
+.account-grid select:focus {
+  outline: none;
+  border-color: var(--navy-strong);
+  box-shadow: 0 0 0 3px rgba(31, 79, 130, 0.12);
+}
+/* 이메일 + 인증 코드 발송, 인증 코드 + 확인처럼 입력창 옆에 보조 버튼을 두는 행 */
+.account-inline {
+  display: flex;
+  min-width: 0;
+  gap: 8px;
+}
+.account-inline input {
+  flex: 1;
+}
+.account-button {
+  display: inline-flex;
+  min-height: 48px;
+  padding: 0 16px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--navy-strong);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14.5px;
   font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.account-button:focus-visible {
+  outline: 3px solid rgba(31, 79, 130, 0.2);
+  outline-offset: 2px;
+}
+.account-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.account-button--primary {
+  background: var(--navy-strong);
+  color: #fff;
+}
+.account-button--primary:hover:not(:disabled) {
+  border-color: #163a60;
+  background: #163a60;
+}
+.account-button--outline {
+  min-width: 112px;
+  background: #fff;
+  color: var(--navy-strong);
+}
+.account-button--outline:hover:not(:disabled) {
+  background: #f3f7fb;
 }
 /* 정보 저장·비밀번호 변경: 카드 전체 폭 대신 오른쪽 정렬된 고정 폭 버튼 */
-.account-grid form > button {
+.account-grid form > .account-button {
   justify-self: end;
   width: 190px;
+  margin-top: 8px;
+  font-size: 15.5px;
 }
-/* 인증 코드 발송 버튼: 가장 긴 문구('인증 코드 발송') 기준 폭으로 고정해 '발송 중...'에도 크기가 같습니다. */
-.account-grid .account-verify-send {
-  min-width: calc(5.9em + 12px);
+/* 인증 코드 발송·확인 버튼: 가장 긴 문구('인증 코드 발송') 기준 폭으로 맞춰
+   '발송 중...'·'확인 중...'에도 크기가 같고 두 입력창의 오른쪽 끝이 나란합니다. */
+.account-inline .account-button {
+  min-width: calc(5.9em + 32px);
 }
 .account-message {
   margin-top: 20px;
@@ -96,8 +144,18 @@
   }
 }
 @media (max-width: 560px) {
-  .account-grid form > button {
+  .account-grid form > .account-button {
     justify-self: stretch;
+    width: 100%;
+  }
+}
+/* 아주 좁은 화면: 입력창이 지나치게 좁아지지 않도록 보조 버튼을 다음 줄 전체 폭으로 내립니다. */
+@media (max-width: 360px) {
+  .account-inline {
+    flex-wrap: wrap;
+  }
+
+  .account-inline .account-button {
     width: 100%;
   }
 }

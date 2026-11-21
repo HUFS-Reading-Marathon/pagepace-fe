@@ -14,7 +14,6 @@ function MyRecordDashboard({ record }: MyRecordDashboardProps) {
     <div className="my-record-dashboard">
       <div className="my-record-dashboard-head">
         <div>
-          <span>My Record</span>
           <h2>나의 기록</h2>
         </div>
         <b>{record.course}</b>

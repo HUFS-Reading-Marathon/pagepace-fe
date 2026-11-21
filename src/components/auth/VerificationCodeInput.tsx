@@ -1,4 +1,5 @@
 import { type ClipboardEvent, type KeyboardEvent, useEffect, useRef } from 'react';
+import { fillVerificationCode } from './verificationCode';
 
 type VerificationCodeInputProps = {
   value: string;
@@ -23,17 +24,27 @@ function VerificationCodeInput({
 }: VerificationCodeInputProps) {
   const digitRefs = useRef<Array<HTMLInputElement | null>>([]);
 
+  // 입력 중에는 바로 다음 칸으로 포커스를 옮겨야 빠르게 입력한 숫자도 빠지지 않습니다.
   const focusDigit = (index: number) => {
-    window.requestAnimationFrame(() => {
-      digitRefs.current[index]?.focus();
-    });
+    digitRefs.current[index]?.focus();
   };
 
   useEffect(() => {
     if (focusRequestKey > 0) {
-      focusDigit(0);
+      // 인증번호 발송 직후에는 입력칸이 화면에 그려진 다음 첫 자리로 옮깁니다.
+      const frameId = window.requestAnimationFrame(() => digitRefs.current[0]?.focus());
+
+      return () => window.cancelAnimationFrame(frameId);
     }
   }, [focusRequestKey]);
+
+  /** 여러 자리를 한 번에 받으면(붙여넣기·자동완성) index 위치부터 이어서 채웁니다. */
+  const fillDigits = (index: number, digits: string) => {
+    const { code, nextFocusIndex } = fillVerificationCode(value, index, digits, length);
+
+    onChange(code);
+    focusDigit(nextFocusIndex);
+  };
 
   const handleDigitChange = (index: number, nextValue: string) => {
     const digits = nextValue.replace(/\D/g, '');
@@ -45,6 +56,12 @@ function VerificationCodeInput({
 
     if (index > value.length) {
       focusDigit(value.length);
+      return;
+    }
+
+    // 브라우저·메일 앱의 one-time-code 자동완성은 첫 칸에 전체 번호를 한 번에 넣습니다.
+    if (digits.length > 1) {
+      fillDigits(index, digits);
       return;
     }
 
@@ -94,17 +111,7 @@ function VerificationCodeInput({
     }
 
     event.preventDefault();
-
-    const startIndex = Math.min(index, value.length);
-    const availableDigits = pastedDigits.slice(0, length - startIndex);
-    const nextCode = (
-      value.slice(0, startIndex) +
-      availableDigits +
-      value.slice(startIndex + availableDigits.length)
-    ).slice(0, length);
-
-    onChange(nextCode);
-    focusDigit(Math.min(startIndex + availableDigits.length, length - 1));
+    fillDigits(index, pastedDigits);
   };
 
   return (
@@ -133,7 +140,8 @@ function VerificationCodeInput({
             onKeyDown={(event) => handleDigitKeyDown(event, index)}
             onPaste={(event) => handlePaste(event, index)}
             onFocus={(event) => event.currentTarget.select()}
-            maxLength={1}
+            // 첫 칸은 자동완성으로 전체 번호가 들어올 수 있도록 길이를 열어 둡니다.
+            maxLength={index === 0 ? length : 1}
             disabled={disabled}
             aria-label={`인증번호 ${index + 1}번째 자리`}
             aria-describedby={describedById}

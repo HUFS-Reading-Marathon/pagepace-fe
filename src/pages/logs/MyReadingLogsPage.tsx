@@ -224,7 +224,7 @@ function MyReadingLogsPage() {
           <div className="my-library-shelves">
             <BookShelf
               title="읽고 있는 책"
-              description="최근에 펼쳐 본 책부터 보여드려요."
+              description="최근 기록 순으로 표시합니다."
               books={readingBooks}
               emptyMessage="현재 읽고 있는 책이 없습니다."
             />
@@ -240,7 +240,6 @@ function MyReadingLogsPage() {
             <div className="my-library-recent-head">
               <div>
                 <h2>최근 독서일지</h2>
-                <p>제출 상태와 상세 기록을 확인할 수 있습니다.</p>
               </div>
               {logs.length > PREVIEW_LOG_COUNT && (
                 <button
