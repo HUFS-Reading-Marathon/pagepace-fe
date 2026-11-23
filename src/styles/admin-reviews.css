@@ -387,12 +387,27 @@
   font-variant-numeric: tabular-nums;
 }
 
-.admin-review-import__list {
-  min-width: 0;
+.admin-review-import__split {
+  display: grid;
   margin-top: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(380px, 440px);
+  align-items: start;
+  gap: 16px;
+}
+
+.admin-review-import__list {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface);
+  overflow: hidden;
+}
+
+.admin-review-import__panel {
+  min-width: 0;
+  scroll-margin-top: calc(var(--admin-header-height) + 16px);
 }
 
 .admin-review-import__excluded {
@@ -435,9 +450,16 @@
   font-size: 14px;
 }
 
-/* 대조표: 솔라스 서평(왼쪽) ↔ PagePace 독서 기록(오른쪽) */
+/* 결과 표 */
+.admin-review-table__wrapper {
+  max-height: calc(100dvh - var(--admin-header-height) - 250px);
+  min-height: 240px;
+  overflow: auto;
+}
+
 .admin-review-table {
   width: 100%;
+  min-width: 640px;
   border-collapse: separate;
   border-spacing: 0;
   color: var(--body);
@@ -447,17 +469,16 @@
 
 .admin-review-table th,
 .admin-review-table td {
-  padding: 12px 14px;
+  padding: 11px 12px;
   border-bottom: 1px solid var(--line-soft);
   text-align: left;
-  vertical-align: top;
+  vertical-align: middle;
 }
 
 .admin-review-table thead th {
   position: sticky;
-  top: var(--admin-header-height);
-  z-index: 2;
-  padding-block: 10px;
+  top: 0;
+  z-index: 1;
   border-bottom-color: var(--line);
   background: #f4f7fa;
   color: var(--ink);
@@ -466,59 +487,25 @@
   white-space: nowrap;
 }
 
-.admin-review-table thead th:first-child {
-  border-top-left-radius: var(--radius);
-}
-
-.admin-review-table thead th:last-child {
-  border-top-right-radius: var(--radius);
-}
-
-/* 열 머리 표시: 솔라스(도서관 자료)는 골드, PagePace 기록은 네이비 */
-.admin-review-table__side-head {
-  width: 34%;
-}
-
-.admin-review-table__side-head span {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.admin-review-table__side-head span::before {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  background: var(--gold);
-  content: '';
-}
-
-.admin-review-table__side-head.is-record span::before {
-  background: var(--navy-strong);
-}
-
-.admin-review-table__row {
+.admin-review-table tbody tr {
   cursor: pointer;
 }
 
-.admin-review-table__row:hover > td {
+.admin-review-table tbody tr:hover {
   background: var(--blue-10);
 }
 
-.admin-review-table__row.is-selected > td {
-  background: #f3f7fc;
-}
-
-.admin-review-table__row.is-expanded > td {
-  border-bottom-color: transparent;
+.admin-review-table tbody tr.is-active {
   background: var(--blue-20);
-}
-
-.admin-review-table__row.is-expanded > td:first-child {
   box-shadow: inset 3px 0 0 var(--navy-strong);
 }
 
-.admin-review-table tbody tr:last-child > td {
+.admin-review-table tbody tr:focus-visible {
+  outline: 3px solid rgba(31, 79, 130, 0.22);
+  outline-offset: -3px;
+}
+
+.admin-review-table tbody tr:last-child td {
   border-bottom: 0;
 }
 
@@ -530,192 +517,71 @@
 .admin-review-table__check input {
   width: 16px;
   height: 16px;
-  margin: 2px 0 0;
+  margin: 0;
   accent-color: var(--navy-strong);
-  vertical-align: top;
+  vertical-align: middle;
 }
 
 .admin-review-table__row-no {
-  width: 48px;
+  width: 64px;
   color: var(--muted);
   white-space: nowrap;
 }
 
-.admin-review-table__side {
-  min-width: 200px;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-
-.admin-review-table__side strong {
+.admin-review-table__person strong,
+.admin-review-table__book strong {
   display: block;
   color: var(--ink);
   font-weight: var(--admin-fw-semibold);
 }
 
-.admin-review-table__side strong small {
-  margin-left: 4px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: var(--admin-fw-regular);
-}
-
-.admin-review-table__book {
-  display: block;
-  margin-top: 2px;
-  color: var(--ink);
-}
-
-.admin-review-table__side > small {
-  display: block;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.admin-review-table__side.is-reason span {
-  color: #7f2a2a;
-}
-
-.admin-review-table__match-head,
-.admin-review-table__match {
-  width: 236px;
-  text-align: center !important;
-}
-
-.admin-review-marks {
-  display: inline-flex;
-  justify-content: center;
-  gap: 4px;
-  flex-wrap: nowrap;
-}
-
-.admin-review-mark {
-  display: inline-flex;
-  padding: 1px 7px;
-  align-items: center;
-  gap: 3px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: var(--admin-fw-semibold);
-  line-height: 1.7;
+.admin-review-table__book strong {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.admin-review-mark::before {
-  font-size: 10px;
+.admin-review-table__person small,
+.admin-review-table__book small,
+.admin-review-table__note small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
 }
 
-.admin-review-mark.is-same {
-  background: rgba(61, 121, 105, 0.1);
-  color: var(--green);
+.admin-review-table__book small {
+  white-space: nowrap;
 }
 
-.admin-review-mark.is-same::before {
-  content: '✓';
+.admin-review-table__person {
+  white-space: nowrap;
 }
 
-.admin-review-mark.is-edition {
-  background: var(--blue-20);
-  color: var(--navy-strong);
+.admin-review-table__date {
+  white-space: nowrap;
 }
 
-.admin-review-mark.is-edition::before {
-  content: '≈';
-}
-
-.admin-review-mark.is-title {
-  background: rgba(211, 144, 69, 0.16);
-  color: #8b551d;
-}
-
-.admin-review-mark.is-title::before {
-  content: '!';
-}
-
-.admin-review-mark.is-different {
-  background: rgba(159, 48, 48, 0.08);
-  color: #9f3030;
-}
-
-.admin-review-mark.is-different::before {
-  content: '✕';
-}
-
-.admin-review-table__credit {
-  width: 112px;
+.admin-review-table__number {
   text-align: right !important;
   white-space: nowrap;
 }
 
-.admin-review-table__credit strong {
-  display: block;
-  color: var(--ink);
+.admin-review-table__meters {
+  color: var(--navy-deep);
   font-weight: var(--admin-fw-semibold);
 }
 
-.admin-review-table__credit span {
+.admin-review-table__note {
+  min-width: 200px;
+  max-width: 380px;
+  line-height: 1.5;
+}
+
+.admin-review-table__note strong {
   display: block;
-  color: var(--navy-deep);
-  font-size: 14px;
-  font-weight: var(--admin-fw-bold);
-}
-
-.admin-review-table__credit .admin-review-table__muted {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: var(--admin-fw-regular);
-}
-
-.admin-review-table__toggle-cell {
-  width: 52px;
-  text-align: center !important;
-}
-
-.admin-review-table__toggle {
-  display: inline-grid;
-  width: 30px;
-  height: 30px;
-  place-items: center;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--body);
-  cursor: pointer;
-}
-
-.admin-review-table__toggle svg {
-  transition: transform 0.15s ease;
-}
-
-.admin-review-table__toggle[aria-expanded='true'] svg {
-  transform: rotate(180deg);
-}
-
-.admin-review-table__toggle:hover {
-  border-color: var(--navy);
   color: var(--navy-strong);
-}
-
-.admin-review-table__toggle:focus-visible,
-.admin-review-table__check input:focus-visible {
-  outline: 3px solid rgba(31, 79, 130, 0.22);
-  outline-offset: 1px;
-}
-
-.admin-review-table__sr {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-.admin-review-table__detail-row > td {
-  padding: 0;
-  border-bottom: 1px solid var(--line);
-  background: #fbfcfd;
-  box-shadow: inset 3px 0 0 var(--navy-strong);
+  font-weight: var(--admin-fw-semibold);
 }
 
 .admin-review-table__empty {
@@ -728,12 +594,8 @@
 
 /* 선택 반영 막대 */
 .admin-review-import__bulk {
-  position: sticky;
-  bottom: 0;
-  z-index: 3;
   display: flex;
   padding: 12px 16px;
-  border-radius: 0 0 calc(var(--radius) - 1px) calc(var(--radius) - 1px);
   align-items: center;
   gap: 8px 14px;
   background: var(--navy-deep);
@@ -852,65 +714,26 @@
   color: var(--muted);
 }
 
-/* 펼친 행: 왼쪽 근거(확인 사항·원문) / 오른쪽 판단(대조·계산·확인) */
-.admin-review-detail {
-  display: grid;
-  padding: 20px 24px 22px 28px;
-  grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
-  align-items: start;
-  gap: 24px;
-  cursor: default;
-}
-
-.admin-review-detail__sr {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-.admin-review-detail__evidence,
-.admin-review-detail__decision {
-  min-width: 0;
-}
-
-.admin-review-detail__decision {
-  padding-left: 24px;
-  border-left: 1px solid var(--line);
+/* 엑셀 행 상세 패널 */
+.admin-review-detail .admin-detail-panel__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .admin-review-detail__section {
-  margin-top: 18px;
+  margin-top: 20px;
 }
 
 .admin-review-detail__section:first-child {
   margin-top: 0;
 }
 
-.admin-review-detail__section h4 {
+.admin-review-detail__section h3 {
   margin: 0 0 8px;
   color: var(--ink);
   font-size: 13px;
   font-weight: var(--admin-fw-semibold);
-}
-
-.admin-review-detail__actions {
-  display: flex;
-  margin-top: 18px;
-  padding-top: 14px;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  border-top: 1px solid var(--line-soft);
-  flex-wrap: wrap;
-}
-
-.admin-review-detail__actions p {
-  margin: 0 auto 0 0;
-  color: var(--muted);
-  font-size: 12px;
 }
 
 .admin-review-detail__warnings {
@@ -1128,7 +951,7 @@
 }
 
 .admin-review-detail__content {
-  max-height: 340px;
+  max-height: 220px;
   margin: 0;
   padding: 10px 12px 12px;
   overflow-y: auto;
@@ -1749,15 +1572,12 @@
 
 /* ───────────── 반응형 ───────────── */
 @media (max-width: 1180px) {
-  .admin-review-detail {
+  .admin-review-import__split {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .admin-review-detail__decision {
-    padding-top: 18px;
-    padding-left: 0;
-    border-top: 1px solid var(--line);
-    border-left: 0;
+  .admin-review-table__wrapper {
+    max-height: 420px;
   }
 
   .admin-review-source {
@@ -1771,114 +1591,6 @@
 
   .admin-review-source--empty {
     grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-/* 좁은 화면에서는 대조표 한 줄을 카드처럼 쌓아 보여 줍니다. */
-@media (max-width: 960px) {
-  .admin-review-table,
-  .admin-review-table tbody {
-    display: block;
-  }
-
-  .admin-review-table thead {
-    display: none;
-  }
-
-  .admin-review-table__row {
-    display: grid;
-    padding: 12px 14px;
-    grid-template-areas:
-      'check no toggle'
-      'source source source'
-      'match match match'
-      'record record record'
-      'credit credit credit';
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center;
-    column-gap: 10px;
-    border-bottom: 1px solid var(--line-soft);
-  }
-
-  .admin-review-table__row > td {
-    display: block;
-    width: auto !important;
-    min-width: 0;
-    padding: 0;
-    border: 0;
-    background: none !important;
-    box-shadow: none !important;
-    text-align: left !important;
-  }
-
-  .admin-review-table__row.is-expanded {
-    background: var(--blue-20);
-    box-shadow: inset 3px 0 0 var(--navy-strong);
-  }
-
-  .admin-review-table__row > td[data-label]::before {
-    display: block;
-    margin-bottom: 2px;
-    color: var(--muted);
-    content: attr(data-label);
-    font-size: 11px;
-    font-weight: var(--admin-fw-semibold);
-  }
-
-  .admin-review-table__row > .admin-review-table__check {
-    grid-area: check;
-  }
-
-  .admin-review-table__row > .admin-review-table__row-no {
-    grid-area: no;
-  }
-
-  .admin-review-table__row > td.admin-review-table__row-no[data-label]::before {
-    display: inline;
-    margin-right: 4px;
-  }
-
-  .admin-review-table__row > .admin-review-table__toggle-cell {
-    grid-area: toggle;
-  }
-
-  .admin-review-table__row > .admin-review-table__side {
-    grid-area: source;
-    margin-top: 10px;
-  }
-
-  .admin-review-table__row > .admin-review-table__side.is-record {
-    grid-area: record;
-  }
-
-  .admin-review-table__row > .admin-review-table__match {
-    grid-area: match;
-    margin-top: 8px;
-  }
-
-  .admin-review-table__row > .admin-review-table__credit {
-    display: flex;
-    grid-area: credit;
-    margin-top: 8px;
-    align-items: baseline;
-    gap: 8px;
-  }
-
-  .admin-review-table__row > .admin-review-table__credit::before {
-    margin: 0;
-  }
-
-  .admin-review-marks {
-    justify-content: flex-start;
-  }
-
-  .admin-review-table__detail-row,
-  .admin-review-table__detail-row > td {
-    display: block;
-  }
-
-  .admin-review-detail {
-    padding: 16px;
   }
 }
 
