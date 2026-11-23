@@ -43,6 +43,7 @@ export type ImportedReview = {
     | 'EXCLUDED'
     | 'INVALID'
     | 'UNMATCHED'
+    | 'BOOK_VERIFIED'
     | 'NO_CREDIT'
     | 'MATCHED'
     | 'NEEDS_REVIEW'

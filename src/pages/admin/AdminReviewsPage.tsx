@@ -1,3 +1,5 @@
+import ApprovedBookLogs from '../../components/admin/reviews/ApprovedBookLogs';
+import EvidenceHistory from '../../components/admin/reviews/EvidenceHistory';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ApiError, getApiErrorMessage } from '../../api/apiClient';
@@ -28,19 +30,25 @@ const REVIEW_CHECK_ITEMS = [
     description: '도서관 서평의 작성자·도서가 이 참가자와 책 정보와 일치합니다.',
   },
   {
-    key: 'amount',
-    label: '이번 인정 분량 서평 확인',
-    description: '서평 내용이 이번에 인정할 독서 분량에 대한 것임을 확인했습니다.',
+    key: 'date-content',
+    label: '기간과 원문 확인',
+    description: '행사 기간에 작성·수정된 이 책의 서평 원문을 확인했습니다.',
   },
 ] as const;
 
 const NARROW_LAYOUT_QUERY = '(max-width: 1180px)';
-const EMPTY_EVIDENCE = { targetId: null as number | null, time: '', content: '' };
+const EMPTY_EVIDENCE = {
+  targetId: null as number | null,
+  time: '',
+  content: '',
+  note: '',
+  replacesId: null as number | null,
+};
 
 function reviewTimeLabel(target: AdminReviewTarget) {
   if (target.reviewSubmittedAt) return `서평 제출 ${formatKoDateTime24(target.reviewSubmittedAt)}`;
-  if (target.reviewVerifiedAt) return `솔라스 확인 ${formatKoDateTime24(target.reviewVerifiedAt)}`;
-  return '솔라스 이력 · 참가자 알림 시각 없음';
+  if (target.reviewVerifiedAt) return `서평 확인 ${formatKoDateTime24(target.reviewVerifiedAt)}`;
+  return '승인된 일지 · 참가자 알림 없음';
 }
 
 /**
@@ -208,6 +216,7 @@ function AdminReviews({
     allChecked &&
     !!draft.time &&
     !!draft.content.trim() &&
+    (!draft.replacesId || !!draft.note.trim()) &&
     verifyingId === null &&
     !importBusy;
 
@@ -273,6 +282,9 @@ function AdminReviews({
         expectedApprovedPages: target.approvedReadPages,
         expectedUncreditedPages: breakdown.creditPages,
         evidenceChecked: allChecked,
+        ...(draft.replacesId
+          ? { replacesEvidenceId: draft.replacesId, note: draft.note.trim() }
+          : {}),
       });
       const creditedDistance = target.distanceToCreditMeter - updated.distanceToCreditMeter;
       setFeedbackMessage(
@@ -320,7 +332,7 @@ function AdminReviews({
           {searchKeyword.trim()
             ? '조건에 맞는 서평이 없습니다.'
             : tab === 'pending'
-              ? '참여자의 서평 작성 알림이 없습니다. 솔라스 자료는 아래에서 대조할 수 있습니다.'
+              ? '서평 대조가 필요한 승인 도서가 없습니다.'
               : '이 목록에 포함된 확인 완료 서평이 없습니다.'}
         </p>
       );
@@ -427,6 +439,10 @@ function AdminReviews({
             않습니다.
           </p>
 
+          <ApprovedBookLogs
+            key={activeTarget.participantBookId}
+            bookId={activeTarget.participantBookId}
+          />
           {breakdown ? (
             <div className="admin-reviews__equation" aria-label="누적 미인정 쪽수 계산">
               <div>
@@ -460,8 +476,7 @@ function AdminReviews({
             {breakdown && (
               <p>
                 계산식 {breakdown.creditPages.toLocaleString('ko-KR')}쪽 × {METERS_PER_PAGE}m
-                <br />
-                승인된 일지 중 원문 작성·수정일까지 읽은 분량을 인정합니다.
+                <br />이 책의 승인된 독서일지를 모두 인정합니다. 이후 일지 승인분도 자동 반영됩니다.
               </p>
             )}
           </div>
@@ -508,6 +523,16 @@ function AdminReviews({
                   }
                 />
               </label>
+              {draft.replacesId && (
+                <label className="admin-reviews__evidence">
+                  원문 재인정 사유
+                  <input
+                    maxLength={1000}
+                    value={draft.note}
+                    onChange={(e) => setEvidence({ ...draft, note: e.target.value })}
+                  />
+                </label>
+              )}
               <h3 id="reviewChecksTitle">확인 체크 항목</h3>
               <ul className="admin-checklist">
                 {REVIEW_CHECK_ITEMS.map((item) => (
@@ -534,6 +559,21 @@ function AdminReviews({
             </section>
           )}
 
+          <EvidenceHistory
+            key={activeTarget.participantBookId + '-' + String(activeTarget.reviewVerified)}
+            bookId={activeTarget.participantBookId}
+            locked={eventLocked || verifyingId !== null || importBusy}
+            onChanged={refreshReviews}
+            onReplace={(id, content, time) => {
+              setEvidence({
+                targetId: activeTarget.participantBookId,
+                replacesId: id,
+                content,
+                time,
+                note: '',
+              });
+            }}
+          />
           {actionError && (
             <p className="admin-reviews__action-error" role="alert">
               {actionError}
@@ -555,7 +595,7 @@ function AdminReviews({
               aria-busy={isVerifying}
               onClick={() => void verify(activeTarget)}
             >
-              {isVerifying ? '반영 중…' : '원문 시각까지의 분량 인정'}
+              {isVerifying ? '반영 중…' : '이 책의 서평 승인'}
             </button>
           </footer>
         )}
@@ -569,8 +609,8 @@ function AdminReviews({
         <div>
           <h1>서평 확인</h1>
           <p>
-            참가자가 작성했다고 알린 서평이나 솔라스 자료를 확인하고, 아직 인정되지 않은 분량을
-            거리(1쪽 = {METERS_PER_PAGE}m)에 반영합니다.
+            승인된 독서일지를 참가자·도서별로 모아 솔라스 서평과 대조합니다. 같은 책은 한 번
+            확인하면 이후 승인된 일지도 1쪽당 {METERS_PER_PAGE}m씩 반영됩니다.
           </p>
         </div>
         <label>
@@ -590,6 +630,19 @@ function AdminReviews({
         </label>
       </header>
 
+      {eventId && (
+        <fieldset className="review-import-fieldset" disabled={isLoading || verifyingId !== null}>
+          <ReviewExcelImport
+            ref={excelPreview}
+            key={eventId}
+            eventId={eventId}
+            readOnly={eventLocked}
+            onBusyChange={setImportBusy}
+            onVerified={refreshReviews}
+          />
+        </fieldset>
+      )}
+
       <div className="admin-reviews__tabs">
         <div className="admin-segmented" aria-label="서평 확인 상태">
           <button
@@ -598,7 +651,7 @@ function AdminReviews({
             aria-pressed={tab === 'pending'}
             onClick={() => setTab('pending')}
           >
-            참여자 알림 대기 <b>{pendingCount}</b>
+            서평 대조 대기 <b>{pendingCount}</b>
           </button>
           <button
             type="button"
@@ -653,19 +706,6 @@ function AdminReviews({
           {renderPanel()}
         </div>
       </div>
-
-      {eventId && (
-        <fieldset className="review-import-fieldset" disabled={isLoading || verifyingId !== null}>
-          <ReviewExcelImport
-            ref={excelPreview}
-            key={eventId}
-            eventId={eventId}
-            readOnly={eventLocked}
-            onBusyChange={setImportBusy}
-            onVerified={refreshReviews}
-          />
-        </fieldset>
-      )}
     </section>
   );
 }

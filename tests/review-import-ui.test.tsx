@@ -37,7 +37,7 @@ const row: ImportedReview = {
       libraryBookId: 1,
       approvedPages: 200,
       uncreditedPages: 87,
-      distanceToCreditMeter: 250,
+      distanceToCreditMeter: 435,
       matchType: 'LIBRARY_ID',
     },
   ],
@@ -50,9 +50,7 @@ describe('솔라스 자료 대조 기능', () => {
     );
     expect(html).not.toContain('<script>');
     expect(html).toContain('&lt;script&gt;');
-    expect(html).toContain('250m');
-    expect(html).toContain('50쪽 / 250m');
-    expect(html).toContain('37쪽');
+    expect(html).toContain('87쪽 / 435m');
     expect(html).toContain('001234567');
     expect(html).toContain('type="submit" disabled');
   });
@@ -71,7 +69,13 @@ describe('솔라스 자료 대조 기능', () => {
       expect(html).not.toContain(value);
   });
   it('미일치 또는 이미 처리한 행에 승인 버튼을 제공하지 않는다', () => {
-    for (const status of ['UNMATCHED', 'INVALID', 'NO_CREDIT', 'ALREADY_APPLIED'] as const) {
+    for (const status of [
+      'UNMATCHED',
+      'INVALID',
+      'NO_CREDIT',
+      'BOOK_VERIFIED',
+      'ALREADY_APPLIED',
+    ] as const) {
       const html = renderToStaticMarkup(
         <ImportedReviewRow
           row={{ ...row, status, candidates: [] }}
@@ -147,7 +151,7 @@ describe('관리자 서평 확인', () => {
       expectedUncreditedPages: 87,
       evidenceChecked: true,
     };
-    const result = { ...target, distanceToCreditMeter: 185 };
+    const result = { ...target, distanceToCreditMeter: 0 };
     vi.mocked(apiRequest).mockResolvedValue(result);
     await expect(verifyAdminReview(1, evidence)).resolves.toEqual(result);
     expect(apiRequest).toHaveBeenCalledWith('/api/admin/reading-logs/review-targets/1/verify', {

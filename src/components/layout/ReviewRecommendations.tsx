@@ -49,9 +49,9 @@ export default function ReviewRecommendations({
   return (
     <>
       <p className="ux-form-note">
-        독서일지가 승인되면 승인 쪽수가 확정되고, 서평 확인을 거친 분량이 최종 인정 거리에
-        반영됩니다. 서평을 아직 쓰지 않았거나 확인을 기다리는 중이어도 다른 독서일지는 제출할 수
-        있습니다.
+        같은 책에 쓴 여러 일지는 한 권으로 모입니다. 서평을 한 번 확인하면 이후 승인된 쪽수도
+        자동으로 거리에 반영됩니다. 서평을 아직 쓰지 않았거나 확인을 기다리는 중이어도 다른
+        독서일지는 제출할 수 있습니다.
       </p>
       {recommendations.map(({ target, kind }) => (
         <article className="review-suggestion" key={target.participantBookId}>

@@ -509,8 +509,8 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
                 <strong>{formatDistance(totalReadPages * METERS_PER_PAGE)}</strong>
               </div>
               <p>
-                표시된 거리는 예상 값입니다. 일지 승인과 서평 확인을 모두 거친 분량만 실제 거리로
-                반영됩니다.
+                서평이 확인된 책은 일지 승인 즉시 1쪽당 5m가 반영됩니다. 처음 읽는 책은 담당자가
+                서평을 확인한 뒤 반영됩니다.
               </p>
             </div>
 

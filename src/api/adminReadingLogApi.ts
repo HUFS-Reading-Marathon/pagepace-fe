@@ -102,6 +102,7 @@ export type ManualEvidence = {
   expectedUncreditedPages: number;
   evidenceChecked: boolean;
   note?: string;
+  replacesEvidenceId?: number;
 };
 export async function verifyAdminReview(participantBookId: number, evidence: ManualEvidence) {
   validateId(participantBookId, '독서일지');

@@ -1,3 +1,4 @@
+import ApprovedBookLogs from './ApprovedBookLogs';
 import { useEffect, useImperativeHandle, useRef, useState, type FormEvent, type Ref } from 'react';
 import '../../../styles/review-import.css';
 import { ApiError } from '../../../api/apiClient';
@@ -20,6 +21,7 @@ const REVIEW_IMPORT_STATUS = {
   UNMATCHED: '대조 대상 없음',
   INVALID: '자료 오류',
   NO_CREDIT: '현재 반영 불가',
+  BOOK_VERIFIED: '이미 서평을 확인한 책',
   ALREADY_APPLIED: '이미 반영한 서평',
 } as const;
 
@@ -135,11 +137,13 @@ export function ImportedReviewRow({
                   {candidate.distanceToCreditMeter.toLocaleString()}m
                 </dd>
               </div>
-              <div>
-                <dt>반영 후 남는 미인정 분량</dt>
-                <dd>{(candidate.uncreditedPages - eligiblePages).toLocaleString()}쪽</dd>
-              </div>
             </dl>
+          )}
+          {candidate && (
+            <ApprovedBookLogs
+              key={candidate.participantBookId}
+              bookId={candidate.participantBookId}
+            />
           )}
           <p>
             <label>
@@ -306,8 +310,8 @@ export default function ReviewExcelImport({
         <span>.xlsx · 최대 5MB · 2,000행</span>
       </header>
       <p>
-        선택한 행사에 자료를 업로드한 뒤 작성자와 도서를 확인해 주세요. 업로드만으로는 거리가
-        반영되지 않습니다.
+        솔라스에서 기간으로 조회한 전체 서평을 올리세요. 승인 일지의 회원번호와 서지번호를 대조한 뒤
+        일치하는 책의 서평을 승인할 수 있습니다.
       </p>
       <p className="review-import__notice">
         최종 수정일은 최초 작성일이 아닙니다. 행사 인정 기간을 별도로 확인하며, 추가 확인 항목이
