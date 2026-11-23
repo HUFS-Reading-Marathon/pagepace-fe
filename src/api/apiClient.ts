@@ -141,7 +141,10 @@ export async function downloadExcel(path: string, options: RequestInit = {}) {
       error?.code,
     );
   }
-  return response.blob();
+  return {
+    file: await response.blob(),
+    missingCallNumbers: Number(response.headers.get('X-Missing-Call-Numbers') ?? 0),
+  };
 }
 
 export async function apiRequest<T>(

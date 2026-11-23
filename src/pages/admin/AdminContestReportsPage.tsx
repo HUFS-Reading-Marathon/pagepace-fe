@@ -49,11 +49,11 @@ export default function AdminContestReportsPage() {
         body = new FormData();
         body.append('file', file);
       }
-      const blob = await downloadExcel(
+      const result = await downloadExcel(
         report === 'participants' ? `${path}?scope=${scope}` : path,
         body ? { method: 'POST', body } : {},
       );
-      const url = URL.createObjectURL(blob);
+      const url = URL.createObjectURL(result.file);
       const link = document.createElement('a');
       link.href = url;
       link.download = `제${event.roundNo}회_${REPORT_NAMES[report]}.xlsx`;
@@ -61,7 +61,11 @@ export default function AdminContestReportsPage() {
       link.click();
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-      setMessage(`${REPORT_NAMES[report]} 파일을 내려받았습니다.`);
+      setMessage(
+        result.missingCallNumbers > 0
+          ? `도서목록을 내려받았습니다. 청구기호를 확인하지 못한 ${result.missingCallNumbers}권은 목록 마지막에 있습니다.`
+          : `${REPORT_NAMES[report]} 파일을 내려받았습니다.`,
+      );
     } catch (e) {
       setMessage(getApiErrorMessage(e, '파일을 내려받지 못했습니다. 다시 시도해 주세요.'));
     } finally {
