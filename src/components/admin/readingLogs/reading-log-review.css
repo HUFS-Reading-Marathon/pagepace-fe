@@ -1,0 +1,261 @@
+.log-review {
+  container-type: inline-size;
+  min-width: 0;
+  padding: 12px 14px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.log-review :is(h3, p, ul, dl, dd) {
+  margin: 0;
+}
+.log-review__books {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  list-style: none;
+}
+.log-review__book {
+  display: grid;
+  grid-template-columns: 66px minmax(0, 1fr) 146px;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 13px 16px;
+  border: 1px solid #d7e2ec;
+  border-inline-start: 3px solid #2b577f;
+  border-radius: 5px;
+  background: #f7fafd;
+}
+.log-review__cover {
+  display: grid;
+  place-items: center;
+  width: 66px;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  border: 1px solid #d8e1ea;
+  border-radius: 3px;
+  background: #fff;
+  color: #5f6f7f;
+  font-size: 11px;
+}
+.log-review__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.log-review__book-info {
+  min-width: 0;
+}
+.log-review__book-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+}
+.log-review__book h3 {
+  font-size: 17px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+.log-review__book-number {
+  font-size: 12px;
+  color: var(--body);
+}
+.log-review .log-review__byline {
+  margin-top: 3px;
+  color: #4a5c6d;
+}
+.log-review__dot {
+  color: #728394;
+}
+.log-review__catalog {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  color: var(--navy-strong);
+  font-size: 12px;
+  white-space: nowrap;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.log-review .log-review__bibliography {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 18px;
+  margin-top: 9px;
+}
+.log-review__bibliography div {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.log-review dt {
+  color: #526475;
+}
+.log-review__bibliography dd {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.log-review .log-review__lookup {
+  margin-top: 4px;
+  color: var(--body);
+  font-size: 12px;
+}
+.log-review__pages {
+  display: grid;
+  gap: 2px;
+  padding-inline-start: 16px;
+  border-inline-start: 1px solid #d7e2ec;
+  font-variant-numeric: tabular-nums;
+}
+.log-review__pages div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.log-review__pages dd {
+  text-align: right;
+}
+.log-review__submitted {
+  margin-bottom: 3px;
+}
+.log-review__submitted :is(dt, dd) {
+  color: var(--navy-strong);
+  font-weight: 600;
+}
+.log-review__submitted strong {
+  margin-inline-end: 2px;
+  font-size: 20px;
+  line-height: 1.15;
+}
+.log-review__warning {
+  grid-column: 1 / -1;
+  padding: 4px 8px;
+  border-inline-start: 2px solid #b27a35;
+  color: #795321;
+}
+.log-review__details,
+.log-review__message {
+  padding: 9px 0 2px;
+}
+.log-review__details div {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  gap: 8px;
+}
+.log-review__details div + div {
+  margin-top: 5px;
+}
+.log-review__details dd {
+  white-space: pre-wrap;
+}
+.log-review__reject label {
+  font-weight: 600;
+}
+.log-review__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.log-review > .log-review__actions,
+.log-review__reject {
+  padding-top: 9px;
+}
+.log-review__actions button {
+  min-width: 62px;
+  min-height: 34px;
+  padding: 5px 12px;
+}
+.log-review__reject {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+.log-review__reject-labels {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+}
+.log-review__reject select,
+.log-review__reject textarea {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background-color: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+}
+.log-review__reject select {
+  width: min(180px, 67%);
+  min-height: 32px;
+  padding-inline-end: 22px;
+}
+.log-review__reject textarea {
+  width: 100%;
+  min-height: 72px;
+  resize: vertical;
+}
+.log-review :is(a, select, textarea):focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 1px;
+}
+.log-review .log-review__error {
+  margin-block: 4px;
+  color: #9f3030;
+  font-size: 13px;
+}
+
+@container (max-width: 620px) {
+  .log-review__book {
+    grid-template-columns: 48px minmax(0, 1fr);
+    align-items: start;
+    padding: 10px;
+    gap: 10px;
+  }
+  .log-review__cover {
+    width: 48px;
+  }
+  .log-review__book h3 {
+    font-size: 15px;
+  }
+  .log-review .log-review__bibliography {
+    gap: 3px 10px;
+    margin-top: 5px;
+  }
+  .log-review__pages {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    padding: 7px 0 0;
+    border-inline-start: 0;
+    border-top: 1px solid #d7e2ec;
+  }
+  .log-review__pages div {
+    display: block;
+    margin: 0;
+  }
+  .log-review__pages dt {
+    font-size: 12px;
+  }
+  .log-review__pages dd {
+    text-align: left;
+  }
+  .log-review__submitted strong {
+    font-size: 16px;
+  }
+}
+@media (max-width: 640px) {
+  .log-review {
+    padding: 8px 6px;
+  }
+}

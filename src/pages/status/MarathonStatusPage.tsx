@@ -14,7 +14,7 @@ import { selectEvent, selectedEventId } from '../../utils/eventSelection';
 import { getMyParticipations, getCurrentParticipation } from '../../api/participationApi';
 import { getRankings, type Ranking } from '../../api/rankingApi';
 import RankingBoard from '../../components/ranking/RankingBoard';
-import { formatDistance } from '../../utils/reading';
+import { formatPreciseDistance, getCreditedPages } from '../../utils/reading';
 import './status.css';
 
 const STATUS_ERROR_MESSAGE = '대회 현황을 불러오지 못했습니다.';
@@ -239,7 +239,7 @@ function MarathonStatusPage() {
     ],
     [
       '최고 누적 거리',
-      isReady ? formatDistance(summary?.maxDistanceMeter ?? 0) : '—',
+      isReady ? formatPreciseDistance(summary?.maxDistanceMeter ?? 0) : '—',
       '일지 승인과 서평 확인이 완료된 거리',
     ],
   ];
@@ -249,7 +249,7 @@ function MarathonStatusPage() {
       <section className="page-section" aria-labelledby="statusPageTitle">
         <h1 id="statusPageTitle">대회 현황</h1>
         <p className="page-description">
-          독서일지 승인 시 인정 쪽수가, 서평 확인 시 인정 거리가 반영됩니다.
+          독서일지가 승인되면 승인 쪽수가 늘고, 서평까지 확인되면 해당 분량이 거리로 인정됩니다.
         </p>
         <p className="status-privacy">
           ※ 개인정보 보호를 위해 이름은 마스킹하고 학번은 공개하지 않습니다.
@@ -290,8 +290,10 @@ function MarathonStatusPage() {
         <section className="page-section" aria-label="내 순위">
           <h2>내 순위</h2>
           <p>
-            참가 코스 {mine.rank ? `${mine.rank}위` : '순위 집계 전'} · 인정 쪽수{' '}
-            {mine.pages.toLocaleString()}쪽 · 인정 거리 {formatDistance(mine.distance)}
+            참가 코스 {mine.rank ? `${mine.rank}위` : '순위 집계 전'} · 일지 승인{' '}
+            {mine.pages.toLocaleString()}쪽 · 거리 인정{' '}
+            {getCreditedPages(mine.distance).toLocaleString()}쪽 · 인정 거리{' '}
+            {formatPreciseDistance(mine.distance)}
           </p>
         </section>
       )}
@@ -343,6 +345,7 @@ function MarathonStatusPage() {
           ) : (
             <RankingBoard
               rankings={rankings}
+              eventStatus={event?.status}
               simpleLayout
               myParticipationId={
                 isAuthenticated && user && mine?.owner === user.userId

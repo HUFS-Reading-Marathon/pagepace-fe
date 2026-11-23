@@ -6,7 +6,8 @@ import {
 } from '../../utils/eventSelection';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { formatKoDateKey } from '../../utils/date';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { findDepartmentGroup, UNDERGRADUATE_GRADE_OPTIONS } from '../../constants/departments';
 import DepartmentSelect from '../../components/forms/DepartmentSelect';
 import {
   confirmApplicationEmailVerification,
@@ -14,11 +15,13 @@ import {
   sendApplicationEmailVerification,
   type ApplicationAffiliationType,
 } from '../../api/applicationApi';
-import { getApiErrorMessage } from '../../api/apiClient';
+import { ApiError, getApiErrorMessage } from '../../api/apiClient';
 import VerificationCodeInput from '../../components/auth/VerificationCodeInput';
 import {
   getCurrentEvent,
+  getEvent,
   getEventCourses,
+  getPublicEvents,
   type CurrentEvent,
   type EventCourse,
 } from '../../api/eventApi';
@@ -80,6 +83,13 @@ const formatVerificationTime = (seconds: number) => {
 
 function ApplyPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const explicitEventId = Number(
+    new URLSearchParams(location.search).get('eventId') || location.state?.eventId,
+  );
+  const requestedEvent =
+    Number.isSafeInteger(explicitEventId) && explicitEventId > 0 ? explicitEventId : null;
+  const [availableEvents, setAvailableEvents] = useState<CurrentEvent[]>([]);
 
   const [name, setName] = useState('');
   const [studentNumber, setStudentNumber] = useState('');
@@ -88,6 +98,7 @@ function ApplyPage() {
   const [phone, setPhone] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [isSendingVerification, setIsSendingVerification] = useState(false);
+  const [verificationToken, setVerificationToken] = useState('');
   const [isCodeSent, setIsCodeSent] = useState(false);
   const [isVerifyingCode, setIsVerifyingCode] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState<string | null>(null);
@@ -99,17 +110,16 @@ function ApplyPage() {
     null,
   );
   const [codeInputFocusKey, setCodeInputFocusKey] = useState(0);
+  const [grade, setGrade] = useState('');
+  const [gender, setGender] = useState('');
   const [department, setDepartment] = useState('');
   const [affiliation, setAffiliation] = useState<AffiliationType>('undergraduate');
   const [currentEvent, setCurrentEvent] = useState<CurrentEvent | null>(null);
   const [courses, setCourses] = useState<EventCourse[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
-  const [isEventCourseLoading, setIsEventCourseLoading] = useState(true);
+  const [loadedEventKey, setLoadedEventKey] = useState<number | null>();
+  const isEventCourseLoading = loadedEventKey !== requestedEvent;
   const [eventCourseError, setEventCourseError] = useState('');
-  const eventCourseRequestRef = useRef<Promise<{
-    currentEvent: CurrentEvent;
-    courses: EventCourse[];
-  }> | null>(null);
   const [isAgreed, setIsAgreed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isSubmittingRef = useRef(false);
@@ -142,33 +152,33 @@ function ApplyPage() {
   useEffect(() => {
     let isActive = true;
 
-    if (eventCourseRequestRef.current === null) {
-      eventCourseRequestRef.current = (async () => {
-        const nextCurrentEvent = await getCurrentEvent();
-        const nextCourses = await getEventCourses(nextCurrentEvent.eventId);
-
-        return {
-          currentEvent: nextCurrentEvent,
-          courses: [...nextCourses].sort(
-            (first, second) => first.displayOrder - second.displayOrder,
-          ),
-        };
-      })();
-    }
-
-    eventCourseRequestRef.current
+    (async () => {
+      const [eventResult, listResult] = await Promise.allSettled([
+        requestedEvent ? getEvent(requestedEvent) : getCurrentEvent(),
+        getPublicEvents(),
+      ]);
+      const open =
+        listResult.status === 'fulfilled'
+          ? listResult.value.filter((event) => canApply(event))
+          : [];
+      if (isActive) setAvailableEvents(open);
+      const event = eventResult.status === 'fulfilled' ? eventResult.value : null;
+      const selected = !requestedEvent && !canApply(event) && open.length ? open[0] : event;
+      if (!selected) throw eventResult.status === 'rejected' ? eventResult.reason : new Error();
+      const courseRows = await getEventCourses(selected.eventId);
+      return {
+        currentEvent: selected,
+        courses: [...courseRows].sort((a, b) => a.displayOrder - b.displayOrder),
+      };
+    })()
       .then(({ currentEvent: nextCurrentEvent, courses: nextCourses }) => {
         if (!isActive) {
           return;
         }
 
-        const defaultCourse =
-          nextCourses.find((course) => course.name.replace(/\s/g, '') === '하프코스') ??
-          nextCourses[0];
-
         setCurrentEvent(nextCurrentEvent);
         setCourses(nextCourses);
-        setSelectedCourseId(defaultCourse?.courseId ?? null);
+        setSelectedCourseId(nextCourses.length === 1 ? nextCourses[0].courseId : null);
         setEventCourseError(nextCourses.length === 0 ? '신청 가능한 코스가 없습니다.' : '');
       })
       .catch((error: unknown) => {
@@ -188,14 +198,14 @@ function ApplyPage() {
       })
       .finally(() => {
         if (isActive) {
-          setIsEventCourseLoading(false);
+          setLoadedEventKey(requestedEvent);
         }
       });
 
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [requestedEvent]);
 
   useEffect(() => {
     if (verificationExpiresAt === null || isEmailVerified) {
@@ -232,6 +242,7 @@ function ApplyPage() {
   };
 
   const resetEmailVerification = () => {
+    setVerificationToken('');
     setVerificationCode('');
     setIsCodeSent(false);
     setVerificationEmail(null);
@@ -326,7 +337,9 @@ function ApplyPage() {
     setIsVerifyingCode(true);
 
     try {
-      await confirmApplicationEmailVerification(normalizedEmail, verificationCode);
+      setVerificationToken(
+        await confirmApplicationEmailVerification(normalizedEmail, verificationCode),
+      );
       setVerifiedEmail(normalizedEmail);
       setVerificationMessage('이메일 인증이 완료되었습니다.');
       setVerificationExpiresAt(null);
@@ -385,7 +398,7 @@ function ApplyPage() {
       return;
     }
 
-    if (!currentEvent || !canApply(currentEvent)) {
+    if (isEventCourseLoading || !currentEvent || !canApply(currentEvent)) {
       setErrorMessage(eventCourseError || '현재 신청 가능한 행사가 없습니다.');
       return;
     }
@@ -413,15 +426,29 @@ function ApplyPage() {
       await createApplication({
         eventId: currentEvent.eventId,
         courseId: selectedCourseId,
+        verificationToken,
+        privacyConsentVersion: 'application-v1',
         name: name.trim(),
         studentNo: studentNumber.trim(),
         email: normalizedEmail,
         phone: phone.trim(),
         affiliationType: applicationAffiliation,
         department: department.trim(),
+        college:
+          affiliation === 'undergraduate' ? findDepartmentGroup(department)?.label : undefined,
+        grade: affiliation === 'undergraduate' && grade ? grade : undefined,
+        gender: gender || undefined,
       });
-      navigate('/apply/pending', { state: { email: normalizedEmail } });
+      navigate('/apply/pending', {
+        state: { email: normalizedEmail, eventId: currentEvent.eventId },
+      });
     } catch (error) {
+      if (
+        error instanceof ApiError &&
+        ['EMAIL_NOT_VERIFIED', 'EMAIL_VERIFICATION_EXPIRED'].includes(error.code ?? '')
+      ) {
+        resetEmailVerification();
+      }
       setErrorMessage(
         getApiErrorMessage(error, '참가신청에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
       );
@@ -458,6 +485,28 @@ function ApplyPage() {
           )}
           <h1 id="apply-title">독서마라톤 참가신청</h1>
           {currentEvent && <p className="apply-event-title">{currentEvent.title}</p>}
+          {availableEvents.some((event) => event.eventId !== currentEvent?.eventId) &&
+            currentEvent && (
+              <label>
+                신청할 행사
+                <select
+                  disabled={isSubmitting || isEventCourseLoading}
+                  value={currentEvent.eventId}
+                  onChange={(event) =>
+                    navigate(`/apply?eventId=${event.target.value}`, { replace: true })
+                  }
+                >
+                  {!availableEvents.some((event) => event.eventId === currentEvent.eventId) && (
+                    <option value={currentEvent.eventId}>{currentEvent.title}</option>
+                  )}
+                  {availableEvents.map((event) => (
+                    <option key={event.eventId} value={event.eventId}>
+                      {event.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
         </header>
 
         {closedMessage ? (
@@ -677,6 +726,30 @@ function ApplyPage() {
                     }
                     fieldClassName="apply-field"
                   />
+                  {affiliation === 'undergraduate' && (
+                    <label className="apply-field">
+                      학년 (선택)
+                      <select value={grade} onChange={(e) => setGrade(e.target.value)}>
+                        <option value="">선택하지 않음</option>
+                        {UNDERGRADUATE_GRADE_OPTIONS.map(({ value, label }) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  <label className="apply-field">
+                    성별 (선택)
+                    <select value={gender} onChange={(e) => setGender(e.target.value)}>
+                      <option value="">선택하지 않음</option>
+                      <option value="여">여</option>
+                      <option value="남">남</option>
+                    </select>
+                  </label>
+                  <p className="apply-help">
+                    학년과 성별은 도서관 결과 보고에 사용되는 선택 항목입니다.
+                  </p>
                   <p className="apply-help">목록에 없는 소속은 도서관 담당자에게 문의해 주세요.</p>
                 </div>
               </div>
@@ -730,8 +803,8 @@ function ApplyPage() {
                   </p>
                 ) : (
                   <p id="course-help" className="apply-help">
-                    목표 쪽수를 읽으면 완주로 인정됩니다. 독서 1쪽은 {METERS_PER_PAGE}m로
-                    환산됩니다.
+                    신청한 코스는 추후 관리자에게 요청해 상위 코스로 변경할 수 있습니다. 독서 1쪽은{' '}
+                    {METERS_PER_PAGE}m입니다.
                   </p>
                 )}
               </div>

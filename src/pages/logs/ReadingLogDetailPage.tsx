@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getApiErrorMessage } from '../../api/apiClient';
+import { getMyParticipations } from '../../api/participationApi';
+import type { MyParticipation } from '../../types/participation';
+import { canSubmitReadingLog, hasFinalResults } from '../../utils/eventSelection';
 import { deleteReadingLog, getMyReadingLog } from '../../api/readingLogApi';
 import {
   READING_LOG_STATUS_LABELS,
   type ReadingLog,
   type ReadingLogBook,
 } from '../../types/readingLog';
-import { formatDistance } from '../../utils/reading';
+import { formatPreciseDistance } from '../../utils/reading';
 import { formatKoDateKey } from '../../utils/date';
 import './logs.css';
 
@@ -23,6 +26,7 @@ function ReadingLogDetailPage() {
   const { logId } = useParams();
   const navigate = useNavigate();
   const [log, setLog] = useState<ReadingLog | null>(null);
+  const [participation, setParticipation] = useState<MyParticipation>();
   const [errorMessage, setErrorMessage] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const readingLogId = Number(logId);
@@ -31,11 +35,24 @@ function ReadingLogDetailPage() {
   useEffect(() => {
     if (!hasValidReadingLogId) return;
 
+    let active = true;
     getMyReadingLog(readingLogId)
-      .then(setLog)
+      .then(async (entry) => {
+        if (!active) return;
+        setLog(entry);
+        if (entry.status === 'APPROVED' || entry.bookRequestId) return;
+        const participations = await getMyParticipations();
+        if (active)
+          setParticipation(
+            participations.find((item) => item.participationId === entry.participationId),
+          );
+      })
       .catch((error: unknown) => {
-        setErrorMessage(getApiErrorMessage(error, '독서일지를 불러오지 못했습니다.'));
+        if (active) setErrorMessage(getApiErrorMessage(error, '독서일지를 불러오지 못했습니다.'));
       });
+    return () => {
+      active = false;
+    };
   }, [hasValidReadingLogId, readingLogId]);
 
   const handleDelete = async () => {
@@ -103,7 +120,7 @@ function ReadingLogDetailPage() {
             <dd>
               {log.status === 'REJECTED'
                 ? '반영 안 됨'
-                : formatDistance(log.convertedDistanceMeter)}
+                : formatPreciseDistance(log.convertedDistanceMeter)}
             </dd>
           </div>
         </dl>
@@ -187,21 +204,30 @@ function ReadingLogDetailPage() {
           <Link to="/logs" className="reading-detail-action-secondary">
             목록으로 돌아가기
           </Link>
-          {log.status !== 'APPROVED' && (
-            <div>
-              <Link to={`/logs/${log.readingLogId}/edit`} className="reading-detail-action-primary">
-                수정
-              </Link>
-              <button
-                type="button"
-                className="reading-detail-action-danger"
-                onClick={handleDelete}
-                disabled={isDeleting}
-              >
-                {isDeleting ? '삭제 중...' : '삭제'}
-              </button>
-            </div>
-          )}
+          {log.bookRequestId && <Link to="/book-requests">도서 확인 요청 내역</Link>}
+          {log.status !== 'APPROVED' &&
+            !log.bookRequestId &&
+            participation?.participationId === log.participationId &&
+            !hasFinalResults(participation.eventStatus) && (
+              <div>
+                {canSubmitReadingLog(participation) && (
+                  <Link
+                    to={`/logs/${log.readingLogId}/edit`}
+                    className="reading-detail-action-primary"
+                  >
+                    수정
+                  </Link>
+                )}
+                <button
+                  type="button"
+                  className="reading-detail-action-danger"
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? '삭제 중...' : '삭제'}
+                </button>
+              </div>
+            )}
         </footer>
       </section>
     </main>

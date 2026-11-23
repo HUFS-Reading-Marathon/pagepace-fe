@@ -2,6 +2,7 @@ import { ApiError, apiRequest } from './apiClient';
 
 export type CurrentEvent = {
   eventId: number;
+  distanceBasedParticipation?: boolean;
   title: string;
   roundNo: number;
   applicationStartDate: string;

@@ -1,128 +1,163 @@
+import ColumnResizeHandle from '../table/ColumnResizeHandle';
+import { useColumnSizing, CHECK_WIDTH } from '../table/tableColumns';
+import { useTableCellText } from '../table/useTableCellText';
+import { MIN_WIDTH, defaultColumnWidths } from './rosterColumns';
+import { rosterKey, rosterStatus } from '../../../api/adminRosterApi';
 import {
-  ADMIN_APPLICATION_AFFILIATION_LABELS,
-  type AdminApplicationListItem,
-} from '../../../types/adminApplication';
-import { formatKoDate } from '../../../utils/date';
-import ParticipantStatusBadge from './ParticipantStatusBadge';
+  ROSTER_COLUMNS,
+  rosterCell,
+  type NumberedRow,
+  type RosterColumn,
+  type RosterSort,
+} from '../../../utils/participantRoster';
 
-type ParticipantTableProps = {
-  participants: AdminApplicationListItem[];
-  hasParticipants: boolean;
-  isLoading: boolean;
-  error: string | null;
-  processingApplicationId: number | null;
-  onOpenDetails: (applicationId: number) => void;
-  onApprove: (applicationId: number) => void;
-  onRejectStart: (applicationId: number) => void;
+const columns = Object.keys(ROSTER_COLUMNS) as RosterColumn[];
+type Props = {
+  rows: NumberedRow[];
+  selected: number | null;
+  onSelect: (id: number | null) => void;
+  onOpen: (row: NumberedRow) => void;
+  sort: RosterSort;
+  onSort: (column: RosterSort['column']) => void;
+  busy: boolean;
+  message: string;
 };
 
-function ParticipantTable({
-  participants,
-  hasParticipants,
-  isLoading,
-  error,
-  processingApplicationId,
-  onOpenDetails,
-  onApprove,
-  onRejectStart,
-}: ParticipantTableProps) {
-  if (isLoading) {
-    return (
-      <div className="admin-participants__empty" role="status">
-        참가자 목록을 불러오는 중입니다.
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="admin-participants__empty" role="alert">
-        {error}
-      </div>
-    );
-  }
-
-  if (participants.length === 0) {
-    return (
-      <div className="admin-participants__empty">
-        {hasParticipants ? '조건에 맞는 참가자가 없습니다.' : '등록된 참가신청이 없습니다.'}
-      </div>
-    );
-  }
-
+export default function ParticipantTable({
+  rows,
+  selected,
+  onSelect,
+  onOpen,
+  sort,
+  onSort,
+  busy,
+  message,
+}: Props) {
+  const { container, viewport, custom, resize, resetWidth } = useColumnSizing<RosterColumn>();
+  const { table, fitText } = useTableCellText(!message && rows.length > 0);
+  const defaults = defaultColumnWidths(viewport);
+  const widths = { ...defaults, ...custom };
+  const tableWidth = CHECK_WIDTH + columns.reduce((total, key) => total + widths[key], 0);
   return (
-    <div className="admin-participants__table-wrapper">
-      <table className="admin-participants__table">
-        <caption className="sr-only">독서마라톤 참가신청자 목록</caption>
+    <div
+      ref={container}
+      className="roster-scroll"
+      tabIndex={0}
+      role="region"
+      aria-label="참가자 명단 표"
+    >
+      <table ref={table} className="roster-table" style={{ width: tableWidth }} aria-busy={busy}>
+        <caption className="sr-only">참가자 명단</caption>
+        <colgroup>
+          <col style={{ width: CHECK_WIDTH }} />
+          {columns.map((key) => (
+            <col key={key} style={{ width: widths[key] }} />
+          ))}
+        </colgroup>
         <thead>
           <tr>
-            <th scope="col">신청 상태</th>
-            <th scope="col">이름</th>
-            <th scope="col">학번/사번</th>
-            <th scope="col">소속</th>
-            <th scope="col">신분</th>
-            <th scope="col">선택 코스</th>
-            <th scope="col">연락처</th>
-            <th scope="col">신청일</th>
-            <th scope="col">관리</th>
+            <th scope="col" className="roster-check">
+              <span className="sr-only">선택</span>
+            </th>
+            {columns.map((key) => {
+              const direction = key === sort.column ? sort.direction : undefined;
+              return (
+                <th key={key} scope="col" data-column={key} aria-sort={direction}>
+                  {key === 'number' ? (
+                    ROSTER_COLUMNS.number
+                  ) : (
+                    <button
+                      type="button"
+                      className="roster-sort"
+                      onClick={() => onSort(key)}
+                      title={
+                        ROSTER_COLUMNS[key] +
+                        ' ' +
+                        (direction === 'ascending' ? '내림차순' : '오름차순') +
+                        ' 정렬'
+                      }
+                    >
+                      {ROSTER_COLUMNS[key]}
+                      <span className="sort-mark" aria-hidden="true" />
+                    </button>
+                  )}
+                  <ColumnResizeHandle
+                    label={ROSTER_COLUMNS[key]}
+                    width={widths[key]}
+                    minWidth={MIN_WIDTH[key]}
+                    onChange={(width) => resize(key, width)}
+                    onReset={() => resetWidth(key)}
+                  />
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
-          {participants.map((participant) => (
-            <tr key={participant.applicationId}>
-              <td>
-                <ParticipantStatusBadge status={participant.status} />
-              </td>
-              <td className="admin-participants__name">{participant.name}</td>
-              <td className="admin-participants__nowrap">{participant.studentNo || '-'}</td>
-              <td className="admin-participants__department">{participant.department || '-'}</td>
-              <td>
-                {ADMIN_APPLICATION_AFFILIATION_LABELS[participant.affiliationType] ??
-                  participant.affiliationType}
-              </td>
-              <td className="admin-participants__nowrap">{participant.courseName || '-'}</td>
-              <td className="admin-participants__nowrap">{participant.phone || '-'}</td>
-              <td className="admin-participants__nowrap">{formatKoDate(participant.appliedAt)}</td>
-              <td>
-                <div className="admin-participants__row-actions">
-                  <button
-                    type="button"
-                    className="admin-participants__table-button"
-                    onClick={() => onOpenDetails(participant.applicationId)}
-                  >
-                    상세 보기
-                  </button>
-
-                  {participant.status === 'APPLIED' && (
-                    <>
-                      <button
-                        type="button"
-                        className="admin-participants__table-button admin-participants__table-button--approve"
-                        onClick={() => onApprove(participant.applicationId)}
-                        disabled={processingApplicationId === participant.applicationId}
-                      >
-                        {processingApplicationId === participant.applicationId
-                          ? '처리 중...'
-                          : '승인'}
-                      </button>
-                      <button
-                        type="button"
-                        className="admin-participants__table-button admin-participants__table-button--reject"
-                        disabled={processingApplicationId === participant.applicationId}
-                        onClick={() => onRejectStart(participant.applicationId)}
-                      >
-                        반려
-                      </button>
-                    </>
-                  )}
-                </div>
+          {message ? (
+            <tr>
+              <td colSpan={columns.length + 1} className="roster-empty">
+                {message}
               </td>
             </tr>
-          ))}
+          ) : (
+            rows.map((row) => {
+              const id = rosterKey(row),
+                checked = selected === id,
+                locked = busy || (selected !== null && !checked);
+              const toggle = () => onSelect(checked ? null : id);
+              return (
+                <tr
+                  key={id}
+                  data-selected={checked || undefined}
+                  data-locked={locked || undefined}
+                  onClick={(e) => {
+                    if (!locked && !(e.target as Element).closest('button,input,label')) toggle();
+                  }}
+                >
+                  <td className="roster-check">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      disabled={locked}
+                      onChange={toggle}
+                      aria-label={row.name + ' 선택'}
+                    />
+                  </td>
+                  {columns.map((key) => {
+                    const value = rosterCell(row, key);
+                    const visible = fitText ? fitText(key, value, widths[key]) : value;
+                    return (
+                      <td
+                        key={key}
+                        data-column={key}
+                        title={value || undefined}
+                        aria-label={visible !== value && key !== 'name' ? value : undefined}
+                      >
+                        {key === 'name' ? (
+                          <button
+                            className="roster-name"
+                            aria-label={visible !== value ? value : undefined}
+                            type="button"
+                            onClick={() => onOpen(row)}
+                            disabled={locked}
+                          >
+                            {visible}
+                          </button>
+                        ) : (
+                          <span data-status={key === 'status' ? rosterStatus(row) : undefined}>
+                            {visible || '—'}
+                          </span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })
+          )}
         </tbody>
       </table>
     </div>
   );
 }
-
-export default ParticipantTable;

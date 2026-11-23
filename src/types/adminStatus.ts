@@ -50,15 +50,19 @@ export type AdminCompetitionCourseSummary = {
 };
 
 export type AdminCompetitionCourseFilter = 'ALL' | number;
-export type AdminCompetitionSortOption = 'distance-desc' | 'pages-desc' | 'name-asc';
+export type AdminCompetitionSortOption =
+  'distance-desc' | 'distance-asc' | 'pages-desc' | 'pages-asc' | 'name-asc' | 'name-desc';
 
 export const ADMIN_COMPETITION_SORT_OPTIONS: ReadonlyArray<{
   value: AdminCompetitionSortOption;
   label: string;
 }> = [
-  { value: 'distance-desc', label: '누적 거리 많은 순' },
-  { value: 'pages-desc', label: '누적 페이지 많은 순' },
-  { value: 'name-asc', label: '이름순' },
+  { value: 'distance-desc', label: '인정 거리 높은 순' },
+  { value: 'distance-asc', label: '인정 거리 낮은 순' },
+  { value: 'pages-desc', label: '승인 쪽수 많은 순' },
+  { value: 'pages-asc', label: '승인 쪽수 적은 순' },
+  { value: 'name-asc', label: '이름 가나다순' },
+  { value: 'name-desc', label: '이름 역순' },
 ];
 
 export const STATUS_ACTIVITY_FILTER_OPTIONS: ReadonlyArray<{

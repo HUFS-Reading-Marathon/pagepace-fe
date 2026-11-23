@@ -47,3 +47,12 @@ export async function registerParticipant(eventId: number, courseId: number, use
     json({ eventId, courseId, userId }),
   );
 }
+
+export async function promoteParticipant(participationId: number, courseId: number) {
+  const updated = await apiRequest<AdminParticipation>(
+    `/api/admin/participations/${participationId}/course`,
+    { ...json({ courseId }), method: 'PATCH' },
+  );
+  if (!updated) throw new ApiError('변경한 참가 정보를 확인할 수 없습니다.');
+  return updated;
+}

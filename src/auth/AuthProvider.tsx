@@ -53,8 +53,7 @@ function AuthProvider({ children }: PropsWithChildren) {
     return currentUserRequestRef.current.promise;
   }, []);
 
-  const applyAuthenticatedUser = useCallback((nextUser: AuthUser, token: string) => {
-    saveAuthSession(token, nextUser.studentNo);
+  const applyAuthenticatedUser = useCallback((nextUser: AuthUser) => {
     setUser(nextUser);
     setIsAuthenticated(true);
     setAuthError(null);
@@ -79,7 +78,7 @@ function AuthProvider({ children }: PropsWithChildren) {
     requestCurrentUser(initialToken)
       .then((nextUser) => {
         if (isActive && authSequenceRef.current === sequence) {
-          applyAuthenticatedUser(nextUser, initialToken);
+          applyAuthenticatedUser(nextUser);
         }
       })
       .catch((error: unknown) => {
@@ -133,7 +132,7 @@ function AuthProvider({ children }: PropsWithChildren) {
       requestCurrentUser(token)
         .then((nextUser) => {
           if (authSequenceRef.current === sequence) {
-            applyAuthenticatedUser(nextUser, token);
+            applyAuthenticatedUser(nextUser);
           }
         })
         .catch((error: unknown) => {
@@ -208,7 +207,7 @@ function AuthProvider({ children }: PropsWithChildren) {
             throw new ApiError('로그인 요청이 취소되었습니다.', 0, 'AUTH_REQUEST_CANCELLED');
           }
 
-          applyAuthenticatedUser(nextUser, accessToken);
+          applyAuthenticatedUser(nextUser);
           emitAuthChange();
           return nextUser;
         } catch (error) {

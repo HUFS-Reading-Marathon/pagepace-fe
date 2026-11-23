@@ -2,13 +2,17 @@ import { ApiError, apiRequest } from './apiClient';
 
 export type Ranking = {
   rank: number;
+  awardStatus?: 'NONE' | 'CANDIDATE' | 'WINNER' | 'TIE_REVIEW' | 'POLICY_REVIEW';
+  awardCourseName?: string | null;
+  awardRewardType?: string | null;
+  awardRewardAmount?: number | null;
   participationId: number;
   courseId: number;
   courseName: string;
   targetDistance: number;
   status: string;
   name: string;
-  studentNo: string;
+  studentNo?: string;
   approvedPages: number;
   distance: number;
   progressPercent: number;

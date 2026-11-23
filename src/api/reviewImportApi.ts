@@ -32,14 +32,22 @@ export type ImportedReview = {
   id: number;
   sourceRow: number;
   libraryBookId: number | null;
-  bookTitle: string;
-  bibliographicInfo: string;
-  memberNo: string;
-  memberName: string;
-  reviewTitle: string;
-  content: string;
+  bookTitle: string | null;
+  bibliographicInfo: string | null;
+  memberNo: string | null;
+  memberName: string | null;
+  reviewTitle: string | null;
+  content: string | null;
   sourceUpdatedAt: string | null;
-  status: 'INVALID' | 'UNMATCHED' | 'NO_CREDIT' | 'MATCHED' | 'NEEDS_REVIEW' | 'ALREADY_APPLIED';
+  status:
+    | 'EXCLUDED'
+    | 'INVALID'
+    | 'UNMATCHED'
+    | 'BOOK_VERIFIED'
+    | 'NO_CREDIT'
+    | 'MATCHED'
+    | 'NEEDS_REVIEW'
+    | 'ALREADY_APPLIED';
   warnings: string[];
   candidates: ReviewCandidate[];
   verification: ReviewVerification | null;

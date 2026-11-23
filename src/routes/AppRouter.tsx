@@ -14,7 +14,12 @@ import AdminEventSettingsPage from '../pages/admin/AdminEventSettingsPage';
 import AdminStatusPage from '../pages/admin/AdminStatusPage';
 import AdminRankingPage from '../pages/admin/AdminRankingPage';
 import AdminReviewsPage from '../pages/admin/AdminReviewsPage';
+import AdminBookRequestsPage from '../pages/admin/AdminBookRequestsPage';
+import BookRequestsPage from '../pages/logs/BookRequestsPage';
 import AdminNoticesPage from '../pages/admin/AdminNoticesPage';
+import NoticesPage from '../pages/notices/NoticesPage';
+import AdminContestReportsPage from '../pages/admin/AdminContestReportsPage';
+import InquiryBoard from '../pages/inquiries/InquiryBoard';
 import NoticeDetailPage from '../pages/notices/NoticeDetailPage';
 import AccountSettingsPage from '../pages/my/AccountSettingsPage';
 import NotFoundPage from '../pages/error';
@@ -55,6 +60,7 @@ function AppRouter() {
             }
           >
             <Route index element={<AdminOperationsDashboardPage />} />
+            <Route path="book-requests" element={<AdminBookRequestsPage />} />
             <Route path="participants" element={<AdminParticipantsPage />} />
             <Route path="logs" element={<AdminReadingLogsPage />} />
             <Route path="event" element={<AdminEventSettingsPage />} />
@@ -63,15 +69,27 @@ function AppRouter() {
             <Route path="rankings" element={<AdminRankingPage />} />
             <Route path="reviews" element={<AdminReviewsPage />} />
             <Route path="notices" element={<AdminNoticesPage />} />
+            <Route path="inquiries" element={<InquiryBoard admin />} />
+            <Route path="reports" element={<AdminContestReportsPage />} />
           </Route>
 
           <Route element={<UserLayout />}>
             <Route path="/" element={<MainPage />} />
+            <Route path="/inquiries" element={<InquiryBoard />} />
+            <Route path="/notices" element={<NoticesPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/password-reset" element={<PasswordResetPage />} />
             <Route path="/signup" element={<ApplyPage />} />
             <Route path="/apply" element={<ApplyPage />} />
             <Route path="/apply/pending" element={<ApplyPendingPage />} />
+            <Route
+              path="/book-requests"
+              element={
+                <ProtectedRoute>
+                  <BookRequestsPage />
+                </ProtectedRoute>
+              }
+            />
 
             <Route
               path="/my"

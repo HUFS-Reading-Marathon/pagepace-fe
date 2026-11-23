@@ -81,10 +81,11 @@ function getHttpErrorMessage(status: number) {
   return '요청을 처리하는 중 오류가 발생했습니다.';
 }
 
-export async function apiRequest<T>(
+async function requestResponse(
   path: string,
-  options: ApiRequestOptions = {},
-): Promise<T | null> {
+  options: ApiRequestOptions,
+  accept: string,
+): Promise<Response> {
   const {
     skipAuth = false,
     skipRefresh = false,
@@ -94,7 +95,7 @@ export async function apiRequest<T>(
   const headers = new Headers(initialHeaders);
   const token = skipAuth ? null : getAccessToken();
 
-  headers.set('Accept', 'application/json');
+  headers.set('Accept', accept);
 
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
@@ -116,24 +117,50 @@ export async function apiRequest<T>(
     );
   }
 
-  const payload = await parseApiResponse<T>(response);
-
   if (response.status === 401 && !skipAuth && !skipRefresh) {
     try {
       await refreshAccessToken();
-
-      return apiRequest<T>(path, {
-        ...options,
-        headers: initialHeaders,
-        skipRefresh: true,
-      });
-    } catch (refreshError) {
-      clearAuthStorage();
-      emitAuthChange();
-      throw refreshError;
+    } catch (error) {
+      // 백엔드는 리프레시 쿠키가 없으면 400(REFRESH_REQUIRED), 무효·만료·비활성 계정이면 401을 돌려줍니다.
+      // 둘 다 세션을 되살릴 수 없으므로 정리하고, 네트워크 오류·5xx는 다음 요청에서 다시 시도합니다.
+      if (
+        error instanceof ApiError &&
+        (error.status === 400 || error.status === 401) &&
+        getAccessToken() === token
+      ) {
+        clearAuthStorage();
+        emitAuthChange();
+      }
+      throw error;
     }
+    return requestResponse(path, { ...options, skipRefresh: true }, accept);
   }
+  return response;
+}
 
+export async function downloadExcel(path: string, options: RequestInit = {}) {
+  const excel = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  const response = await requestResponse(path, options, excel + ', application/json');
+  if (!response.ok || !response.headers.get('Content-Type')?.startsWith(excel)) {
+    const error = await parseApiResponse(response);
+    throw new ApiError(
+      error?.message || '엑셀 파일을 내려받지 못했습니다.',
+      response.status,
+      error?.code,
+    );
+  }
+  return {
+    file: await response.blob(),
+    missingCallNumbers: Number(response.headers.get('X-Missing-Call-Numbers') ?? 0),
+  };
+}
+
+export async function apiRequest<T>(
+  path: string,
+  options: ApiRequestOptions = {},
+): Promise<T | null> {
+  const response = await requestResponse(path, options, 'application/json');
+  const payload = await parseApiResponse<T>(response);
   if (!response.ok || !payload?.success) {
     throw new ApiError(
       payload?.message || getHttpErrorMessage(response.status),
@@ -148,19 +175,18 @@ export async function apiRequest<T>(
 async function refreshAccessToken() {
   if (!refreshPromise) {
     refreshPromise = (async () => {
-      const response = await fetch('/api/auth/refresh', {
+      const session = await apiRequest<{ accessToken: string }>('/api/auth/refresh', {
         method: 'POST',
-        headers: { Accept: 'application/json' },
-        credentials: 'include',
+        skipAuth: true,
+        skipRefresh: true,
       });
-      const payload = await parseApiResponse<{ accessToken: string }>(response);
-      const accessToken = payload?.data?.accessToken?.trim();
+      const accessToken = session?.accessToken?.trim();
 
-      if (!response.ok || !payload?.success || !accessToken) {
+      if (!accessToken) {
         throw new ApiError(
-          payload?.message || '로그인이 만료되었습니다.',
-          response.status,
-          payload?.code,
+          '인증 갱신 응답을 확인하지 못했습니다.',
+          200,
+          'INVALID_REFRESH_RESPONSE',
         );
       }
 

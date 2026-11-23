@@ -1,0 +1,114 @@
+.log-queue {
+  container-type: inline-size;
+  font-variant-numeric: tabular-nums;
+}
+.log-queue__filters input[type='date'] {
+  flex: none;
+  width: 140px;
+}
+.log-queue__table th[data-column='totalReadPages'],
+.log-queue__table td[data-column='totalReadPages'] {
+  text-align: right;
+  padding-inline-end: 14px;
+}
+.log-queue__table td[data-column='createdAt'] {
+  color: #46596c;
+  font-size: 13px;
+}
+.log-queue__table td[data-column='userName'] {
+  color: var(--ink);
+  font-weight: 600;
+}
+.log-queue .log-queue__table tbody tr {
+  cursor: default;
+}
+.log-queue__table td[data-status='SUBMITTED'] {
+  color: #72511e;
+}
+.log-queue__table .log-queue__disclosure {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  padding: 0 6px;
+  text-align: center;
+  box-shadow: inset 1px 0 #dae2ea;
+}
+.log-queue__table td.log-queue__disclosure {
+  background: white;
+}
+.log-queue__row:hover .log-queue__disclosure {
+  background: #f3f7fa;
+}
+.log-queue__row[data-selected] .log-queue__disclosure {
+  background: #eaf2fa;
+}
+.log-queue__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 58px;
+  min-height: 28px;
+  padding: 2px 6px;
+  border: 1px solid #c4d1dd;
+  border-radius: 4px;
+  background: #fff;
+  color: var(--navy-strong);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+}
+.log-queue__toggle > span {
+  width: 6px;
+  height: 6px;
+  margin-top: -3px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+}
+.log-queue__toggle[aria-expanded='true'] > span {
+  margin-top: 3px;
+  transform: rotate(225deg);
+}
+.log-queue__toggle:hover,
+.log-queue__toggle[aria-expanded='true'] {
+  border-color: #7e9cb6;
+  background: #eef4f9;
+}
+.log-queue__table .log-queue__detail {
+  height: auto;
+  padding: 0;
+  overflow: visible;
+  white-space: normal;
+}
+.log-queue__detail-content {
+  position: sticky;
+  left: 0;
+  width: min(100%, 100cqi);
+  background: var(--surface);
+}
+.log-queue .log-queue__toggle:focus-visible,
+.log-queue__table .roster-check input:focus-visible {
+  outline-offset: 0;
+}
+@media (max-width: 700px) {
+  .log-queue__filters label {
+    display: grid;
+    gap: 3px;
+  }
+  .log-queue .log-queue__filters {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) auto;
+  }
+  .log-queue .roster-edit {
+    align-self: start;
+  }
+  .log-queue__filters input[type='date'] {
+    width: 100%;
+  }
+  .log-queue__filters .roster-link {
+    align-self: end;
+  }
+  .log-queue .roster-edit {
+    padding-inline: 4px;
+  }
+}

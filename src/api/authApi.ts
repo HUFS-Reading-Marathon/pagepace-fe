@@ -96,11 +96,16 @@ export async function sendPasswordResetCode(studentNo: string, email: string) {
   });
 }
 
-export async function confirmPasswordReset(studentNo: string, email: string, code: string) {
+export async function confirmPasswordReset(
+  studentNo: string,
+  email: string,
+  code: string,
+  newPassword: string,
+) {
   await apiRequest<null>(PASSWORD_RESET_CONFIRM_PATH, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ studentNo, email, code }),
+    body: JSON.stringify({ studentNo, email, code, newPassword }),
     skipAuth: true,
   });
 }

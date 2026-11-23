@@ -6,6 +6,7 @@ import { getAdminApplications } from '../../api/adminApplicationApi';
 import { getApiErrorMessage } from '../../api/apiClient';
 import { getAdminEvents } from '../../api/adminEventApi';
 import {
+  compareReviewTime,
   getAdminReadingLogs,
   getAdminReviewTargets,
   type AdminReviewTarget,
@@ -35,7 +36,7 @@ type QueueRow = {
   to: string;
   name: string;
   meta: string;
-  submittedAt: string;
+  submittedAt: string | null;
 };
 
 type QueueConfig = {
@@ -51,7 +52,7 @@ type QueueConfig = {
 };
 
 /** 가장 오래 기다린 요청의 대기 일수. 제출 시각을 해석할 수 없으면 null을 돌려줍니다. */
-function getWaitingDays(value: string | undefined) {
+function getWaitingDays(value: string | null | undefined) {
   if (!value) {
     return null;
   }
@@ -61,7 +62,8 @@ function getWaitingDays(value: string | undefined) {
   return Number.isNaN(time) ? null : Math.max(0, Math.floor((Date.now() - time) / DAY_MS));
 }
 
-function formatDateTime(value: string) {
+function formatDateTime(value: string | null) {
+  if (!value) return '시각 없음';
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
@@ -113,7 +115,7 @@ function AdminOperationsDashboardPage() {
 
     Promise.all([
       getAdminApplications(selectedEventId),
-      getAdminReadingLogs({ eventId: selectedEventId }),
+      getAdminReadingLogs({ eventId: selectedEventId, status: 'SUBMITTED' }),
       // 서평 대기 조회가 실패해도 신청·일지 업무는 그대로 보여 줍니다.
       getAdminReviewTargets(selectedEventId).catch(() => null),
     ])
@@ -132,7 +134,10 @@ function AdminOperationsDashboardPage() {
           return;
         }
 
-        setError(getApiErrorMessage(requestError, '운영 현황를 불러오지 못했습니다.'));
+        setApplications([]);
+        setLogs([]);
+        setReviewTargets(null);
+        setError(getApiErrorMessage(requestError, '운영 현황을 불러오지 못했습니다.'));
       })
       .finally(() => {
         if (isActive) {
@@ -164,7 +169,7 @@ function AdminOperationsDashboardPage() {
     () =>
       (reviewTargets ?? [])
         .filter((item) => !item.reviewVerified)
-        .sort((a, b) => a.reviewSubmittedAt.localeCompare(b.reviewSubmittedAt)),
+        .sort((a, b) => compareReviewTime(a, b)),
     [reviewTargets],
   );
   const totalTasks = pendingApplications.length + pendingLogs.length + pendingReviews.length;
@@ -176,12 +181,12 @@ function AdminOperationsDashboardPage() {
       description: '오래 기다린 신청부터 확인합니다.',
       rows: pendingApplications.map((item) => ({
         key: item.applicationId,
-        to: '/admin/participants?status=APPLIED',
+        to: `/admin/participants?eventId=${item.eventId}&status=APPLIED&applicationId=${item.applicationId}`,
         name: item.name,
         meta: `${item.studentNo} · ${item.courseName}`,
         submittedAt: item.appliedAt,
       })),
-      unavailableMessage: null,
+      unavailableMessage: error || null,
       emptyText: '처리할 참가신청서가 없습니다.',
       actionTo: '/admin/participants?status=APPLIED',
       actionLabel: '신청서 검수하기',
@@ -192,12 +197,12 @@ function AdminOperationsDashboardPage() {
       description: '제출 순서대로 도서와 쪽수를 확인합니다.',
       rows: pendingLogs.map((log) => ({
         key: log.readingLogId,
-        to: `/admin/logs?logId=${log.readingLogId}`,
+        to: `/admin/logs?eventId=${log.eventId}&logId=${log.readingLogId}`,
         name: log.userName,
         meta: `${log.books.map((book) => book.bookTitle).join(', ')} · ${log.totalReadPages}쪽`,
         submittedAt: log.createdAt,
       })),
-      unavailableMessage: null,
+      unavailableMessage: error || null,
       emptyText: '검토할 독서일지가 없습니다.',
       actionTo: '/admin/logs',
       actionLabel: '독서일지 검토하기',
@@ -208,10 +213,10 @@ function AdminOperationsDashboardPage() {
       description: '서평을 확인하고 인정 거리를 반영합니다.',
       rows: pendingReviews.map((target) => ({
         key: target.participantBookId,
-        to: '/admin/reviews',
+        to: `/admin/reviews?eventId=${selectedEventId}&participantBookId=${target.participantBookId}`,
         name: target.userName,
         meta: `${target.bookTitle} · +${target.distanceToCreditMeter.toLocaleString('ko-KR')}m`,
-        submittedAt: target.reviewSubmittedAt,
+        submittedAt: target.reviewSubmittedAt ?? target.reviewVerifiedAt,
       })),
       unavailableMessage:
         reviewTargets === null ? '서평 확인 대기 목록을 불러오지 못했습니다.' : null,
@@ -326,7 +331,7 @@ function AdminOperationsDashboardPage() {
             <div className="admin-operations__task-total">
               <span>처리 대기</span>
               <strong>
-                {isLoading ? '-' : totalTasks}
+                {isLoading || error || reviewTargets === null ? '-' : totalTasks}
                 <small>건</small>
               </strong>
             </div>

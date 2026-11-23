@@ -1,3 +1,4 @@
+import type { MyParticipation } from '../types/participation';
 export type EventScope = 'personal' | 'public' | 'admin';
 const key = (scope: EventScope) => `pagepace:${scope}:event`;
 export function selectedEventId(scope: EventScope): number | undefined {
@@ -99,4 +100,23 @@ export function getApplicationClosedMessage(
     case 'closed':
       return '참가신청이 마감되었습니다.';
   }
+}
+
+export function canSubmitReadingLog(
+  participation: Pick<
+    MyParticipation,
+    'participationStatus' | 'eventStatus' | 'eventStartDate' | 'eventEndDate'
+  >,
+  today = koreaToday(),
+) {
+  return (
+    ['APPROVED', 'COMPLETED'].includes(participation.participationStatus) &&
+    !['DRAFT', 'ENDED', 'FINALIZED', 'ARCHIVED'].includes(participation.eventStatus) &&
+    today >= participation.eventStartDate &&
+    today <= participation.eventEndDate
+  );
+}
+
+export function hasFinalResults(eventStatus?: string) {
+  return eventStatus === 'FINALIZED' || eventStatus === 'ARCHIVED';
 }

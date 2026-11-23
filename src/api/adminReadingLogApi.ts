@@ -18,10 +18,43 @@ export type AdminReviewTarget = {
   approvedReadPages: number;
   distanceToCreditMeter: number;
   reviewSearchUrl: string | null;
-  reviewSubmittedAt: string;
+  reviewSubmittedAt: string | null;
   reviewVerified: boolean;
   reviewVerifiedAt: string | null;
 };
+
+/**
+ * 서평 확인 대상 재조회 결과로 다음 목록을 정합니다. 조회가 실패하면 마지막으로 받은 목록을 그대로 두어,
+ * 일시적인 오류가 "확인할 서평 없음"으로 보이지 않게 합니다.
+ */
+export function settleReviewTargets(
+  previous: AdminReviewTarget[],
+  result: PromiseSettledResult<AdminReviewTarget[]>,
+) {
+  return result.status === 'fulfilled' ? result.value : previous;
+}
+
+/** 서버가 확인 처리 후 돌려준 대상 하나를 목록에 반영합니다. */
+export function replaceReviewTarget(targets: AdminReviewTarget[], updated: AdminReviewTarget) {
+  return targets.map((target) =>
+    target.participantBookId === updated.participantBookId ? updated : target,
+  );
+}
+
+export function compareReviewTime(
+  left: AdminReviewTarget,
+  right: AdminReviewTarget,
+  direction: 1 | -1 = 1,
+) {
+  const leftTime = left.reviewSubmittedAt ?? left.reviewVerifiedAt;
+  const rightTime = right.reviewSubmittedAt ?? right.reviewVerifiedAt;
+  if (!leftTime && rightTime) return 1;
+  if (leftTime && !rightTime) return -1;
+  return (
+    direction * (leftTime ?? '').localeCompare(rightTime ?? '') ||
+    left.participantBookId - right.participantBookId
+  );
+}
 
 function validateId(id: number, label: '행사' | '독서일지') {
   if (!Number.isInteger(id) || id <= 0) {
@@ -80,19 +113,96 @@ export async function getAdminReviewTargets(eventId: number) {
   return targets ?? [];
 }
 
-export function verifyAdminReview(participantBookId: number) {
+export type ManualEvidence = {
+  sourceUpdatedAt: string;
+  sourceContent: string;
+  expectedApprovedPages: number;
+  expectedUncreditedPages: number;
+  evidenceChecked: boolean;
+  note?: string;
+  replacesEvidenceId?: number;
+};
+export async function verifyAdminReview(participantBookId: number, evidence: ManualEvidence) {
   validateId(participantBookId, '독서일지');
-  return apiRequest<AdminReviewTarget>(
+  const result = await apiRequest<AdminReviewTarget>(
     `${ADMIN_READING_LOGS_PATH}/review-targets/${participantBookId}/verify`,
-    { method: 'PATCH' },
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(evidence),
+    },
+  );
+  if (!result || result.participantBookId !== participantBookId) {
+    throw new ApiError('서평 확인 결과를 조회할 수 없습니다. 목록을 새로 조회해 주세요.');
+  }
+  return result;
+}
+
+/** 서평 확인 대상 도서에 포함된 승인 독서일지 한 건 */
+export type ApprovedBookLog = {
+  readingLogId: number;
+  eventId: number;
+  readingDate: string;
+  pages: number;
+};
+
+export async function getApprovedBookLogs(participantBookId: number) {
+  validateId(participantBookId, '독서일지');
+  const logs = await apiRequest<ApprovedBookLog[]>(
+    `${ADMIN_READING_LOGS_PATH}/review-targets/${participantBookId}/approved-logs`,
+    { method: 'GET' },
+  );
+  return logs ?? [];
+}
+
+/** 참가 도서별 서평 인정 이력 (솔라스 대조 또는 수동 확인) */
+export type ReviewEvidence = {
+  id: number;
+  sourceUpdatedAt: string | null;
+  creditedPages: number;
+  sourceType: string;
+  verifiedBy: string;
+  verifiedAt: string;
+  revokedAt: string | null;
+  revokeReason: string | null;
+  sourceContent: string | null;
+  note: string | null;
+  revokedBy: string | null;
+};
+
+export async function getReviewEvidence(participantBookId: number) {
+  validateId(participantBookId, '독서일지');
+  const evidence = await apiRequest<ReviewEvidence[]>(
+    `${ADMIN_READING_LOGS_PATH}/review-targets/${participantBookId}/evidence`,
+    { method: 'GET' },
+  );
+  return evidence ?? [];
+}
+
+export function revokeReviewEvidence(
+  participantBookId: number,
+  evidenceId: number,
+  reason: string,
+) {
+  validateId(participantBookId, '독서일지');
+  validateId(evidenceId, '독서일지');
+  return apiRequest(
+    `${ADMIN_READING_LOGS_PATH}/review-targets/${participantBookId}/evidence/${evidenceId}/revoke`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason }),
+    },
   );
 }
 
-export async function approveAdminReadingLog(readingLogId: number) {
+export async function approveAdminReadingLog(readingLogId: number, expectedUpdatedAt: string) {
   validateId(readingLogId, '독서일지');
 
   return apiRequest<AdminReadingLogResponse>(`${ADMIN_READING_LOGS_PATH}/${readingLogId}/approve`, {
     method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ expectedUpdatedAt }),
   });
 }
 
@@ -113,6 +223,6 @@ export async function rejectAdminReadingLog(
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ reason }),
+    body: JSON.stringify({ reason, expectedUpdatedAt: request.expectedUpdatedAt }),
   });
 }

@@ -263,16 +263,40 @@
   line-height: 1.45;
 }
 
+.admin-status__table-toolbar,
 .admin-status__actions {
   display: flex;
-  padding: 14px 20px;
   align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  border-top: 1px solid var(--line-soft);
-  background: var(--surface);
+  gap: 8px 16px;
+  flex-wrap: wrap;
 }
-
+.admin-status__table-toolbar {
+  margin-top: 24px;
+  justify-content: space-between;
+}
+.admin-status__table-toolbar h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 17px;
+}
+.admin-status__course-summary .admin-status__section-heading {
+  align-items: center;
+  padding: 10px 14px;
+}
+.admin-status__course-summary .admin-status__section-heading p {
+  margin: 0;
+}
+.admin-status__course-summary-wrapper :is(th, td) {
+  padding-block: 7px;
+}
+.admin-status__table-toolbar + .admin-status__filters {
+  margin-top: 8px;
+  padding: 12px 14px;
+}
+.admin-status__table-toolbar + .admin-status__filters .admin-status__filter-footer {
+  margin-top: 8px;
+  padding-top: 8px;
+}
 .admin-status__actions p {
   margin: 0;
   color: var(--muted);
@@ -439,8 +463,8 @@
 .admin-status__filter-grid {
   display: grid;
   grid-template-columns:
-    minmax(220px, 1.7fr)
-    repeat(4, minmax(130px, 1fr));
+    minmax(160px, 1.4fr)
+    repeat(4, minmax(110px, 1fr));
   gap: 13px;
 }
 
@@ -484,7 +508,7 @@
 
 .admin-status__table {
   width: 100%;
-  min-width: 1450px;
+  min-width: 1120px;
   border-collapse: collapse;
   color: var(--body);
   font-size: 13px;
@@ -492,7 +516,7 @@
 
 .admin-status__table th,
 .admin-status__table td {
-  padding: 13px 11px;
+  padding: 10px 9px;
   border-bottom: 1px solid var(--line-soft);
   text-align: left;
   vertical-align: middle;
@@ -550,7 +574,7 @@
   outline-offset: 2px;
 }
 
-@media (max-width: 1280px) {
+@media (max-width: 1050px) {
   .admin-status__summary {
     grid-template-columns: repeat(3, minmax(120px, 1fr));
   }
@@ -614,4 +638,12 @@
   .admin-status__filter-footer button {
     width: 100%;
   }
+}
+
+.admin-status__table .admin-status__ordinal {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.admin-status__feedback:empty {
+  display: none;
 }
