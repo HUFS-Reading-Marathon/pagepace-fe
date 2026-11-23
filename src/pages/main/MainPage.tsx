@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth';
 import { ApiError } from '../../api/apiClient';
@@ -27,6 +27,7 @@ import {
   type CourseRow,
   type MyRecordSummary,
 } from './mainPageContent';
+import { useScrollReveal } from './useScrollReveal';
 import './MainPage.css';
 
 const NOTICE_PREVIEW_COUNT = 3;
@@ -69,6 +70,8 @@ function MainPage() {
   // 'missing': 공개된 행사가 없음(404 EVENT_NOT_FOUND), 'failed': 그 외 조회 실패
   const [eventError, setEventError] = useState<'missing' | 'failed' | null>(null);
   const [noticeError, setNoticeError] = useState('');
+  const mainRef = useRef<HTMLElement>(null);
+  useScrollReveal(mainRef);
 
   useEffect(() => {
     // 다른 페이지(/status 등)에서 /#notice 같은 링크로 들어오면 브라우저의 fragment 스크롤이
@@ -173,7 +176,7 @@ function MainPage() {
       : null;
 
   return (
-    <main id="main">
+    <main id="main" ref={mainRef}>
       {eventError && (
         <div className="wrap main-load-message">
           {eventError === 'missing' ? (
@@ -272,7 +275,7 @@ function MainPage() {
 
       <section className="info-section" aria-label="운영 정보 및 빠른 메뉴">
         <div className="wrap info-layout">
-          <aside className="summary-card">
+          <aside className="summary-card" data-reveal>
             <div className="summary-head">
               <h2>운영 정보</h2>
             </div>
@@ -286,7 +289,7 @@ function MainPage() {
             </ul>
           </aside>
 
-          <div className="library-search-card">
+          <div className="library-search-card" data-reveal>
             <label htmlFor="libSearch">도서관 소장자료 검색</label>
             <p>읽을 책을 도서관 소장자료에서 찾아보세요.</p>
             <form
@@ -306,7 +309,7 @@ function MainPage() {
           </div>
         </div>
 
-        <div className="wrap quick-grid" aria-label="빠른 메뉴">
+        <div className="wrap quick-grid" aria-label="빠른 메뉴" data-reveal>
           {QUICK_LINKS.map((link) =>
             isRouteHref(link) ? (
               <Link key={link.title} to={link.href}>
@@ -324,7 +327,7 @@ function MainPage() {
       </section>
 
       <section className="section compact" id="about" aria-labelledby="aboutTitle">
-        <div className="wrap">
+        <div className="wrap" data-reveal>
           <div className="section-head">
             <div className="section-title">
               <h2 id="aboutTitle">행사 개요</h2>
@@ -358,7 +361,7 @@ function MainPage() {
       </section>
 
       <section className="section" id="courses" aria-labelledby="coursesTitle">
-        <div className="wrap">
+        <div className="wrap" data-reveal>
           <div className="section-head">
             <div className="section-title">
               <h2 id="coursesTitle">코스 및 혜택</h2>
@@ -372,7 +375,7 @@ function MainPage() {
       </section>
 
       <section className="section" id="process" aria-labelledby="processTitle">
-        <div className="wrap">
+        <div className="wrap" data-reveal>
           <div className="section-head">
             <div className="section-title">
               <h2 id="processTitle">참여방법</h2>
@@ -409,7 +412,7 @@ function MainPage() {
       </section>
 
       <section className="section tone-section" id="notice" aria-labelledby="noticeTitle">
-        <div className="wrap">
+        <div className="wrap" data-reveal>
           <div className="section-head">
             <div className="section-title">
               <h2 id="noticeTitle">공지사항</h2>
@@ -436,7 +439,7 @@ function MainPage() {
       </section>
 
       <section className="section" id="contact" aria-labelledby="contactTitle">
-        <div className="wrap two-col">
+        <div className="wrap two-col" data-reveal>
           <aside className="check-card">
             <h2>참여 전 확인사항</h2>
             <p>세부 기준은 공지사항을 따릅니다.</p>
@@ -479,7 +482,7 @@ function MainPage() {
           </div>
         </div>
 
-        <div className="wrap cta-band">
+        <div className="wrap cta-band" data-reveal>
           <div>
             <h2>
               {showMyRecord
