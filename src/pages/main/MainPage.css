@@ -777,9 +777,8 @@
   align-items: flex-start;
   gap: 12px;
   margin-top: 36px;
-  padding: 16px 22px;
-  border-radius: var(--radius);
-  background: var(--blue-20);
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
 }
 
 .process-note svg {
@@ -1138,7 +1137,6 @@
 
   .process-note {
     margin-top: 28px;
-    padding: 14px 16px;
   }
 
   .process-note p {
