@@ -490,9 +490,7 @@
 
 .about-highlight div {
   min-height: 104px;
-  padding: 18px;
-  background: #fbfdff;
-  border: 1px solid var(--line-soft);
+  padding: 19px 0;
 }
 
 .about-highlight b {
@@ -1013,6 +1011,10 @@
 
   .about-highlight {
     grid-template-columns: 1fr;
+  }
+
+  .about-highlight div {
+    min-height: auto;
   }
 
   .table-scroll {
