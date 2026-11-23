@@ -17,7 +17,10 @@ export const ROSTER_COLUMNS = {
   registeredAt: '등록일',
 } as const;
 export type RosterColumn = keyof typeof ROSTER_COLUMNS;
-export type RosterSort = { column: RosterColumn; direction: 'ascending' | 'descending' };
+export type RosterSort = {
+  column: Exclude<RosterColumn, 'number'>;
+  direction: 'ascending' | 'descending';
+};
 export const DEFAULT_SORT: RosterSort = { column: 'name', direction: 'ascending' };
 export type NumberedRow = RosterRow & { number: number };
 const collator = new Intl.Collator('ko-KR', { numeric: true, sensitivity: 'base' });
@@ -53,9 +56,11 @@ function byName(a: RosterRow, b: RosterRow) {
 }
 
 export function rosterCell(row: NumberedRow, column: RosterColumn): string {
+  return column === 'number' ? String(row.number) : dataCell(row, column);
+}
+
+function dataCell(row: RosterRow, column: RosterSort['column']): string {
   switch (column) {
-    case 'number':
-      return String(row.number);
     case 'affiliationType':
       return row.affiliationType === 'STAFF'
         ? '직원·연구원'
@@ -84,17 +89,14 @@ export function sortedRoster(
   filters: RosterFilters,
   sort: RosterSort,
 ): NumberedRow[] {
-  const numbered = rows
-    .filter((r) => matchesRosterRow(r, filters))
-    .sort(byName)
-    .map((r, i) => ({ ...r, number: i + 1 }));
-  if (sort.column === 'name' && sort.direction === 'ascending') return numbered;
-  const sign = sort.direction === 'ascending' ? 1 : -1;
-  return numbered.sort((a, b) => {
-    if (sort.column === 'number') return sign * (a.number - b.number);
-    const left = rosterCell(a, sort.column),
-      right = rosterCell(b, sort.column);
-    if (!left || !right) return Number(!left) - Number(!right) || a.number - b.number;
-    return sign * collator.compare(left, right) || a.number - b.number;
-  });
+  const direction = sort.direction === 'ascending' ? 1 : -1;
+  return rows
+    .filter((row) => matchesRosterRow(row, filters))
+    .sort((a, b) => {
+      const left = dataCell(a, sort.column);
+      const right = dataCell(b, sort.column);
+      if (!left || !right) return Number(!left) - Number(!right) || byName(a, b);
+      return direction * collator.compare(left, right) || byName(a, b);
+    })
+    .map((row, index) => ({ ...row, number: index + 1 }));
 }

@@ -88,19 +88,26 @@ describe('참가 명단의 표시 순번과 정렬', () => {
       3,
     );
   });
-  it('학번 정렬과 순번 역정렬에서도 같은 사람의 번호와 텍스트 학번을 보존한다', () => {
+  it('정렬·필터를 적용한 결과의 위치에 순번을 매긴다', () => {
     const rows = [approved, pending, completed];
-    for (const sort of [
-      { column: 'studentNo', direction: 'ascending' },
-      { column: 'number', direction: 'descending' },
-    ] as const) {
-      expect(sortedRoster(rows, DEFAULT_FILTERS, sort).map((r) => [r.number, r.studentNo])).toEqual(
-        [
-          [2, '0002'],
-          [1, '0020'],
-        ],
-      );
-    }
+    const byStudentNo = sortedRoster(rows, DEFAULT_FILTERS, {
+      column: 'studentNo',
+      direction: 'ascending',
+    });
+    expect(byStudentNo.map((r) => [r.number, r.studentNo])).toEqual([
+      [1, '0002'],
+      [2, '0020'],
+    ]);
+    const byNameDesc = sortedRoster(rows, DEFAULT_FILTERS, {
+      column: 'name',
+      direction: 'descending',
+    });
+    expect(byNameDesc.map((r) => [r.number, r.name])).toEqual([
+      [1, '최서연'],
+      [2, '강민아'],
+    ]);
+    const one = sortedRoster(rows, { ...DEFAULT_FILTERS, query: '최서연' }, DEFAULT_SORT);
+    expect(one.map((r) => r.number)).toEqual([1]);
   });
   it('연락처는 화면에서 일정한 형태로 표시하고 하이픈 유무와 관계없이 검색한다', () => {
     const row = { ...entry, number: 1, phone: '01012345678' };

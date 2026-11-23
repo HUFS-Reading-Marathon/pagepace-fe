@@ -20,7 +20,6 @@ import {
   DEFAULT_SORT,
   sortedRoster,
   type RosterFilters,
-  type RosterColumn,
   type RosterSort,
 } from '../../utils/participantRoster';
 import ParticipantTable from '../../components/admin/participants/ParticipantTable';
@@ -138,7 +137,7 @@ function Registry({
       setParams(copy, { replace: true });
     }
   };
-  const changeSort = (column: RosterColumn) => {
+  const changeSort = (column: RosterSort['column']) => {
     setSort((previous) => ({
       column,
       direction:

@@ -13,6 +13,10 @@ type Props = {
 export default function ParticipantFilters({ filters, courses, onChange }: Props) {
   const update = (key: keyof RosterFilters, value: string) =>
     onChange({ ...filters, [key]: value });
+  // 이전 명단의 상세 상태를 저장한 링크로 들어오면 그 조건을 그대로 표시한다.
+  const linkedStatus = Object.entries(ROSTER_STATUSES).find(
+    ([key]) => filters.status === key && key !== 'APPLIED',
+  );
   return (
     <div className="roster-filters" role="search" aria-label="참가자 명단 검색">
       <input
@@ -30,12 +34,13 @@ export default function ParticipantFilters({ filters, courses, onChange }: Props
           onChange={(e) => update('status', e.target.value)}
         >
           <option value="PARTICIPANTS">승인 참가자</option>
+          <option value="APPLIED">승인 대기</option>
           <option value="">전체</option>
-          {Object.entries(ROSTER_STATUSES).map(([key, label]) => (
-            <option key={key} value={key}>
-              {key === 'APPROVED' ? '승인(진행 중)' : label}
+          {linkedStatus && (
+            <option value={linkedStatus[0]}>
+              {linkedStatus[0] === 'APPROVED' ? '참가 중' : linkedStatus[1]}
             </option>
-          ))}
+          )}
         </select>
       </label>
       <label>

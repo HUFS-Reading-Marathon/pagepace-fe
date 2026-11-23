@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type ComponentPropsWithoutRef, type FormEvent } from 'react';
 import { ApiError } from '../../../api/apiClient';
 import { ROSTER_STATUSES, type RosterRow } from '../../../api/adminRosterApi';
 import {
@@ -26,6 +26,30 @@ type Props = {
   onSaved: (message: string) => void;
 };
 
+function EditorTextInput(props: ComponentPropsWithoutRef<'input'> & { value: string }) {
+  const input = useRef<HTMLInputElement>(null);
+  const [clipped, setClipped] = useState(false);
+  useEffect(() => {
+    const current = input.current;
+    if (!current) return;
+    const observer = new ResizeObserver(() => {
+      setClipped(current.scrollWidth > current.clientWidth + 1);
+    });
+    observer.observe(current);
+    return () => observer.disconnect();
+  }, [props.value]);
+  return (
+    <>
+      <input {...props} ref={input} />
+      {clipped && props.value && (
+        <span className="participant-editor__full-value" aria-hidden="true">
+          {props.value}
+        </span>
+      )}
+    </>
+  );
+}
+
 function initialProfile(row?: RosterRow | null): ParticipantProfile {
   return {
     name: row?.name ?? '',
@@ -45,6 +69,7 @@ export default function ParticipantEditor({
   onSaved,
 }: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const title = useRef<HTMLHeadingElement>(null);
   const [lookup, setLookup] = useState<RegistrationLookup | null>(null);
   const [lookingUp, setLookingUp] = useState(false);
   const lookupInput = useRef<HTMLInputElement>(null);
@@ -81,7 +106,8 @@ export default function ParticipantEditor({
     if (!panel) return;
     const trigger = document.activeElement;
     panel.showModal();
-    lookupInput.current?.focus();
+    const initialFocus = lookupInput.current ?? title.current;
+    initialFocus?.focus({ preventScroll: true });
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
@@ -209,7 +235,7 @@ export default function ParticipantEditor({
   return (
     <dialog
       ref={dialog}
-      className="participant-editor"
+      className={participant ? 'participant-editor participant-editor--edit' : 'participant-editor'}
       aria-labelledby="participant-editor-title"
       onCancel={(e) => {
         e.preventDefault();
@@ -229,7 +255,9 @@ export default function ParticipantEditor({
     >
       <form className="participant-editor__form" onSubmit={submit} aria-busy={busy}>
         <header className="participant-editor__header">
-          <h2 id="participant-editor-title">{participant ? '참가자 정보 수정' : '참가자 추가'}</h2>
+          <h2 id="participant-editor-title" ref={title} tabIndex={-1}>
+            {participant ? '참가자 정보 수정' : '참가자 추가'}
+          </h2>
           <button
             type="button"
             className="participant-editor__close"
@@ -306,7 +334,7 @@ export default function ParticipantEditor({
                 <>
                   <label>
                     이름
-                    <input
+                    <EditorTextInput
                       required
                       maxLength={50}
                       value={profile.name}
@@ -316,12 +344,12 @@ export default function ParticipantEditor({
                   {participant && (
                     <label>
                       학번·교번·사번
-                      <input value={participant.studentNo} readOnly />
+                      <EditorTextInput value={participant.studentNo} readOnly />
                     </label>
                   )}
-                  <label>
+                  <label className="participant-editor__email">
                     이메일
-                    <input
+                    <EditorTextInput
                       type="email"
                       required
                       maxLength={100}
@@ -329,9 +357,9 @@ export default function ParticipantEditor({
                       onChange={(e) => setProfile({ ...profile, email: e.target.value })}
                     />
                   </label>
-                  <label>
+                  <label className="participant-editor__phone">
                     연락처
-                    <input
+                    <EditorTextInput
                       type="tel"
                       maxLength={30}
                       value={profile.phone}
@@ -358,7 +386,7 @@ export default function ParticipantEditor({
                   </label>
                   <label>
                     학과·부서
-                    <input
+                    <EditorTextInput
                       maxLength={100}
                       value={profile.department}
                       onChange={(e) => {
@@ -379,7 +407,7 @@ export default function ParticipantEditor({
                 <>
                   <label>
                     단과대학
-                    <input
+                    <EditorTextInput
                       maxLength={100}
                       value={report.college}
                       onChange={(e) => setReport({ ...report, college: e.target.value })}
@@ -387,7 +415,7 @@ export default function ParticipantEditor({
                   </label>
                   <label>
                     학년
-                    <input
+                    <EditorTextInput
                       maxLength={16}
                       value={report.grade}
                       onChange={(e) => setReport({ ...report, grade: e.target.value })}

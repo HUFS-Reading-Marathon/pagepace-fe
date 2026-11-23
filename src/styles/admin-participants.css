@@ -232,43 +232,12 @@
   border-top: 2px solid #687888;
 }
 .roster-table {
-  width: 100%;
-  min-width: 940px;
   table-layout: fixed;
+  max-width: none;
   border-spacing: 0;
   border-collapse: collapse;
   font-size: 14px;
   color: #253749;
-}
-.roster-col-check {
-  width: 3.5%;
-}
-.roster-col-number {
-  width: 5.8%;
-}
-.roster-col-name {
-  width: 10.3%;
-}
-.roster-col-studentNo {
-  width: 11%;
-}
-.roster-col-affiliationType {
-  width: 9.2%;
-}
-.roster-col-department {
-  width: 18.1%;
-}
-.roster-col-courseName {
-  width: 9.5%;
-}
-.roster-col-status {
-  width: 8.5%;
-}
-.roster-col-phone {
-  width: 13.5%;
-}
-.roster-col-registeredAt {
-  width: 10.6%;
 }
 .roster-table :is(th, td) {
   padding: 0 9px;
@@ -277,6 +246,7 @@
   line-height: 1.4;
 }
 .roster-table th {
+  position: relative;
   height: 39px;
   border-bottom: 1px solid #bac6d2;
   background: #edf1f4;
@@ -295,6 +265,30 @@
   color: inherit;
   font: inherit;
   cursor: pointer;
+}
+.roster-resize {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 10px;
+  touch-action: none;
+  cursor: col-resize;
+  user-select: none;
+}
+.roster-resize::after {
+  position: absolute;
+  content: '';
+  top: 27%;
+  bottom: 27%;
+  right: 2px;
+  width: 1px;
+  background: #aebdca;
+}
+.roster-resize:hover::after,
+.roster-resize:focus-visible::after,
+.roster-resize:active::after {
+  inset-block: 0;
+  width: 2px;
+  background: var(--navy-strong);
 }
 .roster-sort:hover {
   text-decoration: underline;
@@ -369,9 +363,14 @@ th[aria-sort='descending'] .sort-mark::after {
   opacity: 0.45;
 }
 .roster-table [data-column='number'] {
-  text-align: right;
-  padding-right: 13px;
+  text-align: left;
+  padding: 0 4px;
   color: #526372;
+}
+.roster-table td[data-column='number'] span {
+  display: inline-block;
+  min-width: 2ch;
+  text-align: right;
 }
 .roster-table [data-column='studentNo'],
 .roster-table [data-column='phone'],
