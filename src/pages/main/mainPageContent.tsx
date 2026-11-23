@@ -63,8 +63,8 @@ export const FALLBACK_HERO_INFO: [string, string][] = [
 ];
 
 export const QUICK_LINKS: QuickLink[] = [
-  { eyebrow: '1단계', title: '코스 선택하기', href: '/courses' },
-  { eyebrow: '2단계', title: '참여방법 확인', href: '/guide/participation' },
+  { eyebrow: '1단계', title: '코스 선택하기', href: '#courses' },
+  { eyebrow: '2단계', title: '참여방법 확인', href: '#process' },
   { eyebrow: '3단계', title: '참가신청 작성', href: '/apply' },
   { eyebrow: '진행 상황', title: '대회 현황 보기', href: '/status' },
 ];
@@ -138,7 +138,7 @@ export const PROCESS_STEPS: ProcessStep[] = [
     no: 4,
     icon: 'finish',
     title: '거리 인정 및 완주',
-    desc: '서평이 확인된 책은 이후 승인되는 독서일지도 한 쪽당 5m씩 누적됩니다.',
+    desc: '독서일지 승인과 서평 확인을 거쳐 거리가 인정되고, 목표 달성 여부를 확인합니다.',
   },
 ];
 
@@ -146,28 +146,28 @@ export const FALLBACK_NOTICES: FallbackNotice[] = [
   {
     badge: '신청',
     title: '제5회 독서마라톤 참가신청 안내',
-    href: '/guide/participation',
+    href: '#process',
     date: '2025.11.24',
     dateTime: '2025-11-24',
   },
   {
     badge: '코스',
     title: '코스별 완주 기준 및 혜택 안내',
-    href: '/courses',
+    href: '#courses',
     date: '2025.11.24',
     dateTime: '2025-11-24',
   },
   {
     badge: '기록',
     title: '독서일지 제출 및 인정 기준 안내',
-    href: '/guide/participation',
+    href: '#process',
     date: '2025.12.08',
     dateTime: '2025-12-08',
   },
   {
     badge: '문의',
     title: '서평 작성 및 문의 채널 안내',
-    href: '/inquiries',
+    href: '#contact',
     date: '2025.12.08',
     dateTime: '2025-12-08',
   },

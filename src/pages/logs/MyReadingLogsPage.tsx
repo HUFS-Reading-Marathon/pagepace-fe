@@ -9,7 +9,7 @@ import {
   type ReadingLogBook,
 } from '../../types/readingLog';
 import { canSubmitReadingLog } from '../../utils/eventSelection';
-import { formatDistance, getProgressRate } from '../../utils/reading';
+import { formatDistance, getProgressPercent } from '../../utils/reading';
 import { formatKoDateKey } from '../../utils/date';
 import './logs.css';
 
@@ -108,7 +108,7 @@ function BookShelf({
           <div className="my-library-book-grid">
             {visibleBooks.map((book) => {
               const totalPages = Math.max(book.totalBookPages, 1);
-              const progress = Math.min(100, getProgressRate(book.approvedPages, totalPages));
+              const progress = Math.min(100, getProgressPercent(book.approvedPages, totalPages));
               const isCompleted =
                 book.approvedPages >= book.totalBookPages && book.totalBookPages > 0;
 

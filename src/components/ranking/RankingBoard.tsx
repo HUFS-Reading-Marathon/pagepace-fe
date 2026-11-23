@@ -2,7 +2,7 @@ import type { Ranking } from '../../api/rankingApi';
 import { METERS_PER_PAGE } from '../../constants/reading';
 import { getRewardTypeLabel } from '../../utils/adminEventForms';
 import { hasFinalResults } from '../../utils/eventSelection';
-import { formatDistance, getCreditedPages, getProgressRate } from '../../utils/reading';
+import { formatDistance, getCreditedPages, getProgressPercent } from '../../utils/reading';
 import '../../styles/ranking.css';
 
 function RankingAvatar({ name }: { name: string }) {
@@ -50,7 +50,7 @@ function RankingBoard({
       </header>
       <div className="ranking-race-list">
         {rankings.map((ranking, index) => {
-          const rate = getProgressRate(ranking.distance, ranking.targetDistance);
+          const rate = getProgressPercent(ranking.distance, ranking.targetDistance);
           const progress = Math.min(rate, 100);
           const completed =
             ranking.targetDistance > 0 && ranking.distance >= ranking.targetDistance;

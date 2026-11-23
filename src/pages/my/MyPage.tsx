@@ -12,7 +12,7 @@ import {
   type ParticipantBook,
   type ReadingLog,
 } from '../../types/readingLog';
-import { formatDistance, getCreditedPages, getProgressRate } from '../../utils/reading';
+import { formatDistance, getCreditedPages, getProgressPercent } from '../../utils/reading';
 import { formatKoDateKey } from '../../utils/date';
 import { canApply, hasFinalResults } from '../../utils/eventSelection';
 import './my.css';
@@ -117,7 +117,7 @@ function MyPage() {
   }
 
   const progressRate = Math.min(
-    getProgressRate(participation.totalDistanceMeter, participation.targetDistanceMeter),
+    getProgressPercent(participation.totalDistanceMeter, participation.targetDistanceMeter),
     100,
   );
   const remainingDistance = Math.max(

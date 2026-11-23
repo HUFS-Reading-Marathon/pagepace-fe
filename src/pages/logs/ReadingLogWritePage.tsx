@@ -21,7 +21,7 @@ import {
 import type { BookSearchResult } from '../../types/book';
 import type { MyParticipation } from '../../types/participation';
 import type { ParticipantBook, ReadingLog, ReviewTargetBook } from '../../types/readingLog';
-import { formatDistance, getProgressRate, getCreditedPages } from '../../utils/reading';
+import { formatDistance, getProgressPercent, getCreditedPages } from '../../utils/reading';
 import { METERS_PER_PAGE } from '../../constants/reading';
 import './logs.css';
 
@@ -187,7 +187,7 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
 
   const progressRate = participation
     ? Math.min(
-        getProgressRate(participation.totalDistanceMeter, participation.targetDistanceMeter),
+        getProgressPercent(participation.totalDistanceMeter, participation.targetDistanceMeter),
         100,
       )
     : 0;
