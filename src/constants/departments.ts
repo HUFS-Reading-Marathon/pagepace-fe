@@ -75,6 +75,11 @@ export const STUDENT_DEPARTMENT_GROUPS: readonly DepartmentGroup[] = [
   },
 ] as const;
 
+export const UNDERGRADUATE_GRADE_OPTIONS = ['1', '2', '3', '4', '5', '6'].map((value) => ({
+  value,
+  label: `${value}학년`,
+}));
+
 export const GENERAL_AFFILIATIONS = [
   '대학원',
   '교원',

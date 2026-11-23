@@ -7,7 +7,7 @@ import {
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { formatKoDateKey } from '../../utils/date';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { findDepartmentGroup } from '../../constants/departments';
+import { findDepartmentGroup, UNDERGRADUATE_GRADE_OPTIONS } from '../../constants/departments';
 import DepartmentSelect from '../../components/forms/DepartmentSelect';
 import {
   confirmApplicationEmailVerification,
@@ -434,7 +434,8 @@ function ApplyPage() {
         phone: phone.trim(),
         affiliationType: applicationAffiliation,
         department: department.trim(),
-        college: findDepartmentGroup(department)?.label,
+        college:
+          affiliation === 'undergraduate' ? findDepartmentGroup(department)?.label : undefined,
         grade: affiliation === 'undergraduate' && grade ? grade : undefined,
         gender: gender || undefined,
       });
@@ -730,9 +731,9 @@ function ApplyPage() {
                       학년 (선택)
                       <select value={grade} onChange={(e) => setGrade(e.target.value)}>
                         <option value="">선택하지 않음</option>
-                        {['1', '2', '3', '4', '5', '6'].map((g) => (
-                          <option key={g} value={g}>
-                            {g}학년
+                        {UNDERGRADUATE_GRADE_OPTIONS.map(({ value, label }) => (
+                          <option key={value} value={value}>
+                            {label}
                           </option>
                         ))}
                       </select>

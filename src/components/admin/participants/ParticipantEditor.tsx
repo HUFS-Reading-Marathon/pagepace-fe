@@ -14,7 +14,13 @@ import {
   type AdminApplicationAffiliationType,
 } from '../../../types/adminApplication';
 import type { AdminCourse } from '../../../types/adminEvent';
-import { findDepartmentGroup } from '../../../constants/departments';
+import {
+  STUDENT_DEPARTMENT_GROUPS,
+  UNDERGRADUATE_GRADE_OPTIONS,
+  findDepartmentGroup,
+} from '../../../constants/departments';
+import { getDepartmentGroups } from '../../forms/departmentSelectOptions';
+import EditorChoiceField from './EditorChoiceField';
 import './participant-editor.css';
 
 type Props = {
@@ -60,6 +66,33 @@ function initialProfile(row?: RosterRow | null): ParticipantProfile {
   };
 }
 
+type ReportSource = Pick<
+  RosterRow,
+  'affiliationType' | 'department' | 'college' | 'grade' | 'gender'
+>;
+
+function initialReport(person?: ReportSource | null) {
+  const undergraduate = person?.affiliationType === 'UNDERGRADUATE';
+  return {
+    college: undergraduate
+      ? person.college?.trim() || findDepartmentGroup(person.department ?? '')?.label || ''
+      : '',
+    grade: undergraduate ? (person.grade ?? '').replace(/^([1-6])\s*학년$/, '$1') : '',
+    gender: person?.gender ?? '',
+  };
+}
+
+const allDepartments = getDepartmentGroups(true).flatMap((group) => group.departments);
+const collegeNames = STUDENT_DEPARTMENT_GROUPS.map((group) => group.label);
+const asOptions = (values: readonly string[]) => values.map((value) => ({ value, label: value }));
+
+function withCurrent(options: readonly { value: string; label: string }[], current: string) {
+  if (current && !options.some((option) => option.value === current)) {
+    return [{ value: current, label: current }, ...options];
+  }
+  return options;
+}
+
 export default function ParticipantEditor({
   eventId,
   courses,
@@ -79,17 +112,18 @@ export default function ParticipantEditor({
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [courseId, setCourseId] = useState(participant?.courseId ?? 0);
-  const [report, setReport] = useState({
-    college: participant?.college ?? '',
-    grade: participant?.grade ?? '',
-    gender: participant?.gender ?? '',
-  });
+  const [report, setReport] = useState(() => initialReport(participant));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const existing = lookup?.state === 'EXISTING' ? lookup.user : null;
   const canRegister = !!participant || lookup?.state === 'NEW' || !!existing;
   const status = lookup?.participationStatus ?? lookup?.applicationStatus;
   const reportAvailable = !existing || !!existing.email?.trim();
+  const undergraduate = (existing?.affiliationType ?? profile.affiliationType) === 'UNDERGRADUATE';
+  const selectedGroup = STUDENT_DEPARTMENT_GROUPS.find((group) => group.label === report.college);
+  const departmentNames = undergraduate ? (selectedGroup?.departments ?? []) : allDepartments;
+  const existingDepartmentCollege =
+    existing && findDepartmentGroup(existing.department ?? '')?.label;
   const currentCourse = courses.find((c) => c.courseId === participant?.courseId);
   const courseOptions = courses.filter((course) => {
     if (course.courseId === participant?.courseId) return true;
@@ -125,7 +159,7 @@ export default function ParticipantEditor({
     setLookup(null);
     setProfile(initialProfile());
     setCourseId(0);
-    setReport({ college: '', grade: '', gender: '' });
+    setReport(initialReport());
     setPassword('');
     setShowPassword(false);
     setError('');
@@ -144,12 +178,12 @@ export default function ParticipantEditor({
       setStudentNo(result.studentNo);
       setLookup(result);
       if (result.state === 'EXISTING' && result.user.email?.trim()) {
-        setReport({
-          college:
-            result.user.college ?? findDepartmentGroup(result.user.department ?? '')?.label ?? '',
-          grade: result.user.grade ?? '',
-          gender: result.user.gender ?? '',
-        });
+        const latest = initialReport(result.user);
+        if (result.user.affiliationType === 'UNDERGRADUATE') {
+          latest.college =
+            findDepartmentGroup(result.user.department ?? '')?.label ?? latest.college;
+        }
+        setReport(latest);
       }
     } catch (err) {
       if (!request.signal.aborted)
@@ -159,9 +193,37 @@ export default function ParticipantEditor({
     }
   }
 
+  function changeAffiliation(affiliationType: AdminApplicationAffiliationType) {
+    if (affiliationType === profile.affiliationType) return;
+    const group = findDepartmentGroup(profile.department);
+    const toUndergraduate = affiliationType === 'UNDERGRADUATE';
+    setProfile({
+      ...profile,
+      affiliationType,
+      department: toUndergraduate && !group ? '' : profile.department,
+    });
+    setReport({ ...report, college: toUndergraduate ? (group?.label ?? '') : '', grade: '' });
+  }
+
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (busy || !courseId || !canRegister) return;
+    if (busy || !canRegister) return;
+    if (!courseId) {
+      setError('참가 코스를 선택해 주세요.');
+      return;
+    }
+    if (
+      undergraduate &&
+      !existing &&
+      report.college &&
+      !profile.department &&
+      (!participant ||
+        initialReport(participant).college !== report.college ||
+        participant.department)
+    ) {
+      setError('선택한 단과대학의 학과·학부를 선택해 주세요.');
+      return;
+    }
     if (
       !participant &&
       !existing &&
@@ -180,6 +242,11 @@ export default function ParticipantEditor({
         phone: profile.phone.trim(),
         department: profile.department.trim(),
       };
+      const reportFields = {
+        college: undergraduate ? report.college : '',
+        grade: undergraduate ? report.grade : '',
+        gender: report.gender,
+      };
       if (participant) {
         const id = participant.participationId ?? participant.applicationId;
         if (!id) throw new Error('수정할 참가자를 찾을 수 없습니다.');
@@ -189,8 +256,7 @@ export default function ParticipantEditor({
           {
             ...personal,
             courseId,
-            ...report,
-            college: report.college.trim(),
+            ...reportFields,
           },
         );
       } else if (existing) {
@@ -198,16 +264,15 @@ export default function ParticipantEditor({
           eventId,
           courseId,
           userId: existing.userId,
-          college: report.college.trim() || undefined,
-          grade: report.grade.trim() || undefined,
-          gender: report.gender || undefined,
+          college: reportFields.college || undefined,
+          grade: reportFields.grade || undefined,
+          gender: reportFields.gender || undefined,
         });
       } else if (lookup?.state === 'NEW') {
         await addRosterParticipant({
           eventId,
           courseId,
-          ...report,
-          college: report.college.trim(),
+          ...reportFields,
           newUser: { ...personal, studentNo: lookup.studentNo, initialPassword: password },
         });
       }
@@ -235,7 +300,9 @@ export default function ParticipantEditor({
   return (
     <dialog
       ref={dialog}
-      className={participant ? 'participant-editor participant-editor--edit' : 'participant-editor'}
+      className={
+        canRegister ? 'participant-editor' : 'participant-editor participant-editor--lookup'
+      }
       aria-labelledby="participant-editor-title"
       onCancel={(e) => {
         e.preventDefault();
@@ -366,98 +433,88 @@ export default function ParticipantEditor({
                       onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
                     />
                   </label>
-                  <label>
-                    신분
-                    <select
-                      value={profile.affiliationType}
-                      onChange={(e) =>
-                        setProfile({
-                          ...profile,
-                          affiliationType: e.target.value as AdminApplicationAffiliationType,
-                        })
-                      }
-                    >
-                      {ADMIN_APPLICATION_AFFILIATION_OPTIONS.map(({ value, label }) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    학과·부서
-                    <EditorTextInput
-                      maxLength={100}
-                      value={profile.department}
-                      onChange={(e) => {
-                        const department = e.target.value;
-                        const previousGroup = findDepartmentGroup(profile.department)?.label;
-                        setProfile({ ...profile, department });
-                        if (!report.college || report.college === previousGroup)
-                          setReport({
-                            ...report,
-                            college: findDepartmentGroup(department)?.label ?? '',
-                          });
-                      }}
-                    />
-                  </label>
+                  <EditorChoiceField
+                    label="신분"
+                    value={profile.affiliationType}
+                    options={ADMIN_APPLICATION_AFFILIATION_OPTIONS}
+                    onChange={(value) =>
+                      changeAffiliation(value as AdminApplicationAffiliationType)
+                    }
+                  />
                 </>
+              )}
+              {reportAvailable && undergraduate && (
+                <EditorChoiceField
+                  label="단과대학"
+                  value={report.college}
+                  placeholder="단과대학 선택"
+                  options={withCurrent(asOptions(collegeNames), report.college)}
+                  disabled={!!existingDepartmentCollege}
+                  onChange={(college) => {
+                    if (college === report.college) return;
+                    setReport({ ...report, college });
+                    if (!existing) setProfile({ ...profile, department: '' });
+                  }}
+                />
+              )}
+              {!existing && (
+                <EditorChoiceField
+                  label={undergraduate ? '학과·학부' : '학과·부서'}
+                  value={profile.department}
+                  placeholder={
+                    undergraduate && !report.college ? '단과대학 먼저 선택' : '소속 선택'
+                  }
+                  options={withCurrent(asOptions(departmentNames), profile.department)}
+                  disabled={undergraduate && !report.college && !profile.department}
+                  searchable
+                  onChange={(department) => setProfile({ ...profile, department })}
+                />
+              )}
+              {reportAvailable && undergraduate && (
+                <EditorChoiceField
+                  label="학년"
+                  value={report.grade}
+                  options={[
+                    { value: '', label: '미입력' },
+                    ...withCurrent(UNDERGRADUATE_GRADE_OPTIONS, report.grade),
+                  ]}
+                  onChange={(grade) => setReport({ ...report, grade })}
+                />
               )}
               {reportAvailable && (
-                <>
-                  <label>
-                    단과대학
-                    <EditorTextInput
-                      maxLength={100}
-                      value={report.college}
-                      onChange={(e) => setReport({ ...report, college: e.target.value })}
-                    />
-                  </label>
-                  <label>
-                    학년
-                    <EditorTextInput
-                      maxLength={16}
-                      value={report.grade}
-                      onChange={(e) => setReport({ ...report, grade: e.target.value })}
-                    />
-                  </label>
-                  <label>
-                    성별
-                    <select
-                      value={report.gender}
-                      onChange={(e) => setReport({ ...report, gender: e.target.value })}
-                    >
-                      <option value="">미입력</option>
-                      {report.gender && !['여', '남'].includes(report.gender) && (
-                        <option>{report.gender}</option>
-                      )}
-                      <option>여</option>
-                      <option>남</option>
-                    </select>
-                  </label>
-                </>
+                <EditorChoiceField
+                  label="성별"
+                  value={report.gender}
+                  options={[
+                    { value: '', label: '미입력' },
+                    ...withCurrent(asOptions(['여', '남']), report.gender),
+                  ]}
+                  onChange={(gender) => setReport({ ...report, gender })}
+                />
               )}
-              <label className={existing ? 'participant-editor__wide' : undefined}>
-                참가 코스
-                <select
-                  required
-                  disabled={!!participant && !courseChangesAllowed}
-                  value={courseId || ''}
-                  onChange={(e) => setCourseId(Number(e.target.value))}
-                >
-                  <option value="">코스 선택</option>
-                  {participant?.courseId && !currentCourse && (
-                    <option value={participant.courseId}>
-                      {participant.courseName || '현재 코스'}
-                    </option>
-                  )}
-                  {courseOptions.map((c) => (
-                    <option key={c.courseId} value={c.courseId}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <EditorChoiceField
+                label="참가 코스"
+                required
+                value={courseId ? String(courseId) : ''}
+                placeholder="코스 선택"
+                disabled={
+                  !!participant &&
+                  (!courseChangesAllowed ||
+                    courseOptions.every((c) => c.courseId === participant.courseId))
+                }
+                options={[
+                  ...(participant?.courseId && !currentCourse
+                    ? [
+                        {
+                          value: String(participant.courseId),
+                          label: participant.courseName || '현재 코스',
+                        },
+                      ]
+                    : []),
+                  ...courseOptions.map((c) => ({ value: String(c.courseId), label: c.name })),
+                ]}
+                onChange={(value) => setCourseId(Number(value))}
+              />
               {!participant && !existing && (
                 <div className="participant-editor__wide participant-editor__password">
                   <label htmlFor="roster-initial-password">초기 비밀번호</label>

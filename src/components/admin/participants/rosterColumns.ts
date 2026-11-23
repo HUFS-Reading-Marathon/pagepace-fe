@@ -1,18 +1,20 @@
 import type { RosterColumn } from '../../../utils/participantRoster';
 
 export const CHECK_WIDTH = 28;
-const BASE_WIDTHS = {
-  number: 44,
-  name: 92,
-  studentNo: 104,
-  affiliationType: 92,
-  department: 156,
-  courseName: 90,
-  status: 76,
-  phone: 128,
-  registeredAt: 108,
-};
 export type ColumnWidths = Record<RosterColumn, number>;
+
+// Columns expand only within these default ranges; manual resizing is independent.
+const DEFAULT_RANGES: Record<RosterColumn, readonly [number, number]> = {
+  number: [44, 44],
+  name: [84, 96],
+  studentNo: [96, 124],
+  affiliationType: [88, 104],
+  department: [128, 164],
+  courseName: [76, 108],
+  status: [62, 84],
+  phone: [124, 156],
+  registeredAt: [96, 132],
+};
 export const MIN_WIDTH: ColumnWidths = {
   number: 44,
   name: 58,
@@ -25,21 +27,24 @@ export const MIN_WIDTH: ColumnWidths = {
   registeredAt: 68,
 };
 export const MAX_WIDTH = 3200;
-const baseTotal =
-  CHECK_WIDTH + Object.values(BASE_WIDTHS).reduce((total, width) => total + width, 0);
+const columns = Object.keys(DEFAULT_RANGES) as RosterColumn[];
+const compactTotal = CHECK_WIDTH + columns.reduce((sum, key) => sum + DEFAULT_RANGES[key][0], 0);
+const growthTotal = columns.reduce(
+  (sum, key) => sum + DEFAULT_RANGES[key][1] - DEFAULT_RANGES[key][0],
+  0,
+);
 
 export function defaultColumnWidths(viewportWidth: number): ColumnWidths {
-  const extra = Math.max(0, Math.floor(viewportWidth) - baseTotal);
-  const name = Math.floor(extra * 0.23);
-  const studentNo = Math.floor(extra * 0.16);
-  const course = Math.floor(extra * 0.17);
-  return {
-    ...BASE_WIDTHS,
-    name: BASE_WIDTHS.name + name,
-    studentNo: BASE_WIDTHS.studentNo + studentNo,
-    courseName: BASE_WIDTHS.courseName + course,
-    department: BASE_WIDTHS.department + extra - name - studentNo - course,
-  };
+  const ratio = Math.max(0, Math.min(1, (Math.floor(viewportWidth) - compactTotal) / growthTotal));
+  const widths = {} as ColumnWidths;
+  let capacity = 0;
+  for (const key of columns) {
+    const [compact, roomy] = DEFAULT_RANGES[key];
+    const used = Math.round(capacity * ratio);
+    capacity += roomy - compact;
+    widths[key] = compact + Math.round(capacity * ratio) - used;
+  }
+  return widths;
 }
 
 const segmenter =
