@@ -1,0 +1,188 @@
+.log-review {
+  min-width: 0;
+  padding: 14px 20px 16px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.log-review :is(h3, p, ul, dl, dd) {
+  margin: 0;
+}
+.log-review__meta,
+.log-review__meta div,
+.log-review__history div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+.log-review__meta {
+  gap: 3px 20px;
+  padding-bottom: 10px;
+  color: var(--body);
+  font-size: 13px;
+}
+.log-review__meta div,
+.log-review__history div {
+  gap: 3px 7px;
+}
+.log-review dt {
+  color: var(--body);
+  font-weight: 600;
+}
+.log-review__meta time,
+.log-review__history time,
+.log-review__pages {
+  font-variant-numeric: tabular-nums;
+}
+.log-review__books {
+  padding: 0;
+  list-style: none;
+}
+.log-review__book {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: start;
+  gap: 4px 20px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line-soft);
+}
+.log-review__book h3 {
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+.log-review .log-review__publication {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px 12px;
+  margin-top: 3px;
+  color: var(--body);
+  font-size: 13px;
+}
+.log-review__pages {
+  color: var(--body);
+  font-size: 13px;
+}
+.log-review__pages strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+.log-review__pages span {
+  display: block;
+}
+.log-review__catalog {
+  justify-self: end;
+  padding-block: 2px;
+  color: var(--navy-strong);
+  font-size: 13px;
+  font-weight: 550;
+  white-space: nowrap;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.log-review__warning {
+  grid-column: 1 / -1;
+  padding: 4px 8px;
+  border-inline-start: 2px solid #b27a35;
+  color: #795321;
+  font-size: 13px;
+}
+.log-review__note,
+.log-review__history {
+  padding: 10px 0;
+  border-top: 1px solid var(--line-soft);
+}
+.log-review__note > strong,
+.log-review__history dt,
+.log-review__reject label {
+  font-size: 13px;
+  font-weight: 600;
+}
+.log-review__note p,
+.log-review__history dd {
+  white-space: pre-wrap;
+}
+.log-review__history div + div {
+  margin-top: 4px;
+}
+.log-review__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.log-review > .log-review__actions,
+.log-review__reject {
+  padding-top: 10px;
+  border-top: 1px solid var(--line-soft);
+}
+.log-review__actions button {
+  min-width: 62px;
+  min-height: 34px;
+  padding: 5px 12px;
+}
+.log-review__reject {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+.log-review__reject-labels {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.log-review__reject select,
+.log-review__reject textarea {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background-color: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+}
+.log-review__reject select {
+  width: min(180px, 67%);
+  min-height: 32px;
+  padding-inline-end: 22px;
+}
+.log-review__reject textarea {
+  width: 100%;
+  min-height: 72px;
+  resize: vertical;
+}
+.log-review :is(a, select, textarea):focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 1px;
+}
+.log-review .log-review__error {
+  margin-block: 4px;
+  color: #9f3030;
+  font-size: 13px;
+}
+@media (max-width: 720px) {
+  .log-review {
+    padding-inline: 12px;
+  }
+  .log-review__book {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 5px 12px;
+  }
+  .log-review__book-info {
+    grid-column: 1 / -1;
+  }
+  .log-review__pages span {
+    display: inline-block;
+    margin-inline-start: 8px;
+  }
+  .log-review__catalog {
+    align-self: end;
+    min-height: 26px;
+  }
+}

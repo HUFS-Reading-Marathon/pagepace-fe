@@ -36,6 +36,7 @@ export type AdminReadingLogResponse = {
   totalReadPages: number;
   convertedDistanceMeter: number;
   status: AdminReadingLogStatus;
+  memo?: string | null;
   adminComment: string | null;
   reviewedAt: string | null;
   createdAt: string;
@@ -51,4 +52,5 @@ export type AdminReadingLogListParams = {
 
 export type RejectAdminReadingLogRequest = {
   reason: string;
+  expectedUpdatedAt: string;
 };

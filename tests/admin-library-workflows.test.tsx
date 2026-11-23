@@ -1,9 +1,16 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { apiRequest } from '../src/api/apiClient';
+import { approveAdminReadingLog, rejectAdminReadingLog } from '../src/api/adminReadingLogApi';
 import NoticeBody from '../src/components/notices/NoticeBody';
 import ReadingLogReviewPanel from '../src/components/admin/readingLogs/ReadingLogReviewPanel';
 import type { AdminReadingLogResponse } from '../src/types/adminReadingLogApi';
+
+vi.mock('../src/api/apiClient', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../src/api/apiClient')>()),
+  apiRequest: vi.fn(),
+}));
 
 const log: AdminReadingLogResponse = {
   readingLogId: 1,
@@ -70,6 +77,32 @@ describe('사서의 일지 처리와 공지 서식', () => {
       books: log.books.map((book) => ({ ...book, libraryBookId: null })),
     });
     expect(html).toContain('https://lib.hufs.ac.kr/global/search/i-discovery?ALL=');
+  });
+  it('일지에 기록된 메모와 해당 도서의 쪽수 초과를 검토할 수 있다', () => {
+    const books = log.books.map((book) => ({
+      ...book,
+      pageExceeded: true,
+      warningMessage: '전체 쪽수 초과',
+    }));
+    const html = renderLog({ ...log, books, memo: '첫째 줄\n둘째 줄' });
+    expect(html).toContain('첫째 줄\n둘째 줄');
+    expect(html).toContain('전체 쪽수 초과');
+    expect(html).toMatch(/<button[^>]*disabled[^>]*>승인<\/button>/);
+    expect(renderLog({ ...log, books, status: 'APPROVED' })).not.toContain('전체 쪽수 초과');
+  });
+  it('승인과 반려에 실제 검토한 버전의 마이크로초를 보존해 보낸다', async () => {
+    const expectedUpdatedAt = '2026-11-23T16:20:04.758643';
+    await approveAdminReadingLog(7, expectedUpdatedAt);
+    await rejectAdminReadingLog(7, { reason: ' 사유 ', expectedUpdatedAt });
+    for (const [action, body] of [
+      ['approve', { expectedUpdatedAt }],
+      ['reject', { reason: '사유', expectedUpdatedAt }],
+    ] as const) {
+      expect(apiRequest).toHaveBeenCalledWith(
+        '/api/admin/reading-logs/7/' + action,
+        expect.objectContaining({ method: 'PATCH', body: JSON.stringify(body) }),
+      );
+    }
   });
   it('공지 서식은 줄바꿈을 유지하고 작성한 문자열을 그대로 표시한다', () => {
     const html = renderToStaticMarkup(

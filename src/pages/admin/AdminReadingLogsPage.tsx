@@ -7,79 +7,110 @@ import {
   getAdminReadingLogs,
   rejectAdminReadingLog,
 } from '../../api/adminReadingLogApi';
-import { getApiErrorMessage } from '../../api/apiClient';
+import { ApiError, getApiErrorMessage } from '../../api/apiClient';
 import ReadingLogReviewPanel from '../../components/admin/readingLogs/ReadingLogReviewPanel';
 import { selectEvent } from '../../utils/eventSelection';
 import { resolveAdminQueueEvent } from '../../utils/adminEvent';
-import { formatKoDateKey } from '../../utils/date';
+import ReadingLogQueueList from '../../components/admin/readingLogs/ReadingLogQueueList';
 import type { AdminEvent } from '../../types/adminEvent';
 import type { AdminReadingLogResponse } from '../../types/adminReadingLogApi';
 import '../../styles/admin-reading-logs.css';
 
-const STATUS = { SUBMITTED: '검토 대기', APPROVED: '승인', REJECTED: '반려', ALL: '전체' } as const;
-type Filter = keyof typeof STATUS;
+type Filter = AdminReadingLogResponse['status'] | 'ALL';
+type Search = { query: string; date: string; order: string };
+type QueueRequest = {
+  status: Filter;
+  linkedId?: string | null;
+  focus?: { candidates: number[]; search: Search };
+};
 const PAGE_SIZE = 25;
+const initialSearch: Search = { query: '', date: '', order: 'oldest' };
+
+function visibleLogs(logs: AdminReadingLogResponse[], { query, date, order }: Search) {
+  const keyword = query.trim().toLocaleLowerCase();
+  return logs
+    .filter(
+      (log) =>
+        (!date || log.readingDate === date) &&
+        (!keyword ||
+          [
+            log.userName,
+            log.studentNo,
+            log.courseName,
+            ...log.books.flatMap((book) => [
+              book.bookTitle,
+              book.author,
+              book.publisher,
+              book.isbn,
+            ]),
+          ].some((value) => value?.toLocaleLowerCase().includes(keyword))),
+    )
+    .sort(
+      (a, b) =>
+        (order === 'oldest' ? 1 : -1) *
+        (a.createdAt.localeCompare(b.createdAt) || a.readingLogId - b.readingLogId),
+    );
+}
 
 function ReadingQueue({ event, linkedId }: { event: AdminEvent; linkedId: string | null }) {
-  const [filter, setFilter] = useState<Filter>('SUBMITTED');
+  const [request, setRequest] = useState<QueueRequest>(() => ({ status: 'SUBMITTED', linkedId }));
+  const [linkedStatus, setLinkedStatus] = useState<Filter>('SUBMITTED');
+  const filter = request.linkedId != null ? linkedStatus : request.status;
   const [selected, setSelected] = useState<number | null>(null);
   const [logs, setLogs] = useState<AdminReadingLogResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [feedback, setFeedback] = useState('');
+  const [actionError, setActionError] = useState('');
   const [processing, setProcessing] = useState(false);
-  const [query, setQuery] = useState('');
-  const [date, setDate] = useState('');
-  const [order, setOrder] = useState('oldest');
+  const [search, setSearch] = useState(initialSearch);
   const [page, setPage] = useState(0);
-  const [version, setVersion] = useState(0);
-  const linkToOpen = useRef(linkedId);
+  const focusAfterLoad = useRef<string | null>(null);
   const mutationLock = useRef(false);
   const frozen = ['FINALIZED', 'ARCHIVED'].includes(event.status);
   useEffect(() => {
     let active = true;
-    const load = async () => {
-      const initialLink = linkToOpen.current;
-      let target: AdminReadingLogResponse | undefined;
-      let scope = filter;
-      if (initialLink !== null) {
-        const id = Number(initialLink);
+    async function load() {
+      let status = request.status;
+      let focus = request.focus;
+      if (request.linkedId != null) {
+        const id = Number(request.linkedId);
         if (!Number.isSafeInteger(id) || id <= 0)
           throw new Error('이 행사의 독서일지를 찾을 수 없습니다.');
-        target = await getAdminReadingLogDetail(id);
+        const target = await getAdminReadingLogDetail(id);
         if (target.eventId !== event.eventId)
           throw new Error('이 행사의 독서일지를 찾을 수 없습니다.');
-        scope = target.status;
+        status = target.status;
+        focus = { candidates: [id], search: initialSearch };
       }
-      const rows = await getAdminReadingLogs({
+      const fresh = await getAdminReadingLogs({
         eventId: event.eventId,
-        status: scope === 'ALL' ? undefined : scope,
+        status: status === 'ALL' ? undefined : status,
       });
       if (!active) return;
-      setLogs(rows);
-      if (target) {
-        if (!rows.some((row) => row.readingLogId === target.readingLogId))
-          throw new Error('일지 상태가 달라졌습니다. 목록에서 다시 선택해 주세요.');
-        setSelected(target.readingLogId);
-        const sorted = [...rows].sort(
-          (a, b) => a.createdAt.localeCompare(b.createdAt) || a.readingLogId - b.readingLogId,
-        );
-        setPage(
-          Math.floor(
-            sorted.findIndex((row) => row.readingLogId === target.readingLogId) / PAGE_SIZE,
-          ),
-        );
-        linkToOpen.current = null;
-        setFilter(scope);
+      setLogs(fresh);
+      if (request.linkedId != null) setLinkedStatus(status);
+      if (focus) {
+        const visible = visibleLogs(fresh, focus.search);
+        const positions = new Map(visible.map((row, index) => [row.readingLogId, index]));
+        const id = focus.candidates.find((candidate) => positions.has(candidate));
+        if (request.linkedId != null && !id)
+          throw new Error('일지 상태가 바뀌었습니다. 다시 조회해 주세요.');
+        setSelected(id ?? null);
+        if (id != null) {
+          setPage(Math.floor(positions.get(id)! / PAGE_SIZE));
+          focusAfterLoad.current = 'log-review-row-' + id;
+        } else {
+          focusAfterLoad.current = 'log-review-count';
+        }
       }
       setError('');
-    };
+    }
     load()
       .catch((e) => {
-        if (active) {
-          setError(e instanceof Error ? e.message : '독서일지를 불러오지 못했습니다.');
-          setLogs([]);
-        }
+        if (!active) return;
+        setError(e instanceof Error ? e.message : '독서일지를 불러오지 못했습니다.');
+        setLogs([]);
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -87,58 +118,84 @@ function ReadingQueue({ event, linkedId }: { event: AdminEvent; linkedId: string
     return () => {
       active = false;
     };
-  }, [event.eventId, filter, version]);
-  const rows = useMemo(() => {
-    const keyword = query.trim().toLowerCase();
-    return logs
-      .filter(
-        (log) =>
-          (!date || log.readingDate === date) &&
-          (!keyword ||
-            [
-              log.userName,
-              log.studentNo,
-              log.courseName,
-              ...log.books.flatMap((book) => [book.bookTitle, book.author, book.publisher]),
-            ].some((value) => value?.toLowerCase().includes(keyword))),
-      )
-      .sort(
-        (a, b) =>
-          (order === 'oldest' ? 1 : -1) *
-          (a.createdAt.localeCompare(b.createdAt) || a.readingLogId - b.readingLogId),
-      );
-  }, [logs, query, date, order]);
-  const pages = Math.ceil(rows.length / PAGE_SIZE);
-  const currentPage = Math.min(page, Math.max(0, pages - 1));
-  function changeFilter(next: Filter) {
-    if (next === filter && !error) return;
-    linkToOpen.current = null;
-    setSelected(null);
+  }, [event.eventId, request]);
+
+  useEffect(() => {
+    if (loading || !focusAfterLoad.current) return;
+    const target = document.getElementById(focusAfterLoad.current);
+    focusAfterLoad.current = null;
+    target?.focus({ preventScroll: true });
+    target?.scrollIntoView({ block: 'nearest' });
+  }, [logs, loading]);
+
+  const rows = useMemo(() => visibleLogs(logs, search), [logs, search]);
+  const currentPage = Math.min(page, Math.max(0, Math.ceil(rows.length / PAGE_SIZE) - 1));
+  function select(id: number | null) {
+    setSelected(id);
+    setActionError('');
+  }
+  function updateSearch(patch: Partial<Search>) {
+    setSearch((current) => ({ ...current, ...patch }));
     setPage(0);
-    setError('');
+    select(null);
     setFeedback('');
+  }
+  function reload(next: QueueRequest) {
+    setError('');
     setLoading(true);
-    if (next === filter) setVersion((v) => v + 1);
-    setFilter(next);
+    setRequest(next);
+  }
+  function changeFilter(status: Filter) {
+    if (status === filter && !error) return;
+    select(null);
+    setFeedback('');
+    setPage(0);
+    setLogs([]);
+    reload({ status });
   }
   async function review(log: AdminReadingLogResponse, reason?: string) {
-    if (mutationLock.current || frozen || log.status !== 'SUBMITTED') return false;
+    if (mutationLock.current || loading || frozen || log.status !== 'SUBMITTED') return false;
     mutationLock.current = true;
     setProcessing(true);
-    setError('');
+    setActionError('');
     setFeedback('');
     try {
-      if (reason === undefined) await approveAdminReadingLog(log.readingLogId);
-      else await rejectAdminReadingLog(log.readingLogId, { reason });
+      if (reason === undefined) await approveAdminReadingLog(log.readingLogId, log.updatedAt);
+      else
+        await rejectAdminReadingLog(log.readingLogId, { reason, expectedUpdatedAt: log.updatedAt });
       setFeedback(
         log.userName + ' 님의 일지를 ' + (reason === undefined ? '승인' : '반려') + '했습니다.',
       );
-      setSelected(null);
-      setLoading(true);
-      setVersion((v) => v + 1);
+      const index = rows.findIndex((row) => row.readingLogId === log.readingLogId);
+      // 대기열에서는 보던 순서로 이어가고, 전체 조회에서는 방금 처리한 결과를 보여 준다.
+      const candidates =
+        filter === 'SUBMITTED'
+          ? [...rows.slice(index + 1), ...rows.slice(0, index).reverse()].map(
+              (row) => row.readingLogId,
+            )
+          : [log.readingLogId];
+      reload({ status: filter, focus: { candidates, search } });
       return true;
     } catch (e) {
-      setError(getApiErrorMessage(e, '일지를 처리하지 못했습니다.'));
+      if (
+        e instanceof ApiError &&
+        [
+          'READING_LOG_CHANGED',
+          'READING_LOG_ALREADY_APPROVED',
+          'READING_LOG_ALREADY_REJECTED',
+          'BOOK_TOTAL_PAGES_EXCEEDED',
+        ].includes(e.code ?? '')
+      ) {
+        setFeedback(
+          e.code === 'BOOK_TOTAL_PAGES_EXCEEDED'
+            ? '같은 책의 승인 쪽수가 달라졌습니다. 최신 내용을 확인해 주세요.'
+            : '일지 내용 또는 처리 상태가 바뀌었습니다. 최신 내용을 확인해 주세요.',
+        );
+        select(null);
+        reload({ status: filter, focus: { candidates: [log.readingLogId], search } });
+      } else {
+        setActionError(getApiErrorMessage(e, '일지를 처리하지 못했습니다.'));
+      }
       return false;
     } finally {
       mutationLock.current = false;
@@ -146,142 +203,41 @@ function ReadingQueue({ event, linkedId }: { event: AdminEvent; linkedId: string
     }
   }
   return (
-    <section className="admin-queue admin-ledger" aria-label="독서일지 목록">
-      <div className="admin-queue__head">
-        <h2>독서일지</h2>
-        <div className="admin-segmented" aria-label="일지 상태">
-          {(Object.keys(STATUS) as Filter[]).map((key) => (
-            <button
-              type="button"
-              key={key}
-              aria-pressed={filter === key}
-              disabled={processing}
-              onClick={() => changeFilter(key)}
-            >
-              {STATUS[key]}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="admin-queue__tools admin-ledger__tools">
-        <input
-          type="search"
-          aria-label="독서일지 검색"
-          placeholder="참가자, 학번, 책 제목, 저자, 출판사"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setPage(0);
-          }}
+    <ReadingLogQueueList
+      rows={rows.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE)}
+      total={rows.length}
+      page={currentPage}
+      pageSize={PAGE_SIZE}
+      filter={filter}
+      {...search}
+      selected={selected}
+      loading={loading && !logs.length}
+      processing={processing || loading}
+      error={error}
+      feedback={feedback}
+      onFilter={changeFilter}
+      onQuery={(query) => updateSearch({ query })}
+      onDate={(date) => updateSearch({ date })}
+      onOrder={(order) => updateSearch({ order })}
+      onPage={(value) => {
+        setPage(value);
+        select(null);
+        setFeedback('');
+      }}
+      onSelect={select}
+      onRetry={() => reload({ ...request })}
+      renderDetail={(log) => (
+        <ReadingLogReviewPanel
+          key={log.readingLogId + '-' + log.updatedAt}
+          log={log}
+          disabled={processing || loading}
+          readOnly={frozen}
+          actionError={actionError}
+          onApprove={() => review(log)}
+          onReject={(reason) => review(log, reason)}
         />
-        <input
-          type="date"
-          aria-label="독서 날짜"
-          value={date}
-          onChange={(e) => {
-            setDate(e.target.value);
-            setPage(0);
-          }}
-        />
-        <select
-          aria-label="정렬"
-          value={order}
-          onChange={(e) => {
-            setOrder(e.target.value);
-            setPage(0);
-          }}
-        >
-          <option value="oldest">제출 오래된 순</option>
-          <option value="newest">최근 제출 순</option>
-        </select>
-      </div>
-      {error && (
-        <p role="alert" className="admin-feedback admin-feedback--error">
-          {error}
-        </p>
       )}
-      {feedback && (
-        <p role="status" className="admin-feedback">
-          {feedback}
-        </p>
-      )}
-      {loading ? (
-        <p role="status" className="admin-queue__message">
-          일지를 불러오는 중입니다.
-        </p>
-      ) : (
-        <>
-          {!rows.length && !error && (
-            <p className="admin-queue__message">
-              {query || date
-                ? '조건에 맞는 일지가 없습니다.'
-                : filter === 'SUBMITTED'
-                  ? '검토 대기 중인 일지가 없습니다.'
-                  : '해당 상태의 일지가 없습니다.'}
-            </p>
-          )}
-          <ul className="admin-ledger__list">
-            {rows.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE).map((log) => {
-              const open = selected === log.readingLogId;
-              return (
-                <li key={log.readingLogId}>
-                  <button
-                    type="button"
-                    className="admin-ledger__row"
-                    aria-expanded={open}
-                    disabled={processing}
-                    onClick={() => setSelected(open ? null : log.readingLogId)}
-                  >
-                    <span>{formatKoDateKey(log.readingDate)}</span>
-                    <strong>{log.userName}</strong>
-                    <span className="admin-ledger__title">
-                      {log.books[0]?.bookTitle ?? '도서 미등록'}
-                      {log.books.length > 1 && ' 외 ' + (log.books.length - 1) + '권'}
-                    </span>
-                    <span>{log.totalReadPages.toLocaleString()}쪽</span>
-                    <span>{STATUS[log.status]}</span>
-                    <span aria-hidden="true">{open ? '−' : '+'}</span>
-                  </button>
-                  {open && (
-                    <ReadingLogReviewPanel
-                      log={log}
-                      disabled={processing || frozen}
-                      onApprove={() => review(log)}
-                      onReject={(reason) => review(log, reason)}
-                    />
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-          {!!rows.length && (
-            <nav className="admin-queue__footer" aria-label="일지 페이지">
-              <span>
-                총 {rows.length.toLocaleString()}건 · {currentPage + 1} / {pages}페이지
-              </span>
-              {pages > 1 && (
-                <>
-                  <button
-                    type="button"
-                    disabled={currentPage === 0}
-                    onClick={() => setPage(currentPage - 1)}
-                  >
-                    이전 페이지
-                  </button>
-                  <button
-                    type="button"
-                    disabled={currentPage + 1 >= pages}
-                    onClick={() => setPage(currentPage + 1)}
-                  >
-                    다음 페이지
-                  </button>
-                </>
-              )}
-            </nav>
-          )}
-        </>
-      )}
-    </section>
+    />
   );
 }
 export default function AdminReadingLogsPage() {
@@ -309,10 +265,7 @@ export default function AdminReadingLogsPage() {
   return (
     <section className="admin-page admin-reading-logs">
       <header className="admin-page__header admin-reading-logs__header">
-        <div>
-          <h1>독서일지 검토</h1>
-          <p>일지를 선택해 도서와 독서량을 확인하고 승인하거나 반려합니다.</p>
-        </div>
+        <h1>독서일지 검토</h1>
         <label className="admin-reading-logs__event-selector">
           관리 행사
           <select
@@ -325,7 +278,7 @@ export default function AdminReadingLogsPage() {
             {!event && <option value="">행사 선택</option>}
             {events.map((item) => (
               <option key={item.eventId} value={item.eventId}>
-                {item.roundNo}회 · {item.title}
+                {item.title}
               </option>
             ))}
           </select>

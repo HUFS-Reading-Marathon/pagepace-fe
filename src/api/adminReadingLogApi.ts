@@ -120,11 +120,13 @@ export async function verifyAdminReview(participantBookId: number, evidence: Man
   return result;
 }
 
-export async function approveAdminReadingLog(readingLogId: number) {
+export async function approveAdminReadingLog(readingLogId: number, expectedUpdatedAt: string) {
   validateId(readingLogId, '독서일지');
 
   return apiRequest<AdminReadingLogResponse>(`${ADMIN_READING_LOGS_PATH}/${readingLogId}/approve`, {
     method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ expectedUpdatedAt }),
   });
 }
 
@@ -145,6 +147,6 @@ export async function rejectAdminReadingLog(
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ reason }),
+    body: JSON.stringify({ reason, expectedUpdatedAt: request.expectedUpdatedAt }),
   });
 }
