@@ -414,7 +414,6 @@ function MainPage() {
             <div className="section-title">
               <h2 id="noticeTitle">공지사항</h2>
             </div>
-            <p className="section-desc">독서마라톤의 주요 공지와 운영 안내입니다.</p>
           </div>
 
           <div className="news-card">

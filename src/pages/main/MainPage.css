@@ -458,13 +458,6 @@
   font-weight: 700;
 }
 
-.section-desc {
-  margin: 0;
-  width: min(480px, 100%);
-  color: var(--body);
-  font-size: 16px;
-}
-
 .official-card {
   background: #fff;
   border: 1px solid var(--line);
@@ -1028,10 +1021,6 @@
 
   .section-head {
     display: block;
-  }
-
-  .section-desc {
-    margin-top: 12px;
   }
 
   .about-highlight {
