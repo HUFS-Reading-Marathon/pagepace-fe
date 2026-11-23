@@ -280,20 +280,17 @@
 
 .summary-card {
   background: #fff;
-  border: 1px solid var(--line-soft);
-  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
   overflow: hidden;
 }
 
 .summary-head {
   padding: 24px 30px;
-  background: #fbfdff;
-  border-bottom: 1px solid var(--line);
 }
 
 .summary-head h2 {
   margin: 0;
-  color: var(--navy-strong);
+  color: var(--ink);
   font-size: 22px;
   line-height: 1.28;
   font-weight: 700;
@@ -331,12 +328,10 @@
 .library-search-card {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  min-height: 100%;
+  align-self: start;
   padding: 30px;
   background: #fff;
-  border: 1px solid var(--line-soft);
-  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
 }
 
 .library-search-card label {
@@ -386,7 +381,6 @@
   background: #fff;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-soft);
   overflow: hidden;
 }
 
@@ -436,7 +430,6 @@
 }
 
 .tone-section {
-  background: linear-gradient(180deg, #f8fbff 0%, #fff 100%);
   border-top: 1px solid var(--line-soft);
   border-bottom: 1px solid var(--line-soft);
 }
@@ -462,7 +455,6 @@
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 8px;
-  box-shadow: var(--shadow-soft);
 }
 
 .about-card,
@@ -628,7 +620,6 @@
   width: 100%;
   border-collapse: collapse;
   background: #fff;
-  border-top: 2px solid var(--navy-strong);
   font-size: 15px;
 }
 
@@ -837,7 +828,6 @@
 .check-card {
   background: var(--navy-strong);
   color: #fff;
-  box-shadow: var(--shadow);
 }
 
 .check-card h2 {
@@ -911,9 +901,7 @@
   padding: 32px 36px;
   background: #fff;
   border: 1px solid var(--line);
-  border-left: 5px solid var(--gold);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-soft);
 }
 
 .cta-band h2 {
@@ -1034,7 +1022,6 @@
 
   .program-table {
     min-width: 900px;
-    border: 0;
   }
 
   .contact-grid {
@@ -1053,7 +1040,6 @@
   }
 
   .hero-content,
-  .summary-head,
   .library-search-card,
   .about-card,
   .contact-card,
