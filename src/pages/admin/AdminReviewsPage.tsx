@@ -10,6 +10,8 @@ import ReviewImportWorkspace, {
 import {
   compareReviewTime,
   getAdminReviewTargets,
+  replaceReviewTarget,
+  settleReviewTargets,
   verifyAdminReview,
   type AdminReviewTarget,
 } from '../../api/adminReadingLogApi';
@@ -89,6 +91,9 @@ function AdminReviews({
   const [isLoading, setIsLoading] = useState(true);
   const [verifyingId, setVerifyingId] = useState<number | null>(null);
   const [error, setError] = useState('');
+  // 개별 확인 목록(review-targets) 조회 실패. 빈 목록과 구분하고, 마지막으로 받은 목록은 유지합니다.
+  const [queueError, setQueueError] = useState('');
+  const [queueReloading, setQueueReloading] = useState(false);
   const [actionError, setActionError] = useState('');
   const [feedbackMessage, setFeedbackMessage] = useState('');
   const [tab, setTab] = useState<ReviewTab>('pending');
@@ -143,6 +148,7 @@ function AdminReviews({
         if (active) {
           setTargets(next);
           setError('');
+          setQueueError('');
           if (requestedBook !== null) {
             const requested = next.find(
               (target) => String(target.participantBookId) === requestedBook,
@@ -161,7 +167,7 @@ function AdminReviews({
       })
       .catch((requestError: unknown) => {
         if (active) {
-          setError(getApiErrorMessage(requestError, '서평 확인 대상을 불러오지 못했습니다.'));
+          setQueueError(getApiErrorMessage(requestError, '서평 확인 대상을 불러오지 못했습니다.'));
         }
       })
       .finally(() => {
@@ -260,12 +266,25 @@ function AdminReviews({
       getAdminReviewTargets(eventId),
       studentNo ? excelPreview.current?.reload(studentNo) : Promise.resolve(),
     ]);
-    setTargets(queue.status === 'fulfilled' ? queue.value : []);
-    setError(
-      queue.status === 'rejected' || excel.status === 'rejected'
-        ? '최신 서평 목록 또는 엑셀 대조 결과를 불러오지 못했습니다. 새로고침 후 다시 확인해 주세요.'
+    // 일시적인 조회 실패로 목록을 비우지 않습니다. 마지막 목록을 두고 최신이 아님을 알립니다.
+    setTargets((current) => settleReviewTargets(current, queue));
+    setQueueError(
+      queue.status === 'rejected'
+        ? getApiErrorMessage(queue.reason, '서평 확인 대상을 다시 불러오지 못했습니다.')
         : '',
     );
+    setError(
+      excel.status === 'rejected'
+        ? '엑셀 대조 결과를 다시 불러오지 못했습니다. 새로고침 후 다시 확인해 주세요.'
+        : '',
+    );
+  };
+
+  const retryQueue = async () => {
+    if (queueReloading) return;
+    setQueueReloading(true);
+    await refreshReviews();
+    setQueueReloading(false);
   };
 
   /** 서버에서 확인 처리가 성공한 뒤에만 다음 대기 서평으로 이동합니다. */
@@ -298,6 +317,8 @@ function AdminReviews({
         `${target.userName} 님의 “${target.bookTitle}”에 ${(creditedDistance / METERS_PER_PAGE).toLocaleString('ko-KR')}쪽(${creditedDistance.toLocaleString('ko-KR')}m)을 반영했습니다.`,
       );
       setEvidence(EMPTY_EVIDENCE);
+      // 서버가 확인한 결과는 재조회 성공 여부와 관계없이 목록에 바로 반영합니다.
+      setTargets((current) => replaceReviewTarget(current, updated));
     } catch (requestError) {
       setActionError(getApiErrorMessage(requestError, '서평 확인에 실패했습니다.'));
       if (
@@ -333,6 +354,27 @@ function AdminReviews({
       );
     }
 
+    const queueAlert = queueError ? (
+      <div className="admin-reviews__error admin-reviews__queue-error" role="alert">
+        <p>
+          {queueError}
+          {targets.length > 0 && ' 아래는 마지막으로 불러온 목록입니다.'}
+        </p>
+        <button
+          type="button"
+          className="admin-button"
+          disabled={queueReloading || verifyingId !== null}
+          onClick={() => void retryQueue()}
+        >
+          {queueReloading ? '불러오는 중…' : '다시 불러오기'}
+        </button>
+      </div>
+    ) : null;
+
+    if (queueError && targets.length === 0) {
+      return queueAlert;
+    }
+
     if (visibleTargets.length === 0) {
       return (
         <p className="admin-queue__message">
@@ -346,31 +388,34 @@ function AdminReviews({
     }
 
     return (
-      <ul className="admin-queue__list">
-        {visibleTargets.map((target) => (
-          <li key={target.participantBookId}>
-            <button
-              type="button"
-              className="admin-queue__item"
-              disabled={verifyingId !== null}
-              aria-current={target === activeTarget ? 'true' : undefined}
-              onClick={() => selectTarget(target.participantBookId)}
-            >
-              <strong>{target.userName}</strong>
-              <small>
-                {target.bookTitle} · {reviewTimeLabel(target)}
-              </small>
-              <span className="admin-queue__item-side">
-                <span className="admin-queue__pages">
-                  {target.reviewVerified
-                    ? '확인 완료'
-                    : `미인정 ${target.distanceToCreditMeter.toLocaleString('ko-KR')}m`}
+      <>
+        {queueAlert}
+        <ul className="admin-queue__list">
+          {visibleTargets.map((target) => (
+            <li key={target.participantBookId}>
+              <button
+                type="button"
+                className="admin-queue__item"
+                disabled={verifyingId !== null}
+                aria-current={target === activeTarget ? 'true' : undefined}
+                onClick={() => selectTarget(target.participantBookId)}
+              >
+                <strong>{target.userName}</strong>
+                <small>
+                  {target.bookTitle} · {reviewTimeLabel(target)}
+                </small>
+                <span className="admin-queue__item-side">
+                  <span className="admin-queue__pages">
+                    {target.reviewVerified
+                      ? '확인 완료'
+                      : `미인정 ${target.distanceToCreditMeter.toLocaleString('ko-KR')}m`}
+                  </span>
                 </span>
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </>
     );
   };
 

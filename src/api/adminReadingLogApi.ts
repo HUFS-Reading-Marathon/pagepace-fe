@@ -23,6 +23,24 @@ export type AdminReviewTarget = {
   reviewVerifiedAt: string | null;
 };
 
+/**
+ * 서평 확인 대상 재조회 결과로 다음 목록을 정합니다. 조회가 실패하면 마지막으로 받은 목록을 그대로 두어,
+ * 일시적인 오류가 "확인할 서평 없음"으로 보이지 않게 합니다.
+ */
+export function settleReviewTargets(
+  previous: AdminReviewTarget[],
+  result: PromiseSettledResult<AdminReviewTarget[]>,
+) {
+  return result.status === 'fulfilled' ? result.value : previous;
+}
+
+/** 서버가 확인 처리 후 돌려준 대상 하나를 목록에 반영합니다. */
+export function replaceReviewTarget(targets: AdminReviewTarget[], updated: AdminReviewTarget) {
+  return targets.map((target) =>
+    target.participantBookId === updated.participantBookId ? updated : target,
+  );
+}
+
 export function compareReviewTime(
   left: AdminReviewTarget,
   right: AdminReviewTarget,
