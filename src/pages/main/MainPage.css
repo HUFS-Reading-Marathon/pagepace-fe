@@ -285,9 +285,7 @@
 }
 
 .summary-card,
-.library-search-card,
-.contact-card,
-.check-card {
+.library-search-card {
   border-radius: var(--radius);
 }
 
@@ -470,9 +468,7 @@
   border-radius: 8px;
 }
 
-.about-card,
-.contact-card,
-.check-card {
+.about-card {
   padding: 32px;
 }
 
@@ -821,13 +817,8 @@
 .two-col {
   display: grid;
   grid-template-columns: 0.88fr 1.12fr;
-  gap: 26px;
+  gap: 40px 64px;
   align-items: start;
-}
-
-.check-card {
-  background: #fff;
-  border: 1px solid var(--line);
 }
 
 .check-card h2 {
@@ -859,27 +850,22 @@
   font-weight: 500;
 }
 
-.contact-card {
-  background: #fff;
-  border: 1px solid var(--line);
-}
-
 .contact-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
   margin-top: 20px;
+  border-top: 1px solid var(--line-soft);
 }
 
+/* 라벨 | 값 한 줄 목록 (참여 전 확인사항 목록과 같은 행 간격·구분선) */
 .contact-item {
-  padding: 20px;
-  background: #fbfdff;
-  border: 1px solid var(--line-soft);
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 18px;
+  align-items: baseline;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line-soft);
 }
 
 .contact-item span {
-  display: block;
-  margin-bottom: 6px;
   color: var(--muted);
   font-size: 13px;
   font-weight: 600;
@@ -1024,10 +1010,6 @@
     min-width: 900px;
   }
 
-  .contact-grid {
-    grid-template-columns: 1fr;
-  }
-
   .cta-band {
     align-items: flex-start;
     flex-direction: column;
@@ -1041,9 +1023,7 @@
 
   .hero-content,
   .library-search-card,
-  .about-card,
-  .contact-card,
-  .check-card {
+  .about-card {
     padding: 24px;
   }
 
