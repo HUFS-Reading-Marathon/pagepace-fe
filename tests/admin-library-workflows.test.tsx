@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { apiRequest } from '../src/api/apiClient';
 import { approveAdminReadingLog, rejectAdminReadingLog } from '../src/api/adminReadingLogApi';
+import { lookupReviewBook } from '../src/api/bookApi';
 import NoticeBody from '../src/components/notices/NoticeBody';
 import ReadingLogReviewPanel from '../src/components/admin/readingLogs/ReadingLogReviewPanel';
 import type { AdminReadingLogResponse } from '../src/types/adminReadingLogApi';
@@ -77,6 +78,30 @@ describe('사서의 일지 처리와 공지 서식', () => {
       books: log.books.map((book) => ({ ...book, libraryBookId: null })),
     });
     expect(html).toContain('https://lib.hufs.ac.kr/global/search/i-discovery?ALL=');
+  });
+  it('같은 ISBN의 다른 판본은 건너뛰고 저장된 서지번호와 일치하는 결과를 사용한다', async () => {
+    const request = vi.mocked(apiRequest);
+    const isbn = '9788936434595';
+    const match = { libraryBookId: 123, isbn, callNo: '895.135 H231ca' };
+    request.mockResolvedValueOnce([{ ...match, libraryBookId: 456 }]);
+    request.mockResolvedValueOnce([match]);
+    const signal = new AbortController().signal;
+    await expect(
+      lookupReviewBook({ libraryBookId: 123, isbn, bookTitle: '채식주의자' }, signal),
+    ).resolves.toEqual(match);
+    expect(request).toHaveBeenCalledWith('/api/books/search?query=' + isbn, {
+      method: 'GET',
+      signal,
+    });
+  });
+  it('서지번호가 없는 기록은 ISBN 일치 후보가 하나일 때만 보완한다', async () => {
+    const book = { libraryBookId: null, isbn: '978-8936434595', bookTitle: '채식주의자' };
+    const match = { libraryBookId: 123, isbn: '9788936434595' };
+    const signal = new AbortController().signal;
+    vi.mocked(apiRequest).mockResolvedValueOnce([match, { ...match, libraryBookId: 456 }]);
+    await expect(lookupReviewBook(book, signal)).resolves.toBeNull();
+    vi.mocked(apiRequest).mockResolvedValueOnce([match]);
+    await expect(lookupReviewBook(book, signal)).resolves.toEqual(match);
   });
   it('일지에 기록된 메모와 해당 도서의 쪽수 초과를 검토할 수 있다', () => {
     const books = log.books.map((book) => ({

@@ -18,12 +18,13 @@ import '../../styles/admin-reading-logs.css';
 
 type Filter = AdminReadingLogResponse['status'] | 'ALL';
 type Search = { query: string; date: string; order: string };
+type ApprovalIssue = { id: number; message: string };
 type QueueRequest = {
   status: Filter;
   linkedId?: string | null;
-  focus?: { candidates: number[]; search: Search };
+  focus?: { candidates: number[]; search: Search; pageSize: number };
 };
-const PAGE_SIZE = 25;
+const DEFAULT_PAGE_SIZE = 10;
 const initialSearch: Search = { query: '', date: '', order: 'oldest' };
 
 function visibleLogs(logs: AdminReadingLogResponse[], { query, date, order }: Search) {
@@ -31,7 +32,7 @@ function visibleLogs(logs: AdminReadingLogResponse[], { query, date, order }: Se
   return logs
     .filter(
       (log) =>
-        (!date || log.readingDate === date) &&
+        (!date || log.createdAt.slice(0, 10) === date) &&
         (!keyword ||
           [
             log.userName,
@@ -42,6 +43,7 @@ function visibleLogs(logs: AdminReadingLogResponse[], { query, date, order }: Se
               book.author,
               book.publisher,
               book.isbn,
+              book.callNo,
             ]),
           ].some((value) => value?.toLocaleLowerCase().includes(keyword))),
     )
@@ -57,6 +59,9 @@ function ReadingQueue({ event, linkedId }: { event: AdminEvent; linkedId: string
   const [linkedStatus, setLinkedStatus] = useState<Filter>('SUBMITTED');
   const filter = request.linkedId != null ? linkedStatus : request.status;
   const [selected, setSelected] = useState<number | null>(null);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [checked, setChecked] = useState<Set<number>>(new Set());
+  const [batchNotes, setBatchNotes] = useState<ApprovalIssue[]>([]);
   const [logs, setLogs] = useState<AdminReadingLogResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -67,7 +72,14 @@ function ReadingQueue({ event, linkedId }: { event: AdminEvent; linkedId: string
   const [page, setPage] = useState(0);
   const focusAfterLoad = useRef<string | null>(null);
   const mutationLock = useRef(false);
+  const queueActive = useRef(true);
   const frozen = ['FINALIZED', 'ARCHIVED'].includes(event.status);
+  useEffect(() => {
+    queueActive.current = true;
+    return () => {
+      queueActive.current = false;
+    };
+  }, []);
   useEffect(() => {
     let active = true;
     async function load() {
@@ -81,7 +93,7 @@ function ReadingQueue({ event, linkedId }: { event: AdminEvent; linkedId: string
         if (target.eventId !== event.eventId)
           throw new Error('이 행사의 독서일지를 찾을 수 없습니다.');
         status = target.status;
-        focus = { candidates: [id], search: initialSearch };
+        focus = { candidates: [id], search: initialSearch, pageSize: DEFAULT_PAGE_SIZE };
       }
       const fresh = await getAdminReadingLogs({
         eventId: event.eventId,
@@ -98,7 +110,7 @@ function ReadingQueue({ event, linkedId }: { event: AdminEvent; linkedId: string
           throw new Error('일지 상태가 바뀌었습니다. 다시 조회해 주세요.');
         setSelected(id ?? null);
         if (id != null) {
-          setPage(Math.floor(positions.get(id)! / PAGE_SIZE));
+          setPage(Math.floor(positions.get(id)! / focus.pageSize));
           focusAfterLoad.current = 'log-review-row-' + id;
         } else {
           focusAfterLoad.current = 'log-review-count';
@@ -129,12 +141,18 @@ function ReadingQueue({ event, linkedId }: { event: AdminEvent; linkedId: string
   }, [logs, loading]);
 
   const rows = useMemo(() => visibleLogs(logs, search), [logs, search]);
-  const currentPage = Math.min(page, Math.max(0, Math.ceil(rows.length / PAGE_SIZE) - 1));
+  const currentPage = Math.min(page, Math.max(0, Math.ceil(rows.length / pageSize) - 1));
   function select(id: number | null) {
     setSelected(id);
     setActionError('');
   }
+  const pageRows = rows.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+  function clearChecks() {
+    setChecked(new Set());
+    setBatchNotes([]);
+  }
   function updateSearch(patch: Partial<Search>) {
+    clearChecks();
     setSearch((current) => ({ ...current, ...patch }));
     setPage(0);
     select(null);
@@ -147,6 +165,7 @@ function ReadingQueue({ event, linkedId }: { event: AdminEvent; linkedId: string
   }
   function changeFilter(status: Filter) {
     if (status === filter && !error) return;
+    clearChecks();
     select(null);
     setFeedback('');
     setPage(0);
@@ -156,6 +175,7 @@ function ReadingQueue({ event, linkedId }: { event: AdminEvent; linkedId: string
   async function review(log: AdminReadingLogResponse, reason?: string) {
     if (mutationLock.current || loading || frozen || log.status !== 'SUBMITTED') return false;
     mutationLock.current = true;
+    clearChecks();
     setProcessing(true);
     setActionError('');
     setFeedback('');
@@ -174,7 +194,7 @@ function ReadingQueue({ event, linkedId }: { event: AdminEvent; linkedId: string
               (row) => row.readingLogId,
             )
           : [log.readingLogId];
-      reload({ status: filter, focus: { candidates, search } });
+      reload({ status: filter, focus: { candidates, search, pageSize } });
       return true;
     } catch (e) {
       if (
@@ -192,7 +212,7 @@ function ReadingQueue({ event, linkedId }: { event: AdminEvent; linkedId: string
             : '일지 내용 또는 처리 상태가 바뀌었습니다. 최신 내용을 확인해 주세요.',
         );
         select(null);
-        reload({ status: filter, focus: { candidates: [log.readingLogId], search } });
+        reload({ status: filter, focus: { candidates: [log.readingLogId], search, pageSize } });
       } else {
         setActionError(getApiErrorMessage(e, '일지를 처리하지 못했습니다.'));
       }
@@ -202,46 +222,129 @@ function ReadingQueue({ event, linkedId }: { event: AdminEvent; linkedId: string
       setProcessing(false);
     }
   }
+  function canSelect(log: AdminReadingLogResponse) {
+    return (
+      !frozen &&
+      log.status === 'SUBMITTED' &&
+      log.books.length > 0 &&
+      !log.books.some((book) => book.pageExceeded)
+    );
+  }
+  async function approveChecked() {
+    if (mutationLock.current || loading || frozen) return;
+    const targets = pageRows.filter((log) => checked.has(log.readingLogId) && canSelect(log));
+    if (!targets.length) return;
+    mutationLock.current = true;
+    setProcessing(true);
+    setActionError('');
+    setBatchNotes([]);
+    const notes: ApprovalIssue[] = [];
+    let approved = 0;
+    let refused = 0;
+    let unconfirmed = 0;
+    try {
+      for (const [index, log] of targets.entries()) {
+        if (!queueActive.current) return;
+        setFeedback(`선택한 ${targets.length}건 중 ${index + 1}번째 일지 승인 중…`);
+        try {
+          await approveAdminReadingLog(log.readingLogId, log.updatedAt);
+          approved++;
+        } catch (err) {
+          const label = `${log.userName} (${log.studentNo}) · ${log.books[0].bookTitle}`;
+          if (!(err instanceof ApiError) || err.status < 400 || err.status >= 500) {
+            unconfirmed++;
+            notes.push({
+              id: log.readingLogId,
+              message: label + ' — 승인 응답을 확인하지 못했습니다. 갱신된 상태를 확인해 주세요.',
+            });
+            break;
+          }
+          refused++;
+          notes.push({ id: log.readingLogId, message: label + ' — ' + err.message });
+          if (err.status === 401 || err.status === 403) break;
+        }
+      }
+      if (!queueActive.current) return;
+      const remaining = targets.length - approved - refused - unconfirmed;
+      const result = [`승인 ${approved}건`];
+      if (refused) result.push(`승인 실패 ${refused}건`);
+      if (unconfirmed) result.push(`결과 확인 필요 ${unconfirmed}건`);
+      if (remaining) result.push(`미처리 ${remaining}건`);
+      setFeedback(result.join(' · '));
+      setBatchNotes(notes);
+      setChecked(new Set());
+      select(null);
+      reload({ status: filter, focus: { candidates: [], search, pageSize } });
+    } finally {
+      mutationLock.current = false;
+      setProcessing(false);
+    }
+  }
   return (
-    <ReadingLogQueueList
-      rows={rows.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE)}
-      total={rows.length}
-      page={currentPage}
-      pageSize={PAGE_SIZE}
-      filter={filter}
-      {...search}
-      selected={selected}
-      loading={loading && !logs.length}
-      processing={processing || loading}
-      error={error}
-      feedback={feedback}
-      onFilter={changeFilter}
-      onQuery={(query) => updateSearch({ query })}
-      onDate={(date) => updateSearch({ date })}
-      onOrder={(order) => updateSearch({ order })}
-      onPage={(value) => {
-        setPage(value);
-        select(null);
-        setFeedback('');
-      }}
-      onSelect={select}
-      onRetry={() => reload({ ...request })}
-      renderDetail={(log) => (
-        <ReadingLogReviewPanel
-          key={log.readingLogId + '-' + log.updatedAt}
-          log={log}
-          disabled={processing || loading}
-          readOnly={frozen}
-          actionError={actionError}
-          onApprove={() => review(log)}
-          onReject={(reason) => review(log, reason)}
-        />
+    <>
+      {batchNotes.length > 0 && (
+        <details className="log-batch-notes" open>
+          <summary>승인 결과 확인 ({batchNotes.length}건)</summary>
+          <ul>
+            {batchNotes.map((note) => (
+              <li key={note.id}>{note.message}</li>
+            ))}
+          </ul>
+        </details>
       )}
-    />
+      <ReadingLogQueueList
+        rows={pageRows}
+        total={rows.length}
+        page={currentPage}
+        pageSize={pageSize}
+        filter={filter}
+        {...search}
+        selected={selected}
+        selectedIds={checked}
+        onSelectionChange={setChecked}
+        canSelect={canSelect}
+        onApproveSelection={() => void approveChecked()}
+        onPageSize={(size) => {
+          setPageSize(size);
+          setPage(0);
+          clearChecks();
+          select(null);
+          setFeedback('');
+        }}
+        loading={loading && !logs.length}
+        processing={processing || loading}
+        error={error}
+        feedback={feedback}
+        onFilter={changeFilter}
+        onQuery={(query) => updateSearch({ query })}
+        onDate={(date) => updateSearch({ date })}
+        onOrder={(order) => updateSearch({ order })}
+        onPage={(value) => {
+          setPage(value);
+          clearChecks();
+          select(null);
+          setFeedback('');
+        }}
+        onSelect={select}
+        onRetry={() => reload({ ...request })}
+        renderDetail={(log) => (
+          <ReadingLogReviewPanel
+            key={log.readingLogId + '-' + log.updatedAt}
+            log={log}
+            disabled={processing || loading}
+            readOnly={frozen}
+            actionError={actionError}
+            onApprove={() => review(log)}
+            onReject={(reason) => review(log, reason)}
+          />
+        )}
+      />
+    </>
   );
 }
 export default function AdminReadingLogsPage() {
   const [params, setParams] = useSearchParams();
+  const [attempt, setAttempt] = useState(0);
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -260,31 +363,48 @@ export default function AdminReadingLogsPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [attempt]);
   const event = resolveAdminQueueEvent(events, params.get('eventId'));
   return (
     <section className="admin-page admin-reading-logs">
-      <header className="admin-page__header admin-reading-logs__header">
+      <header className="roster-heading">
         <h1>독서일지 검토</h1>
-        <label className="admin-reading-logs__event-selector">
-          관리 행사
-          <select
-            value={event?.eventId ?? ''}
-            onChange={(e) => {
-              selectEvent('admin', Number(e.target.value));
-              setParams({ eventId: e.target.value });
+        <div className="roster-heading-actions">
+          <label>
+            관리 행사
+            <select
+              value={event?.eventId ?? ''}
+              onChange={(e) => {
+                selectEvent('admin', Number(e.target.value));
+                setParams({ eventId: e.target.value });
+              }}
+            >
+              {!event && <option value="">행사 선택</option>}
+              {events.map((item) => (
+                <option key={item.eventId} value={item.eventId}>
+                  {item.title}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </header>
+      {error && (
+        <div className="roster-error" role="alert">
+          {error}
+          <button
+            type="button"
+            className="roster-link"
+            onClick={() => {
+              setError('');
+              setLoading(true);
+              setAttempt((value) => value + 1);
             }}
           >
-            {!event && <option value="">행사 선택</option>}
-            {events.map((item) => (
-              <option key={item.eventId} value={item.eventId}>
-                {item.title}
-              </option>
-            ))}
-          </select>
-        </label>
-      </header>
-      {error && <p role="alert">{error}</p>}
+            다시 조회
+          </button>
+        </div>
+      )}
       {event ? (
         <ReadingQueue
           key={event.eventId + '-' + params.get('logId')}

@@ -1,10 +1,11 @@
 .log-review {
+  container-type: inline-size;
   min-width: 0;
-  padding: 14px 20px 16px;
+  padding: 10px 18px 12px;
   background: var(--surface);
   color: var(--ink);
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 13px;
+  line-height: 1.45;
   white-space: normal;
   overflow-wrap: anywhere;
   text-align: left;
@@ -12,102 +13,104 @@
 .log-review :is(h3, p, ul, dl, dd) {
   margin: 0;
 }
-.log-review__meta,
-.log-review__meta div,
-.log-review__history div {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-}
-.log-review__meta {
-  gap: 3px 20px;
-  padding-bottom: 10px;
-  color: var(--body);
-  font-size: 13px;
-}
-.log-review__meta div,
-.log-review__history div {
-  gap: 3px 7px;
-}
-.log-review dt {
-  color: var(--body);
-  font-weight: 600;
-}
-.log-review__meta time,
-.log-review__history time,
-.log-review__pages {
-  font-variant-numeric: tabular-nums;
-}
 .log-review__books {
   padding: 0;
   list-style: none;
 }
 .log-review__book {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) 122px;
   align-items: start;
-  gap: 4px 20px;
-  padding: 12px 0;
+  gap: 6px 20px;
+  padding: 8px 0 11px;
+}
+.log-review__book + .log-review__book {
   border-top: 1px solid var(--line-soft);
+}
+.log-review__book-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-bottom: 5px;
 }
 .log-review__book h3 {
   font-size: 15px;
   font-weight: 650;
-  line-height: 1.45;
+  line-height: 1.4;
 }
-.log-review .log-review__publication {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1px 12px;
-  margin-top: 3px;
-  color: var(--body);
+.log-review__catalog {
+  padding-block: 1px;
+  color: var(--navy-strong);
   font-size: 13px;
+  white-space: nowrap;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.log-review__bibliography {
+  display: grid;
+  max-width: 710px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3px 18px;
+}
+.log-review__bibliography div,
+.log-review__details div {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 6px;
+}
+.log-review dt,
+.log-review__unknown,
+.log-review__lookup {
+  color: var(--body);
+}
+.log-review__unknown,
+.log-review__lookup {
+  font-size: 12px;
+}
+.log-review .log-review__lookup {
+  margin-top: 5px;
 }
 .log-review__pages {
-  color: var(--body);
-  font-size: 13px;
+  display: grid;
+  gap: 3px;
+  padding-inline-start: 12px;
+  border-inline-start: 1px solid var(--line-soft);
+  font-variant-numeric: tabular-nums;
+}
+.log-review__pages div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 5px;
+}
+.log-review__pages dd {
+  text-align: right;
 }
 .log-review__pages strong {
   color: var(--ink);
   font-size: 14px;
-}
-.log-review__pages span {
-  display: block;
-}
-.log-review__catalog {
-  justify-self: end;
-  padding-block: 2px;
-  color: var(--navy-strong);
-  font-size: 13px;
-  font-weight: 550;
-  white-space: nowrap;
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }
 .log-review__warning {
   grid-column: 1 / -1;
   padding: 4px 8px;
   border-inline-start: 2px solid #b27a35;
   color: #795321;
-  font-size: 13px;
 }
-.log-review__note,
-.log-review__history {
-  padding: 10px 0;
+.log-review__details,
+.log-review__message {
+  padding: 8px 0;
   border-top: 1px solid var(--line-soft);
 }
-.log-review__note > strong,
-.log-review__history dt,
-.log-review__reject label {
-  font-size: 13px;
-  font-weight: 600;
+.log-review__details div + div {
+  margin-top: 5px;
 }
-.log-review__note p,
-.log-review__history dd {
+.log-review__details dd {
   white-space: pre-wrap;
 }
-.log-review__history div + div {
-  margin-top: 4px;
+.log-review__reject label {
+  font-weight: 600;
 }
 .log-review__actions {
   display: flex;
@@ -132,7 +135,7 @@
 .log-review__reject-labels {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 12px;
 }
 .log-review__reject select,
@@ -166,23 +169,27 @@
   color: #9f3030;
   font-size: 13px;
 }
-@media (max-width: 720px) {
-  .log-review {
-    padding-inline: 12px;
+@container (max-width: 650px) {
+  .log-review__bibliography {
+    grid-template-columns: minmax(0, 1fr);
   }
+}
+@container (max-width: 420px) {
   .log-review__book {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 5px 12px;
+    grid-template-columns: minmax(0, 1fr) 97px;
+    column-gap: 10px;
   }
-  .log-review__book-info {
-    grid-column: 1 / -1;
+  .log-review__pages {
+    padding-inline-start: 7px;
+    font-size: 12px;
   }
-  .log-review__pages span {
-    display: inline-block;
-    margin-inline-start: 8px;
+  .log-review__bibliography div {
+    grid-template-columns: 45px minmax(0, 1fr);
+    column-gap: 4px;
   }
-  .log-review__catalog {
-    align-self: end;
-    min-height: 26px;
+}
+@media (max-width: 640px) {
+  .log-review {
+    padding-inline: 10px;
   }
 }

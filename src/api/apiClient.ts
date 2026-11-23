@@ -121,8 +121,10 @@ async function requestResponse(
     try {
       await refreshAccessToken();
     } catch (error) {
-      clearAuthStorage();
-      emitAuthChange();
+      if (error instanceof ApiError && error.status === 401 && getAccessToken() === token) {
+        clearAuthStorage();
+        emitAuthChange();
+      }
       throw error;
     }
     return requestResponse(path, { ...options, skipRefresh: true }, accept);
@@ -167,19 +169,18 @@ export async function apiRequest<T>(
 async function refreshAccessToken() {
   if (!refreshPromise) {
     refreshPromise = (async () => {
-      const response = await fetch('/api/auth/refresh', {
+      const session = await apiRequest<{ accessToken: string }>('/api/auth/refresh', {
         method: 'POST',
-        headers: { Accept: 'application/json' },
-        credentials: 'include',
+        skipAuth: true,
+        skipRefresh: true,
       });
-      const payload = await parseApiResponse<{ accessToken: string }>(response);
-      const accessToken = payload?.data?.accessToken?.trim();
+      const accessToken = session?.accessToken?.trim();
 
-      if (!response.ok || !payload?.success || !accessToken) {
+      if (!accessToken) {
         throw new ApiError(
-          payload?.message || '로그인이 만료되었습니다.',
-          response.status,
-          payload?.code,
+          '인증 갱신 응답을 확인하지 못했습니다.',
+          200,
+          'INVALID_REFRESH_RESPONSE',
         );
       }
 

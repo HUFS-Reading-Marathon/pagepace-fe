@@ -10,6 +10,7 @@ export type AdminReadingLogBookResponse = {
   author: string | null;
   publisher: string | null;
   isbn: string | null;
+  callNo?: string | null;
   coverImageUrl: string | null;
   totalBookPages: number;
   submittedReadPages: number;
