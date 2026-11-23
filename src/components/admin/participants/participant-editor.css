@@ -70,34 +70,60 @@
   padding: 0;
   border: 0;
 }
-.participant-editor .participant-editor__modes {
+.participant-editor__lookup {
+  display: grid;
+  gap: 5px;
+}
+.participant-editor__lookup > label {
+  color: var(--body);
+  font-size: 12px;
+  font-weight: 550;
+}
+.participant-editor__lookup-input {
   display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-bottom: 14px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--line-soft);
-}
-.participant-editor__modes legend {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-}
-.participant-editor__modes label {
-  display: inline-flex;
-  align-items: center;
   gap: 6px;
+}
+.participant-editor__lookup-input input {
+  flex: 1;
+}
+.participant-editor__lookup-input button {
+  flex: 0 0 auto;
+  min-width: 56px;
+}
+.participant-editor__lookup-result {
+  margin: 4px 0 0;
+  color: var(--body);
+  font-size: 13px;
+}
+.participant-editor__lookup + fieldset,
+.participant-editor__member {
+  margin-top: 14px;
+  border-top: 1px solid var(--line-soft);
+  padding-top: 14px;
+}
+.participant-editor__member h3 {
+  margin: 0 0 7px;
   color: var(--ink);
   font-size: 13px;
-  cursor: pointer;
+  font-weight: 600;
 }
-.participant-editor__modes input {
-  width: 15px;
-  height: 15px;
+.participant-editor__member dl {
+  display: grid;
+  margin: 0 0 14px;
+  gap: 5px;
+  font-size: 13px;
+}
+.participant-editor__member dl div {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 6px;
+}
+.participant-editor__member dt {
+  color: var(--muted);
+}
+.participant-editor__member dd {
   margin: 0;
-  accent-color: var(--navy-strong);
+  overflow-wrap: anywhere;
 }
 .participant-editor__fields {
   display: grid;
@@ -114,6 +140,7 @@
   font-size: 12px;
   font-weight: 550;
 }
+.participant-editor__lookup-input input,
 .participant-editor__fields input,
 .participant-editor__fields select {
   width: 100%;
@@ -205,6 +232,7 @@
   .participant-editor__body {
     padding-inline: 14px;
   }
+  .participant-editor__lookup-input input,
   .participant-editor__fields input,
   .participant-editor__fields select {
     min-height: 40px;

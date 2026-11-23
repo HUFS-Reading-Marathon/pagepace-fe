@@ -1,4 +1,4 @@
-import { apiRequest } from './apiClient';
+import { apiRequest, downloadExcel } from './apiClient';
 import type {
   AdminApplicationAffiliationType,
   AdminApplicationStatus,
@@ -50,10 +50,10 @@ export async function getRoster(eventId: number) {
   );
 }
 
-export function promoteRoster(eventId: number, participationIds: number[], courseId: number) {
-  return apiRequest('/api/admin/participations/course', {
-    method: 'PATCH',
+export function downloadRoster(eventId: number, rows: (RosterRow & { number: number })[]) {
+  return downloadExcel(`/api/admin/reports/${eventId}/roster`, {
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ eventId, participationIds, courseId }),
+    body: JSON.stringify(rows.map((row) => ({ key: rosterKey(row), number: row.number }))),
   });
 }

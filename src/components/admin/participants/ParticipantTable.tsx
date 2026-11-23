@@ -1,18 +1,20 @@
-import { useEffect, useRef } from 'react';
+import { rosterKey, rosterStatus } from '../../../api/adminRosterApi';
 import {
-  ROSTER_STATUSES,
-  rosterStatus,
-  rosterKey,
-  type RosterRow,
-} from '../../../api/adminRosterApi';
-import { ADMIN_APPLICATION_AFFILIATION_LABELS } from '../../../types/adminApplication';
-import { formatKoDate } from '../../../utils/date';
+  ROSTER_COLUMNS,
+  rosterCell,
+  type NumberedRow,
+  type RosterColumn,
+  type RosterSort,
+} from '../../../utils/participantRoster';
 
+const columns = Object.keys(ROSTER_COLUMNS) as RosterColumn[];
 type Props = {
-  rows: RosterRow[];
-  selected: ReadonlySet<number>;
-  onSelect: (ids: number[], checked: boolean) => void;
-  onOpen: (row: RosterRow) => void;
+  rows: NumberedRow[];
+  selected: number | null;
+  onSelect: (id: number | null) => void;
+  onOpen: (row: NumberedRow) => void;
+  sort: RosterSort;
+  onSort: (column: RosterColumn) => void;
   busy: boolean;
   message: string;
 };
@@ -22,76 +24,101 @@ export default function ParticipantTable({
   selected,
   onSelect,
   onOpen,
+  sort,
+  onSort,
   busy,
   message,
 }: Props) {
-  const selectPage = useRef<HTMLInputElement>(null);
-  const checkedCount = rows.filter((r) => selected.has(rosterKey(r))).length;
-  useEffect(() => {
-    if (selectPage.current)
-      selectPage.current.indeterminate = checkedCount > 0 && checkedCount < rows.length;
-  }, [checkedCount, rows.length]);
   return (
-    <div className="roster-scroll">
+    <div className="roster-scroll" tabIndex={0} role="region" aria-label="참가자 명단 표">
       <table className="roster-table" aria-busy={busy}>
         <caption className="sr-only">참가자 명단</caption>
+        <colgroup>
+          <col className="roster-col-check" />
+          {columns.map((key) => (
+            <col key={key} className={'roster-col-' + key} />
+          ))}
+        </colgroup>
         <thead>
           <tr>
             <th scope="col" className="roster-check">
-              <input
-                type="checkbox"
-                aria-label="현재 페이지 전체 선택"
-                ref={selectPage}
-                checked={!!rows.length && checkedCount === rows.length}
-                disabled={busy || !rows.length}
-                onChange={(e) => onSelect(rows.map(rosterKey), e.target.checked)}
-              />
+              <span className="sr-only">선택</span>
             </th>
-            {['순번', '이름', '학번/사번', '신분', '소속', '코스', '상태', '연락처', '등록일'].map(
-              (title) => (
-                <th scope="col" key={title}>
-                  {title}
+            {columns.map((key) => {
+              const direction = key === sort.column ? sort.direction : undefined;
+              return (
+                <th key={key} scope="col" data-column={key} aria-sort={direction}>
+                  <button
+                    type="button"
+                    className="roster-sort"
+                    onClick={() => onSort(key)}
+                    title={
+                      ROSTER_COLUMNS[key] +
+                      ' ' +
+                      (direction === 'ascending' ? '내림차순' : '오름차순') +
+                      ' 정렬'
+                    }
+                  >
+                    {ROSTER_COLUMNS[key]}
+                    <span className="sort-mark" aria-hidden="true" />
+                  </button>
                 </th>
-              ),
-            )}
+              );
+            })}
           </tr>
         </thead>
         <tbody>
           {message ? (
             <tr>
-              <td colSpan={10} className="roster-empty">
+              <td colSpan={columns.length + 1} className="roster-empty">
                 {message}
               </td>
             </tr>
           ) : (
             rows.map((row) => {
-              const status = rosterStatus(row);
+              const id = rosterKey(row),
+                checked = selected === id,
+                locked = busy || (selected !== null && !checked);
+              const toggle = () => onSelect(checked ? null : id);
               return (
-                <tr key={rosterKey(row)} data-selected={selected.has(rosterKey(row)) || undefined}>
+                <tr
+                  key={id}
+                  data-selected={checked || undefined}
+                  data-locked={locked || undefined}
+                  onClick={(e) => {
+                    if (!locked && !(e.target as Element).closest('button,input,label')) toggle();
+                  }}
+                >
                   <td className="roster-check">
                     <input
                       type="checkbox"
+                      checked={checked}
+                      disabled={locked}
+                      onChange={toggle}
                       aria-label={row.name + ' 선택'}
-                      checked={selected.has(rosterKey(row))}
-                      onChange={(e) => onSelect([rosterKey(row)], e.target.checked)}
-                      disabled={busy}
                     />
                   </td>
-                  <td className="roster-number">{row.serialNo}</td>
-                  <td>
-                    <button type="button" className="roster-name" onClick={() => onOpen(row)}>
-                      {row.name}
-                    </button>
-                  </td>
-                  <td>{row.studentNo}</td>
-                  <td>{ADMIN_APPLICATION_AFFILIATION_LABELS[row.affiliationType]}</td>
-                  <td className="roster-dept">{row.department || '—'}</td>
-                  <td>{row.courseName}</td>
-                  <td>
-                    <span data-status={status}>{status ? ROSTER_STATUSES[status] : '—'}</span>
-                  </td>
-                  <td>{row.phone || '—'}</td>
-                  <td className="roster-date">{formatKoDate(row.registeredAt)}</td>
+                  {columns.map((key) => {
+                    const value = rosterCell(row, key);
+                    return (
+                      <td key={key} data-column={key} title={value || undefined}>
+                        {key === 'name' ? (
+                          <button
+                            className="roster-name"
+                            type="button"
+                            onClick={() => onOpen(row)}
+                            disabled={locked}
+                          >
+                            {value}
+                          </button>
+                        ) : (
+                          <span data-status={key === 'status' ? rosterStatus(row) : undefined}>
+                            {value || '—'}
+                          </span>
+                        )}
+                      </td>
+                    );
+                  })}
                 </tr>
               );
             })

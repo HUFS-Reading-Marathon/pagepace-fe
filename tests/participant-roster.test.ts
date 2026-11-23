@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { rosterKey, rosterStatus, type RosterRow } from '../src/api/adminRosterApi';
-import { EMPTY_FILTERS, matchesRosterRow } from '../src/utils/participantRoster';
+import {
+  DEFAULT_FILTERS,
+  DEFAULT_SORT,
+  EMPTY_FILTERS,
+  matchesRosterRow,
+  rosterCell,
+  sortedRoster,
+} from '../src/utils/participantRoster';
 
 const entry: RosterRow = {
   serialNo: 12,
@@ -53,5 +60,52 @@ describe('관리자 참가자 명단', () => {
     for (const query of ['영어대학', '영어학과', '010-1111'])
       expect(matchesRosterRow(entry, { ...EMPTY_FILTERS, query })).toBe(true);
     expect(matchesRosterRow(entry, { ...EMPTY_FILTERS, query: '영어', course: '4' })).toBe(false);
+  });
+});
+
+describe('참가 명단의 표시 순번과 정렬', () => {
+  const pending = {
+    ...entry,
+    name: '가진',
+    participationId: null,
+    participationStatus: null,
+    applicationStatus: 'APPLIED' as const,
+  };
+  const approved = {
+    ...entry,
+    name: '강민아',
+    studentNo: '0020',
+    participationStatus: 'APPROVED' as const,
+  };
+  const completed = { ...entry, name: '최서연', studentNo: '0002' };
+  it('기본 조회에서 승인·완주만 가나다순으로 번호를 부여한다', () => {
+    const rows = sortedRoster([completed, pending, approved], DEFAULT_FILTERS, DEFAULT_SORT);
+    expect(rows.map((r) => [r.number, r.name])).toEqual([
+      [1, '강민아'],
+      [2, '최서연'],
+    ]);
+    expect(sortedRoster([completed, pending, approved], EMPTY_FILTERS, DEFAULT_SORT)).toHaveLength(
+      3,
+    );
+  });
+  it('학번 정렬과 순번 역정렬에서도 같은 사람의 번호와 텍스트 학번을 보존한다', () => {
+    const rows = [approved, pending, completed];
+    for (const sort of [
+      { column: 'studentNo', direction: 'ascending' },
+      { column: 'number', direction: 'descending' },
+    ] as const) {
+      expect(sortedRoster(rows, DEFAULT_FILTERS, sort).map((r) => [r.number, r.studentNo])).toEqual(
+        [
+          [2, '0002'],
+          [1, '0020'],
+        ],
+      );
+    }
+  });
+  it('연락처는 화면에서 일정한 형태로 표시하고 하이픈 유무와 관계없이 검색한다', () => {
+    const row = { ...entry, number: 1, phone: '01012345678' };
+    expect(rosterCell(row, 'phone')).toBe('010-1234-5678');
+    expect(matchesRosterRow(row, { ...DEFAULT_FILTERS, query: '010-1234' })).toBe(true);
+    expect(rosterCell({ ...row, phone: '02-123-4567' }, 'phone')).toBe('02-123-4567');
   });
 });

@@ -7,6 +7,7 @@ import { approveAdminApplication, rejectAdminApplication } from '../../../api/ad
 
 type Props = {
   row: RosterRow;
+  number?: number;
   eventTitle: string;
   editable: boolean;
   onClose: () => void;
@@ -18,6 +19,7 @@ type Props = {
 
 export default function ParticipantDetailDialog({
   row,
+  number,
   eventTitle,
   editable,
   onClose,
@@ -38,7 +40,7 @@ export default function ParticipantDetailDialog({
   }, []);
   const status = rosterStatus(row);
   const fields = [
-    ['순번', String(row.serialNo)],
+    ...(number === undefined ? [] : [['순번', String(number)]]),
     ['상태', status && ROSTER_STATUSES[status]],
     ['학번/사번', row.studentNo],
     ['이메일', row.email],

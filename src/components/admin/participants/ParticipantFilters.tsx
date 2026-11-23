@@ -2,7 +2,7 @@ import { ROSTER_STATUSES } from '../../../api/adminRosterApi';
 import { ADMIN_APPLICATION_AFFILIATION_OPTIONS } from '../../../types/adminApplication';
 import type { AdminCourse } from '../../../types/adminEvent';
 
-import { EMPTY_FILTERS, type RosterFilters } from '../../../utils/participantRoster';
+import { DEFAULT_FILTERS, type RosterFilters } from '../../../utils/participantRoster';
 
 type Props = {
   filters: RosterFilters;
@@ -29,10 +29,11 @@ export default function ParticipantFilters({ filters, courses, onChange }: Props
           value={filters.status}
           onChange={(e) => update('status', e.target.value)}
         >
+          <option value="PARTICIPANTS">승인 참가자</option>
           <option value="">전체</option>
           {Object.entries(ROSTER_STATUSES).map(([key, label]) => (
             <option key={key} value={key}>
-              {label}
+              {key === 'APPROVED' ? '승인(진행 중)' : label}
             </option>
           ))}
         </select>
@@ -70,8 +71,13 @@ export default function ParticipantFilters({ filters, courses, onChange }: Props
       <button
         className="roster-link"
         type="button"
-        disabled={!Object.values(filters).some(Boolean)}
-        onClick={() => onChange(EMPTY_FILTERS)}
+        disabled={
+          !filters.query &&
+          !filters.course &&
+          !filters.affiliation &&
+          filters.status === DEFAULT_FILTERS.status
+        }
+        onClick={() => onChange(DEFAULT_FILTERS)}
       >
         초기화
       </button>
