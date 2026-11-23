@@ -23,12 +23,13 @@ import {
   formatMeters,
   formatPages,
   getDefaultCandidate,
+  getReviewRowElementId,
   isBulkConfirmableRow,
   matchesReviewImportKeyword,
   type ReviewImportView,
 } from '../../../types/adminReviewImport';
 import ReviewImportBulkDialog from './ReviewImportBulkDialog';
-import ReviewImportDetailPanel from './ReviewImportDetailPanel';
+import ReviewImportRowDetail from './ReviewImportRowDetail';
 import ReviewImportSource from './ReviewImportSource';
 import ReviewImportTable from './ReviewImportTable';
 
@@ -46,7 +47,6 @@ type LoadedBatch = {
 type Feedback = { message: string; isError: boolean };
 
 const PAGE_FETCH_CONCURRENCY = 4;
-const NARROW_LAYOUT_QUERY = '(max-width: 1180px)';
 const REFRESH_ON_ERROR_CODES = [
   'REVIEW_TOTALS_CHANGED',
   'REVIEW_NOT_ELIGIBLE',
@@ -126,6 +126,16 @@ function firstViewWithRows(rows: ImportedReview[]): ReviewImportView {
   );
 }
 
+/**
+ * 확인 필요 보기이거나 보기 안에 한 건뿐이면 첫 행을 펼쳐 두고,
+ * 여러 건을 훑어보며 고르는 보기에서는 모두 접어 둡니다.
+ */
+function defaultExpandedRowId(rows: ImportedReview[], view: ReviewImportView) {
+  const statuses = REVIEW_IMPORT_VIEWS.find((item) => item.key === view)?.statuses ?? [];
+  const rowsInView = rows.filter((row) => statuses.includes(row.status));
+  return view === 'review' || rowsInView.length === 1 ? (rowsInView[0]?.id ?? null) : null;
+}
+
 function sumCredit(rows: ImportedReview[]) {
   return rows.reduce(
     (sum, row) => {
@@ -149,8 +159,9 @@ type ReviewImportWorkspaceProps = {
 
 /**
  * 솔라스 서평 엑셀 대조 화면.
- * 대조 자료(업로드) → 상태별 결과 표 → 오른쪽 상세 패널 순서로, 반영 가능한 서평은 여러 건을
- * 한 번에, 확인이 필요한 서평은 사유와 메모를 남겨 한 건씩 반영합니다.
+ * 대조 자료(업로드) → 상태별 대조표(솔라스 서평 ↔ PagePace 기록) 순서이며, 행을 펼치면 원문과
+ * 인정 계산이 화면 폭 전체로 열립니다. 반영 가능한 서평은 여러 건을 한 번에, 확인이 필요한 서평은
+ * 사유와 메모를 남겨 한 건씩 반영합니다.
  */
 function ReviewImportWorkspace({
   ref,
@@ -166,26 +177,27 @@ function ReviewImportWorkspace({
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState<ReviewImportView>('ready');
   const [keyword, setKeyword] = useState('');
-  const [activeRowId, setActiveRowId] = useState<number | null>(null);
+  const [expandedRowId, setExpandedRowId] = useState<number | null>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const inFlight = useRef(false);
   const loadedRef = useRef<LoadedBatch | null>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadedRef.current = loaded;
   }, [loaded]);
 
   const showBatch = useCallback((result: LoadedBatch) => {
+    const allRows = result.pages.flat();
+    const firstView = firstViewWithRows(allRows);
     loadedRef.current = result;
     setLoaded(result);
     setSelectedIds([]);
-    setActiveRowId(null);
     setKeyword('');
-    setView(firstViewWithRows(result.pages.flat()));
+    setView(firstView);
+    setExpandedRowId(defaultExpandedRowId(allRows, firstView));
   }, []);
 
   useEffect(() => {
@@ -308,22 +320,21 @@ function ReviewImportWorkspace({
     [rows, selectedIds],
   );
   const selectedTotals = sumCredit(selectedRows);
-  const activeRow = visibleRows.find((row) => row.id === activeRowId) ?? visibleRows[0] ?? null;
-  const activeIndex = activeRow ? visibleRows.indexOf(activeRow) : -1;
+  const scrollToRow = (rowId: number) => {
+    window.requestAnimationFrame(() =>
+      document
+        .getElementById(getReviewRowElementId(rowId))
+        ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }),
+    );
+  };
 
-  const selectRow = (rowId: number) => {
-    setActiveRowId(rowId);
-
-    if (window.matchMedia(NARROW_LAYOUT_QUERY).matches) {
-      window.requestAnimationFrame(() =>
-        panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
-      );
-    }
+  const toggleExpand = (rowId: number) => {
+    setExpandedRowId((current) => (current === rowId ? null : rowId));
   };
 
   const changeView = (next: ReviewImportView) => {
     setView(next);
-    setActiveRowId(null);
+    setExpandedRowId(defaultExpandedRowId(rows, next));
     setSelectedIds([]);
   };
 
@@ -414,7 +425,6 @@ function ReviewImportWorkspace({
             : `${row.memberName} 님의 “${bookTitle}”에 ${formatPages(result.creditedPages)}(${formatMeters(result.creditedDistanceMeter)})을 반영했습니다.`,
           isError: false,
         });
-        setActiveRowId(nextRow?.id ?? null);
       } catch (requestError) {
         if (
           requestError instanceof ApiError &&
@@ -426,6 +436,9 @@ function ReviewImportWorkspace({
       }
 
       await refreshAfterCredit([row.memberNo]);
+      // 처리한 행은 다른 보기로 옮겨 가므로, 이어서 검토할 다음 행을 펼쳐 둡니다.
+      setExpandedRowId(nextRow?.id ?? null);
+      if (nextRow) scrollToRow(nextRow.id);
     });
   };
 
@@ -592,7 +605,7 @@ function ReviewImportWorkspace({
               placeholder="엑셀 행, 작성자, 회원번호, 도서명"
               onChange={(event) => {
                 setKeyword(event.target.value);
-                setActiveRowId(null);
+                setExpandedRowId(null);
               }}
             />
           </div>
@@ -642,87 +655,71 @@ function ReviewImportWorkspace({
               )}
             </div>
           ) : (
-            <div className="admin-review-import__split">
-              <div className="admin-review-import__list">
-                <ReviewImportTable
-                  view={view}
-                  rows={visibleRows}
-                  activeRowId={activeRow?.id ?? null}
-                  selectedIds={selectedIds}
-                  busy={busy}
-                  readOnly={readOnly}
-                  emptyMessage={
-                    keyword.trim() ? '조건에 맞는 행이 없습니다.' : EMPTY_MESSAGES[view]
-                  }
-                  onSelectRow={selectRow}
-                  onToggleRow={(rowId, checked) =>
-                    setSelectedIds((current) =>
-                      checked
-                        ? [...new Set([...current, rowId])]
-                        : current.filter((id) => id !== rowId),
-                    )
-                  }
-                  onToggleAll={(checked) =>
-                    setSelectedIds(
-                      checked ? visibleRows.filter(isBulkConfirmableRow).map((row) => row.id) : [],
-                    )
-                  }
-                />
-                {view === 'ready' && selectedRows.length > 0 && (
-                  <div className="admin-review-import__bulk" aria-label="선택한 서평">
-                    <p>
-                      <strong>{selectedRows.length}건 선택</strong>
-                      <span>
-                        {formatPages(selectedTotals.pages)} · {formatMeters(selectedTotals.meters)}
-                      </span>
-                    </p>
-                    <button
-                      type="button"
-                      className="admin-review-import__bulk-clear"
-                      disabled={busy}
-                      onClick={() => setSelectedIds([])}
-                    >
-                      선택 해제
-                    </button>
-                    <button
-                      type="button"
-                      className="admin-review-import__bulk-submit"
-                      disabled={busy || readOnly}
-                      onClick={() => setBulkOpen(true)}
-                    >
-                      선택한 {selectedRows.length}건 반영
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div ref={panelRef} className="admin-review-import__panel">
-                {activeRow ? (
-                  <ReviewImportDetailPanel
-                    key={`${activeRow.id}-${activeRow.status}-${activeRow.candidates
+            <div className="admin-review-import__list">
+              <ReviewImportTable
+                view={view}
+                rows={visibleRows}
+                expandedRowId={expandedRowId}
+                selectedIds={selectedIds}
+                busy={busy}
+                readOnly={readOnly}
+                emptyMessage={keyword.trim() ? '조건에 맞는 행이 없습니다.' : EMPTY_MESSAGES[view]}
+                onToggleExpand={toggleExpand}
+                onToggleRow={(rowId, checked) =>
+                  setSelectedIds((current) =>
+                    checked
+                      ? [...new Set([...current, rowId])]
+                      : current.filter((id) => id !== rowId),
+                  )
+                }
+                onToggleAll={(checked) =>
+                  setSelectedIds(
+                    checked ? visibleRows.filter(isBulkConfirmableRow).map((row) => row.id) : [],
+                  )
+                }
+                renderDetail={(row) => (
+                  <ReviewImportRowDetail
+                    key={`${row.id}-${row.status}-${row.candidates
                       .map(
                         (candidate) =>
                           `${candidate.participantBookId}:${candidate.approvedPages}:${candidate.uncreditedPages}`,
                       )
                       .join(',')}`}
-                    row={activeRow}
+                    row={row}
                     eventId={eventId}
-                    position={activeIndex + 1}
-                    total={visibleRows.length}
                     busy={busy}
                     readOnly={readOnly}
-                    onMove={(offset) => {
-                      const next = visibleRows[activeIndex + offset];
-                      if (next) selectRow(next.id);
-                    }}
+                    onCollapse={() => setExpandedRowId(null)}
                     onConfirm={confirmOne}
                   />
-                ) : (
-                  <div className="admin-detail-panel">
-                    <p className="admin-detail-panel__empty">표에서 서평을 선택하세요.</p>
-                  </div>
                 )}
-              </div>
+              />
+              {view === 'ready' && selectedRows.length > 0 && (
+                <div className="admin-review-import__bulk" aria-label="선택한 서평">
+                  <p>
+                    <strong>{selectedRows.length}건 선택</strong>
+                    <span>
+                      {formatPages(selectedTotals.pages)} · {formatMeters(selectedTotals.meters)}
+                    </span>
+                  </p>
+                  <button
+                    type="button"
+                    className="admin-review-import__bulk-clear"
+                    disabled={busy}
+                    onClick={() => setSelectedIds([])}
+                  >
+                    선택 해제
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-review-import__bulk-submit"
+                    disabled={busy || readOnly}
+                    onClick={() => setBulkOpen(true)}
+                  >
+                    선택한 {selectedRows.length}건 반영
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </>

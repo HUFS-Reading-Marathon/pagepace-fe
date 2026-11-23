@@ -73,6 +73,106 @@ export function normalizeForCompare(value: string | null | undefined) {
   return (value ?? '').normalize('NFC').replace(/\s+/g, '').toLowerCase();
 }
 
+/** 솔라스 값과 PagePace 기록을 항목별로 비교한 결과 */
+export type ReviewCompareMark = 'same' | 'edition' | 'title' | 'different' | 'none';
+
+export const REVIEW_COMPARE_MARK_LABELS: Record<ReviewCompareMark, string> = {
+  same: '일치',
+  edition: '판본 일치',
+  title: '제목으로 찾음',
+  different: '다름',
+  none: '—',
+};
+
+export type ReviewComparison = {
+  key: 'memberNo' | 'name' | 'bookId' | 'bookTitle';
+  label: string;
+  source: string | null;
+  record: string | undefined;
+  mark: ReviewCompareMark;
+};
+
+/**
+ * 회원번호·이름·도서 ID·도서명을 비교합니다.
+ * 도서 ID가 달라도 서버가 승인된 다른 판본으로 찾았으면 '판본 일치', 제목으로만 찾았으면
+ * '제목으로 찾음'으로 표시합니다.
+ */
+export function getReviewComparisons(
+  row: ImportedReview,
+  candidate: ReviewCandidate | undefined,
+): ReviewComparison[] {
+  const mark = (same: boolean): ReviewCompareMark =>
+    !candidate ? 'none' : same ? 'same' : 'different';
+  const bookIdMark: ReviewCompareMark = !candidate
+    ? 'none'
+    : candidate.libraryBookId === row.libraryBookId
+      ? 'same'
+      : candidate.matchType === 'TITLE'
+        ? 'title'
+        : 'edition';
+
+  return [
+    {
+      key: 'memberNo',
+      label: '회원번호',
+      source: row.memberNo,
+      record: candidate?.studentNo,
+      mark: mark(row.memberNo === candidate?.studentNo),
+    },
+    {
+      key: 'name',
+      label: '이름',
+      source: row.memberName,
+      record: candidate?.name,
+      mark: mark(normalizeForCompare(row.memberName) === normalizeForCompare(candidate?.name)),
+    },
+    {
+      key: 'bookId',
+      label: '도서 ID',
+      source: row.libraryBookId === null ? null : String(row.libraryBookId),
+      record: candidate ? String(candidate.libraryBookId) : undefined,
+      mark: bookIdMark,
+    },
+    {
+      key: 'bookTitle',
+      label: '도서명',
+      source: row.bookTitle,
+      record: candidate?.bookTitle,
+      mark: mark(normalizeForCompare(row.bookTitle) === normalizeForCompare(candidate?.bookTitle)),
+    },
+  ];
+}
+
+/**
+ * 표 한 줄에 보여 줄 요약 대조 (회원번호·이름·도서).
+ * 도서는 ID와 제목을 함께 보고, ID는 같지만 제목 표기가 다르면 확인이 필요한 것으로 봅니다.
+ */
+export function getCompactComparisons(row: ImportedReview, candidate: ReviewCandidate | undefined) {
+  const [memberNo, name, bookId, bookTitle] = getReviewComparisons(row, candidate);
+  const bookMark: ReviewCompareMark =
+    bookId.mark === 'same' && bookTitle.mark === 'different' ? 'title' : bookId.mark;
+  const bookLabel =
+    bookId.mark === 'same' && bookTitle.mark === 'different'
+      ? 'ID 같음 · 제목 표기 다름'
+      : REVIEW_COMPARE_MARK_LABELS[bookMark];
+
+  return [
+    {
+      key: 'memberNo',
+      label: '회원번호',
+      mark: memberNo.mark,
+      title: REVIEW_COMPARE_MARK_LABELS[memberNo.mark],
+    },
+    { key: 'name', label: '이름', mark: name.mark, title: REVIEW_COMPARE_MARK_LABELS[name.mark] },
+    { key: 'book', label: '도서', mark: bookMark, title: bookLabel },
+  ] as const;
+}
+
+/** 대조표에서 행을 찾아 화면 안으로 옮길 때 쓰는 요소 id */
+export function getReviewRowElementId(rowId: number) {
+  return `reviewImportRow-${rowId}`;
+}
+
 export function formatPages(pages: number) {
   return `${pages.toLocaleString('ko-KR')}쪽`;
 }

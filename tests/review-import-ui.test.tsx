@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
-import ReviewImportDetailPanel from '../src/components/admin/reviews/ReviewImportDetailPanel';
+import ReviewImportRowDetail from '../src/components/admin/reviews/ReviewImportRowDetail';
 import ReviewImportTable from '../src/components/admin/reviews/ReviewImportTable';
 import {
   uploadReviewExcel,
@@ -54,33 +54,36 @@ const row: ImportedReview = {
 function renderPanel(target: ImportedReview, readOnly = false) {
   return renderToStaticMarkup(
     <MemoryRouter>
-      <ReviewImportDetailPanel
+      <ReviewImportRowDetail
         row={target}
         eventId={7}
-        position={1}
-        total={1}
         busy={false}
         readOnly={readOnly}
-        onMove={() => {}}
+        onCollapse={() => {}}
         onConfirm={async () => {}}
       />
     </MemoryRouter>,
   );
 }
 
-function renderTable(view: 'ready' | 'review', rows: ImportedReview[]) {
+function renderTable(
+  view: 'ready' | 'review',
+  rows: ImportedReview[],
+  expandedRowId: number | null = null,
+) {
   return renderToStaticMarkup(
     <ReviewImportTable
       view={view}
       rows={rows}
-      activeRowId={null}
+      expandedRowId={expandedRowId}
       selectedIds={[]}
       busy={false}
       readOnly={false}
       emptyMessage="없음"
-      onSelectRow={() => {}}
+      onToggleExpand={() => {}}
       onToggleRow={() => {}}
       onToggleAll={() => {}}
+      renderDetail={(target) => <p>상세-{target.sourceRow}</p>}
     />,
   );
 }
@@ -160,6 +163,21 @@ describe('솔라스 자료 대조 기능', () => {
     expect(renderTable('review', [{ ...row, status: 'NEEDS_REVIEW' }])).not.toContain(
       'type="checkbox"',
     );
+  });
+  it('대조표 한 줄에 솔라스 서평과 PagePace 기록을 나란히 보여 주고 펼친 행만 상세를 연다', () => {
+    const second = { ...row, id: 5, sourceRow: 3 };
+    const html = renderTable('ready', [row, second], row.id);
+    expect(html).toContain('솔라스 서평');
+    expect(html).toContain('PagePace 독서 기록');
+    expect(html).toContain('admin-review-mark is-same');
+    expect(html).toContain('aria-expanded="true"');
+    expect(html).toContain('상세-2');
+    expect(html).not.toContain('상세-3');
+
+    const mismatch = renderTable('review', [
+      { ...row, status: 'NEEDS_REVIEW', memberName: '다른이름', warnings: ['이름 다름'] },
+    ]);
+    expect(mismatch).toContain('admin-review-mark is-different');
   });
   it('엑셀 행 번호·작성자·회원번호·도서명으로 대조 결과를 찾는다', () => {
     expect(matchesReviewImportKeyword(row, '2')).toBe(true);

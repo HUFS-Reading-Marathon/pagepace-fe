@@ -1,83 +1,28 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import type {
-  ImportedReview,
-  ReviewCandidate,
-  ReviewConfirmation,
-} from '../../../api/reviewImportApi';
+import type { ImportedReview, ReviewConfirmation } from '../../../api/reviewImportApi';
 import { METERS_PER_PAGE } from '../../../constants/reading';
 import {
+  REVIEW_COMPARE_MARK_LABELS,
   formatMeters,
   formatPages,
   formatSourceTime,
   getCandidateCredit,
   getDefaultCandidate,
+  getReviewComparisons,
   isConfirmableRow,
-  normalizeForCompare,
 } from '../../../types/adminReviewImport';
 import { formatKoDateTime24 } from '../../../utils/date';
 import ApprovedBookLogs from './ApprovedBookLogs';
-import ReviewImportStatusBadge from './ReviewImportStatusBadge';
 
-type ReviewImportDetailPanelProps = {
+type ReviewImportRowDetailProps = {
   row: ImportedReview;
   eventId: number;
-  position: number;
-  total: number;
   busy: boolean;
   readOnly: boolean;
-  onMove: (offset: -1 | 1) => void;
+  onCollapse: () => void;
   onConfirm: (row: ImportedReview, request: ReviewConfirmation) => Promise<void>;
 };
-
-type CompareMark = 'same' | 'edition' | 'title' | 'different' | 'none';
-
-const COMPARE_MARK_LABELS: Record<CompareMark, string> = {
-  same: '일치',
-  edition: '판본 일치',
-  title: '제목으로 찾음',
-  different: '다름',
-  none: '—',
-};
-
-function getComparisons(row: ImportedReview, candidate: ReviewCandidate | undefined) {
-  const mark = (same: boolean): CompareMark => (!candidate ? 'none' : same ? 'same' : 'different');
-  const sameBookId = candidate?.libraryBookId === row.libraryBookId;
-  const bookIdMark: CompareMark = !candidate
-    ? 'none'
-    : sameBookId
-      ? 'same'
-      : candidate.matchType === 'TITLE'
-        ? 'title'
-        : 'edition';
-
-  return [
-    {
-      label: '회원번호',
-      source: row.memberNo,
-      record: candidate?.studentNo,
-      mark: mark(row.memberNo === candidate?.studentNo),
-    },
-    {
-      label: '이름',
-      source: row.memberName,
-      record: candidate?.name,
-      mark: mark(normalizeForCompare(row.memberName) === normalizeForCompare(candidate?.name)),
-    },
-    {
-      label: '도서 ID',
-      source: row.libraryBookId === null ? null : String(row.libraryBookId),
-      record: candidate ? String(candidate.libraryBookId) : undefined,
-      mark: bookIdMark,
-    },
-    {
-      label: '도서명',
-      source: row.bookTitle,
-      record: candidate?.bookTitle,
-      mark: mark(normalizeForCompare(row.bookTitle) === normalizeForCompare(candidate?.bookTitle)),
-    },
-  ];
-}
 
 function StatusGuide({ row, eventId }: { row: ImportedReview; eventId: number }) {
   if (row.status === 'BOOK_VERIFIED') {
@@ -111,17 +56,19 @@ function StatusGuide({ row, eventId }: { row: ImportedReview; eventId: number })
   return null;
 }
 
-/** 엑셀 한 행의 대조 내용, 서평 원문, 인정 계산을 보여 주고 거리 반영을 처리합니다. */
-function ReviewImportDetailPanel({
+/**
+ * 대조표에서 펼친 한 행의 상세.
+ * 왼쪽(근거)에는 확인 사항·항목별 대조·서평 원문을, 오른쪽(판단)에는 인정 계산·확인 항목과
+ * 반영 버튼을 둡니다.
+ */
+function ReviewImportRowDetail({
   row,
   eventId,
-  position,
-  total,
   busy,
   readOnly,
-  onMove,
+  onCollapse,
   onConfirm,
-}: ReviewImportDetailPanelProps) {
+}: ReviewImportRowDetailProps) {
   const [candidateId, setCandidateId] = useState(
     () => getDefaultCandidate(row)?.participantBookId ?? 0,
   );
@@ -133,9 +80,9 @@ function ReviewImportDetailPanel({
   const confirmable = isConfirmableRow(row);
   const needsNote = row.warnings.length > 0;
   const credit = candidate ? getCandidateCredit(candidate) : null;
-  const comparisons = getComparisons(row, confirmable ? candidate : undefined);
   const canSubmit =
     confirmable && !readOnly && !busy && !!candidate && checked && (!needsNote || !!note.trim());
+  const labelId = `reviewImportDetailTitle-${row.id}`;
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -161,45 +108,12 @@ function ReviewImportDetailPanel({
           : `${formatPages(candidate.uncreditedPages)}을 거리로 반영합니다.`;
 
   return (
-    <form
-      className="admin-detail-panel admin-review-detail"
-      aria-labelledby="reviewImportDetailTitle"
-      onSubmit={submit}
-    >
-      <header className="admin-detail-panel__head">
-        <div>
-          <p className="admin-detail-panel__eyebrow">
-            엑셀 {row.sourceRow}행 <ReviewImportStatusBadge status={row.status} />
-          </p>
-          <h2 id="reviewImportDetailTitle">
-            {row.memberName || '이름 없음'}
-            <small className="admin-reviews__student">{row.memberNo}</small>
-          </h2>
-        </div>
-        <div className="admin-detail-panel__nav">
-          <span>
-            {position} / {total}
-          </span>
-          <button
-            type="button"
-            aria-label="이전 서평"
-            disabled={position <= 1 || busy}
-            onClick={() => onMove(-1)}
-          >
-            ‹
-          </button>
-          <button
-            type="button"
-            aria-label="다음 서평"
-            disabled={position >= total || busy}
-            onClick={() => onMove(1)}
-          >
-            ›
-          </button>
-        </div>
-      </header>
+    <form className="admin-review-detail" aria-labelledby={labelId} onSubmit={submit}>
+      <h3 id={labelId} className="admin-review-detail__sr">
+        엑셀 {row.sourceRow}행 {row.memberName ?? ''} 검토
+      </h3>
 
-      <div className="admin-detail-panel__body">
+      <div className="admin-review-detail__evidence">
         {row.warnings.length > 0 && (
           <div
             className={`admin-review-detail__warnings${confirmable ? '' : ' is-blocked'}`}
@@ -242,9 +156,62 @@ function ReviewImportDetailPanel({
           </fieldset>
         )}
 
+        {confirmable && (
+          <section className="admin-review-detail__section">
+            <h4>대조 결과</h4>
+            <table className="admin-review-compare">
+              <thead>
+                <tr>
+                  <th scope="col">항목</th>
+                  <th scope="col">솔라스 서평</th>
+                  <th scope="col">PagePace 기록</th>
+                  <th scope="col">
+                    <span className="admin-review-compare__sr">대조</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {getReviewComparisons(row, candidate).map((item) => (
+                  <tr key={item.key}>
+                    <th scope="row">{item.label}</th>
+                    <td>{item.source || '—'}</td>
+                    <td>{item.record || '—'}</td>
+                    <td>
+                      <span className={`admin-review-compare__mark is-${item.mark}`}>
+                        {REVIEW_COMPARE_MARK_LABELS[item.mark]}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        )}
+
+        {row.status !== 'EXCLUDED' && (
+          <section className="admin-review-detail__section">
+            <h4>서평 원문</h4>
+            <div className="admin-review-detail__source">
+              <div className="admin-review-detail__source-head">
+                <strong>{row.reviewTitle || '제목 없음'}</strong>
+                <span>최종 수정 {formatSourceTime(row.sourceUpdatedAt)}</span>
+              </div>
+              {row.bibliographicInfo && (
+                <p className="admin-review-detail__biblio">{row.bibliographicInfo}</p>
+              )}
+              <p className="admin-review-detail__content">{row.content || '본문 없음'}</p>
+            </div>
+            <p className="admin-review-detail__note">
+              최종 수정일은 최초 작성일이 아닙니다. 행사 인정 기간과 함께 확인해 주세요.
+            </p>
+          </section>
+        )}
+      </div>
+
+      <div className="admin-review-detail__decision">
         {!confirmable && row.status !== 'EXCLUDED' && (
-          <section className="admin-review-detail__section" aria-labelledby="reviewFactsTitle">
-            <h3 id="reviewFactsTitle">솔라스 서평 정보</h3>
+          <section className="admin-review-detail__section">
+            <h4>솔라스 서평 정보</h4>
             <dl className="admin-review-detail__facts">
               <div>
                 <dt>회원번호</dt>
@@ -266,60 +233,9 @@ function ReviewImportDetailPanel({
           </section>
         )}
 
-        {confirmable && (
-          <section className="admin-review-detail__section" aria-labelledby="reviewCompareTitle">
-            <h3 id="reviewCompareTitle">대조 결과</h3>
-            <table className="admin-review-compare">
-              <thead>
-                <tr>
-                  <th scope="col">항목</th>
-                  <th scope="col">솔라스 서평</th>
-                  <th scope="col">PagePace 기록</th>
-                  <th scope="col">
-                    <span className="admin-review-compare__sr">대조</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {comparisons.map((item) => (
-                  <tr key={item.label}>
-                    <th scope="row">{item.label}</th>
-                    <td>{item.source || '—'}</td>
-                    <td>{item.record || '—'}</td>
-                    <td>
-                      <span className={`admin-review-compare__mark is-${item.mark}`}>
-                        {COMPARE_MARK_LABELS[item.mark]}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
-        )}
-
-        {row.status !== 'EXCLUDED' && (
-          <section className="admin-review-detail__section" aria-labelledby="reviewSourceTitle">
-            <h3 id="reviewSourceTitle">서평 원문</h3>
-            <div className="admin-review-detail__source">
-              <div className="admin-review-detail__source-head">
-                <strong>{row.reviewTitle || '제목 없음'}</strong>
-                <span>최종 수정 {formatSourceTime(row.sourceUpdatedAt)}</span>
-              </div>
-              {row.bibliographicInfo && (
-                <p className="admin-review-detail__biblio">{row.bibliographicInfo}</p>
-              )}
-              <p className="admin-review-detail__content">{row.content || '본문 없음'}</p>
-            </div>
-            <p className="admin-review-detail__note">
-              최종 수정일은 최초 작성일이 아닙니다. 행사 인정 기간과 함께 확인해 주세요.
-            </p>
-          </section>
-        )}
-
         {row.verification && (
-          <section className="admin-review-detail__section" aria-labelledby="reviewAppliedTitle">
-            <h3 id="reviewAppliedTitle">처리 기록</h3>
+          <section className="admin-review-detail__section">
+            <h4>처리 기록</h4>
             <p className="admin-review-detail__applied">
               {row.verification.verifiedBy} · {formatKoDateTime24(row.verification.verifiedAt)} ·{' '}
               {formatPages(row.verification.creditedPages)} (
@@ -329,8 +245,8 @@ function ReviewImportDetailPanel({
         )}
 
         {confirmable && candidate && credit && (
-          <section className="admin-review-detail__section" aria-labelledby="reviewCreditTitle">
-            <h3 id="reviewCreditTitle">인정 계산</h3>
+          <section className="admin-review-detail__section">
+            <h4>인정 계산</h4>
             <div className="admin-reviews__equation" aria-label="이번에 인정할 쪽수 계산">
               <div>
                 <span>승인 누적</span>
@@ -366,8 +282,8 @@ function ReviewImportDetailPanel({
         )}
 
         {confirmable && (
-          <section className="admin-review-detail__section" aria-labelledby="reviewConfirmTitle">
-            <h3 id="reviewConfirmTitle">확인</h3>
+          <section className="admin-review-detail__section">
+            <h4>확인</h4>
             <label className="admin-review-detail__memo">
               <span>검토 메모 {needsNote ? '(필수)' : '(선택)'}</span>
               <textarea
@@ -397,23 +313,26 @@ function ReviewImportDetailPanel({
             </ul>
           </section>
         )}
-      </div>
 
-      {confirmable && (
-        <footer className="admin-detail-panel__actions">
-          <p className="admin-detail-panel__actions-hint">{hint}</p>
-          <button
-            type="submit"
-            className="admin-button admin-button--primary"
-            disabled={!canSubmit}
-            aria-busy={busy}
-          >
-            {candidate ? `${formatMeters(candidate.distanceToCreditMeter)} 반영` : '거리 반영'}
+        <div className="admin-review-detail__actions">
+          {confirmable && <p>{hint}</p>}
+          <button type="button" className="admin-button" onClick={onCollapse}>
+            접기
           </button>
-        </footer>
-      )}
+          {confirmable && (
+            <button
+              type="submit"
+              className="admin-button admin-button--primary"
+              disabled={!canSubmit}
+              aria-busy={busy}
+            >
+              {candidate ? `${formatMeters(candidate.distanceToCreditMeter)} 반영` : '거리 반영'}
+            </button>
+          )}
+        </div>
+      </div>
     </form>
   );
 }
 
-export default ReviewImportDetailPanel;
+export default ReviewImportRowDetail;
