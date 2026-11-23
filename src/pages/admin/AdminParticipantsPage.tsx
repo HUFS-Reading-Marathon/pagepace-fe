@@ -1,576 +1,511 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import {
-  approveAdminApplication,
-  getAdminApplicationDetail,
-  getAdminApplications,
-  rejectAdminApplication,
-} from '../../api/adminApplicationApi';
+import { getAdminEvents, getAdminEventCourses } from '../../api/adminEventApi';
 import { getApiErrorMessage } from '../../api/apiClient';
-import { getAdminEvents } from '../../api/adminEventApi';
-import { resolveAdminQueueEvent } from '../../utils/adminEvent';
-import { useAdminEventState } from '../../hooks/useAdminEventState';
-import type { AdminEvent } from '../../types/adminEvent';
-import ParticipantRegistration from '../../components/admin/participants/ParticipantRegistration';
-import ParticipantDetailDialog from '../../components/admin/participants/ParticipantDetailDialog';
-import ParticipantFilters from '../../components/admin/participants/ParticipantFilters';
-import ParticipantTable from '../../components/admin/participants/ParticipantTable';
 import {
-  ADMIN_APPLICATION_AFFILIATION_LABELS,
-  ADMIN_APPLICATION_STATUS_LABELS,
-  type AdminApplicationAffiliationType,
-  type AdminApplicationDetail,
-  type AdminApplicationListItem,
-  type ParticipantAffiliationFilter,
-  type ParticipantCourseFilter,
-  type ParticipantStatusFilter,
-} from '../../types/adminApplication';
+  getRoster,
+  promoteRoster,
+  ROSTER_STATUSES,
+  rosterStatus,
+  rosterKey,
+  type RosterRow,
+} from '../../api/adminRosterApi';
+import { resolveAdminQueueEvent } from '../../utils/adminEvent';
+import { selectEvent } from '../../utils/eventSelection';
+import type { AdminEvent, AdminCourse } from '../../types/adminEvent';
+import { ADMIN_APPLICATION_AFFILIATION_LABELS } from '../../types/adminApplication';
+import ParticipantDetailDialog from '../../components/admin/participants/ParticipantDetailDialog';
+import ParticipantEditor from '../../components/admin/participants/ParticipantEditor';
+import ParticipantFilters from '../../components/admin/participants/ParticipantFilters';
+import { EMPTY_FILTERS, matchesRosterRow, type RosterFilters } from '../../utils/participantRoster';
+import ParticipantTable from '../../components/admin/participants/ParticipantTable';
 import { formatKoDateTime, getLocalDateKey } from '../../utils/date';
 import '../../styles/admin-participants.css';
 
-const CSV_HEADERS = [
-  '신청 상태',
-  '이름',
-  '학번/사번',
-  '소속',
-  '신분',
-  '연락처',
-  '이메일',
-  '선택 코스',
-  '신청일',
-];
-
-/** 참가신청서를 승인 대기·승인·반려·취소 상태로 구분해 보여 주는 탭(직접 등록 참가자는 위 목록에서 관리) */
-const STATUS_TABS: ReadonlyArray<{
-  value: ParticipantStatusFilter;
-  label: string;
-  countKey: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'total';
-}> = [
-  { value: 'APPLIED', label: '승인 대기 신청서', countKey: 'pending' },
-  { value: 'APPROVED', label: '승인된 신청서', countKey: 'approved' },
-  { value: 'REJECTED', label: '반려', countKey: 'rejected' },
-  { value: 'CANCELLED', label: '참가 취소', countKey: 'cancelled' },
-  { value: 'ALL', label: '전체 신청', countKey: 'total' },
-];
-
-function escapeCsvValue(value: string) {
-  return `"${value.replace(/"/g, '""')}"`;
+function downloadRows(rows: RosterRow[]) {
+  const header = [
+    '순번',
+    '상태',
+    '이름',
+    '학번/사번',
+    '소속',
+    '신분',
+    '연락처',
+    '이메일',
+    '코스',
+    '등록일',
+  ];
+  const values = rows.map((r) => {
+    const status = rosterStatus(r);
+    return [
+      String(r.serialNo),
+      status && ROSTER_STATUSES[status],
+      r.name,
+      r.studentNo,
+      r.department,
+      ADMIN_APPLICATION_AFFILIATION_LABELS[r.affiliationType],
+      r.phone,
+      r.email,
+      r.courseName,
+      formatKoDateTime(r.registeredAt),
+    ];
+  });
+  const csv = [header, ...values]
+    .map((row) =>
+      row
+        .map((value) => {
+          let text = value ?? '';
+          if (/^[\s]*[=+@-]/.test(text)) text = "'" + text;
+          return '"' + text.replaceAll('"', '""') + '"';
+        })
+        .join(','),
+    )
+    .join('\r\n');
+  const url = URL.createObjectURL(new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '독서마라톤_참가자목록_' + getLocalDateKey() + '.csv';
+  a.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function AdminParticipantsPage() {
-  const [participants, setParticipants] = useState<AdminApplicationListItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [currentEventId, setCurrentEventId] = useAdminEventState();
-  const [events, setEvents] = useState<AdminEvent[]>([]);
-  const [searchKeyword, setSearchKeyword] = useState('');
-  const [searchParams, setSearchParams] = useSearchParams();
-  const linkedEvent = searchParams.get('eventId');
-  const linkedApplication = searchParams.get('applicationId');
-  // 오늘의 업무에서 ?status=APPLIED로 들어오면 승인 대기 신청서부터 보여 줍니다.
-  const [statusFilter, setStatusFilter] = useState<ParticipantStatusFilter>(() =>
-    searchParams.get('status') === 'APPLIED' ? 'APPLIED' : 'ALL',
-  );
-  const [courseFilter, setCourseFilter] = useState<ParticipantCourseFilter>('ALL');
-  const [affiliationFilter, setAffiliationFilter] = useState<ParticipantAffiliationFilter>('ALL');
-  const selectedApplicationId = linkedApplication === null ? null : Number(linkedApplication);
-  const [detailApplication, setDetailApplication] = useState<AdminApplicationDetail | null>(null);
-  const [isDetailLoading, setIsDetailLoading] = useState(true);
-  const [detailError, setDetailError] = useState<string | null>(null);
-  const [detailActionError, setDetailActionError] = useState<string | null>(null);
-  const detailRequestSequenceRef = useRef(0);
-  const [processingApplicationId, setProcessingApplicationId] = useState<number | null>(null);
-  const processingApplicationIdRef = useRef<number | null>(null);
-  const [feedbackMessage, setFeedbackMessage] = useState('');
-  const [feedbackIsError, setFeedbackIsError] = useState(false);
-  const dialogOpenerRef = useRef<HTMLElement | null>(null);
-  const [dialogStartsRejecting, setDialogStartsRejecting] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    getAdminEvents()
-      .then((next) => {
-        if (active) {
-          setEvents(next);
-          const event = resolveAdminQueueEvent(next, linkedEvent);
-          setCurrentEventId(event?.eventId ?? null);
-          if (!event) {
-            setParticipants([]);
-            setIsLoading(false);
-            if (linkedEvent !== null) setError('링크에 지정된 행사를 찾을 수 없습니다.');
-          }
-        }
-      })
-      .catch((error) => {
-        if (active) {
-          setError(error.message);
-          setIsLoading(false);
-        }
-      });
-    return () => {
-      active = false;
-    };
-  }, [linkedEvent, setCurrentEventId]);
-  useEffect(() => {
-    if (currentEventId === null) return;
-    let active = true;
-    getAdminApplications(currentEventId)
-      .then((next) => {
-        if (active) {
-          setParticipants(next);
-          setError(null);
-        }
-      })
-      .catch((error) => {
-        if (active) {
-          setParticipants([]);
-          setError(error.message);
-        }
-      })
-      .finally(() => {
-        if (active) setIsLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [currentEventId]);
-
-  const statistics = useMemo(
+function Registry({
+  event,
+  events,
+  onEventChange,
+}: {
+  event: AdminEvent;
+  events: AdminEvent[];
+  onEventChange: (id: string) => void;
+}) {
+  const [params, setParams] = useSearchParams();
+  const [rows, setRows] = useState<RosterRow[]>([]);
+  const [courses, setCourses] = useState<AdminCourse[]>([]);
+  const [refresh, setRefresh] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [message, setMessage] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [localFilters, setFilters] = useState<RosterFilters>(EMPTY_FILTERS);
+  const statusParam = params.get('status') ?? '';
+  const filters = useMemo(
     () => ({
-      total: participants.length,
-      pending: participants.filter((participant) => participant.status === 'APPLIED').length,
-      approved: participants.filter((participant) => participant.status === 'APPROVED').length,
-      rejected: participants.filter((participant) => participant.status === 'REJECTED').length,
-      cancelled: participants.filter((participant) => participant.status === 'CANCELLED').length,
+      ...localFilters,
+      status: Object.hasOwn(ROSTER_STATUSES, statusParam) ? statusParam : '',
     }),
-    [participants],
+    [localFilters, statusParam],
   );
-
-  const courseOptions = useMemo(
-    () =>
-      [...new Set(participants.map((participant) => participant.courseName))]
-        .filter(Boolean)
-        .sort((first, second) => first.localeCompare(second, 'ko')),
-    [participants],
-  );
-
-  const affiliationOptions = useMemo(
-    () =>
-      [...new Set(participants.map((participant) => participant.affiliationType))].sort(
-        (first, second) =>
-          ADMIN_APPLICATION_AFFILIATION_LABELS[first].localeCompare(
-            ADMIN_APPLICATION_AFFILIATION_LABELS[second],
-            'ko',
-          ),
-      ) as AdminApplicationAffiliationType[],
-    [participants],
-  );
-
-  const filteredParticipants = useMemo(() => {
-    const normalizedKeyword = searchKeyword.trim().toLowerCase();
-
-    return participants.filter((participant) => {
-      const matchesKeyword =
-        !normalizedKeyword ||
-        [participant.name, participant.studentNo, participant.email].some((value) =>
-          value?.toLowerCase().includes(normalizedKeyword),
-        );
-      const matchesStatus = statusFilter === 'ALL' || participant.status === statusFilter;
-      const matchesCourse = courseFilter === 'ALL' || participant.courseName === courseFilter;
-      const matchesAffiliation =
-        affiliationFilter === 'ALL' || participant.affiliationType === affiliationFilter;
-
-      return matchesKeyword && matchesStatus && matchesCourse && matchesAffiliation;
-    });
-  }, [affiliationFilter, courseFilter, participants, searchKeyword, statusFilter]);
-
-  const selectedListApplication =
-    selectedApplicationId === null
-      ? undefined
-      : participants.find(
-          (participant) =>
-            participant.applicationId === selectedApplicationId &&
-            participant.eventId === currentEventId &&
-            (linkedEvent === null || String(participant.eventId) === linkedEvent),
-        );
-  const listedApplicationId = selectedListApplication?.applicationId;
-
-  const handleResetFilters = () => {
-    setSearchKeyword('');
-    setStatusFilter('ALL');
-    setCourseFilter('ALL');
-    setAffiliationFilter('ALL');
-  };
-
-  const handleOpenDialog = (applicationId: number, startRejecting = false) => {
-    dialogOpenerRef.current =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    setDialogStartsRejecting(startRejecting);
-    void showApplication(applicationId);
-  };
-
-  const showApplication = (applicationId: number) => {
-    resetDetail();
-    const params = new URLSearchParams(searchParams);
-    if (currentEventId !== null) params.set('eventId', String(currentEventId));
-    params.set('applicationId', String(applicationId));
-    setSearchParams(params, { replace: true });
-  };
-
+  const [page, setPage] = useState(1),
+    [perPage, setPerPage] = useState(10);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [editor, setEditor] = useState<'add' | RosterRow | null>(null);
+  const [targetCourse, setTargetCourse] = useState('');
+  const [promoting, setPromoting] = useState(false);
   useEffect(() => {
-    if (listedApplicationId === undefined) return;
-    const sequence = ++detailRequestSequenceRef.current;
-    getAdminApplicationDetail(listedApplicationId)
-      .then((application) => {
-        if (detailRequestSequenceRef.current === sequence) setDetailApplication(application);
-      })
-      .catch((requestError: unknown) => {
-        if (detailRequestSequenceRef.current === sequence) {
-          setDetailError(getApiErrorMessage(requestError, '참가신청 상세를 불러오지 못했습니다.'));
+    let current = true;
+    Promise.all([getRoster(event.eventId), getAdminEventCourses(event.eventId)])
+      .then(([entries, options]) => {
+        if (current) {
+          setRows(entries);
+          setCourses(options);
+          setLoadError('');
         }
+      })
+      .catch((error) => {
+        if (current) setLoadError(getApiErrorMessage(error, '참가자 명단을 불러오지 못했습니다.'));
       })
       .finally(() => {
-        if (detailRequestSequenceRef.current === sequence) setIsDetailLoading(false);
+        if (current) setLoading(false);
       });
     return () => {
-      detailRequestSequenceRef.current += 1;
+      current = false;
     };
-  }, [listedApplicationId]);
+  }, [event.eventId, refresh]);
 
-  const resetDetail = useCallback(() => {
-    detailRequestSequenceRef.current += 1;
-    setDetailApplication(null);
-    setDetailError(null);
-    setDetailActionError(null);
-    setIsDetailLoading(true);
-  }, []);
-
-  const handleCloseDialog = useCallback(() => {
-    const dialogOpener = dialogOpenerRef.current;
-    const params = new URLSearchParams(searchParams);
-    params.delete('applicationId');
-    setSearchParams(params, { replace: true });
-    resetDetail();
-    window.requestAnimationFrame(() => dialogOpener?.focus());
-  }, [searchParams, setSearchParams, resetDetail]);
-
-  const handleApprove = async (applicationId: number) => {
-    if (processingApplicationIdRef.current !== null) {
-      return;
-    }
-
-    if (currentEventId === null) {
-      setFeedbackMessage('현재 관리할 행사 정보를 확인할 수 없습니다.');
-      setFeedbackIsError(true);
-      return;
-    }
-
-    const targetApplication = participants.find(
-      (participant) => participant.applicationId === applicationId,
-    );
-    const participantName = targetApplication?.name ?? '참가자';
-
-    // 목록과 상세 다이얼로그 모두 이 함수를 거치므로, 승인 요청 전에 대상과 코스를 한 번 확인합니다.
-    const confirmTarget = targetApplication
-      ? `${targetApplication.name}(${targetApplication.studentNo}) · ${targetApplication.courseName}`
-      : participantName;
-    if (
-      !window.confirm(`${confirmTarget}\n\n이 참가신청을 승인할까요? 승인하면 참가자로 등록됩니다.`)
-    ) {
-      return;
-    }
-
-    processingApplicationIdRef.current = applicationId;
-    setProcessingApplicationId(applicationId);
-    setFeedbackMessage('');
-    setFeedbackIsError(false);
-    setDetailActionError(null);
-
-    try {
-      await approveAdminApplication(applicationId);
-    } catch (requestError) {
-      const message = getApiErrorMessage(requestError, '참가신청을 승인하지 못했습니다.');
-
-      setFeedbackMessage(message);
-      setFeedbackIsError(true);
-
-      if (selectedApplicationId === applicationId) {
-        setDetailActionError(message);
-      }
-
-      processingApplicationIdRef.current = null;
-      setProcessingApplicationId(null);
-      return;
-    }
-
-    try {
-      const nextParticipants = await getAdminApplications(currentEventId);
-
-      setParticipants(nextParticipants);
-      setError(null);
-
-      if (selectedApplicationId === applicationId) {
-        try {
-          const nextDetailApplication = await getAdminApplicationDetail(applicationId);
-
-          setDetailApplication(nextDetailApplication);
-          setDetailError(null);
-        } catch (detailRequestError) {
-          setDetailError(
-            getApiErrorMessage(
-              detailRequestError,
-              '승인은 완료됐지만 상세 정보를 다시 불러오지 못했습니다.',
-            ),
-          );
-        }
-      }
-
-      setFeedbackMessage(`${participantName}님의 참가신청을 승인했습니다.`);
-    } catch (refreshError) {
-      const message = getApiErrorMessage(
-        refreshError,
-        '승인은 완료됐지만 목록을 다시 불러오지 못했습니다.',
-      );
-
-      setFeedbackMessage(message);
-      setFeedbackIsError(true);
-      setError(message);
-
-      if (selectedApplicationId === applicationId) {
-        setDetailActionError(message);
-      }
-    } finally {
-      processingApplicationIdRef.current = null;
-      setProcessingApplicationId(null);
-    }
-  };
-
-  const handleDownload = () => {
-    if (filteredParticipants.length === 0) {
-      return;
-    }
-
-    const rows = filteredParticipants.map((participant) => [
-      ADMIN_APPLICATION_STATUS_LABELS[participant.status] ?? participant.status,
-      participant.name,
-      participant.studentNo,
-      participant.department ?? '',
-      ADMIN_APPLICATION_AFFILIATION_LABELS[participant.affiliationType] ??
-        participant.affiliationType,
-      participant.phone,
-      participant.email,
-      participant.courseName,
-      formatKoDateTime(participant.appliedAt),
-    ]);
-    const csv = [CSV_HEADERS, ...rows]
-      .map((row) => row.map((value) => escapeCsvValue(value ?? '')).join(','))
-      .join('\r\n');
-    const blob = new Blob([`\uFEFF${csv}`], {
-      type: 'text/csv;charset=utf-8',
-    });
-    const objectUrl = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-
-    anchor.href = objectUrl;
-    anchor.download = `독서마라톤_참가자목록_${getLocalDateKey()}.csv`;
-    document.body.append(anchor);
-    anchor.click();
-    anchor.remove();
-    URL.revokeObjectURL(objectUrl);
-    setFeedbackIsError(false);
-    setFeedbackMessage(
-      `현재 검색 결과 ${filteredParticipants.length}명의 목록을 다운로드했습니다.`,
-    );
-  };
-
-  const handleReject = async (applicationId: number, reason: string) => {
-    if (processingApplicationIdRef.current !== null || currentEventId === null || !reason.trim()) {
-      return false;
-    }
-
-    processingApplicationIdRef.current = applicationId;
-    setProcessingApplicationId(applicationId);
-    setFeedbackMessage('');
-    setFeedbackIsError(false);
-    setDetailActionError(null);
-
-    try {
-      await rejectAdminApplication(applicationId, reason);
-    } catch (requestError) {
-      const message = getApiErrorMessage(requestError, '참가신청을 반려하지 못했습니다.');
-      setFeedbackMessage(message);
-      setFeedbackIsError(true);
-      setDetailActionError(message);
-      processingApplicationIdRef.current = null;
-      setProcessingApplicationId(null);
-      return false;
-    }
-
-    try {
-      setParticipants(await getAdminApplications(currentEventId));
-      setDetailApplication(await getAdminApplicationDetail(applicationId));
-      setFeedbackMessage('참가신청을 반려했습니다.');
-    } catch (refreshError) {
-      const message = getApiErrorMessage(
-        refreshError,
-        '반려는 완료됐지만 목록을 다시 불러오지 못했습니다.',
-      );
-      setFeedbackMessage(message);
-      setFeedbackIsError(true);
-    } finally {
-      processingApplicationIdRef.current = null;
-      setProcessingApplicationId(null);
-    }
-
-    return true;
-  };
-
-  const selectedIndex = filteredParticipants.findIndex(
-    (participant) => participant.applicationId === selectedApplicationId,
+  const filtered = useMemo(() => rows.filter((r) => matchesRosterRow(r, filters)), [rows, filters]);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / perPage));
+  const currentPage = Math.min(page, pageCount);
+  const start = (currentPage - 1) * perPage;
+  const visible = filtered.slice(start, start + perPage);
+  const firstPage = Math.max(1, Math.min(currentPage - 2, pageCount - 4));
+  const pageNumbers = Array.from({ length: Math.min(5, pageCount) }, (_, i) => firstPage + i);
+  const checked = filtered.filter((r) => selected.has(rosterKey(r)));
+  const activeEvent = ['APPLICATION_OPEN', 'APPLICATION_CLOSED', 'IN_PROGRESS'].includes(
+    event.status,
   );
-
+  const writable = !['FINALIZED', 'ARCHIVED'].includes(event.status);
+  const canEdit = (row: RosterRow) =>
+    writable &&
+    (['APPROVED', 'COMPLETED'].includes(row.participationStatus ?? '') ||
+      (!row.participationId && row.applicationStatus === 'APPLIED'));
+  const higherCourses =
+    checked.length && activeEvent && checked.every((r) => r.participationId && canEdit(r))
+      ? courses.filter(
+          (c) =>
+            c.active !== false &&
+            checked.every((r) => {
+              const original = courses.find((course) => course.courseId === r.courseId);
+              return original && c.targetDistanceMeter > original.targetDistanceMeter;
+            }),
+        )
+      : [];
+  const linkedApp = params.get('applicationId'),
+    linkedParticipation = params.get('participationId');
+  const detail = linkedApp
+    ? rows.find((r) => String(r.applicationId) === linkedApp)
+    : linkedParticipation
+      ? rows.find((r) => String(r.participationId) === linkedParticipation)
+      : undefined;
+  const detailIndex = detail ? filtered.indexOf(detail) : -1;
+  const setDetail = (row: RosterRow | null) => {
+    const next = new URLSearchParams(params);
+    next.delete('applicationId');
+    next.delete('participationId');
+    if (row) {
+      next.set('eventId', String(event.eventId));
+      if (row.applicationId) next.set('applicationId', String(row.applicationId));
+      else if (row.participationId) next.set('participationId', String(row.participationId));
+    }
+    setParams(next, { replace: true });
+  };
+  const clearSelection = () => {
+    setSelected(new Set());
+    setTargetCourse('');
+    setActionError('');
+  };
+  const changeFilters = (next: RosterFilters) => {
+    setFilters(next);
+    setPage(1);
+    clearSelection();
+    setMessage('');
+    if (statusParam !== next.status) {
+      const copy = new URLSearchParams(params);
+      if (next.status) copy.set('status', next.status);
+      else copy.delete('status');
+      setParams(copy, { replace: true });
+    }
+  };
+  const toggle = (ids: number[], checked: boolean) => {
+    setSelected((old) => {
+      const next = new Set(old);
+      for (const id of ids) {
+        if (checked) next.add(id);
+        else next.delete(id);
+      }
+      return next;
+    });
+    setTargetCourse('');
+    setActionError('');
+    setMessage('');
+  };
+  const saved = (text: string) => {
+    const added = editor === 'add';
+    setEditor(null);
+    const next = new URLSearchParams(params);
+    next.delete('applicationId');
+    next.delete('participationId');
+    if (added) next.delete('status');
+    setParams(next, { replace: true });
+    clearSelection();
+    setMessage(text);
+    setLoading(true);
+    setRefresh((n) => n + 1);
+    if (added) {
+      setFilters(EMPTY_FILTERS);
+      setPage(1);
+    }
+  };
+  const promote = async () => {
+    const course = higherCourses.find((c) => String(c.courseId) === targetCourse);
+    if (!course || promoting) return;
+    setPromoting(true);
+    setActionError('');
+    try {
+      await promoteRoster(
+        event.eventId,
+        checked.map((r) => r.participationId!),
+        course.courseId,
+      );
+      saved(checked.length + '명의 코스를 ' + course.name + '로 변경했습니다.');
+    } catch (error) {
+      setActionError(getApiErrorMessage(error, '코스를 변경하지 못했습니다.'));
+    } finally {
+      setPromoting(false);
+    }
+  };
+  const ready = !loading && !loadError;
   return (
-    <section className="admin-page admin-participants">
-      <header className="admin-page__header admin-participants__header">
-        <div>
-          <h1>참가자 관리</h1>
-          <p>참가신청을 검토하고 참가자를 관리합니다.</p>
+    <section className="admin-page participant-registry">
+      <header className="roster-heading">
+        <h1>참가자 관리</h1>
+        <div className="roster-heading-actions">
+          <label>
+            관리 행사
+            <select
+              aria-label="관리 행사"
+              value={event.eventId}
+              disabled={promoting}
+              onChange={(e) => onEventChange(e.target.value)}
+            >
+              {events.map((e) => (
+                <option key={e.eventId} value={e.eventId}>
+                  {e.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            className="roster-btn roster-primary"
+            type="button"
+            disabled={!activeEvent || !ready || promoting}
+            onClick={() => setEditor('add')}
+          >
+            참가자 추가
+          </button>
         </div>
       </header>
-
-      <label className="admin-participants__event">
-        <span>관리 행사</span>
-        <select
-          aria-label="관리 행사"
-          value={currentEventId ?? ''}
-          disabled={processingApplicationId !== null}
-          onChange={(e) => {
-            resetDetail();
-            const params = new URLSearchParams(searchParams);
-            params.set('eventId', e.target.value);
-            params.delete('applicationId');
-            setSearchParams(params, { replace: true });
-            setParticipants([]);
-            setError(null);
-            setFeedbackMessage('');
-            setIsLoading(true);
-            setCurrentEventId(Number(e.target.value));
-          }}
-        >
-          {currentEventId === null && <option value="">행사를 선택해 주세요.</option>}
-          {events.map((event) => (
-            <option key={event.eventId} value={event.eventId}>
-              {event.title}
-            </option>
-          ))}
-        </select>
-      </label>
-      {currentEventId !== null && (
-        <ParticipantRegistration
-          key={`${currentEventId}-${statistics.approved}`}
-          eventId={currentEventId}
-          courseChangeOpen={events.some(
-            (e) =>
-              e.eventId === currentEventId &&
-              ['APPLICATION_OPEN', 'APPLICATION_CLOSED', 'IN_PROGRESS'].includes(e.status),
+      {message && (
+        <p className="roster-feedback" role="status">
+          {message}
+        </p>
+      )}
+      {(actionError || loadError) && (
+        <div className="roster-error" role="alert">
+          {actionError || loadError}
+          {loadError && (
+            <button
+              type="button"
+              className="roster-link"
+              onClick={() => {
+                setLoading(true);
+                setRefresh((n) => n + 1);
+              }}
+            >
+              다시 불러오기
+            </button>
           )}
+        </div>
+      )}
+      {ready && (linkedApp || linkedParticipation) && !detail && (
+        <p className="roster-error" role="alert">
+          이 행사에서 지정한 참가 기록을 찾을 수 없습니다.
+        </p>
+      )}
+      <section className="roster-sheet" aria-label="참가자 목록">
+        <div className="roster-tools">
+          <div className="roster-actions" aria-live="polite">
+            {checked.length ? (
+              <>
+                <strong>{checked.length}명 선택</strong>
+                {checked.length === 1 && (
+                  <button
+                    className="roster-btn"
+                    type="button"
+                    disabled={!ready || promoting}
+                    onClick={() =>
+                      canEdit(checked[0]) ? setEditor(checked[0]) : setDetail(checked[0])
+                    }
+                  >
+                    {canEdit(checked[0]) ? '선택 수정' : '상세 보기'}
+                  </button>
+                )}
+                {checked.length > 1 &&
+                  (higherCourses.length ? (
+                    <>
+                      <select
+                        aria-label="변경할 코스"
+                        value={targetCourse}
+                        disabled={promoting}
+                        onChange={(e) => setTargetCourse(e.target.value)}
+                      >
+                        <option value="">승급할 코스 선택</option>
+                        {higherCourses.map((c) => (
+                          <option value={c.courseId} key={c.courseId}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        className="roster-btn"
+                        disabled={!ready || !targetCourse || promoting}
+                        onClick={() => void promote()}
+                      >
+                        코스 변경
+                      </button>
+                    </>
+                  ) : (
+                    <span className="roster-note">함께 승급할 수 있는 코스가 없습니다.</span>
+                  ))}
+                <button
+                  type="button"
+                  className="roster-link"
+                  disabled={promoting}
+                  onClick={clearSelection}
+                >
+                  선택 해제
+                </button>
+              </>
+            ) : (
+              <strong>전체 {rows.length.toLocaleString()}명</strong>
+            )}
+          </div>
+          <button
+            type="button"
+            className="roster-link"
+            onClick={() => downloadRows(filtered)}
+            disabled={!ready || !filtered.length}
+          >
+            목록 다운로드
+          </button>
+        </div>
+        <fieldset className="roster-fieldset" disabled={promoting}>
+          <ParticipantFilters filters={filters} courses={courses} onChange={changeFilters} />
+        </fieldset>
+        <ParticipantTable
+          rows={visible}
+          selected={selected}
+          onSelect={toggle}
+          onOpen={setDetail}
+          busy={!ready || promoting}
+          message={
+            loading
+              ? '명단을 불러오는 중입니다.'
+              : loadError
+                ? '명단을 불러오지 못했습니다.'
+                : !filtered.length
+                  ? rows.length
+                    ? '조건에 맞는 참가자가 없습니다.'
+                    : '등록된 참가자가 없습니다.'
+                  : ''
+          }
+        />
+        <footer className="roster-footer">
+          <span aria-live="polite">
+            {filtered.length ? start + 1 + '–' + Math.min(start + perPage, filtered.length) : '0'} /{' '}
+            {filtered.length}명
+          </span>
+          <nav className="roster-pagination" aria-label="참가자 명단 페이지">
+            <button
+              aria-label="이전 페이지"
+              disabled={currentPage <= 1}
+              onClick={() => setPage(currentPage - 1)}
+            >
+              이전
+            </button>
+            {pageNumbers.map((n) => (
+              <button
+                key={n}
+                aria-label={n + '페이지'}
+                aria-current={currentPage === n ? 'page' : undefined}
+                onClick={() => setPage(n)}
+              >
+                {n}
+              </button>
+            ))}
+            <button
+              aria-label="다음 페이지"
+              disabled={currentPage >= pageCount}
+              onClick={() => setPage(currentPage + 1)}
+            >
+              다음
+            </button>
+          </nav>
+          <select
+            aria-label="페이지당 행 수"
+            value={perPage}
+            onChange={(e) => {
+              setPerPage(Number(e.target.value));
+              setPage(1);
+            }}
+          >
+            {[10, 20, 50].map((n) => (
+              <option key={n} value={n}>
+                {n}명씩 보기
+              </option>
+            ))}
+          </select>
+        </footer>
+      </section>
+      {detail && !editor && (
+        <ParticipantDetailDialog
+          key={rosterKey(detail)}
+          eventTitle={event.title}
+          row={detail}
+          editable={canEdit(detail)}
+          onClose={() => setDetail(null)}
+          onEdit={() => setEditor(detail)}
+          previous={detailIndex > 0 ? () => setDetail(filtered[detailIndex - 1]) : undefined}
+          next={
+            detailIndex >= 0 && detailIndex + 1 < filtered.length
+              ? () => setDetail(filtered[detailIndex + 1])
+              : undefined
+          }
+          onSaved={saved}
         />
       )}
-      <h2>참가신청서</h2>
-      <div className="admin-participants__tabs">
-        <div className="admin-segmented" aria-label="신청 상태별 보기">
-          {STATUS_TABS.map((tab) => (
-            <button
-              key={tab.value}
-              type="button"
-              aria-pressed={statusFilter === tab.value}
-              onClick={() => setStatusFilter(tab.value)}
-            >
-              {tab.label}
-              <b>{statistics[tab.countKey]}</b>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <ParticipantFilters
-        searchKeyword={searchKeyword}
-        statusFilter={statusFilter}
-        courseFilter={courseFilter}
-        affiliationFilter={affiliationFilter}
-        courseOptions={courseOptions}
-        affiliationOptions={affiliationOptions}
-        resultCount={filteredParticipants.length}
-        onSearchKeywordChange={setSearchKeyword}
-        onStatusFilterChange={setStatusFilter}
-        onCourseFilterChange={setCourseFilter}
-        onAffiliationFilterChange={setAffiliationFilter}
-        onReset={handleResetFilters}
-        onDownload={handleDownload}
-      />
-
-      <div
-        className="admin-participants__feedback"
-        role={feedbackIsError ? 'alert' : 'status'}
-        aria-live="polite"
-      >
-        {feedbackMessage}
-      </div>
-
-      {!isLoading && !error && linkedApplication !== null && !selectedListApplication && (
-        <p role="alert">이 행사에서 링크에 지정된 신청서를 찾을 수 없습니다.</p>
-      )}
-
-      <ParticipantTable
-        participants={filteredParticipants}
-        hasParticipants={participants.length > 0}
-        isLoading={isLoading}
-        error={error}
-        processingApplicationId={processingApplicationId}
-        onOpenDetails={(applicationId) => handleOpenDialog(applicationId)}
-        onApprove={handleApprove}
-        onRejectStart={(applicationId) => handleOpenDialog(applicationId, true)}
-      />
-
-      {selectedListApplication && selectedApplicationId !== null && (
-        <ParticipantDetailDialog
-          key={selectedApplicationId}
-          position={{
-            index: Math.max(selectedIndex, 0),
-            total: Math.max(filteredParticipants.length, 1),
-          }}
-          initialRejecting={dialogStartsRejecting}
-          onPrevious={
-            selectedIndex > 0
-              ? () => {
-                  setDialogStartsRejecting(false);
-                  void showApplication(filteredParticipants[selectedIndex - 1].applicationId);
-                }
-              : undefined
-          }
-          onNext={
-            selectedIndex >= 0 && selectedIndex < filteredParticipants.length - 1
-              ? () => {
-                  setDialogStartsRejecting(false);
-                  void showApplication(filteredParticipants[selectedIndex + 1].applicationId);
-                }
-              : undefined
-          }
-          application={
-            detailApplication?.applicationId === listedApplicationId ? detailApplication : null
-          }
-          fallbackApplication={selectedListApplication}
-          isLoading={isDetailLoading}
-          error={detailError}
-          actionError={detailActionError}
-          isProcessing={processingApplicationId === selectedApplicationId}
-          onClose={handleCloseDialog}
-          onApprove={handleApprove}
-          onReject={handleReject}
+      {editor && (
+        <ParticipantEditor
+          key={editor === 'add' ? 'add' : rosterKey(editor)}
+          eventId={event.eventId}
+          courses={courses}
+          registeredStudentNos={rows.map((r) => r.studentNo)}
+          courseChangesAllowed={activeEvent}
+          participant={editor === 'add' ? undefined : editor}
+          onClose={() => setEditor(null)}
+          onSaved={saved}
         />
       )}
     </section>
   );
 }
 
-export default AdminParticipantsPage;
+export default function AdminParticipantsPage() {
+  const [params, setParams] = useSearchParams();
+  const [events, setEvents] = useState<AdminEvent[] | null>(null);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    let current = true;
+    getAdminEvents()
+      .then((data) => {
+        if (current) setEvents(data);
+      })
+      .catch((e) => {
+        if (current) setError(getApiErrorMessage(e, '행사를 불러오지 못했습니다.'));
+      });
+    return () => {
+      current = false;
+    };
+  }, []);
+  const event = events && resolveAdminQueueEvent(events, params.get('eventId'));
+  useEffect(() => {
+    if (event) selectEvent('admin', event.eventId);
+  }, [event]);
+  if (!event)
+    return (
+      <section className="admin-page participant-registry">
+        <header className="roster-heading">
+          <h1>참가자 관리</h1>
+        </header>
+        <p role={error ? 'alert' : 'status'}>
+          {error || (events ? '조회할 수 있는 행사가 없습니다.' : '행사를 불러오는 중입니다.')}
+        </p>
+        {events?.length ? (
+          <button
+            className="roster-btn"
+            onClick={() => setParams({ eventId: String(events[0].eventId) })}
+          >
+            행사 선택
+          </button>
+        ) : null}
+      </section>
+    );
+  return (
+    <Registry
+      key={event.eventId}
+      event={event}
+      events={events}
+      onEventChange={(id) => setParams({ eventId: id })}
+    />
+  );
+}

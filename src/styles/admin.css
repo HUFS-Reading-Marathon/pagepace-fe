@@ -892,6 +892,7 @@
 
   .admin-sidebar {
     position: relative;
+    top: auto;
     width: 100%;
     height: auto;
     flex-basis: auto;

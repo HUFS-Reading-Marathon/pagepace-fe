@@ -1,290 +1,174 @@
-import { type FormEvent, useRef, useState } from 'react';
-import { useModalDialog } from '../../../hooks/useModalDialog';
-import {
-  ADMIN_APPLICATION_AFFILIATION_LABELS,
-  type AdminApplicationDetail,
-  type AdminApplicationListItem,
-} from '../../../types/adminApplication';
+import { useEffect, useRef, useState } from 'react';
+import { ROSTER_STATUSES, rosterStatus, type RosterRow } from '../../../api/adminRosterApi';
+import { ADMIN_APPLICATION_AFFILIATION_LABELS } from '../../../types/adminApplication';
+import { getApiErrorMessage } from '../../../api/apiClient';
 import { formatKoDateTime } from '../../../utils/date';
-import ParticipantStatusBadge from './ParticipantStatusBadge';
+import { approveAdminApplication, rejectAdminApplication } from '../../../api/adminApplicationApi';
 
-type ParticipantDetailDialogProps = {
-  application: AdminApplicationDetail | null;
-  fallbackApplication: AdminApplicationListItem;
-  isLoading: boolean;
-  error: string | null;
-  actionError: string | null;
-  isProcessing: boolean;
-  /** 현재 목록에서의 위치. 시트를 닫지 않고 이전·다음 신청서로 이동할 때 사용합니다. */
-  position: { index: number; total: number };
-  initialRejecting?: boolean;
-  onPrevious?: () => void;
-  onNext?: () => void;
+type Props = {
+  row: RosterRow;
+  eventTitle: string;
+  editable: boolean;
   onClose: () => void;
-  onApprove: (applicationId: number) => void;
-  /** 반려 요청. 서버 처리에 성공하면 true를 돌려줍니다. */
-  onReject: (applicationId: number, reason: string) => Promise<boolean>;
+  onEdit: () => void;
+  previous?: () => void;
+  next?: () => void;
+  onSaved: (message: string) => void;
 };
 
-function ParticipantDetailDialog({
-  application,
-  fallbackApplication,
-  isLoading,
-  error,
-  actionError,
-  isProcessing,
-  position,
-  initialRejecting = false,
-  onPrevious,
-  onNext,
+export default function ParticipantDetailDialog({
+  row,
+  eventTitle,
+  editable,
   onClose,
-  onApprove,
-  onReject,
-}: ParticipantDetailDialogProps) {
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const [isRejecting, setIsRejecting] = useState(initialRejecting);
-  const [rejectReason, setRejectReason] = useState('');
-  const [rejectError, setRejectError] = useState('');
-  const displayedApplication = application ?? fallbackApplication;
-  const { handleBackdropMouseDown } = useModalDialog({
-    onClose,
-    initialFocusRef: closeButtonRef,
-    restoreFocus: true,
-  });
-
-  const handleRejectSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const reason = rejectReason.trim();
-
-    if (!reason) {
-      setRejectError('반려 사유를 입력해 주세요.');
-      return;
+  onEdit,
+  previous,
+  next,
+  onSaved,
+}: Props) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const [rejecting, setRejecting] = useState(false),
+    [reason, setReason] = useState(''),
+    [error, setError] = useState(''),
+    [busy, setBusy] = useState(false);
+  useEffect(() => {
+    const el = dialog.current;
+    el?.showModal();
+    return () => el?.close();
+  }, []);
+  const status = rosterStatus(row);
+  const fields = [
+    ['순번', String(row.serialNo)],
+    ['상태', status && ROSTER_STATUSES[status]],
+    ['학번/사번', row.studentNo],
+    ['이메일', row.email],
+    ['연락처', row.phone],
+    ['신분', ADMIN_APPLICATION_AFFILIATION_LABELS[row.affiliationType]],
+    ['대학', row.college],
+    ['학과/부서', row.department],
+    ['학년', row.grade],
+    ['성별', row.gender],
+    ['행사', eventTitle],
+    ['코스', row.courseName],
+    ['등록일', formatKoDateTime(row.registeredAt)],
+    ...(row.rejectReason ? [['반려 사유', row.rejectReason]] : []),
+  ];
+  async function review(approve: boolean) {
+    if (busy || !row.applicationId || (!approve && !reason.trim())) return;
+    setBusy(true);
+    setError('');
+    try {
+      if (approve) await approveAdminApplication(row.applicationId);
+      else await rejectAdminApplication(row.applicationId, reason.trim());
+      onSaved(row.name + ' 님의 신청을 ' + (approve ? '승인' : '반려') + '했습니다.');
+    } catch (err) {
+      setBusy(false);
+      setError(getApiErrorMessage(err, '처리하지 못했습니다.'));
     }
-
-    if (await onReject(displayedApplication.applicationId, reason)) {
-      setIsRejecting(false);
-      setRejectReason('');
-    }
-  };
-
+  }
   return (
-    <div className="admin-participant-dialog__backdrop" onMouseDown={handleBackdropMouseDown}>
-      <section
-        className="admin-participant-dialog__panel"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="participantDialogTitle"
-        aria-busy={isLoading || isProcessing}
-      >
-        <header className="admin-participant-dialog__header">
-          <div>
-            <p className="admin-participant-dialog__eyebrow">
-              {displayedApplication.status === 'APPROVED' ? '참가자 상세' : '참가신청서 상세'}
-            </p>
-            <div className="admin-participant-dialog__title-row">
-              <h2 id="participantDialogTitle">{displayedApplication.name}</h2>
-              <ParticipantStatusBadge status={displayedApplication.status} />
-            </div>
-          </div>
-
-          <div className="admin-participant-dialog__nav">
-            <span>
-              {position.index + 1} / {position.total}
-            </span>
-            <button
-              type="button"
-              aria-label="이전 신청서"
-              disabled={!onPrevious || isProcessing}
-              onClick={onPrevious}
-            >
-              ‹
-            </button>
-            <button
-              type="button"
-              aria-label="다음 신청서"
-              disabled={!onNext || isProcessing}
-              onClick={onNext}
-            >
-              ›
-            </button>
-          </div>
+    <dialog
+      ref={dialog}
+      className="roster-detail"
+      aria-labelledby="roster-detail-title"
+      onCancel={(e) => {
+        e.preventDefault();
+        if (!busy) onClose();
+      }}
+    >
+      <header>
+        <h2 id="roster-detail-title">{row.name}</h2>
+        <div className="roster-actions">
           <button
-            ref={closeButtonRef}
+            className="roster-link"
             type="button"
-            className="admin-participant-dialog__close"
-            aria-label="참가자 상세 다이얼로그 닫기"
-            onClick={onClose}
+            disabled={busy || !previous}
+            onClick={previous}
+            aria-label="이전 신청서"
           >
-            ×
+            이전
           </button>
-        </header>
-
-        {isLoading ? (
-          <div className="admin-participant-dialog__content">
-            <p className="admin-participant-dialog__mode-description" role="status">
-              참가신청 상세를 불러오는 중입니다.
-            </p>
+          <button
+            className="roster-link"
+            type="button"
+            disabled={busy || !next}
+            onClick={next}
+            aria-label="다음 신청서"
+          >
+            다음
+          </button>
+          <button type="button" className="roster-btn" onClick={onClose} disabled={busy}>
+            닫기
+          </button>
+        </div>
+      </header>
+      <dl>
+        {fields.map(([label, value]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{value || '—'}</dd>
           </div>
-        ) : error ? (
-          <div className="admin-participant-dialog__content">
-            <p className="admin-participant-dialog__error" role="alert">
-              {error}
-            </p>
-          </div>
-        ) : (
-          <div className="admin-participant-dialog__content">
-            <section className="admin-participant-dialog__section">
-              <h3>기본 정보</h3>
-              <dl className="admin-participant-dialog__details">
-                <div>
-                  <dt>이름</dt>
-                  <dd>{displayedApplication.name || '-'}</dd>
-                </div>
-                <div>
-                  <dt>학번/사번</dt>
-                  <dd>{displayedApplication.studentNo || '-'}</dd>
-                </div>
-                <div>
-                  <dt>소속</dt>
-                  <dd>{displayedApplication.department || '-'}</dd>
-                </div>
-                <div>
-                  <dt>신분</dt>
-                  <dd>
-                    {ADMIN_APPLICATION_AFFILIATION_LABELS[displayedApplication.affiliationType] ??
-                      displayedApplication.affiliationType}
-                  </dd>
-                </div>
-                <div>
-                  <dt>연락처</dt>
-                  <dd>{displayedApplication.phone || '-'}</dd>
-                </div>
-                <div>
-                  <dt>이메일</dt>
-                  <dd className="admin-participant-dialog__break-text">
-                    {displayedApplication.email || '-'}
-                  </dd>
-                </div>
-                <div>
-                  <dt>신청일시</dt>
-                  <dd>{formatKoDateTime(displayedApplication.appliedAt)}</dd>
-                </div>
-              </dl>
-            </section>
-
-            <section className="admin-participant-dialog__section">
-              <h3>참가 정보</h3>
-              <dl className="admin-participant-dialog__details">
-                <div>
-                  <dt>행사</dt>
-                  <dd>{displayedApplication.eventTitle || '-'}</dd>
-                </div>
-                <div>
-                  <dt>신청 당시 코스</dt>
-                  <dd>{displayedApplication.courseName || '-'}</dd>
-                </div>
-                <div>
-                  <dt>현재 신청 상태</dt>
-                  <dd>
-                    <ParticipantStatusBadge status={displayedApplication.status} />
-                  </dd>
-                </div>
-              </dl>
-            </section>
-          </div>
-        )}
-
-        {actionError && !isLoading && !error && (
-          <div className="admin-participant-dialog__content">
-            <p className="admin-participant-dialog__error" role="alert">
-              {actionError}
-            </p>
-          </div>
-        )}
-
-        {isRejecting && !isLoading && !error ? (
-          <form className="admin-participant-dialog__reject" onSubmit={handleRejectSubmit}>
-            <label htmlFor="participantRejectReason">반려 사유</label>
+        ))}
+      </dl>
+      {error && (
+        <p className="roster-error" role="alert">
+          {error}
+        </p>
+      )}
+      {rejecting ? (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void review(false);
+          }}
+        >
+          <label>
+            반려 사유
             <textarea
-              id="participantRejectReason"
-              rows={4}
-              value={rejectReason}
-              placeholder="신청자에게 안내할 반려 사유를 입력해 주세요."
-              aria-describedby={rejectError ? 'participantRejectError' : undefined}
-              onChange={(event) => {
-                setRejectReason(event.target.value);
-                setRejectError('');
-              }}
+              required
+              value={reason}
+              maxLength={500}
+              rows={3}
+              onChange={(e) => setReason(e.target.value)}
             />
-            {rejectError && (
-              <p
-                id="participantRejectError"
-                className="admin-participant-dialog__error"
-                role="alert"
-              >
-                {rejectError}
-              </p>
-            )}
-            <div className="admin-participant-dialog__actions">
-              <button
-                type="button"
-                className="admin-participant-dialog__button"
-                disabled={isProcessing}
-                onClick={() => {
-                  setIsRejecting(false);
-                  setRejectError('');
-                }}
-              >
-                돌아가기
-              </button>
-              <button
-                type="submit"
-                className="admin-participant-dialog__button admin-participant-dialog__button--danger"
-                disabled={isProcessing}
-              >
-                {isProcessing ? '처리 중...' : '반려 확정'}
-              </button>
-            </div>
-          </form>
-        ) : (
-          <footer className="admin-participant-dialog__actions">
-            {!isLoading && !error && displayedApplication.status === 'APPLIED' ? (
+          </label>
+          <footer>
+            <button
+              className="roster-btn"
+              type="button"
+              disabled={busy}
+              onClick={() => setRejecting(false)}
+            >
+              취소
+            </button>
+            <button className="roster-btn" type="submit" disabled={busy || !reason.trim()}>
+              반려 확정
+            </button>
+          </footer>
+        </form>
+      ) : (
+        editable && (
+          <footer>
+            <button className="roster-btn" type="button" onClick={onEdit} disabled={busy}>
+              정보 수정
+            </button>
+            {status === 'APPLIED' && (
               <>
-                <button
-                  type="button"
-                  className="admin-participant-dialog__button admin-participant-dialog__button--danger"
-                  onClick={() => setIsRejecting(true)}
-                  disabled={isProcessing}
-                >
+                <button className="roster-btn" disabled={busy} onClick={() => setRejecting(true)}>
                   반려
                 </button>
                 <button
-                  type="button"
-                  className="admin-participant-dialog__button admin-participant-dialog__button--primary"
-                  onClick={() => onApprove(displayedApplication.applicationId)}
-                  disabled={isProcessing}
+                  className="roster-btn roster-primary"
+                  disabled={busy}
+                  onClick={() => void review(true)}
                 >
-                  {isProcessing ? '처리 중...' : '참가 승인'}
+                  참가 승인
                 </button>
               </>
-            ) : (
-              !isLoading &&
-              !error &&
-              displayedApplication.status === 'APPROVED' && (
-                <p className="admin-participant-dialog__pending-note">
-                  현재 코스와 승급은 승인 참가자 관리의 ‘참가 명단 · 코스 승급’에서 확인할 수
-                  있습니다.
-                </p>
-              )
             )}
-            <button type="button" className="admin-participant-dialog__button" onClick={onClose}>
-              닫기
-            </button>
           </footer>
-        )}
-      </section>
-    </div>
+        )
+      )}
+    </dialog>
   );
 }
-
-export default ParticipantDetailDialog;

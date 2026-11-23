@@ -1,128 +1,103 @@
+import { useEffect, useRef } from 'react';
 import {
-  ADMIN_APPLICATION_AFFILIATION_LABELS,
-  type AdminApplicationListItem,
-} from '../../../types/adminApplication';
+  ROSTER_STATUSES,
+  rosterStatus,
+  rosterKey,
+  type RosterRow,
+} from '../../../api/adminRosterApi';
+import { ADMIN_APPLICATION_AFFILIATION_LABELS } from '../../../types/adminApplication';
 import { formatKoDate } from '../../../utils/date';
-import ParticipantStatusBadge from './ParticipantStatusBadge';
 
-type ParticipantTableProps = {
-  participants: AdminApplicationListItem[];
-  hasParticipants: boolean;
-  isLoading: boolean;
-  error: string | null;
-  processingApplicationId: number | null;
-  onOpenDetails: (applicationId: number) => void;
-  onApprove: (applicationId: number) => void;
-  onRejectStart: (applicationId: number) => void;
+type Props = {
+  rows: RosterRow[];
+  selected: ReadonlySet<number>;
+  onSelect: (ids: number[], checked: boolean) => void;
+  onOpen: (row: RosterRow) => void;
+  busy: boolean;
+  message: string;
 };
 
-function ParticipantTable({
-  participants,
-  hasParticipants,
-  isLoading,
-  error,
-  processingApplicationId,
-  onOpenDetails,
-  onApprove,
-  onRejectStart,
-}: ParticipantTableProps) {
-  if (isLoading) {
-    return (
-      <div className="admin-participants__empty" role="status">
-        참가자 목록을 불러오는 중입니다.
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="admin-participants__empty" role="alert">
-        {error}
-      </div>
-    );
-  }
-
-  if (participants.length === 0) {
-    return (
-      <div className="admin-participants__empty">
-        {hasParticipants ? '조건에 맞는 참가자가 없습니다.' : '등록된 참가신청이 없습니다.'}
-      </div>
-    );
-  }
-
+export default function ParticipantTable({
+  rows,
+  selected,
+  onSelect,
+  onOpen,
+  busy,
+  message,
+}: Props) {
+  const selectPage = useRef<HTMLInputElement>(null);
+  const checkedCount = rows.filter((r) => selected.has(rosterKey(r))).length;
+  useEffect(() => {
+    if (selectPage.current)
+      selectPage.current.indeterminate = checkedCount > 0 && checkedCount < rows.length;
+  }, [checkedCount, rows.length]);
   return (
-    <div className="admin-participants__table-wrapper">
-      <table className="admin-participants__table">
-        <caption className="sr-only">독서마라톤 참가신청자 목록</caption>
+    <div className="roster-scroll">
+      <table className="roster-table" aria-busy={busy}>
+        <caption className="sr-only">참가자 명단</caption>
         <thead>
           <tr>
-            <th scope="col">신청 상태</th>
-            <th scope="col">이름</th>
-            <th scope="col">학번/사번</th>
-            <th scope="col">소속</th>
-            <th scope="col">신분</th>
-            <th scope="col">선택 코스</th>
-            <th scope="col">연락처</th>
-            <th scope="col">신청일</th>
-            <th scope="col">관리</th>
+            <th scope="col" className="roster-check">
+              <input
+                type="checkbox"
+                aria-label="현재 페이지 전체 선택"
+                ref={selectPage}
+                checked={!!rows.length && checkedCount === rows.length}
+                disabled={busy || !rows.length}
+                onChange={(e) => onSelect(rows.map(rosterKey), e.target.checked)}
+              />
+            </th>
+            {['순번', '이름', '학번/사번', '신분', '소속', '코스', '상태', '연락처', '등록일'].map(
+              (title) => (
+                <th scope="col" key={title}>
+                  {title}
+                </th>
+              ),
+            )}
           </tr>
         </thead>
         <tbody>
-          {participants.map((participant) => (
-            <tr key={participant.applicationId}>
-              <td>
-                <ParticipantStatusBadge status={participant.status} />
-              </td>
-              <td className="admin-participants__name">{participant.name}</td>
-              <td className="admin-participants__nowrap">{participant.studentNo || '-'}</td>
-              <td className="admin-participants__department">{participant.department || '-'}</td>
-              <td>
-                {ADMIN_APPLICATION_AFFILIATION_LABELS[participant.affiliationType] ??
-                  participant.affiliationType}
-              </td>
-              <td className="admin-participants__nowrap">{participant.courseName || '-'}</td>
-              <td className="admin-participants__nowrap">{participant.phone || '-'}</td>
-              <td className="admin-participants__nowrap">{formatKoDate(participant.appliedAt)}</td>
-              <td>
-                <div className="admin-participants__row-actions">
-                  <button
-                    type="button"
-                    className="admin-participants__table-button"
-                    onClick={() => onOpenDetails(participant.applicationId)}
-                  >
-                    상세 보기
-                  </button>
-
-                  {participant.status === 'APPLIED' && (
-                    <>
-                      <button
-                        type="button"
-                        className="admin-participants__table-button admin-participants__table-button--approve"
-                        onClick={() => onApprove(participant.applicationId)}
-                        disabled={processingApplicationId === participant.applicationId}
-                      >
-                        {processingApplicationId === participant.applicationId
-                          ? '처리 중...'
-                          : '승인'}
-                      </button>
-                      <button
-                        type="button"
-                        className="admin-participants__table-button admin-participants__table-button--reject"
-                        disabled={processingApplicationId === participant.applicationId}
-                        onClick={() => onRejectStart(participant.applicationId)}
-                      >
-                        반려
-                      </button>
-                    </>
-                  )}
-                </div>
+          {message ? (
+            <tr>
+              <td colSpan={10} className="roster-empty">
+                {message}
               </td>
             </tr>
-          ))}
+          ) : (
+            rows.map((row) => {
+              const status = rosterStatus(row);
+              return (
+                <tr key={rosterKey(row)} data-selected={selected.has(rosterKey(row)) || undefined}>
+                  <td className="roster-check">
+                    <input
+                      type="checkbox"
+                      aria-label={row.name + ' 선택'}
+                      checked={selected.has(rosterKey(row))}
+                      onChange={(e) => onSelect([rosterKey(row)], e.target.checked)}
+                      disabled={busy}
+                    />
+                  </td>
+                  <td className="roster-number">{row.serialNo}</td>
+                  <td>
+                    <button type="button" className="roster-name" onClick={() => onOpen(row)}>
+                      {row.name}
+                    </button>
+                  </td>
+                  <td>{row.studentNo}</td>
+                  <td>{ADMIN_APPLICATION_AFFILIATION_LABELS[row.affiliationType]}</td>
+                  <td className="roster-dept">{row.department || '—'}</td>
+                  <td>{row.courseName}</td>
+                  <td>
+                    <span data-status={status}>{status ? ROSTER_STATUSES[status] : '—'}</span>
+                  </td>
+                  <td>{row.phone || '—'}</td>
+                  <td className="roster-date">{formatKoDate(row.registeredAt)}</td>
+                </tr>
+              );
+            })
+          )}
         </tbody>
       </table>
     </div>
   );
 }
-
-export default ParticipantTable;

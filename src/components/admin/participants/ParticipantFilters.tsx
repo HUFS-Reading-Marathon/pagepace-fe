@@ -1,137 +1,80 @@
-import {
-  ADMIN_APPLICATION_AFFILIATION_LABELS,
-  ADMIN_APPLICATION_STATUS_OPTIONS,
-  type AdminApplicationAffiliationType,
-  type ParticipantAffiliationFilter,
-  type ParticipantCourseFilter,
-  type ParticipantStatusFilter,
-} from '../../../types/adminApplication';
+import { ROSTER_STATUSES } from '../../../api/adminRosterApi';
+import { ADMIN_APPLICATION_AFFILIATION_OPTIONS } from '../../../types/adminApplication';
+import type { AdminCourse } from '../../../types/adminEvent';
 
-type ParticipantFiltersProps = {
-  searchKeyword: string;
-  statusFilter: ParticipantStatusFilter;
-  courseFilter: ParticipantCourseFilter;
-  affiliationFilter: ParticipantAffiliationFilter;
-  courseOptions: string[];
-  affiliationOptions: AdminApplicationAffiliationType[];
-  resultCount: number;
-  onSearchKeywordChange: (value: string) => void;
-  onStatusFilterChange: (value: ParticipantStatusFilter) => void;
-  onCourseFilterChange: (value: ParticipantCourseFilter) => void;
-  onAffiliationFilterChange: (value: ParticipantAffiliationFilter) => void;
-  onReset: () => void;
-  onDownload: () => void;
+import { EMPTY_FILTERS, type RosterFilters } from '../../../utils/participantRoster';
+
+type Props = {
+  filters: RosterFilters;
+  courses: AdminCourse[];
+  onChange: (filters: RosterFilters) => void;
 };
 
-function ParticipantFilters({
-  searchKeyword,
-  statusFilter,
-  courseFilter,
-  affiliationFilter,
-  courseOptions,
-  affiliationOptions,
-  resultCount,
-  onSearchKeywordChange,
-  onStatusFilterChange,
-  onCourseFilterChange,
-  onAffiliationFilterChange,
-  onReset,
-  onDownload,
-}: ParticipantFiltersProps) {
+export default function ParticipantFilters({ filters, courses, onChange }: Props) {
+  const update = (key: keyof RosterFilters, value: string) =>
+    onChange({ ...filters, [key]: value });
   return (
-    <section className="admin-participants__toolbar" aria-label="참가자 검색 및 필터">
-      <div className="admin-participants__filter-grid">
-        <div className="admin-participants__field admin-participants__search">
-          <label htmlFor="participantSearch">통합 검색</label>
-          <input
-            id="participantSearch"
-            type="search"
-            value={searchKeyword}
-            onChange={(event) => onSearchKeywordChange(event.target.value)}
-            placeholder="이름, 학번/사번, 이메일"
-          />
-        </div>
-
-        <div className="admin-participants__field">
-          <label htmlFor="participantStatusFilter">신청 상태</label>
-          <select
-            id="participantStatusFilter"
-            value={statusFilter}
-            onChange={(event) =>
-              onStatusFilterChange(event.target.value as ParticipantStatusFilter)
-            }
-          >
-            <option value="ALL">전체</option>
-            {ADMIN_APPLICATION_STATUS_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="admin-participants__field">
-          <label htmlFor="participantCourseFilter">참가 코스</label>
-          <select
-            id="participantCourseFilter"
-            value={courseFilter}
-            onChange={(event) =>
-              onCourseFilterChange(event.target.value as ParticipantCourseFilter)
-            }
-          >
-            <option value="ALL">전체</option>
-            {courseOptions.map((courseName) => (
-              <option key={courseName} value={courseName}>
-                {courseName}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="admin-participants__field">
-          <label htmlFor="participantAffiliationFilter">신분</label>
-          <select
-            id="participantAffiliationFilter"
-            value={affiliationFilter}
-            onChange={(event) =>
-              onAffiliationFilterChange(event.target.value as ParticipantAffiliationFilter)
-            }
-          >
-            <option value="ALL">전체</option>
-            {affiliationOptions.map((affiliationType) => (
-              <option key={affiliationType} value={affiliationType}>
-                {ADMIN_APPLICATION_AFFILIATION_LABELS[affiliationType]}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="admin-participants__toolbar-footer">
-        <p className="admin-participants__result-count" aria-live="polite">
-          검색 결과 <strong>{resultCount}</strong>명
-        </p>
-
-        <div className="admin-participants__toolbar-actions">
-          <button
-            type="button"
-            className="admin-participants__button admin-participants__button--secondary"
-            onClick={onReset}
-          >
-            초기화
-          </button>
-          <button
-            type="button"
-            className="admin-participants__button admin-participants__button--primary"
-            onClick={onDownload}
-            disabled={resultCount === 0}
-          >
-            엑셀 다운로드
-          </button>
-        </div>
-      </div>
-    </section>
+    <div className="roster-filters" role="search" aria-label="참가자 명단 검색">
+      <input
+        type="search"
+        aria-label="검색"
+        placeholder="이름, 학번, 소속, 연락처 검색"
+        value={filters.query}
+        onChange={(e) => update('query', e.target.value)}
+      />
+      <label>
+        상태
+        <select
+          aria-label="상태"
+          value={filters.status}
+          onChange={(e) => update('status', e.target.value)}
+        >
+          <option value="">전체</option>
+          {Object.entries(ROSTER_STATUSES).map(([key, label]) => (
+            <option key={key} value={key}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        코스
+        <select
+          aria-label="코스"
+          value={filters.course}
+          onChange={(e) => update('course', e.target.value)}
+        >
+          <option value="">전체</option>
+          {courses.map((c) => (
+            <option key={c.courseId} value={String(c.courseId)}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        신분
+        <select
+          aria-label="신분"
+          value={filters.affiliation}
+          onChange={(e) => update('affiliation', e.target.value)}
+        >
+          <option value="">전체</option>
+          {ADMIN_APPLICATION_AFFILIATION_OPTIONS.map(({ value, label }) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <button
+        className="roster-link"
+        type="button"
+        disabled={!Object.values(filters).some(Boolean)}
+        onClick={() => onChange(EMPTY_FILTERS)}
+      >
+        초기화
+      </button>
+    </div>
   );
 }
-
-export default ParticipantFilters;
