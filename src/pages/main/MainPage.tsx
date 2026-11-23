@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth';
 import { ApiError } from '../../api/apiClient';
-import { getCurrentEvent, getEventCourses, type CurrentEvent } from '../../api/eventApi';
+import { getCurrentEvent, getEvent, getEventCourses, type CurrentEvent } from '../../api/eventApi';
 import { getCurrentParticipation } from '../../api/participationApi';
 import { getMyReadingLogs } from '../../api/readingLogApi';
 import { getNotices, type Notice } from '../../api/noticeApi';
@@ -15,6 +15,8 @@ import type { MyParticipation } from '../../types/participation';
 import { getExternalLinkAttrs } from '../../utils/links';
 import { formatKoDateKey } from '../../utils/date';
 import {
+  canSubmitReadingLog,
+  selectedEventId,
   getApplicationAvailability,
   getApplicationClosedMessage,
 } from '../../utils/eventSelection';
@@ -60,6 +62,7 @@ function isRouteHref(link: { href: string; external?: boolean }) {
 function MainPage() {
   const { hash } = useLocation();
   const { user, isAuthenticated, isInitializing } = useAuth();
+  const personalEventId = isAuthenticated ? selectedEventId('personal') : undefined;
   const displayName = user?.name || '참가자';
   const [currentEvent, setCurrentEvent] = useState<CurrentEvent | null>(null);
   const [eventCourses, setEventCourses] = useState<CourseRow[]>([]);
@@ -88,23 +91,33 @@ function MainPage() {
   }, []);
 
   useEffect(() => {
-    getCurrentEvent()
+    if (isInitializing) return;
+    let active = true;
+    const eventRequest = personalEventId ? getEvent(personalEventId) : getCurrentEvent();
+    eventRequest
       .then(async (event) => {
+        if (!active) return;
         setCurrentEvent(event);
+        setEventError(null);
         const courses = await getEventCourses(event.eventId);
-        setEventCourses(courses.map(toCourseRow));
+        if (active) setEventCourses(courses.map(toCourseRow));
       })
-      .catch((error: unknown) =>
-        setEventError(
-          error instanceof ApiError && error.code === 'EVENT_NOT_FOUND' ? 'missing' : 'failed',
-        ),
-      );
-  }, []);
+      .catch((error: unknown) => {
+        if (active) {
+          setEventError(
+            error instanceof ApiError && error.code === 'EVENT_NOT_FOUND' ? 'missing' : 'failed',
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [isInitializing, personalEventId]);
 
   useEffect(() => {
     if (isInitializing || !isAuthenticated) return;
     let active = true;
-    getCurrentParticipation()
+    getCurrentParticipation(personalEventId)
       .then(async (participation) => {
         if (!active) return;
         setMyParticipation(participation);
@@ -122,7 +135,7 @@ function MainPage() {
     return () => {
       active = false;
     };
-  }, [isAuthenticated, isInitializing, user?.userId]);
+  }, [isAuthenticated, isInitializing, personalEventId, user?.userId]);
 
   const eventTitle = currentEvent?.title ?? '독서마라톤';
   const contactPhone = currentEvent?.contactPhone?.trim() ?? '';
@@ -164,6 +177,9 @@ function MainPage() {
       };
 
   const showMyRecord = isAuthenticated && !isInitializing && myParticipation !== null;
+  const myLogOpen = myParticipation && canSubmitReadingLog(myParticipation);
+  const myLogPath = myLogOpen ? '/logs/new' : '/logs';
+  const myLogLinkText = myLogOpen ? '독서일지 작성하기' : '내 독서일지 보기';
   // 행사 조회 전(null)에는 기존 신청 버튼을 그대로 두어 화면이 깜빡이지 않게 합니다.
   const applyAvailability = currentEvent
     ? getApplicationAvailability(currentEvent)
@@ -177,7 +193,7 @@ function MainPage() {
 
   return (
     <main id="main" ref={mainRef}>
-      {eventError && (
+      {eventError && !(eventError === 'missing' && showMyRecord) && (
         <div className="wrap main-load-message">
           {eventError === 'missing' ? (
             <p role="status">현재 공개된 독서마라톤 행사가 없습니다.</p>
@@ -202,12 +218,14 @@ function MainPage() {
             {showMyRecord ? (
               <div className="personal-hero-message">
                 <h1 id="heroTitle">
-                  {eventTitle}
+                  {myParticipation.eventTitle}
                   <span>{displayName}님, 환영합니다.</span>
                 </h1>
 
                 <p className="hero-copy hero-copy-personal">
-                  {myRecord.course} 완주를 향해 오늘도 한 걸음 더 달려볼까요?
+                  {myLogOpen
+                    ? `${myRecord.course} 완주를 향해 오늘도 한 걸음 더 달려볼까요?`
+                    : `${myRecord.course} 참가 기록을 확인할 수 있습니다.`}
                 </p>
               </div>
             ) : (
@@ -226,8 +244,8 @@ function MainPage() {
 
             <div className="hero-actions hero-actions-minimal" aria-label="주요 이동 버튼">
               {showMyRecord ? (
-                <Link className="btn btn-primary" to="/logs/new">
-                  독서일지 작성하기
+                <Link className="btn btn-primary" to={myLogPath}>
+                  {myLogLinkText}
                 </Link>
               ) : applyClosedMessage && !isAuthenticated ? (
                 <Link className="btn btn-primary" to="/login">
@@ -403,7 +421,7 @@ function MainPage() {
               <path d="M12 11v5M12 8h.01" />
             </svg>
             <p>
-              <span>독서일지 승인으로 인정 쪽수 확정</span>
+              <span>독서일지 승인으로 승인 쪽수 확정</span>
               <span>서평 확인을 거친 분량이 최종 인정 거리에 반영</span>
               <small>서평 확인을 기다리는 동안에도 다음 독서일지를 제출할 수 있습니다.</small>
             </p>
@@ -486,14 +504,18 @@ function MainPage() {
           <div>
             <h2>
               {showMyRecord
-                ? '오늘 읽은 기록을 독서일지로 남겨보세요'
+                ? myLogOpen
+                  ? '오늘 읽은 기록을 독서일지로 남겨보세요'
+                  : `${myParticipation.eventTitle} 참가 기록`
                 : applyClosedMessage
                   ? eventTitle
                   : `${eventTitle} 참가신청`}
             </h2>
             <p>
               {showMyRecord
-                ? '일지 승인 시 쪽수, 서평 확인 시 거리와 완주율에 반영됩니다.'
+                ? myLogOpen
+                  ? '일지 승인 시 쪽수, 서평 확인 시 거리와 완주율에 반영됩니다.'
+                  : '제출한 독서일지와 승인 내역을 확인할 수 있습니다.'
                 : (applyClosedMessage ??
                   (currentEvent
                     ? `신청기간 ${formatDateRange(currentEvent.applicationStartDate, currentEvent.applicationEndDate)}`
@@ -502,8 +524,8 @@ function MainPage() {
           </div>
 
           {showMyRecord ? (
-            <Link className="btn btn-navy" to="/logs/new">
-              독서일지 작성하기
+            <Link className="btn btn-navy" to={myLogPath}>
+              {myLogLinkText}
             </Link>
           ) : applyClosedMessage ? (
             <Link className="btn btn-navy" to="/status">

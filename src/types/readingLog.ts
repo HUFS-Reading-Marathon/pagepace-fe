@@ -29,6 +29,7 @@ export type ReadingLogBook = ReadingLogBookRequest & {
 };
 
 export type ReadingLog = {
+  bookRequestId?: number | null;
   readingLogId: number;
   participationId: number;
   readingDate: string;

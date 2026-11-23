@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useImperativeHandle, useRef, useState, type FormEvent, type Ref } from 'react';
 import '../../../styles/review-import.css';
 import { ApiError } from '../../../api/apiClient';
+import { METERS_PER_PAGE } from '../../../constants/reading';
 import {
   confirmImportedReview,
   getReviewImportDetail,
@@ -13,6 +14,7 @@ import {
 } from '../../../api/reviewImportApi';
 
 const REVIEW_IMPORT_STATUS = {
+  EXCLUDED: '행사 비참가자 제외',
   MATCHED: '회원번호·도서 ID 일치',
   NEEDS_REVIEW: '추가 확인 필요',
   UNMATCHED: '대조 대상 없음',
@@ -36,6 +38,7 @@ export function ImportedReviewRow({
   const [checked, setChecked] = useState(false);
   const [note, setNote] = useState('');
   const candidate = row.candidates.find((book) => book.participantBookId === bookId);
+  const eligiblePages = candidate ? candidate.distanceToCreditMeter / METERS_PER_PAGE : 0;
   const eligible = row.status === 'MATCHED' || row.status === 'NEEDS_REVIEW';
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -55,6 +58,13 @@ export function ImportedReviewRow({
       note: note.trim(),
     });
   };
+  if (row.status === 'EXCLUDED')
+    return (
+      <article className="review-import__card">
+        <strong>엑셀 {row.sourceRow}행 · 행사 비참가자 제외</strong>
+        <p>{row.warnings.join(' ')}</p>
+      </article>
+    );
   return (
     <article className="review-import__card">
       <div className="review-import__row-heading">
@@ -119,11 +129,15 @@ export function ImportedReviewRow({
                 <dd>{candidate.approvedPages.toLocaleString()}쪽</dd>
               </div>
               <div>
-                <dt>추가 반영</dt>
+                <dt>이번 서평으로 반영</dt>
                 <dd>
-                  {candidate.uncreditedPages.toLocaleString()}쪽 /{' '}
+                  {eligiblePages.toLocaleString()}쪽 /{' '}
                   {candidate.distanceToCreditMeter.toLocaleString()}m
                 </dd>
+              </div>
+              <div>
+                <dt>반영 후 남는 미인정 분량</dt>
+                <dd>{(candidate.uncreditedPages - eligiblePages).toLocaleString()}쪽</dd>
               </div>
             </dl>
           )}
@@ -167,12 +181,18 @@ export function ImportedReviewRow({
   );
 }
 
+export type ReviewPreview = { reload: () => Promise<void> };
+
 export default function ReviewExcelImport({
+  ref,
   eventId,
+  readOnly,
   onBusyChange,
   onVerified,
 }: {
+  ref?: Ref<ReviewPreview>;
   eventId: number;
+  readOnly: boolean;
   onBusyChange: (busy: boolean) => void;
   onVerified: () => Promise<void>;
 }) {
@@ -185,6 +205,17 @@ export default function ReviewExcelImport({
   const [message, setMessage] = useState('');
   const inFlight = useRef(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  useImperativeHandle(
+    ref,
+    () => ({
+      async reload() {
+        if (!detail) return;
+        setDetail(null);
+        setDetail(await getReviewImportDetail(eventId, detail.batch.id, detail.page));
+      },
+    }),
+    [detail, eventId],
+  );
   useEffect(() => {
     let active = true;
     getReviewImportHistory(eventId)
@@ -259,17 +290,10 @@ export default function ReviewExcelImport({
             error.code ?? '',
           )
         )
-          setDetail(await getReviewImportDetail(eventId, detail.batch.id, detail.page));
+          await onVerified();
         throw error;
       }
-      try {
-        setDetail(await getReviewImportDetail(eventId, detail.batch.id, detail.page));
-        await onVerified();
-      } catch {
-        setError(
-          '거리 반영은 완료했지만 목록 갱신에 실패했습니다. 대조 결과를 새로 조회해 주세요.',
-        );
-      }
+      await onVerified();
     });
   return (
     <section
@@ -297,12 +321,12 @@ export default function ReviewExcelImport({
             aria-label="솔라스 서평 엑셀 파일"
             type="file"
             accept=".xlsx"
-            disabled={busy || loading}
+            disabled={busy || loading || readOnly}
             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
           />
         </label>
         <div className="review-import__actions">
-          <button type="submit" disabled={!file || busy || loading}>
+          <button type="submit" disabled={!file || busy || loading || readOnly}>
             {busy ? '처리 중…' : '업로드 및 대조'}
           </button>
         </div>
@@ -401,9 +425,9 @@ export default function ReviewExcelImport({
           <div className="review-import__grid">
             {detail.rows.map((row) => (
               <ImportedReviewRow
-                key={`${row.id}-${row.status}-${row.candidates.map((c) => `${c.participantBookId}:${c.approvedPages}:${c.uncreditedPages}`).join(',')}`}
+                key={`${row.id}-${row.status}-${row.candidates.map((c) => `${c.participantBookId}:${c.approvedPages}:${c.uncreditedPages}:${c.distanceToCreditMeter}`).join(',')}`}
                 row={row}
-                busy={busy}
+                busy={busy || readOnly}
                 onConfirm={confirm}
               />
             ))}

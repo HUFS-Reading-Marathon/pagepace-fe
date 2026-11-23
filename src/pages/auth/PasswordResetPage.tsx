@@ -8,6 +8,8 @@ function PasswordResetPage() {
   const [studentNo, setStudentNo] = useState('');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
   const [codeSent, setCodeSent] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
@@ -48,13 +50,18 @@ function PasswordResetPage() {
       return;
     }
 
+    if (newPassword.length < 8 || newPassword.length > 72 || newPassword !== passwordConfirm) {
+      setIsError(true);
+      setMessage('8~72자의 새 비밀번호를 동일하게 두 번 입력해 주세요.');
+      return;
+    }
     setIsConfirming(true);
     setMessage('');
     try {
-      await confirmPasswordReset(normalizedStudentNo, normalizedEmail, code);
+      await confirmPasswordReset(normalizedStudentNo, normalizedEmail, code, newPassword);
       setCompleted(true);
       setIsError(false);
-      setMessage('비밀번호가 아이디와 동일한 값으로 초기화되었습니다.');
+      setMessage('새 비밀번호가 설정되었습니다.');
     } catch (error) {
       setIsError(true);
       setMessage(getApiErrorMessage(error, '비밀번호를 초기화하지 못했습니다.'));
@@ -77,7 +84,7 @@ function PasswordResetPage() {
         <form className="auth-form" onSubmit={handleConfirm}>
           <div className="auth-reset-guide">
             <strong>인증이 완료되면</strong>
-            <span>비밀번호가 학번/교번/사번과 동일한 값으로 초기화됩니다.</span>
+            <span>직접 입력한 새 비밀번호로 변경됩니다.</span>
           </div>
           <div className="auth-form-group">
             <label htmlFor="resetStudentNo">아이디</label>
@@ -126,6 +133,36 @@ function PasswordResetPage() {
               />
             </div>
           )}
+          {codeSent && !completed && (
+            <>
+              <div className="auth-form-group">
+                <label htmlFor="newPassword">새 비밀번호</label>
+                <input
+                  id="newPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  minLength={8}
+                  maxLength={72}
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+              </div>
+              <div className="auth-form-group">
+                <label htmlFor="passwordConfirm">새 비밀번호 확인</label>
+                <input
+                  id="passwordConfirm"
+                  type="password"
+                  autoComplete="new-password"
+                  minLength={8}
+                  maxLength={72}
+                  required
+                  value={passwordConfirm}
+                  onChange={(e) => setPasswordConfirm(e.target.value)}
+                />
+              </div>
+            </>
+          )}
           {message && (
             <p className={isError ? 'auth-error' : 'auth-success'} role="status">
               {message}
@@ -133,12 +170,12 @@ function PasswordResetPage() {
           )}
           {codeSent && !completed && (
             <button type="submit" className="auth-submit-button" disabled={isConfirming}>
-              {isConfirming ? '확인 중...' : '인증하고 비밀번호 초기화'}
+              {isConfirming ? '확인 중...' : '인증하고 비밀번호 설정'}
             </button>
           )}
           {completed && (
             <Link to="/login" className="auth-submit-button auth-submit-link">
-              초기화된 비밀번호로 로그인
+              새 비밀번호로 로그인
             </Link>
           )}
         </form>

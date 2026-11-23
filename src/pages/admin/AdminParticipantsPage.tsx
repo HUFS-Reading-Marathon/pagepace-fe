@@ -8,7 +8,7 @@ import {
 } from '../../api/adminApplicationApi';
 import { getApiErrorMessage } from '../../api/apiClient';
 import { getAdminEvents } from '../../api/adminEventApi';
-import { preferredAdminEvent } from '../../utils/eventSelection';
+import { resolveAdminQueueEvent } from '../../utils/adminEvent';
 import { useAdminEventState } from '../../hooks/useAdminEventState';
 import type { AdminEvent } from '../../types/adminEvent';
 import ParticipantRegistration from '../../components/admin/participants/ParticipantRegistration';
@@ -64,16 +64,18 @@ function AdminParticipantsPage() {
   const [currentEventId, setCurrentEventId] = useAdminEventState();
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const linkedEvent = searchParams.get('eventId');
+  const linkedApplication = searchParams.get('applicationId');
   // 오늘의 업무에서 ?status=APPLIED로 들어오면 승인 대기 신청서부터 보여 줍니다.
   const [statusFilter, setStatusFilter] = useState<ParticipantStatusFilter>(() =>
     searchParams.get('status') === 'APPLIED' ? 'APPLIED' : 'ALL',
   );
   const [courseFilter, setCourseFilter] = useState<ParticipantCourseFilter>('ALL');
   const [affiliationFilter, setAffiliationFilter] = useState<ParticipantAffiliationFilter>('ALL');
-  const [selectedApplicationId, setSelectedApplicationId] = useState<number | null>(null);
+  const selectedApplicationId = linkedApplication === null ? null : Number(linkedApplication);
   const [detailApplication, setDetailApplication] = useState<AdminApplicationDetail | null>(null);
-  const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [isDetailLoading, setIsDetailLoading] = useState(true);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [detailActionError, setDetailActionError] = useState<string | null>(null);
   const detailRequestSequenceRef = useRef(0);
@@ -90,8 +92,13 @@ function AdminParticipantsPage() {
       .then((next) => {
         if (active) {
           setEvents(next);
-          setCurrentEventId(preferredAdminEvent(next)?.eventId ?? null);
-          if (!next.length) setIsLoading(false);
+          const event = resolveAdminQueueEvent(next, linkedEvent);
+          setCurrentEventId(event?.eventId ?? null);
+          if (!event) {
+            setParticipants([]);
+            setIsLoading(false);
+            if (linkedEvent !== null) setError('링크에 지정된 행사를 찾을 수 없습니다.');
+          }
         }
       })
       .catch((error) => {
@@ -103,7 +110,7 @@ function AdminParticipantsPage() {
     return () => {
       active = false;
     };
-  }, [setCurrentEventId]);
+  }, [linkedEvent, setCurrentEventId]);
   useEffect(() => {
     if (currentEventId === null) return;
     let active = true;
@@ -180,7 +187,13 @@ function AdminParticipantsPage() {
   const selectedListApplication =
     selectedApplicationId === null
       ? undefined
-      : participants.find((participant) => participant.applicationId === selectedApplicationId);
+      : participants.find(
+          (participant) =>
+            participant.applicationId === selectedApplicationId &&
+            participant.eventId === currentEventId &&
+            (linkedEvent === null || String(participant.eventId) === linkedEvent),
+        );
+  const listedApplicationId = selectedListApplication?.applicationId;
 
   const handleResetFilters = () => {
     setSearchKeyword('');
@@ -196,44 +209,50 @@ function AdminParticipantsPage() {
     void showApplication(applicationId);
   };
 
-  /** 상세 시트에 신청서를 표시합니다. 시트 안에서 이전·다음으로 이동할 때도 사용합니다. */
-  const showApplication = async (applicationId: number) => {
-    const requestSequence = detailRequestSequenceRef.current + 1;
-    detailRequestSequenceRef.current = requestSequence;
-    setSelectedApplicationId(applicationId);
+  const showApplication = (applicationId: number) => {
+    resetDetail();
+    const params = new URLSearchParams(searchParams);
+    if (currentEventId !== null) params.set('eventId', String(currentEventId));
+    params.set('applicationId', String(applicationId));
+    setSearchParams(params, { replace: true });
+  };
+
+  useEffect(() => {
+    if (listedApplicationId === undefined) return;
+    const sequence = ++detailRequestSequenceRef.current;
+    getAdminApplicationDetail(listedApplicationId)
+      .then((application) => {
+        if (detailRequestSequenceRef.current === sequence) setDetailApplication(application);
+      })
+      .catch((requestError: unknown) => {
+        if (detailRequestSequenceRef.current === sequence) {
+          setDetailError(getApiErrorMessage(requestError, '참가신청 상세를 불러오지 못했습니다.'));
+        }
+      })
+      .finally(() => {
+        if (detailRequestSequenceRef.current === sequence) setIsDetailLoading(false);
+      });
+    return () => {
+      detailRequestSequenceRef.current += 1;
+    };
+  }, [listedApplicationId]);
+
+  const resetDetail = useCallback(() => {
+    detailRequestSequenceRef.current += 1;
     setDetailApplication(null);
     setDetailError(null);
     setDetailActionError(null);
     setIsDetailLoading(true);
-
-    try {
-      const application = await getAdminApplicationDetail(applicationId);
-
-      if (detailRequestSequenceRef.current === requestSequence) {
-        setDetailApplication(application);
-      }
-    } catch (requestError) {
-      if (detailRequestSequenceRef.current === requestSequence) {
-        setDetailError(getApiErrorMessage(requestError, '참가신청 상세를 불러오지 못했습니다.'));
-      }
-    } finally {
-      if (detailRequestSequenceRef.current === requestSequence) {
-        setIsDetailLoading(false);
-      }
-    }
-  };
+  }, []);
 
   const handleCloseDialog = useCallback(() => {
     const dialogOpener = dialogOpenerRef.current;
-
-    detailRequestSequenceRef.current += 1;
-    setSelectedApplicationId(null);
-    setDetailApplication(null);
-    setDetailError(null);
-    setDetailActionError(null);
-    setIsDetailLoading(false);
+    const params = new URLSearchParams(searchParams);
+    params.delete('applicationId');
+    setSearchParams(params, { replace: true });
+    resetDetail();
     window.requestAnimationFrame(() => dialogOpener?.focus());
-  }, []);
+  }, [searchParams, setSearchParams, resetDetail]);
 
   const handleApprove = async (applicationId: number) => {
     if (processingApplicationIdRef.current !== null) {
@@ -426,12 +445,19 @@ function AdminParticipantsPage() {
           value={currentEventId ?? ''}
           disabled={processingApplicationId !== null}
           onChange={(e) => {
-            handleCloseDialog();
+            resetDetail();
+            const params = new URLSearchParams(searchParams);
+            params.set('eventId', e.target.value);
+            params.delete('applicationId');
+            setSearchParams(params, { replace: true });
             setParticipants([]);
+            setError(null);
+            setFeedbackMessage('');
             setIsLoading(true);
             setCurrentEventId(Number(e.target.value));
           }}
         >
+          {currentEventId === null && <option value="">행사를 선택해 주세요.</option>}
           {events.map((event) => (
             <option key={event.eventId} value={event.eventId}>
               {event.title}
@@ -486,6 +512,10 @@ function AdminParticipantsPage() {
         {feedbackMessage}
       </div>
 
+      {!isLoading && !error && linkedApplication !== null && !selectedListApplication && (
+        <p role="alert">이 행사에서 링크에 지정된 신청서를 찾을 수 없습니다.</p>
+      )}
+
       <ParticipantTable
         participants={filteredParticipants}
         hasParticipants={participants.length > 0}
@@ -521,7 +551,9 @@ function AdminParticipantsPage() {
                 }
               : undefined
           }
-          application={detailApplication}
+          application={
+            detailApplication?.applicationId === listedApplicationId ? detailApplication : null
+          }
           fallbackApplication={selectedListApplication}
           isLoading={isDetailLoading}
           error={detailError}

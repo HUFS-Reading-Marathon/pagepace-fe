@@ -1,5 +1,8 @@
 import type { Ranking } from '../../api/rankingApi';
-import { formatDistance } from '../../utils/reading';
+import { METERS_PER_PAGE } from '../../constants/reading';
+import { getRewardTypeLabel } from '../../utils/adminEventForms';
+import { hasFinalResults } from '../../utils/eventSelection';
+import { formatDistance, getCreditedPages, getProgressRate } from '../../utils/reading';
 import '../../styles/ranking.css';
 
 function RankingAvatar({ name }: { name: string }) {
@@ -12,11 +15,13 @@ function RankingAvatar({ name }: { name: string }) {
 
 function RankingBoard({
   rankings,
+  eventStatus,
   showIdentity = false,
   simpleLayout = false,
   myParticipationId,
 }: {
   rankings: Ranking[];
+  eventStatus?: string;
   showIdentity?: boolean;
   simpleLayout?: boolean;
   myParticipationId?: number;
@@ -24,7 +29,8 @@ function RankingBoard({
   if (rankings.length === 0)
     return (
       <div className="ranking-empty">
-        아직 집계된 순위가 없습니다.<span>독서일지가 승인되면 순위가 표시됩니다.</span>
+        아직 집계된 순위가 없습니다.
+        <span>독서일지 승인과 서평 확인을 거친 거리가 순위에 반영됩니다.</span>
       </div>
     );
   const useSimpleLayout = showIdentity || simpleLayout;
@@ -39,17 +45,24 @@ function RankingBoard({
           <h2>전체 독서 레이스</h2>
         </div>
         <p>
-          <i /> 인정 거리 <i /> 인정 쪽수
+          <i /> 인정 거리 <i /> 거리 인정 쪽수
         </p>
       </header>
       <div className="ranking-race-list">
         {rankings.map((ranking) => {
-          const progress = Math.max(0, Math.min(ranking.progressPercent, 100));
-          const completed = ranking.progressPercent >= 100;
+          const rate = getProgressRate(ranking.distance, ranking.targetDistance);
+          const progress = Math.min(rate, 100);
+          const completed =
+            ranking.targetDistance > 0 && ranking.distance >= ranking.targetDistance;
+          const remainingPages = Math.ceil(
+            (ranking.targetDistance - ranking.distance) / METERS_PER_PAGE,
+          );
+          const creditedPages = getCreditedPages(ranking.distance).toLocaleString();
+          const winner = hasFinalResults(eventStatus) && ranking.awardStatus === 'WINNER';
           const runnerPosition = Math.max(2, Math.min(progress, 96));
           return (
             <article
-              key={`${ranking.rank}-${ranking.studentNo}`}
+              key={ranking.participationId}
               className={`${ranking.participationId === myParticipationId ? 'race-row-mine' : ''} ${completed ? 'is-completed' : ''} ${ranking.rank <= 3 ? `is-top-rank is-rank-${ranking.rank}` : ''}`}
             >
               <div
@@ -63,6 +76,17 @@ function RankingBoard({
                 <span>
                   <b>{ranking.name}</b>
                   {showIdentity && <small>{ranking.studentNo}</small>}
+                  {winner && (
+                    <small>
+                      {ranking.awardCourseName || ranking.courseName} 수상
+                      {ranking.awardRewardType && ranking.awardRewardType !== 'NONE' && (
+                        <> · {getRewardTypeLabel(ranking.awardRewardType)}</>
+                      )}
+                      {!!ranking.awardRewardAmount && (
+                        <> {ranking.awardRewardAmount.toLocaleString('ko-KR')}원</>
+                      )}
+                    </small>
+                  )}
                   {ranking.participationId === myParticipationId && (
                     <span className="race-my-badge">나</span>
                   )}
@@ -96,11 +120,11 @@ function RankingBoard({
                   </div>
                   <div className="ranking-race-progress-meta">
                     <span>
-                      {formatDistance(ranking.distance)} · {ranking.approvedPages.toLocaleString()}
-                      쪽
+                      {formatDistance(ranking.distance)} · 일지 승인{' '}
+                      {ranking.approvedPages.toLocaleString()}쪽
                     </span>
                     <small>
-                      <i aria-hidden="true" /> 인정 {ranking.approvedPages.toLocaleString()}쪽
+                      <i aria-hidden="true" /> 거리 인정 {creditedPages}쪽
                     </small>
                   </div>
                 </div>
@@ -128,13 +152,22 @@ function RankingBoard({
                   </div>
                   <div className="ranking-race-track is-pages">
                     <span className="ranking-race-fill" style={{ width: `${progress}%` }} />
-                    <b>{ranking.approvedPages.toLocaleString()}쪽</b>
+                    <b>
+                      일지 승인 {ranking.approvedPages.toLocaleString()}쪽 · 거리 인정{' '}
+                      {creditedPages}쪽
+                    </b>
                   </div>
                 </div>
               )}
               <div className="ranking-race-percent">
-                <strong>{ranking.progressPercent.toFixed(1)}%</strong>
-                <span>{completed ? '완주' : '진행 중'}</span>
+                <strong>{rate.toFixed(1)}%</strong>
+                <span>
+                  {completed
+                    ? '완주'
+                    : remainingPages > 0
+                      ? `진행 중 · ${remainingPages.toLocaleString()}쪽 남음`
+                      : '진행 중'}
+                </span>
               </div>
               {showIdentity && completed && <span className="ranking-complete-badge">완주자</span>}
             </article>

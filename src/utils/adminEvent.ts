@@ -1,4 +1,11 @@
 import type { AdminEvent, EventStatus } from '../types/adminEvent';
+import { preferredAdminEvent } from './eventSelection';
+
+/** 링크가 지정한 회차가 사라졌다면 다른 회차의 업무를 열지 않습니다. */
+export function resolveAdminQueueEvent(events: AdminEvent[], linkedEvent: string | null) {
+  if (linkedEvent === null) return preferredAdminEvent(events);
+  return events.find((event) => String(event.eventId) === linkedEvent);
+}
 
 /**
  * 상태 우선순위 순서대로 처음 발견되는 행사를 기본 선택 행사로 고릅니다.

@@ -180,6 +180,21 @@
   margin-top: 18px;
 }
 
+.admin-reviews__evidence {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+
+.admin-reviews__evidence input,
+.admin-reviews__evidence textarea {
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font: inherit;
+}
+
 .admin-reviews__checks h3 {
   margin: 0 0 10px;
   color: var(--ink);

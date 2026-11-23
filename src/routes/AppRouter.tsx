@@ -14,6 +14,8 @@ import AdminEventSettingsPage from '../pages/admin/AdminEventSettingsPage';
 import AdminStatusPage from '../pages/admin/AdminStatusPage';
 import AdminRankingPage from '../pages/admin/AdminRankingPage';
 import AdminReviewsPage from '../pages/admin/AdminReviewsPage';
+import AdminBookRequestsPage from '../pages/admin/AdminBookRequestsPage';
+import BookRequestsPage from '../pages/logs/BookRequestsPage';
 import AdminNoticesPage from '../pages/admin/AdminNoticesPage';
 import NoticeDetailPage from '../pages/notices/NoticeDetailPage';
 import AccountSettingsPage from '../pages/my/AccountSettingsPage';
@@ -55,6 +57,7 @@ function AppRouter() {
             }
           >
             <Route index element={<AdminOperationsDashboardPage />} />
+            <Route path="book-requests" element={<AdminBookRequestsPage />} />
             <Route path="participants" element={<AdminParticipantsPage />} />
             <Route path="logs" element={<AdminReadingLogsPage />} />
             <Route path="event" element={<AdminEventSettingsPage />} />
@@ -72,6 +75,14 @@ function AppRouter() {
             <Route path="/signup" element={<ApplyPage />} />
             <Route path="/apply" element={<ApplyPage />} />
             <Route path="/apply/pending" element={<ApplyPendingPage />} />
+            <Route
+              path="/book-requests"
+              element={
+                <ProtectedRoute>
+                  <BookRequestsPage />
+                </ProtectedRoute>
+              }
+            />
 
             <Route
               path="/my"

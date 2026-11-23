@@ -38,6 +38,21 @@ export type AdminReadingLog = {
   recommendedRejectReasons?: string[];
 };
 
+const QUEUE_PAGE_SIZE = 25;
+
+/** 현재 검토 중인 일지가 있는 페이지를 표시합니다. */
+export function getReadingLogQueuePage(logs: AdminReadingLog[], activeIndex: number) {
+  const pageStart = Math.floor(Math.max(0, activeIndex) / QUEUE_PAGE_SIZE) * QUEUE_PAGE_SIZE;
+  return {
+    pageStart,
+    visibleLogs: logs.slice(pageStart, pageStart + QUEUE_PAGE_SIZE),
+    pageNumber: Math.floor(pageStart / QUEUE_PAGE_SIZE) + 1,
+    pageCount: Math.ceil(logs.length / QUEUE_PAGE_SIZE),
+    previousPageId: logs[pageStart - QUEUE_PAGE_SIZE]?.id ?? null,
+    nextPageId: logs[pageStart + QUEUE_PAGE_SIZE]?.id ?? null,
+  };
+}
+
 export type ReadingLogValidationCode =
   'daily-limit' | 'book-total-overflow' | 'invalid-pages' | 'missing-book-info';
 

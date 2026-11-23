@@ -165,7 +165,7 @@ function AdminRankingPage() {
       ) : error ? (
         <div className="ranking-empty is-error">{error}</div>
       ) : (
-        <RankingBoard rankings={rankings} showIdentity />
+        <RankingBoard rankings={rankings} eventStatus={selectedEvent?.status} showIdentity />
       )}
     </section>
   );

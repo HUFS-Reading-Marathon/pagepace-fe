@@ -20,6 +20,7 @@ const ADMIN_MENUS: readonly AdminMenu[] = [
     path: '/admin/participants',
     group: '참가·기록',
   },
+  { label: '도서 확인 요청', path: '/admin/book-requests', group: '참가·기록' },
   {
     label: '독서일지 검토',
     path: '/admin/logs',

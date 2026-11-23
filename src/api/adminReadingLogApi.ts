@@ -18,10 +18,25 @@ export type AdminReviewTarget = {
   approvedReadPages: number;
   distanceToCreditMeter: number;
   reviewSearchUrl: string | null;
-  reviewSubmittedAt: string;
+  reviewSubmittedAt: string | null;
   reviewVerified: boolean;
   reviewVerifiedAt: string | null;
 };
+
+export function compareReviewTime(
+  left: AdminReviewTarget,
+  right: AdminReviewTarget,
+  direction: 1 | -1 = 1,
+) {
+  const leftTime = left.reviewSubmittedAt ?? left.reviewVerifiedAt;
+  const rightTime = right.reviewSubmittedAt ?? right.reviewVerifiedAt;
+  if (!leftTime && rightTime) return 1;
+  if (leftTime && !rightTime) return -1;
+  return (
+    direction * (leftTime ?? '').localeCompare(rightTime ?? '') ||
+    left.participantBookId - right.participantBookId
+  );
+}
 
 function validateId(id: number, label: '행사' | '독서일지') {
   if (!Number.isInteger(id) || id <= 0) {
@@ -80,12 +95,28 @@ export async function getAdminReviewTargets(eventId: number) {
   return targets ?? [];
 }
 
-export function verifyAdminReview(participantBookId: number) {
+export type ManualEvidence = {
+  sourceUpdatedAt: string;
+  sourceContent: string;
+  expectedApprovedPages: number;
+  expectedUncreditedPages: number;
+  evidenceChecked: boolean;
+  note?: string;
+};
+export async function verifyAdminReview(participantBookId: number, evidence: ManualEvidence) {
   validateId(participantBookId, '독서일지');
-  return apiRequest<AdminReviewTarget>(
+  const result = await apiRequest<AdminReviewTarget>(
     `${ADMIN_READING_LOGS_PATH}/review-targets/${participantBookId}/verify`,
-    { method: 'PATCH' },
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(evidence),
+    },
   );
+  if (!result || result.participantBookId !== participantBookId) {
+    throw new ApiError('서평 확인 결과를 조회할 수 없습니다. 목록을 새로 조회해 주세요.');
+  }
+  return result;
 }
 
 export async function approveAdminReadingLog(readingLogId: number) {

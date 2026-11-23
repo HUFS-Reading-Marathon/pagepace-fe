@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import BookReviewActions from '../logs/BookReviewActions';
 import type { ParticipantBook, ReviewTargetBook } from '../../types/readingLog';
 import {
   loadReadingIntents,
@@ -14,7 +15,6 @@ type Props = {
   progress: ParticipantBook[];
   previousBookIds: number[];
   selectedBookIds: number[];
-  sending: boolean;
   onReported: (target: ReviewTargetBook) => void;
 };
 export default function ReviewRecommendations({
@@ -24,7 +24,6 @@ export default function ReviewRecommendations({
   progress,
   previousBookIds,
   selectedBookIds,
-  sending,
   onReported,
 }: Props) {
   const [intents, setIntents] = useState(() => loadReadingIntents(userId, participationId));
@@ -45,37 +44,12 @@ export default function ReviewRecommendations({
       intents[target.participantBookId],
     ),
   }));
-  const actions = (target: ReviewTargetBook) => (
-    <div className="review-actions">
-      <a
-        className="btn btn-secondary"
-        href={target.reviewSearchUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        도서관에서 서평 작성 ↗
-      </a>
-      <label className="review-self-report">
-        <input
-          type="checkbox"
-          checked={false}
-          disabled={sending}
-          onChange={() => onReported(target)}
-        />
-        도서관에서 서평을 작성했어요
-      </label>
-      <small>
-        체크하면 담당자에게 작성 사실이 전달됩니다. 인정 거리는 담당자가 서평을 확인한 뒤
-        반영됩니다.
-      </small>
-    </div>
-  );
   const recommendations = groups.filter((g) => ['completed', 'paused', 'ask'].includes(g.kind));
   const optional = groups.filter((g) => g.kind === 'optional');
   return (
     <>
       <p className="ux-form-note">
-        독서일지가 승인되면 인정 쪽수가 확정되고, 서평 확인을 거친 분량이 최종 인정 거리에
+        독서일지가 승인되면 승인 쪽수가 확정되고, 서평 확인을 거친 분량이 최종 인정 거리에
         반영됩니다. 서평을 아직 쓰지 않았거나 확인을 기다리는 중이어도 다른 독서일지는 제출할 수
         있습니다.
       </p>
@@ -83,7 +57,7 @@ export default function ReviewRecommendations({
         <article className="review-suggestion" key={target.participantBookId}>
           <strong>{target.bookTitle}</strong>
           <p>
-            인정 쪽수 {target.approvedReadPages} / {target.totalBookPages}쪽
+            일지 승인 {target.approvedReadPages} / {target.totalBookPages}쪽
           </p>
           {kind === 'ask' ? (
             <>
@@ -107,7 +81,7 @@ export default function ReviewRecommendations({
                   ? '완독하셨네요. 읽은 내용을 도서관 서평으로 남겨 보세요.'
                   : `${target.totalBookPages}쪽을 다 읽지 않아도 지금까지 읽은 ${target.approvedReadPages}쪽에 대한 서평을 남길 수 있어요.`}
               </p>
-              {actions(target)}
+              <BookReviewActions book={target} onReported={onReported} />
               {kind === 'paused' && (
                 <button
                   type="button"
@@ -136,7 +110,7 @@ export default function ReviewRecommendations({
                 {target.totalBookPages}쪽 중 승인 {target.approvedReadPages}쪽 · 완독 여부와
                 관계없이 작성 가능
               </p>
-              {actions(target)}
+              <BookReviewActions book={target} onReported={onReported} />
               <button
                 type="button"
                 className="review-intent-reset"

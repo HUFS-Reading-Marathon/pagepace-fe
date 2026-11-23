@@ -8,6 +8,11 @@ import {
   type ImportedReview,
 } from '../src/api/reviewImportApi';
 import { apiRequest } from '../src/api/apiClient';
+import {
+  compareReviewTime,
+  verifyAdminReview,
+  type AdminReviewTarget,
+} from '../src/api/adminReadingLogApi';
 vi.mock('../src/api/apiClient', () => ({ apiRequest: vi.fn(), ApiError: class extends Error {} }));
 const row: ImportedReview = {
   id: 4,
@@ -31,7 +36,7 @@ const row: ImportedReview = {
       bookTitle: 'book',
       libraryBookId: 1,
       approvedPages: 200,
-      uncreditedPages: 50,
+      uncreditedPages: 87,
       distanceToCreditMeter: 250,
       matchType: 'LIBRARY_ID',
     },
@@ -46,8 +51,24 @@ describe('솔라스 자료 대조 기능', () => {
     expect(html).not.toContain('<script>');
     expect(html).toContain('&lt;script&gt;');
     expect(html).toContain('250m');
+    expect(html).toContain('50쪽 / 250m');
+    expect(html).toContain('37쪽');
     expect(html).toContain('001234567');
     expect(html).toContain('type="submit" disabled');
+  });
+  it('제외된 비참가자 행에는 행 번호와 제외 사유만 표시한다', () => {
+    const html = renderToStaticMarkup(
+      <ImportedReviewRow
+        row={{ ...row, status: 'EXCLUDED', warnings: ['이 행사 비참가자입니다.'] }}
+        busy={false}
+        onConfirm={async () => {}}
+      />,
+    );
+    expect(html).toContain('엑셀 2행');
+    expect(html).toContain('행사 비참가자 제외');
+    expect(html).toContain('이 행사 비참가자입니다.');
+    for (const value of ['도서 ID', '날짜 오류', '001234567', '서평 원문', 'type="submit"'])
+      expect(html).not.toContain(value);
   });
   it('미일치 또는 이미 처리한 행에 승인 버튼을 제공하지 않는다', () => {
     for (const status of ['UNMATCHED', 'INVALID', 'NO_CREDIT', 'ALREADY_APPLIED'] as const) {
@@ -76,7 +97,7 @@ describe('솔라스 자료 대조 기능', () => {
     const request = {
       participantBookId: 9,
       expectedApprovedPages: 200,
-      expectedUncreditedPages: 50,
+      expectedUncreditedPages: 87,
       evidenceChecked: true,
       note: '확인',
     };
@@ -85,5 +106,54 @@ describe('솔라스 자료 대조 기능', () => {
       '/api/admin/review-imports/5/rows/4/confirm?eventId=7',
       expect.objectContaining({ method: 'POST', body: JSON.stringify(request) }),
     );
+  });
+});
+
+describe('관리자 서평 확인', () => {
+  const target: AdminReviewTarget = {
+    participantBookId: 1,
+    participationId: 1,
+    userId: 1,
+    userName: '참가자',
+    studentNo: '001234567',
+    bookTitle: '기록하는 숲',
+    author: null,
+    approvedReadPages: 87,
+    distanceToCreditMeter: 435,
+    reviewSubmittedAt: null,
+    reviewVerifiedAt: null,
+    reviewVerified: false,
+    reviewSearchUrl: null,
+  };
+  it('제출 시각이 없는 솔라스 확인 건은 확인 시각으로 정렬하고 시각을 모르는 건은 항상 마지막에 둔다', () => {
+    const reviews = [
+      { ...target, participantBookId: 2, reviewSubmittedAt: '2026-11-20T11:00:00' },
+      target,
+      { ...target, participantBookId: 3, reviewVerifiedAt: '2026-11-20T10:00:00' },
+      { ...target, participantBookId: 4, reviewVerifiedAt: '2026-11-20T10:00:00' },
+    ];
+    expect([...reviews].sort(compareReviewTime).map((r) => r.participantBookId)).toEqual([
+      3, 4, 2, 1,
+    ]);
+    expect(
+      [...reviews].sort((a, b) => compareReviewTime(a, b, -1)).map((r) => r.participantBookId),
+    ).toEqual([2, 3, 4, 1]);
+  });
+  it('수동 확인은 원문 시각·본문과 조회 당시 누적값을 JSON으로 전송하고 실제 남은 분량을 반환한다', async () => {
+    const evidence = {
+      sourceUpdatedAt: '2026-11-20T10:15:23',
+      sourceContent: '도서관의 서평 본문',
+      expectedApprovedPages: 87,
+      expectedUncreditedPages: 87,
+      evidenceChecked: true,
+    };
+    const result = { ...target, distanceToCreditMeter: 185 };
+    vi.mocked(apiRequest).mockResolvedValue(result);
+    await expect(verifyAdminReview(1, evidence)).resolves.toEqual(result);
+    expect(apiRequest).toHaveBeenCalledWith('/api/admin/reading-logs/review-targets/1/verify', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(evidence),
+    });
   });
 });

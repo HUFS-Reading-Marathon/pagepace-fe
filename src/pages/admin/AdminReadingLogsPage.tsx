@@ -1,4 +1,3 @@
-import { preferredAdminEvent } from '../../utils/eventSelection';
 import { useAdminEventState } from '../../hooks/useAdminEventState';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -12,9 +11,10 @@ import { getApiErrorMessage } from '../../api/apiClient';
 import { getAdminEvents } from '../../api/adminEventApi';
 import ReadingLogReviewPanel from '../../components/admin/readingLogs/ReadingLogReviewPanel';
 import ReadingLogStatusBadge from '../../components/admin/readingLogs/ReadingLogStatusBadge';
-import type { AdminEvent, EventStatus } from '../../types/adminEvent';
+import type { AdminEvent } from '../../types/adminEvent';
 import {
   READING_LOG_REVIEW_OPTIONS,
+  getReadingLogQueuePage,
   getReadingLogTotalPages,
   validateReadingLog,
   type AdminReadingLog,
@@ -26,7 +26,7 @@ import type {
   AdminReadingLogResponse,
   AdminReadingLogStatus,
 } from '../../types/adminReadingLogApi';
-import { chooseEventIdByStatus } from '../../utils/adminEvent';
+import { resolveAdminQueueEvent } from '../../utils/adminEvent';
 import { formatKoDateKey } from '../../utils/date';
 import '../../styles/admin-reading-logs.css';
 
@@ -58,13 +58,6 @@ const STATUS_MAP: Record<AdminReadingLogStatus, ReadingLogStatus> = {
   APPROVED: 'approve',
   REJECTED: 'rejected',
 };
-
-const DEFAULT_EVENT_SELECTION_ORDER: EventStatus[] = [
-  'APPLICATION_OPEN',
-  'READY',
-  'IN_PROGRESS',
-  'DRAFT',
-];
 
 function toDisplayLog(log: AdminReadingLogResponse): AdminReadingLog {
   const sortedBooks = [...log.books].sort(
@@ -102,7 +95,9 @@ function toDisplayLog(log: AdminReadingLogResponse): AdminReadingLog {
 }
 
 function AdminReadingLogsPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const linkedEvent = searchParams.get('eventId');
+  const linkedLog = searchParams.get('logId');
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [selectedEventId, setSelectedEventId] = useAdminEventState();
   const [logs, setLogs] = useState<AdminReadingLog[]>([]);
@@ -111,10 +106,8 @@ function AdminReadingLogsPage() {
   const [reviewFilter, setReviewFilter] = useState<ReadingLogReviewFilter>('ALL');
   const [dateFilter, setDateFilter] = useState('');
   const [sortOrder, setSortOrder] = useState<QueueSort>('oldest');
-  // 오늘의 업무 등에서 ?logId=로 들어오면 해당 일지를 먼저 엽니다.
-  const [selectedLogId, setSelectedLogId] = useState<string | null>(() =>
-    searchParams.get('logId'),
-  );
+  const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
+  const [missingLinkedLog, setMissingLinkedLog] = useState(false);
   const [detailState, setDetailState] = useState<DetailState | null>(null);
   const [detailVersion, setDetailVersion] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -123,10 +116,7 @@ function AdminReadingLogsPage() {
   const [processingLogId, setProcessingLogId] = useState<number | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState('');
   const [feedbackIsError, setFeedbackIsError] = useState(false);
-  const initialRequestRef = useRef<Promise<{
-    events: AdminEvent[];
-    eventId: number | null;
-  }> | null>(null);
+  const initialRequestRef = useRef<Promise<AdminEvent[]> | null>(null);
   const requestSequenceRef = useRef(0);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -178,11 +168,14 @@ function AdminReadingLogsPage() {
   }, [dateFilter, logs, reviewFilter, searchKeyword, sortOrder, statusFilter]);
 
   // 선택한 일지가 현재 목록에 없으면(필터 변경·처리 완료 등) 목록의 첫 일지를 보여 줍니다.
-  const activeLogId =
-    selectedLogId && filteredLogs.some((log) => log.id === selectedLogId)
+  const activeLogId = missingLinkedLog
+    ? null
+    : selectedLogId && filteredLogs.some((log) => log.id === selectedLogId)
       ? selectedLogId
       : (filteredLogs[0]?.id ?? null);
   const activeIndex = filteredLogs.findIndex((log) => log.id === activeLogId);
+  const { visibleLogs, pageStart, pageNumber, pageCount, previousPageId, nextPageId } =
+    getReadingLogQueuePage(filteredLogs, activeIndex);
   const activeListLog = activeIndex >= 0 ? filteredLogs[activeIndex] : undefined;
   const activeDetail = detailState?.logId === activeLogId ? detailState : null;
   const activeLog = activeDetail?.log ?? activeListLog;
@@ -200,7 +193,7 @@ function AdminReadingLogsPage() {
     return ordered.find((log) => log.status === 'submit' && log.id !== logId)?.id ?? null;
   };
 
-  const loadLogs = useCallback(async (eventId: number) => {
+  const loadLogs = useCallback(async (eventId: number, linkedId: string | null) => {
     const requestSequence = ++requestSequenceRef.current;
     setIsLoading(true);
 
@@ -211,7 +204,22 @@ function AdminReadingLogsPage() {
         return;
       }
 
-      setLogs(response.map(toDisplayLog));
+      const nextLogs = response.map(toDisplayLog);
+      setLogs(nextLogs);
+      if (linkedId !== null) {
+        const target = nextLogs.find((log) => log.id === linkedId);
+        setSelectedLogId(target?.id ?? null);
+        setMissingLinkedLog(!target);
+        if (target) {
+          setStatusFilter(target.status);
+          setReviewFilter('ALL');
+          setDateFilter('');
+          setSearchKeyword('');
+        } else {
+          setFeedbackMessage('이 행사에서 링크에 지정된 독서일지를 찾을 수 없습니다.');
+          setFeedbackIsError(true);
+        }
+      }
       setListError(null);
     } catch (error: unknown) {
       if (requestSequence !== requestSequenceRef.current) {
@@ -231,28 +239,26 @@ function AdminReadingLogsPage() {
     let isActive = true;
 
     if (initialRequestRef.current === null) {
-      initialRequestRef.current = getAdminEvents().then((nextEvents) => ({
-        events: nextEvents,
-        eventId:
-          preferredAdminEvent(nextEvents)?.eventId ??
-          chooseEventIdByStatus(nextEvents, DEFAULT_EVENT_SELECTION_ORDER),
-      }));
+      initialRequestRef.current = getAdminEvents();
     }
 
     initialRequestRef.current
-      .then(({ events: nextEvents, eventId }) => {
-        if (!isActive) {
-          return;
-        }
-
+      .then((nextEvents) => {
+        if (!isActive) return;
+        const eventId = resolveAdminQueueEvent(nextEvents, linkedEvent)?.eventId ?? null;
         setEvents(nextEvents);
         setSelectedEventId(eventId);
 
         if (eventId === null) {
           setIsLoading(false);
-          setListError('관리할 행사가 없습니다.');
+          setLogs([]);
+          setListError(
+            linkedEvent === null
+              ? '관리할 행사가 없습니다.'
+              : '링크에 지정된 행사를 찾을 수 없습니다.',
+          );
         } else {
-          void loadLogs(eventId);
+          void loadLogs(eventId, linkedLog);
         }
       })
       .catch((error: unknown) => {
@@ -265,7 +271,7 @@ function AdminReadingLogsPage() {
     return () => {
       isActive = false;
     };
-  }, [loadLogs, setSelectedEventId]);
+  }, [linkedEvent, linkedLog, loadLogs, setSelectedEventId]);
 
   // 선택한 일지의 최신 상세(이전 승인 누적 등)를 서버에서 다시 받아 패널에 표시합니다.
   useEffect(() => {
@@ -298,11 +304,15 @@ function AdminReadingLogsPage() {
     };
   }, [activeLogId, detailVersion]);
 
-  const selectLog = (logId: string | null) => {
+  const selectLog = (logId: string | null, scrollToDetail = true) => {
+    if (missingLinkedLog) {
+      setMissingLinkedLog(false);
+      setFeedbackMessage('');
+    }
     setSelectedLogId(logId);
     setActionError(null);
 
-    if (logId && window.matchMedia(NARROW_LAYOUT_QUERY).matches) {
+    if (scrollToDetail && logId && window.matchMedia(NARROW_LAYOUT_QUERY).matches) {
       window.requestAnimationFrame(() =>
         panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
       );
@@ -412,11 +422,13 @@ function AdminReadingLogsPage() {
     }
 
     requestSequenceRef.current += 1;
-    setSelectedEventId(eventId);
+    setSearchParams({ eventId: String(eventId) }, { replace: true });
     setSelectedLogId(null);
+    setMissingLinkedLog(false);
+    setLogs([]);
+    setIsLoading(true);
     setDetailState(null);
     setFeedbackMessage('');
-    void loadLogs(eventId);
   };
 
   const renderQueue = () => {
@@ -450,7 +462,7 @@ function AdminReadingLogsPage() {
 
     return (
       <ul className="admin-queue__list">
-        {filteredLogs.map((log) => {
+        {visibleLogs.map((log) => {
           const hasWarning = validateReadingLog(log).length > 0;
           const firstBookTitle = log.books[0]?.title ?? '등록 도서 없음';
           const bookLabel =
@@ -503,10 +515,14 @@ function AdminReadingLogsPage() {
           <select
             id="readingLogEvent"
             value={selectedEventId ?? ''}
-            disabled={events.length === 0 || isLoading}
+            disabled={events.length === 0 || isLoading || processingLogId !== null}
             onChange={(event) => handleEventChange(event.target.value)}
           >
-            {events.length === 0 && <option value="">등록된 행사 없음</option>}
+            {selectedEventId === null && (
+              <option value="">
+                {events.length ? '행사를 선택해 주세요.' : '등록된 행사 없음'}
+              </option>
+            )}
             {events.map((event) => (
               <option key={event.eventId} value={event.eventId}>
                 {event.roundNo}회 · {event.title}
@@ -587,8 +603,31 @@ function AdminReadingLogsPage() {
             </div>
           </div>
           {renderQueue()}
+          {pageCount > 1 && (
+            <nav className="admin-queue__footer" aria-label="독서일지 목록 페이지">
+              <button
+                type="button"
+                disabled={!previousPageId}
+                onClick={() => selectLog(previousPageId, false)}
+              >
+                이전 페이지
+              </button>
+              <span aria-live="polite">
+                {pageNumber} / {pageCount}
+              </span>
+              <button
+                type="button"
+                disabled={!nextPageId}
+                onClick={() => selectLog(nextPageId, false)}
+              >
+                다음 페이지
+              </button>
+            </nav>
+          )}
           <div className="admin-queue__footer">
-            전체 {logs.length.toLocaleString('ko-KR')}건 중 {filteredLogs.length}건 표시
+            {filteredLogs.length > 0
+              ? `검색 결과 ${filteredLogs.length.toLocaleString('ko-KR')}건 중 ${pageStart + 1}–${pageStart + visibleLogs.length}건 표시`
+              : '표시할 일지 0건'}
             {hasActiveFilters && (
               <button
                 type="button"

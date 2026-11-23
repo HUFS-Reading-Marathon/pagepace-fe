@@ -2,15 +2,14 @@ import { useAuth } from '../../auth';
 import ReviewRecommendations from '../../components/layout/ReviewRecommendations';
 import { previousReadingBookIds } from '../../utils/reviewRecommendations';
 import ReviewGuide from '../../components/layout/ReviewGuide';
-import { koreaToday } from '../../utils/eventSelection';
-import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { canSubmitReadingLog, koreaToday } from '../../utils/eventSelection';
+import { type FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '../../api/apiClient';
 import BookCover from '../../components/logs/BookCover';
 import BookSearchField from '../../components/logs/BookSearchField';
 import { getCurrentParticipation, getMyParticipations } from '../../api/participationApi';
 import {
-  completeReview,
   createReadingLog,
   getMyReadingBooks,
   getMyReadingLogs,
@@ -22,7 +21,7 @@ import {
 import type { BookSearchResult } from '../../types/book';
 import type { MyParticipation } from '../../types/participation';
 import type { ParticipantBook, ReadingLog, ReviewTargetBook } from '../../types/readingLog';
-import { formatDistance } from '../../utils/reading';
+import { formatDistance, getProgressRate, getCreditedPages } from '../../utils/reading';
 import { METERS_PER_PAGE } from '../../constants/reading';
 import './logs.css';
 
@@ -41,20 +40,21 @@ const createBookEntry = (): BookEntry => ({
 });
 
 function ReadingLogWritePage() {
+  const { logId } = useParams();
+  return <ReadingLogEditor key={logId ?? 'new'} editingLogId={logId ? Number(logId) : null} />;
+}
+function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
   const { user } = useAuth();
   const [bookProgress, setBookProgress] = useState<ParticipantBook[]>([]);
   const [previousLogs, setPreviousLogs] = useState<ReadingLog[]>([]);
   const [guidanceWarning, setGuidanceWarning] = useState('');
   const navigate = useNavigate();
-  const { logId } = useParams();
-  const editingLogId = logId ? Number(logId) : null;
+
   const today = koreaToday();
-  const [participationId, setParticipationId] = useState<number | null>(null);
   const [participation, setParticipation] = useState<MyParticipation | null>(null);
+  const participationId = participation?.participationId;
   const [readingDate, setReadingDate] = useState(today);
   const [books, setBooks] = useState<BookEntry[]>([createBookEntry()]);
-  const reviewBusy = useRef(false);
-  const [reviewSending, setReviewSending] = useState(false);
   const [reviewMessage, setReviewMessage] = useState('');
   const [reviewTargets, setReviewTargets] = useState<ReviewTargetBook[]>([]);
   const [currentReadingBook, setCurrentReadingBook] = useState<ParticipantBook | null>(null);
@@ -65,14 +65,42 @@ function ReadingLogWritePage() {
     let active = true;
     (async () => {
       const editingLog = editingLogId ? await getMyReadingLog(editingLogId) : null;
+      if (editingLog?.status === 'APPROVED')
+        throw new ApiError('승인된 독서일지는 수정할 수 없습니다.');
+      if (editingLog?.bookRequestId)
+        throw new ApiError(
+          '도서 확인으로 이관한 일지입니다. 보완은 도서 확인 요청에서 진행해 주세요.',
+        );
       const participation = editingLog
         ? (await getMyParticipations()).find(
             (item) => item.participationId === editingLog.participationId,
           )
         : await getCurrentParticipation();
       if (!participation) throw new Error('해당 독서일지의 참가 정보를 찾을 수 없습니다.');
-      // Ancillary recommendation APIs must not determine whether logs can be submitted.
-      if (active) setParticipationId(participation.participationId);
+      if (!active) return;
+      if (editingLog) {
+        setReadingDate(editingLog.readingDate);
+        setBooks(
+          editingLog.books.map((savedBook) => ({
+            id: savedBook.readingLogBookId,
+            query: savedBook.bookTitle,
+            readPages: String(savedBook.readPages),
+            selectedBook: {
+              libraryBookId: savedBook.libraryBookId,
+              title: savedBook.bookTitle,
+              author: savedBook.author,
+              publisher: savedBook.publisher,
+              isbn: savedBook.isbn,
+              pageCount: savedBook.totalBookPages,
+              callNo: savedBook.callNo,
+              libraries: [],
+              thumbnailUrl: savedBook.coverImageUrl,
+            },
+          })),
+        );
+      }
+      setParticipation(participation);
+      if (!canSubmitReadingLog(participation)) return;
       const results = await Promise.allSettled([
         getReviewTargetBooks(participation.eventId),
         getMyReadingBooks(participation.eventId),
@@ -81,8 +109,6 @@ function ReadingLogWritePage() {
       ]);
       const [targets, readingBooks, progress, logs] = results;
       return {
-        participation,
-        editingLog,
         targets: targets.status === 'fulfilled' ? targets.value : [],
         readingBooks: readingBooks.status === 'fulfilled' ? readingBooks.value : [],
         progress: progress.status === 'fulfilled' ? progress.value : [],
@@ -90,54 +116,23 @@ function ReadingLogWritePage() {
         guidanceUnavailable: results.some((result) => result.status === 'rejected'),
       };
     })()
-      .then(
-        ({
-          participation,
-          targets,
-          readingBooks,
-          editingLog,
-          progress,
-          logs,
-          guidanceUnavailable,
-        }) => {
-          if (!active) return;
-          setParticipationId(participation.participationId);
-          setParticipation(participation);
-          setReviewTargets(targets);
-          setBookProgress(progress);
-          setPreviousLogs(logs);
-          setGuidanceWarning(
-            guidanceUnavailable
-              ? '서평 안내 일부를 불러오지 못했습니다. 독서일지는 그대로 제출할 수 있습니다.'
-              : '',
-          );
+      .then((result) => {
+        if (!active || !result) return;
+        const { targets, readingBooks, progress, logs, guidanceUnavailable } = result;
+        setReviewTargets(targets);
+        setBookProgress(progress);
+        setPreviousLogs(logs);
+        setGuidanceWarning(
+          guidanceUnavailable
+            ? '서평 안내 일부를 불러오지 못했습니다. 독서일지는 그대로 제출할 수 있습니다.'
+            : '',
+        );
 
-          if (editingLog) {
-            setReadingDate(editingLog.readingDate);
-            setBooks(
-              editingLog.books.map((savedBook) => ({
-                id: savedBook.readingLogBookId,
-                query: savedBook.bookTitle,
-                readPages: String(savedBook.readPages),
-                selectedBook: {
-                  libraryBookId: savedBook.libraryBookId,
-                  title: savedBook.bookTitle,
-                  author: savedBook.author,
-                  publisher: savedBook.publisher,
-                  isbn: savedBook.isbn,
-                  pageCount: savedBook.totalBookPages,
-                  callNo: savedBook.callNo,
-                  libraries: [],
-                  thumbnailUrl: savedBook.coverImageUrl,
-                },
-              })),
-            );
-          } else if (readingBooks.length > 0) {
-            const currentBook = readingBooks[0];
-            setCurrentReadingBook(currentBook);
-          }
-        },
-      )
+        if (!editingLogId && readingBooks.length > 0) {
+          const currentBook = readingBooks[0];
+          setCurrentReadingBook(currentBook);
+        }
+      })
       .catch((error: unknown) => {
         if (!active) return;
         setErrorMessage(
@@ -181,35 +176,20 @@ function ReadingLogWritePage() {
     });
   };
 
-  const handleReviewComplete = async (target: ReviewTargetBook) => {
-    if (reviewBusy.current) return;
-    if (
-      !window.confirm(
-        `도서관 홈페이지에서 “${target.bookTitle}” 서평을 저장하셨나요? 체크하면 이 책의 현재 분량에 대한 추천을 숨기고 담당자에게 작성 사실을 알립니다. 체크만으로 대회 쪽수·거리·순위는 바뀌지 않습니다.`,
-      )
-    )
-      return;
-    reviewBusy.current = true;
-    setReviewSending(true);
-    setReviewMessage('');
-    try {
-      await completeReview(target.participantBookId);
-      setReviewMessage(
-        '작성했다고 표시해 현재 분량의 추천을 숨겼습니다. 대회 실적은 변하지 않으며 담당자가 확인한 뒤 거리가 반영됩니다.',
-      );
-      setReviewTargets((current) =>
-        current.filter((item) => item.participantBookId !== target.participantBookId),
-      );
-    } catch (error) {
-      setErrorMessage(error instanceof ApiError ? error.message : '서평 완료 처리에 실패했습니다.');
-    } finally {
-      reviewBusy.current = false;
-      setReviewSending(false);
-    }
+  const handleReviewComplete = (result: ReviewTargetBook) => {
+    setReviewMessage(
+      `“${result.bookTitle}” 서평 확인을 요청했습니다. 담당자 확인 후 거리가 반영됩니다.`,
+    );
+    setReviewTargets((current) =>
+      current.filter((book) => book.participantBookId !== result.participantBookId),
+    );
   };
 
   const progressRate = participation
-    ? Math.min(Math.max(Math.round(participation.progressRate), 0), 100)
+    ? Math.min(
+        getProgressRate(participation.totalDistanceMeter, participation.targetDistanceMeter),
+        100,
+      )
     : 0;
   const totalReadPages = books.reduce((sum, book) => sum + Number(book.readPages || 0), 0);
   const hasInvalidBook = books.some((book) => {
@@ -226,6 +206,10 @@ function ReadingLogWritePage() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    if (!participation || !canSubmitReadingLog(participation)) {
+      setErrorMessage('이 회차의 독서일지를 접수할 수 없습니다.');
+      return;
+    }
     if (!participationId || hasInvalidBook || totalReadPages > 400) {
       setErrorMessage(
         totalReadPages > 400
@@ -265,6 +249,31 @@ function ReadingLogWritePage() {
       setIsSubmitting(false);
     }
   };
+
+  if (participation && !canSubmitReadingLog(participation)) {
+    return (
+      <main className="page-container">
+        <h1>{participation.eventTitle} 독서일지</h1>
+        <p>
+          {['CANCELLED', 'DISQUALIFIED'].includes(participation.participationStatus)
+            ? '현재 참가 상태에서는 독서일지를 제출할 수 없습니다.'
+            : `이 회차의 일지 접수가 닫혀 있습니다. 접수 기간은 ${participation.eventStartDate} ~ ${participation.eventEndDate}입니다.`}
+        </p>
+        <Link to="/logs">내 독서일지 보기</Link>
+      </main>
+    );
+  }
+  if (!participation) {
+    return (
+      <main className="page-container">
+        <h1>{editingLogId ? '독서일지 수정' : '독서일지 작성'}</h1>
+        <p role={errorMessage ? 'alert' : 'status'}>
+          {errorMessage || '참가 회차를 확인하고 있습니다.'}
+        </p>
+        <Link to="/logs">나의 서재</Link> <Link to="/book-requests">내 도서 확인 요청</Link>
+      </main>
+    );
+  }
 
   return (
     <main className="page-container reading-log-write">
@@ -321,6 +330,12 @@ function ReadingLogWritePage() {
                 </span>
                 <input
                   type="date"
+                  min={participation?.eventStartDate}
+                  max={
+                    participation && participation.eventEndDate < today
+                      ? participation.eventEndDate
+                      : today
+                  }
                   value={readingDate}
                   onChange={(event) => setReadingDate(event.target.value)}
                   required
@@ -508,11 +523,7 @@ function ReadingLogWritePage() {
                   </p>
                 ) : null}
               </div>
-              <button
-                className="reading-log-submit"
-                type="submit"
-                disabled={isSubmitting || participationId === null}
-              >
+              <button className="reading-log-submit" type="submit" disabled={isSubmitting}>
                 {isSubmitting ? '저장 중...' : editingLogId ? '독서일지 수정' : '독서일지 제출'}
               </button>
             </div>
@@ -530,8 +541,12 @@ function ReadingLogWritePage() {
               </p>
               <dl className="reading-log-side-stats">
                 <div>
-                  <dt>인정 쪽수</dt>
+                  <dt>일지 승인</dt>
                   <dd>{participation.totalPages.toLocaleString()}쪽</dd>
+                </div>
+                <div>
+                  <dt>거리 인정</dt>
+                  <dd>{getCreditedPages(participation.totalDistanceMeter).toLocaleString()}쪽</dd>
                 </div>
                 <div>
                   <dt>인정 거리</dt>
@@ -577,8 +592,7 @@ function ReadingLogWritePage() {
                 selectedBookIds={books.flatMap((b) =>
                   b.selectedBook ? [b.selectedBook.libraryBookId] : [],
                 )}
-                sending={reviewSending}
-                onReported={(target) => void handleReviewComplete(target)}
+                onReported={handleReviewComplete}
               />
             )}
           </section>

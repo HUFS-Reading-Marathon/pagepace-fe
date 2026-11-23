@@ -7,6 +7,7 @@ export type MeUpdateRequest = {
   phone: string;
   affiliationType: string;
   department: string;
+  verificationToken?: string;
 };
 
 const ME_PATH = '/api/me';

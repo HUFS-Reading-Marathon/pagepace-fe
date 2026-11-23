@@ -15,7 +15,9 @@ export type ApplicationAffiliationType = AffiliationType;
 
 export type CreateApplicationRequest = {
   eventId: number;
-  courseId: number;
+  courseId?: number;
+  verificationToken: string;
+  privacyConsentVersion: 'application-v1';
   name: string;
   studentNo: string;
   email: string;
@@ -58,14 +60,19 @@ export async function sendApplicationEmailVerification(email: string) {
 export async function confirmApplicationEmailVerification(email: string, code: string) {
   const request: ConfirmEmailVerificationRequest = { email, code };
 
-  await apiRequest<unknown>(`${EMAIL_VERIFICATION_PATH}/confirm`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+  const proof = await apiRequest<{ verificationToken: string }>(
+    `${EMAIL_VERIFICATION_PATH}/confirm`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+      skipAuth: true,
     },
-    body: JSON.stringify(request),
-    skipAuth: true,
-  });
+  );
+  if (!proof?.verificationToken) throw new ApiError('이메일 인증 응답을 확인할 수 없습니다.');
+  return proof.verificationToken;
 }
 
 export async function createApplication(request: CreateApplicationRequest) {

@@ -31,7 +31,10 @@ function ApplyPendingPage() {
               ? `${email}로 승인 안내가 발송될 예정입니다.`
               : '승인 결과와 로그인 안내는 입력한 학교 이메일로 발송될 예정입니다.'}
           </p>
-          <p>승인 후 초기 비밀번호와 비밀번호 변경 안내를 확인해 주세요.</p>
+          <p>
+            처음 참가하는 분은 승인 메일의 안내에 따라 비밀번호를 설정해 주세요. 기존 계정은
+            사용하던 비밀번호로 로그인할 수 있습니다.
+          </p>
         </div>
 
         <Link to="/" className="auth-submit-button auth-pending-button">
