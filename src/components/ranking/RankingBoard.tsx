@@ -42,14 +42,14 @@ function RankingBoard({
     >
       <header>
         <div>
-          <h2>전체 독서 레이스</h2>
+          <h2>{showIdentity ? '참가자별 순위' : '전체 독서 레이스'}</h2>
         </div>
         <p>
           <i /> 인정 거리 <i /> 거리 인정 쪽수
         </p>
       </header>
       <div className="ranking-race-list">
-        {rankings.map((ranking) => {
+        {rankings.map((ranking, index) => {
           const rate = getProgressRate(ranking.distance, ranking.targetDistance);
           const progress = Math.min(rate, 100);
           const completed =
@@ -68,7 +68,13 @@ function RankingBoard({
               <div
                 className={`ranking-race-person ${useSimpleLayout ? 'ranking-race-person--simple' : ''}`}
               >
-                <strong className="ranking-race-rank">
+                {showIdentity && (
+                  <span className="ranking-row-number">
+                    <small>순번</small>
+                    {index + 1}
+                  </span>
+                )}
+                <strong className="ranking-race-rank" aria-label={`순위 ${ranking.rank}위`}>
                   {ranking.rank <= 3 && <span aria-hidden="true">★</span>}
                   {ranking.rank}
                 </strong>

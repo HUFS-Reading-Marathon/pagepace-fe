@@ -4,7 +4,8 @@ import { useAuth, isAdminRole } from '../../auth';
 import { getApiErrorMessage } from '../../api/apiClient';
 import {
   deleteFaq,
-  loadInquiries,
+  INQUIRIES_PER_PAGE,
+  loadInquiryPage,
   postQuestion,
   saveAnswer,
   saveFaq,
@@ -13,6 +14,7 @@ import {
   type InquiryListing,
 } from '../../api/inquiryApi';
 import { formatKoDateKey } from '../../utils/date';
+import '../../styles/admin-participants.css';
 import './inquiries.css';
 
 type Editor = { type: 'ask' | 'faq' | 'answer'; item: Inquiry | null };
@@ -113,7 +115,7 @@ const tabLabel: Record<BoardView, string> = {
   faq: '자주 묻는 질문',
   public: '공개 문의',
   mine: '내 문의',
-  pending: '답변 대기',
+  pending: '처리 전',
   all: '전체 문의',
 };
 export default function InquiryBoard({ admin = false }: { admin?: boolean }) {
@@ -125,6 +127,9 @@ export default function InquiryBoard({ admin = false }: { admin?: boolean }) {
   const requested = params.get('view') as BoardView;
   const view = tabs.includes(requested) ? requested : tabs[0];
   const q = params.get('q') ?? '';
+  const sortParam = params.get('sort');
+  const oldestFirst =
+    admin && (sortParam === 'oldest' || (sortParam !== 'newest' && view === 'pending'));
   const parsedPage = Number(params.get('page') ?? 0);
   const page = Number.isSafeInteger(parsedPage) && parsedPage >= 0 ? parsedPage : 0;
   const [editor, setEditor] = useState<Editor | null>(null);
@@ -132,12 +137,25 @@ export default function InquiryBoard({ admin = false }: { admin?: boolean }) {
   const [status, setStatus] = useState('');
   const [removing, setRemoving] = useState(false);
   const [result, setResult] = useState<{ key: string; rows?: InquiryListing; error?: string }>();
-  const key = JSON.stringify([admin, view, page, q, tick, user?.userId]);
+  const key = JSON.stringify([admin, view, page, q, oldestFirst, tick, user?.userId]);
   useEffect(() => {
     let current = true;
-    loadInquiries(view, admin, q, page)
+    loadInquiryPage(view, admin, q, page, oldestFirst)
       .then((rows) => {
-        if (current) setResult({ key, rows });
+        if (!current) return;
+        if (page > 0 && page >= rows.pages) {
+          setParams(
+            (previous) => {
+              const next = new URLSearchParams(previous);
+              if (rows.pages > 1) next.set('page', String(rows.pages - 1));
+              else next.delete('page');
+              return next;
+            },
+            { replace: true },
+          );
+          return;
+        }
+        setResult({ key, rows });
       })
       .catch((err) => {
         if (current)
@@ -146,11 +164,17 @@ export default function InquiryBoard({ admin = false }: { admin?: boolean }) {
     return () => {
       current = false;
     };
-  }, [admin, view, q, page, key]);
+  }, [admin, view, q, page, oldestFirst, key, setParams]);
   const rows = result?.key === key ? result.rows : undefined;
   const error = result?.key === key ? result.error : undefined;
-  function change(next: BoardView, index = 0, search = '') {
+  function change(
+    next: BoardView,
+    index = 0,
+    search = '',
+    oldest = next === view ? oldestFirst : next === 'pending',
+  ) {
     const values = new URLSearchParams({ view: next });
+    if (admin && oldest !== (next === 'pending')) values.set('sort', oldest ? 'oldest' : 'newest');
     if (index) values.set('page', String(index));
     if (search) values.set('q', search);
     setParams(values);
@@ -253,6 +277,18 @@ export default function InquiryBoard({ admin = false }: { admin?: boolean }) {
               placeholder="질문 또는 답변 검색"
             />
             <button className="btn btn-secondary">검색</button>
+            {admin && (
+              <label className="qa-order">
+                정렬
+                <select
+                  value={oldestFirst ? 'oldest' : 'newest'}
+                  onChange={(e) => change(view, 0, q, e.target.value === 'oldest')}
+                >
+                  <option value="oldest">오래된 순</option>
+                  <option value="newest">최신순</option>
+                </select>
+              </label>
+            )}
             {q && (
               <button type="button" className="btn btn-secondary" onClick={() => change(view)}>
                 초기화
@@ -267,87 +303,159 @@ export default function InquiryBoard({ admin = false }: { admin?: boolean }) {
             <p role="status">불러오는 중…</p>
           ) : (
             <>
-              <div className="qa-list">
-                {rows.items.length === 0 && (
-                  <p>
-                    {q
-                      ? '검색 결과가 없습니다.'
-                      : view === 'pending'
-                        ? '답변을 기다리는 문의가 없습니다.'
-                        : '등록된 항목이 없습니다.'}
-                  </p>
-                )}
-                {rows.items.map((item) => (
-                  <details key={item.id}>
-                    <summary>
-                      <strong>{item.title}</strong>
-                      <span>
-                        {item.kind === 'FAQ'
-                          ? admin
-                            ? item.publicEntry
-                              ? '공개'
-                              : '비공개'
-                            : ''
-                          : item.answer
-                            ? '답변 완료'
-                            : '답변 대기'}{' '}
-                        {item.kind === 'QUESTION' && !item.publicEntry && ' · 비공개'}
-                      </span>
-                    </summary>
-                    <div className="qa-detail">
-                      {item.kind === 'QUESTION' && (
-                        <>
-                          <small>
-                            {item.authorName && item.authorName + ' · '}
-                            {formatKoDateKey(item.createdAt.slice(0, 10))}
-                          </small>
-                          <p>{item.content}</p>
-                        </>
+              {admin ? (
+                <div
+                  className="roster-scroll"
+                  role="region"
+                  aria-label={tabLabel[view]}
+                  tabIndex={0}
+                >
+                  <table className="roster-table qa-admin-table">
+                    <caption className="sr-only">{tabLabel[view]}</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col" className="qa-number">
+                          순번
+                        </th>
+                        <th scope="col">{view === 'faq' ? '질문' : '문의 제목'}</th>
+                        {view !== 'faq' && (
+                          <th scope="col" className="qa-author">
+                            작성자
+                          </th>
+                        )}
+                        <th scope="col" className="qa-date">
+                          등록일
+                        </th>
+                        <th scope="col" className="qa-visible">
+                          공개 여부
+                        </th>
+                        {view !== 'faq' && (
+                          <th scope="col" className="qa-state">
+                            처리 상태
+                          </th>
+                        )}
+                        <th scope="col" className="qa-manage">
+                          관리
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.items.length === 0 && (
+                        <tr>
+                          <td className="roster-empty" colSpan={view === 'faq' ? 5 : 7}>
+                            {q
+                              ? '검색 결과가 없습니다.'
+                              : view === 'pending'
+                                ? '처리 전 문의가 없습니다.'
+                                : '등록된 항목이 없습니다.'}
+                          </td>
+                        </tr>
                       )}
-                      {item.answer && (
-                        <div className="qa-answer">
-                          <strong>도서관 답변</strong>
-                          <p>{item.answer}</p>
-                        </div>
-                      )}
-                      {admin && (
-                        <div className="qa-actions">
-                          <button
-                            className="btn btn-secondary"
-                            onClick={() =>
-                              setEditor({ type: item.kind === 'FAQ' ? 'faq' : 'answer', item })
-                            }
-                          >
-                            {item.kind === 'FAQ'
-                              ? '질문 수정'
-                              : item.answer
-                                ? '답변 수정'
-                                : '답변 작성'}
-                          </button>
-                          {item.kind === 'FAQ' && (
-                            <button
-                              disabled={removing}
-                              className="btn btn-secondary"
-                              onClick={() => void remove(item)}
-                            >
-                              삭제
-                            </button>
+                      {rows.items.map((item, index) => (
+                        <tr key={item.id}>
+                          <td className="qa-number">{page * INQUIRIES_PER_PAGE + index + 1}</td>
+                          <td title={item.title}>{item.title}</td>
+                          {view !== 'faq' && (
+                            <td title={item.authorName ?? ''}>{item.authorName || '—'}</td>
                           )}
-                        </div>
-                      )}
-                    </div>
-                  </details>
-                ))}
-              </div>
+                          <td>{formatKoDateKey(item.createdAt.slice(0, 10))}</td>
+                          <td>
+                            {item.publicEntry
+                              ? item.kind === 'QUESTION' && !item.answer
+                                ? '답변 후 공개'
+                                : '공개'
+                              : '비공개'}
+                          </td>
+                          {view !== 'faq' && (
+                            <td className={item.answer ? undefined : 'qa-pending'}>
+                              {item.answer ? '답변 완료' : '처리 전'}
+                            </td>
+                          )}
+                          <td>
+                            <button
+                              type="button"
+                              className="qa-row-action"
+                              onClick={() =>
+                                setEditor({ type: item.kind === 'FAQ' ? 'faq' : 'answer', item })
+                              }
+                            >
+                              {item.kind === 'FAQ'
+                                ? '수정'
+                                : item.answer
+                                  ? '답변 수정'
+                                  : '답변 작성'}
+                            </button>
+                            {item.kind === 'FAQ' && (
+                              <button
+                                type="button"
+                                className="qa-row-action"
+                                disabled={removing}
+                                onClick={() => void remove(item)}
+                              >
+                                삭제
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="qa-list">
+                  {rows.items.length === 0 && (
+                    <p>
+                      {q
+                        ? '검색 결과가 없습니다.'
+                        : view === 'pending'
+                          ? '답변을 기다리는 문의가 없습니다.'
+                          : '등록된 항목이 없습니다.'}
+                    </p>
+                  )}
+                  {rows.items.map((item) => (
+                    <details key={item.id}>
+                      <summary>
+                        <strong>{item.title}</strong>
+                        <span>
+                          {item.kind === 'FAQ' ? '' : item.answer ? '답변 완료' : '답변 대기'}{' '}
+                          {item.kind === 'QUESTION' && !item.publicEntry && ' · 비공개'}
+                        </span>
+                      </summary>
+                      <div className="qa-detail">
+                        {item.kind === 'QUESTION' && (
+                          <>
+                            <small>
+                              {item.authorName && item.authorName + ' · '}
+                              {formatKoDateKey(item.createdAt.slice(0, 10))}
+                            </small>
+                            <p>{item.content}</p>
+                          </>
+                        )}
+                        {item.answer && (
+                          <div className="qa-answer">
+                            <strong>도서관 답변</strong>
+                            <p>{item.answer}</p>
+                          </div>
+                        )}
+                      </div>
+                    </details>
+                  ))}
+                </div>
+              )}
               {rows.pages > 1 && (
                 <nav className="qa-pages" aria-label="목록 페이지">
-                  <button disabled={page <= 0} onClick={() => change(view, page - 1, q)}>
+                  <button
+                    className="btn btn-secondary"
+                    disabled={page <= 0}
+                    onClick={() => change(view, page - 1, q)}
+                  >
                     이전
                   </button>
                   <span>
                     {page + 1} / {rows.pages}
                   </span>
                   <button
+                    className="btn btn-secondary"
                     disabled={page + 1 >= rows.pages}
                     onClick={() => change(view, page + 1, q)}
                   >

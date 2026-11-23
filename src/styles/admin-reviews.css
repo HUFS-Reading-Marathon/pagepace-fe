@@ -45,6 +45,27 @@
   font-size: 14px;
 }
 
+.admin-reviews__workspace {
+  display: flex;
+  gap: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.admin-reviews__workspace button {
+  padding: 12px 2px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--body);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.admin-reviews__workspace button[aria-pressed='true'] {
+  border-bottom-color: var(--navy);
+  color: var(--navy-strong);
+  font-weight: 700;
+}
+
 .admin-reviews__tabs {
   display: flex;
   margin-top: 20px;
@@ -241,6 +262,10 @@
   .admin-reviews__header {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .admin-reviews__header > div {
+    flex: none;
   }
 
   .admin-reviews__header label {

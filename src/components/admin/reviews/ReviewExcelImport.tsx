@@ -1,5 +1,13 @@
 import ApprovedBookLogs from './ApprovedBookLogs';
-import { useEffect, useImperativeHandle, useRef, useState, type FormEvent, type Ref } from 'react';
+import {
+  Fragment,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type FormEvent,
+  type Ref,
+} from 'react';
 import '../../../styles/review-import.css';
 import { ApiError } from '../../../api/apiClient';
 import { METERS_PER_PAGE } from '../../../constants/reading';
@@ -202,6 +210,7 @@ export default function ReviewExcelImport({
 }) {
   const [history, setHistory] = useState<ReviewImportHistory | null>(null);
   const [detail, setDetail] = useState<ReviewImportDetail | null>(null);
+  const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -223,8 +232,14 @@ export default function ReviewExcelImport({
   useEffect(() => {
     let active = true;
     getReviewImportHistory(eventId)
-      .then((next) => {
-        if (active) setHistory(next);
+      .then(async (next) => {
+        if (!active) return;
+        setHistory(next);
+        const latest = next.batches[0];
+        if (latest) {
+          const result = await getReviewImportDetail(eventId, latest.id);
+          if (active) setDetail(result);
+        }
       })
       .catch((error) => {
         if (active)
@@ -256,7 +271,7 @@ export default function ReviewExcelImport({
   };
   const open = (id: number, page = 0) =>
     run(async () => {
-      setDetail(null);
+      setExpandedRow(null);
       setDetail(await getReviewImportDetail(eventId, id, page));
     });
   const upload = (event: FormEvent) => {
@@ -270,6 +285,7 @@ export default function ReviewExcelImport({
       )
         throw new Error('5MB 이하의 xlsx 파일을 선택해 주세요.');
       const batch = await uploadReviewExcel(eventId, file);
+      setExpandedRow(null);
       setFile(null);
       if (fileInput.current) fileInput.current.value = '';
       setMessage(`${batch.rowCount}행을 업로드했습니다. 아직 거리는 반영되지 않았습니다.`);
@@ -310,12 +326,8 @@ export default function ReviewExcelImport({
         <span>.xlsx · 최대 5MB · 2,000행</span>
       </header>
       <p>
-        솔라스에서 기간으로 조회한 전체 서평을 올리세요. 승인 일지의 회원번호와 서지번호를 대조한 뒤
-        일치하는 책의 서평을 승인할 수 있습니다.
-      </p>
-      <p className="review-import__notice">
-        최종 수정일은 최초 작성일이 아닙니다. 행사 인정 기간을 별도로 확인하며, 추가 확인 항목이
-        있으면 검토 메모를 남겨 주세요.
+        대회 기간으로 조회한 솔라스 엑셀을 올리면 승인된 독서일지와 회원번호·서지번호를 대조합니다.
+        같은 참가자의 같은 책은 한 번 승인하면 이후 일지도 자동으로 거리에 반영됩니다.
       </p>
       <form className="review-import__upload" onSubmit={upload}>
         <label>
@@ -349,26 +361,30 @@ export default function ReviewExcelImport({
         <p role="status">업로드 내역을 불러오는 중입니다.</p>
       ) : (
         <>
-          <p className="review-import__history">
-            <label>
-              업로드 내역{' '}
-              <select
-                aria-label="서평 업로드 내역"
-                disabled={busy}
-                value={detail?.batch.id ?? ''}
-                onChange={(event) => {
-                  if (event.target.value) void open(Number(event.target.value));
-                }}
-              >
-                <option value="">업로드를 선택해 주세요</option>
-                {history?.batches.map((batch) => (
-                  <option key={batch.id} value={batch.id}>
-                    {batch.createdAt.replace('T', ' ')} · {batch.filename} · {batch.rowCount}행
-                  </option>
-                ))}
-              </select>
-            </label>
-          </p>
+          {history && history.batches.length > 0 ? (
+            <p className="review-import__history">
+              <label>
+                대조할 업로드 내역{' '}
+                <select
+                  aria-label="서평 업로드 내역"
+                  disabled={busy}
+                  value={detail?.batch.id ?? ''}
+                  onChange={(event) => {
+                    if (event.target.value) void open(Number(event.target.value));
+                  }}
+                >
+                  <option value="">업로드를 선택해 주세요</option>
+                  {history?.batches.map((batch) => (
+                    <option key={batch.id} value={batch.id}>
+                      {batch.createdAt.replace('T', ' ')} · {batch.filename} · {batch.rowCount}행
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </p>
+          ) : (
+            history && <p className="review-import__history">이 행사의 업로드 내역이 없습니다.</p>
+          )}
           {history && history.totalPages > 1 && (
             <div className="review-import__actions">
               <button
@@ -402,39 +418,91 @@ export default function ReviewExcelImport({
       )}
       {detail && (
         <>
-          <h3>
-            {detail.batch.eventTitle} · {detail.batch.filename}
-          </h3>
-          <p>
-            총 {detail.batch.rowCount}행 · {detail.page + 1} / {detail.totalPages}페이지 · 업로드:{' '}
-            {detail.batch.uploadedBy}
-          </p>
-          <div className="review-import__actions">
-            <button
-              disabled={busy || detail.page === 0}
-              onClick={() => void open(detail.batch.id, detail.page - 1)}
-            >
-              이전 50행
-            </button>
-            <button disabled={busy} onClick={() => void open(detail.batch.id, detail.page)}>
-              대조 결과 새로고침
-            </button>
-            <button
-              disabled={busy || detail.page + 1 >= detail.totalPages}
-              onClick={() => void open(detail.batch.id, detail.page + 1)}
-            >
-              다음 50행
-            </button>
+          <div className="review-import__result-heading">
+            <div>
+              <h3>대조 결과</h3>
+              <span>
+                {detail.batch.filename} · 총 {detail.batch.rowCount.toLocaleString()}행
+              </span>
+            </div>
+            <div className="review-import__actions">
+              <button
+                disabled={busy || detail.page === 0}
+                onClick={() => void open(detail.batch.id, detail.page - 1)}
+              >
+                이전
+              </button>
+              <span>
+                {detail.page + 1} / {Math.max(1, detail.totalPages)}
+              </span>
+              <button disabled={busy} onClick={() => void open(detail.batch.id, detail.page)}>
+                대조 결과 새로고침
+              </button>
+              <button
+                disabled={busy || detail.page + 1 >= detail.totalPages}
+                onClick={() => void open(detail.batch.id, detail.page + 1)}
+              >
+                다음
+              </button>
+            </div>
           </div>
-          <div className="review-import__grid">
-            {detail.rows.map((row) => (
-              <ImportedReviewRow
-                key={`${row.id}-${row.status}-${row.candidates.map((c) => `${c.participantBookId}:${c.approvedPages}:${c.uncreditedPages}:${c.distanceToCreditMeter}`).join(',')}`}
-                row={row}
-                busy={busy || readOnly}
-                onConfirm={confirm}
-              />
-            ))}
+          <div className="review-import__results">
+            <table aria-label="솔라스 엑셀 행별 대조 결과">
+              <thead>
+                <tr>
+                  <th scope="col">엑셀 행</th>
+                  <th scope="col">작성자</th>
+                  <th scope="col">도서명</th>
+                  <th scope="col">대조 상태</th>
+                  <th scope="col">상세</th>
+                </tr>
+              </thead>
+              <tbody>
+                {detail.rows.map((row) => {
+                  const expanded = expandedRow === row.id;
+                  const excluded = row.status === 'EXCLUDED';
+                  return (
+                    <Fragment key={row.id}>
+                      <tr>
+                        <td>{row.sourceRow}</td>
+                        <td>{excluded ? '—' : row.memberName || '—'}</td>
+                        <td>{excluded ? '—' : row.bookTitle || '—'}</td>
+                        <td>
+                          <span
+                            className={`review-import__badge review-import__badge--${row.status.toLowerCase()}`}
+                          >
+                            {REVIEW_IMPORT_STATUS[row.status]}
+                          </span>
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            aria-label={`엑셀 ${row.sourceRow}행 ${expanded ? '닫기' : '상세 보기'}`}
+                            aria-expanded={expanded}
+                            disabled={busy}
+                            onClick={() => setExpandedRow(expanded ? null : row.id)}
+                          >
+                            {expanded ? '닫기' : '보기'}
+                          </button>
+                        </td>
+                      </tr>
+                      {expanded && (
+                        <tr>
+                          <td colSpan={5} className="review-import__detail">
+                            <ImportedReviewRow
+                              key={`${row.id}-${row.status}-${row.candidates.map((c) => `${c.participantBookId}:${c.approvedPages}:${c.uncreditedPages}:${c.distanceToCreditMeter}`).join(',')}`}
+                              row={row}
+                              busy={busy || readOnly}
+                              onConfirm={confirm}
+                            />
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </>
       )}

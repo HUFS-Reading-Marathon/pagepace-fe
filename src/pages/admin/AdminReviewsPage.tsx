@@ -78,6 +78,9 @@ function AdminReviews({
   requestedBook: string | null;
   onSelectEvent: (eventId: string) => void;
 }) {
+  const [workspace, setWorkspace] = useState<'excel' | 'manual'>(
+    requestedBook ? 'manual' : 'excel',
+  );
   const [importBusy, setImportBusy] = useState(false);
   const manualBusy = useRef(false);
   const [events, setEvents] = useState<AdminEvent[]>([]);
@@ -608,10 +611,6 @@ function AdminReviews({
       <header className="admin-page__header admin-reviews__header">
         <div>
           <h1>서평 확인</h1>
-          <p>
-            승인된 독서일지를 참가자·도서별로 모아 솔라스 서평과 대조합니다. 같은 책은 한 번
-            확인하면 이후 승인된 일지도 1쪽당 {METERS_PER_PAGE}m씩 반영됩니다.
-          </p>
         </div>
         <label>
           <span>관리 행사</span>
@@ -630,8 +629,35 @@ function AdminReviews({
         </label>
       </header>
 
+      <nav className="admin-reviews__workspace" aria-label="서평 확인 방식">
+        <button
+          type="button"
+          aria-pressed={workspace === 'excel'}
+          disabled={importBusy || verifyingId !== null}
+          onClick={() => setWorkspace('excel')}
+        >
+          엑셀 대조
+        </button>
+        <button
+          type="button"
+          aria-pressed={workspace === 'manual'}
+          disabled={importBusy || verifyingId !== null}
+          onClick={() => setWorkspace('manual')}
+        >
+          개별 서평 확인
+        </button>
+      </nav>
+      {error && (
+        <p className="admin-reviews__error" role="alert">
+          {error}
+        </p>
+      )}
       {eventId && (
-        <fieldset className="review-import-fieldset" disabled={isLoading || verifyingId !== null}>
+        <fieldset
+          className="review-import-fieldset"
+          hidden={workspace !== 'excel'}
+          disabled={verifyingId !== null}
+        >
           <ReviewExcelImport
             ref={excelPreview}
             key={eventId}
@@ -643,69 +669,73 @@ function AdminReviews({
         </fieldset>
       )}
 
-      <div className="admin-reviews__tabs">
-        <div className="admin-segmented" aria-label="서평 확인 상태">
-          <button
-            type="button"
-            disabled={verifyingId !== null}
-            aria-pressed={tab === 'pending'}
-            onClick={() => setTab('pending')}
-          >
-            서평 대조 대기 <b>{pendingCount}</b>
-          </button>
-          <button
-            type="button"
-            aria-pressed={tab === 'verified'}
-            disabled={verifyingId !== null}
-            onClick={() => setTab('verified')}
-          >
-            확인 완료 <b>{verifiedCount}</b>
-          </button>
-        </div>
-        <p className="admin-feedback" role="status" aria-live="polite">
-          {feedbackMessage}
-        </p>
-      </div>
-
-      {error && (
-        <p className="admin-reviews__error" role="alert">
-          {error}
+      {workspace === 'excel' && !eventId && (
+        <p role="status">
+          {isLoading ? '행사를 불러오고 있습니다.' : '대조할 행사를 선택해 주세요.'}
         </p>
       )}
-
-      <div className="admin-split">
-        <section className="admin-queue" aria-labelledby="reviewQueueTitle">
-          <div className="admin-queue__head">
-            <h2 id="reviewQueueTitle">
-              {tab === 'pending' ? '확인 대기' : '확인 완료'} <span>{visibleTargets.length}건</span>
-            </h2>
-            <select
-              aria-label="정렬"
-              disabled={verifyingId !== null}
-              value={sortOrder}
-              onChange={(event) => setSortOrder(event.target.value as QueueSort)}
-            >
-              <option value="oldest">제출 오래된 순</option>
-              <option value="newest">최근 제출 순</option>
-            </select>
+      {workspace === 'manual' && (
+        <>
+          <div className="admin-reviews__tabs">
+            <div className="admin-segmented" aria-label="서평 확인 상태">
+              <button
+                type="button"
+                disabled={verifyingId !== null}
+                aria-pressed={tab === 'pending'}
+                onClick={() => setTab('pending')}
+              >
+                서평 대조 대기 <b>{pendingCount}</b>
+              </button>
+              <button
+                type="button"
+                aria-pressed={tab === 'verified'}
+                disabled={verifyingId !== null}
+                onClick={() => setTab('verified')}
+              >
+                확인 완료 <b>{verifiedCount}</b>
+              </button>
+            </div>
+            <p className="admin-feedback" role="status" aria-live="polite">
+              {feedbackMessage}
+            </p>
           </div>
-          <div className="admin-queue__tools">
-            <input
-              type="search"
-              disabled={verifyingId !== null}
-              value={searchKeyword}
-              aria-label="서평 확인 대상 검색"
-              placeholder="참가자, 학번, 책 제목, 저자"
-              onChange={(event) => setSearchKeyword(event.target.value)}
-            />
-          </div>
-          {renderQueue()}
-        </section>
 
-        <div ref={panelRef} className="admin-reviews__panel">
-          {renderPanel()}
-        </div>
-      </div>
+          <div className="admin-split">
+            <section className="admin-queue" aria-labelledby="reviewQueueTitle">
+              <div className="admin-queue__head">
+                <h2 id="reviewQueueTitle">
+                  {tab === 'pending' ? '확인 대기' : '확인 완료'}{' '}
+                  <span>{visibleTargets.length}건</span>
+                </h2>
+                <select
+                  aria-label="정렬"
+                  disabled={verifyingId !== null}
+                  value={sortOrder}
+                  onChange={(event) => setSortOrder(event.target.value as QueueSort)}
+                >
+                  <option value="oldest">제출 오래된 순</option>
+                  <option value="newest">최근 제출 순</option>
+                </select>
+              </div>
+              <div className="admin-queue__tools">
+                <input
+                  type="search"
+                  disabled={verifyingId !== null}
+                  value={searchKeyword}
+                  aria-label="서평 확인 대상 검색"
+                  placeholder="참가자, 학번, 책 제목, 저자"
+                  onChange={(event) => setSearchKeyword(event.target.value)}
+                />
+              </div>
+              {renderQueue()}
+            </section>
+
+            <div ref={panelRef} className="admin-reviews__panel">
+              {renderPanel()}
+            </div>
+          </div>
+        </>
+      )}
     </section>
   );
 }

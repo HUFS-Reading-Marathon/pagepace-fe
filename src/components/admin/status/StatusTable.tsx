@@ -41,6 +41,7 @@ function StatusTable({ participants, hasParticipants, isLoading, error }: Status
         <caption className="sr-only">관리자용 참가자별 대회 현황</caption>
         <thead>
           <tr>
+            <th scope="col">순번</th>
             <th scope="col">이름</th>
             <th scope="col">학번</th>
             <th scope="col">소속</th>
@@ -56,8 +57,9 @@ function StatusTable({ participants, hasParticipants, isLoading, error }: Status
           </tr>
         </thead>
         <tbody>
-          {participants.map((participant) => (
+          {participants.map((participant, index) => (
             <tr key={participant.applicationId}>
+              <td className="admin-status__ordinal">{index + 1}</td>
               <td className="admin-status__name">{participant.name}</td>
               <td className="admin-status__nowrap">{participant.studentNumber}</td>
               <td>

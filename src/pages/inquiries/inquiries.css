@@ -119,3 +119,67 @@
   margin-top: 20px;
   justify-content: center;
 }
+
+.admin-page.qa-board .qa-search {
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.admin-page.qa-board .qa-search input {
+  flex: 0 1 32rem;
+}
+.qa-order {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-inline-start: auto;
+  color: var(--body);
+  font-size: 14px;
+}
+.qa-order select {
+  padding: 7px 28px 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background-color: white;
+  color: var(--ink);
+  font: inherit;
+}
+.qa-admin-table {
+  width: 100%;
+  min-width: 690px;
+}
+.qa-admin-table .qa-number {
+  width: 54px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.qa-admin-table .qa-author,
+.qa-admin-table .qa-date,
+.qa-admin-table .qa-visible,
+.qa-admin-table .qa-state,
+.qa-admin-table .qa-manage {
+  width: 94px;
+}
+.qa-admin-table .qa-date {
+  width: 110px;
+}
+.qa-admin-table .qa-pending {
+  color: #785b2c;
+}
+.qa-admin-table .qa-row-action {
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--navy-strong);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.qa-admin-table .qa-row-action:hover {
+  text-decoration: underline;
+}
+.qa-admin-table .qa-row-action + .qa-row-action {
+  margin-left: 12px;
+}
+.qa-admin-table tbody tr:not([data-locked]) {
+  cursor: default;
+}

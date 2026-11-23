@@ -1,13 +1,18 @@
 import { preferredAdminEvent } from '../../utils/eventSelection';
 import { useAdminEventState } from '../../hooks/useAdminEventState';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { getApiErrorMessage } from '../../api/apiClient';
 import { getAdminEventCourses, getAdminEvents } from '../../api/adminEventApi';
-import { getAdminRankings, type Ranking, type RankingSort } from '../../api/rankingApi';
+import { getAdminRankings, type Ranking } from '../../api/rankingApi';
 import AdminPageTabs from '../../components/admin/AdminPageTabs';
 import { COMPETITION_TABS } from '../../constants/adminNavigation';
 import RankingBoard from '../../components/ranking/RankingBoard';
 import type { AdminCourse, AdminEvent } from '../../types/adminEvent';
+import {
+  ADMIN_COMPETITION_SORT_OPTIONS,
+  type AdminCompetitionSortOption,
+} from '../../types/adminStatus';
+import { formatStatusDistance, sortCompetitionStandings } from '../../utils/statusAggregation';
 import '../../styles/ranking.css';
 
 const RANKING_ERROR_MESSAGE = '관리자 랭킹을 불러오지 못했습니다.';
@@ -18,7 +23,7 @@ function AdminRankingPage() {
   const [eventId, setEventId] = useAdminEventState();
   const [courses, setCourses] = useState<AdminCourse[]>([]);
   const [courseId, setCourseId] = useState<number | undefined>();
-  const [sort, setSort] = useState<RankingSort>('RANK');
+  const [sort, setSort] = useState<AdminCompetitionSortOption>('distance-desc');
   const [rankings, setRankings] = useState<Ranking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -49,7 +54,7 @@ function AdminRankingPage() {
 
         setCourses(nextCourses);
         setCourseId(undefined);
-        setSort('RANK');
+        setSort('distance-desc');
         setRankings(nextRankings);
         setError('');
       })
@@ -68,14 +73,15 @@ function AdminRankingPage() {
       active = false;
     };
   }, [eventId]);
-  const loadFiltered = async (nextCourseId: number | undefined, nextSort: RankingSort) => {
+  const filterCourse = async (nextCourseId: number | undefined) => {
     if (!eventId) return;
     const request = ++sequence.current;
 
+    setCourseId(nextCourseId);
     setIsLoading(true);
 
     try {
-      const rows = await getAdminRankings(eventId, nextCourseId, nextSort);
+      const rows = await getAdminRankings(eventId, nextCourseId);
       if (sequence.current === request) {
         setRankings(rows);
         setError('');
@@ -87,14 +93,17 @@ function AdminRankingPage() {
       if (sequence.current === request) setIsLoading(false);
     }
   };
-  const filterCourse = (id?: number) => {
-    setCourseId(id);
-    void loadFiltered(id, sort);
-  };
-  const changeSort = (value: RankingSort) => {
-    setSort(value);
-    void loadFiltered(courseId, value);
-  };
+  const orderedRankings = useMemo(
+    () =>
+      sortCompetitionStandings(
+        rankings,
+        sort,
+        (row) => row.distance,
+        (row) => row.approvedPages,
+      ),
+    [rankings, sort],
+  );
+  const leaders = rankings.filter((row) => row.rank === 1);
 
   const selectedEvent = events.find((event) => event.eventId === eventId);
 
@@ -103,12 +112,24 @@ function AdminRankingPage() {
       <header className="admin-page__header ranking-admin-header">
         <div>
           <h1>대회 현황·랭킹</h1>
-          <p>마스킹되지 않은 참가자 정보와 코스별 진행 순위를 확인합니다.</p>
         </div>
         <div className="ranking-admin-summary">
-          <span>현재 1위</span>
-          <strong>{rankings[0]?.name ?? '-'}</strong>
-          <small>{rankings[0] ? `${(rankings[0].distance / 1000).toFixed(2)}km` : '집계 전'}</small>
+          <span>
+            {courseId === undefined
+              ? '전체 코스'
+              : courses.find((course) => course.courseId === courseId)?.name}{' '}
+            · 최고 인정 거리
+          </span>
+          <strong>
+            {isLoading || error || !leaders.length
+              ? '—'
+              : formatStatusDistance(leaders[0].distance)}
+          </strong>
+          {!isLoading && !error && leaders.length > 0 && (
+            <small>
+              {leaders.length === 1 ? `1위 ${leaders[0].name}` : `공동 1위 ${leaders.length}명`}
+            </small>
+          )}
         </div>
       </header>
       <AdminPageTabs label="대회 현황·랭킹 화면" tabs={COMPETITION_TABS} />
@@ -137,7 +158,7 @@ function AdminRankingPage() {
           <select
             value={courseId ?? ''}
             onChange={(event) =>
-              filterCourse(event.target.value ? Number(event.target.value) : undefined)
+              void filterCourse(event.target.value ? Number(event.target.value) : undefined)
             }
           >
             <option value="">전체 코스</option>
@@ -150,14 +171,22 @@ function AdminRankingPage() {
         </label>
         <label>
           <span>정렬</span>
-          <select value={sort} onChange={(event) => changeSort(event.target.value as RankingSort)}>
-            <option value="RANK">거리 순</option>
-            <option value="NAME">이름 순</option>
+          <select
+            value={sort}
+            onChange={(event) => setSort(event.target.value as AdminCompetitionSortOption)}
+          >
+            {ADMIN_COMPETITION_SORT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
         </label>
         <div>
           <strong>{selectedEvent?.title ?? '행사 선택'}</strong>
-          <span>독서 기록이 있는 참가자 {rankings.length}명</span>
+          <span>
+            {isLoading ? '조회 중…' : error ? '조회 실패' : `참가자 ${rankings.length}명`}
+          </span>
         </div>
       </section>
       {isLoading ? (
@@ -165,7 +194,7 @@ function AdminRankingPage() {
       ) : error ? (
         <div className="ranking-empty is-error">{error}</div>
       ) : (
-        <RankingBoard rankings={rankings} eventStatus={selectedEvent?.status} showIdentity />
+        <RankingBoard rankings={orderedRankings} eventStatus={selectedEvent?.status} showIdentity />
       )}
     </section>
   );
