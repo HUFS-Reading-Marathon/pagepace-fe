@@ -98,7 +98,7 @@ function AdminHeader() {
               학교 홈페이지
             </a>
 
-            <a href="/#contact">문의</a>
+            <a href="/inquiries">문의</a>
           </nav>
         </div>
       </div>

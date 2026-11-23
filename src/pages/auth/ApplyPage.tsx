@@ -7,6 +7,7 @@ import {
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { formatKoDateKey } from '../../utils/date';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { findDepartmentGroup } from '../../constants/departments';
 import DepartmentSelect from '../../components/forms/DepartmentSelect';
 import {
   confirmApplicationEmailVerification,
@@ -109,6 +110,8 @@ function ApplyPage() {
     null,
   );
   const [codeInputFocusKey, setCodeInputFocusKey] = useState(0);
+  const [grade, setGrade] = useState('');
+  const [gender, setGender] = useState('');
   const [department, setDepartment] = useState('');
   const [affiliation, setAffiliation] = useState<AffiliationType>('undergraduate');
   const [currentEvent, setCurrentEvent] = useState<CurrentEvent | null>(null);
@@ -173,18 +176,10 @@ function ApplyPage() {
           return;
         }
 
-        const defaultCourse =
-          nextCourses.find((course) => course.name.replace(/\s/g, '') === '하프코스') ??
-          nextCourses[0];
-
         setCurrentEvent(nextCurrentEvent);
         setCourses(nextCourses);
-        setSelectedCourseId(defaultCourse?.courseId ?? null);
-        setEventCourseError(
-          !nextCurrentEvent.distanceBasedParticipation && nextCourses.length === 0
-            ? '신청 가능한 코스가 없습니다.'
-            : '',
-        );
+        setSelectedCourseId(nextCourses.length === 1 ? nextCourses[0].courseId : null);
+        setEventCourseError(nextCourses.length === 0 ? '신청 가능한 코스가 없습니다.' : '');
       })
       .catch((error: unknown) => {
         if (!isActive) {
@@ -409,8 +404,8 @@ function ApplyPage() {
     }
 
     if (
-      !currentEvent.distanceBasedParticipation &&
-      (selectedCourseId === null || !courses.some((course) => course.courseId === selectedCourseId))
+      selectedCourseId === null ||
+      !courses.some((course) => course.courseId === selectedCourseId)
     ) {
       setErrorMessage('신청 가능한 코스를 선택해 주세요.');
       return;
@@ -430,9 +425,7 @@ function ApplyPage() {
     try {
       await createApplication({
         eventId: currentEvent.eventId,
-        courseId: currentEvent.distanceBasedParticipation
-          ? undefined
-          : (selectedCourseId ?? undefined),
+        courseId: selectedCourseId,
         verificationToken,
         privacyConsentVersion: 'application-v1',
         name: name.trim(),
@@ -441,6 +434,9 @@ function ApplyPage() {
         phone: phone.trim(),
         affiliationType: applicationAffiliation,
         department: department.trim(),
+        college: findDepartmentGroup(department)?.label,
+        grade: affiliation === 'undergraduate' && grade ? grade : undefined,
+        gender: gender || undefined,
       });
       navigate('/apply/pending', {
         state: { email: normalizedEmail, eventId: currentEvent.eventId },
@@ -729,6 +725,30 @@ function ApplyPage() {
                     }
                     fieldClassName="apply-field"
                   />
+                  {affiliation === 'undergraduate' && (
+                    <label className="apply-field">
+                      학년 (선택)
+                      <select value={grade} onChange={(e) => setGrade(e.target.value)}>
+                        <option value="">선택하지 않음</option>
+                        {['1', '2', '3', '4', '5', '6'].map((g) => (
+                          <option key={g} value={g}>
+                            {g}학년
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  <label className="apply-field">
+                    성별 (선택)
+                    <select value={gender} onChange={(e) => setGender(e.target.value)}>
+                      <option value="">선택하지 않음</option>
+                      <option value="여">여</option>
+                      <option value="남">남</option>
+                    </select>
+                  </label>
+                  <p className="apply-help">
+                    학년과 성별은 도서관 결과 보고에 사용되는 선택 항목입니다.
+                  </p>
                   <p className="apply-help">목록에 없는 소속은 도서관 담당자에게 문의해 주세요.</p>
                 </div>
               </div>
@@ -739,54 +759,51 @@ function ApplyPage() {
                 참가 코스
               </h2>
               <div className="apply-group__body">
-                {currentEvent?.distanceBasedParticipation ? (
-                  <p>전체 참가로 신청합니다. 인정 거리에 따라 달성 코스가 결정됩니다.</p>
-                ) : (
-                  <fieldset className="apply-fieldset" aria-describedby="course-help">
-                    <legend className="sr-only">참가 코스 선택</legend>
-                    {courses.length > 0 ? (
-                      <div className="apply-courses">
-                        {courses.map((course) => (
-                          <label className="apply-course" key={course.courseId}>
-                            <input
-                              type="radio"
-                              name="course"
-                              value={course.courseId}
-                              checked={selectedCourseId === course.courseId}
-                              onChange={() => setSelectedCourseId(course.courseId)}
-                              disabled={!isCourseSelectable}
-                            />
-                            <span className="apply-course__box">
-                              <span className="apply-course__name">{course.name}</span>
-                              {/* 화면 낭독기가 코스명과 거리를 이어 읽지 않도록 띄어 둡니다. */}{' '}
-                              {course.targetDistanceMeter > 0 && (
-                                <span className="apply-course__meta">
-                                  {formatCourseDistance(course.targetDistanceMeter)} ·{' '}
-                                  {getCourseTargetPages(course.targetDistanceMeter).toLocaleString(
-                                    'ko-KR',
-                                  )}
-                                  쪽
-                                </span>
-                              )}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    ) : (
-                      // 코스가 없을 때의 안내는 아래 오류 문구(eventCourseError)가 맡습니다.
-                      isEventCourseLoading && (
-                        <p className="apply-course-empty">코스 정보를 불러오는 중입니다.</p>
-                      )
-                    )}
-                  </fieldset>
-                )}
+                <fieldset className="apply-fieldset" aria-describedby="course-help">
+                  <legend className="sr-only">참가 코스 선택</legend>
+                  {courses.length > 0 ? (
+                    <div className="apply-courses">
+                      {courses.map((course) => (
+                        <label className="apply-course" key={course.courseId}>
+                          <input
+                            type="radio"
+                            name="course"
+                            value={course.courseId}
+                            checked={selectedCourseId === course.courseId}
+                            onChange={() => setSelectedCourseId(course.courseId)}
+                            disabled={!isCourseSelectable}
+                          />
+                          <span className="apply-course__box">
+                            <span className="apply-course__name">{course.name}</span>
+                            {/* 화면 낭독기가 코스명과 거리를 이어 읽지 않도록 띄어 둡니다. */}{' '}
+                            {course.targetDistanceMeter > 0 && (
+                              <span className="apply-course__meta">
+                                {formatCourseDistance(course.targetDistanceMeter)} ·{' '}
+                                {getCourseTargetPages(course.targetDistanceMeter).toLocaleString(
+                                  'ko-KR',
+                                )}
+                                쪽
+                              </span>
+                            )}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    // 코스가 없을 때의 안내는 아래 오류 문구(eventCourseError)가 맡습니다.
+                    isEventCourseLoading && (
+                      <p className="apply-course-empty">코스 정보를 불러오는 중입니다.</p>
+                    )
+                  )}
+                </fieldset>
                 {eventCourseError ? (
                   <p id="course-help" className="apply-help is-error" role="alert">
                     {eventCourseError}
                   </p>
                 ) : (
                   <p id="course-help" className="apply-help">
-                    일지 승인과 서평 확인을 거친 독서 1쪽은 {METERS_PER_PAGE}m로 환산됩니다.
+                    신청한 코스는 추후 관리자에게 요청해 상위 코스로 변경할 수 있습니다. 독서 1쪽은{' '}
+                    {METERS_PER_PAGE}m입니다.
                   </p>
                 )}
               </div>
@@ -822,7 +839,7 @@ function ApplyPage() {
                     isSubmitting ||
                     isEventCourseLoading ||
                     !canApply(currentEvent) ||
-                    (!currentEvent?.distanceBasedParticipation && selectedCourseId === null)
+                    selectedCourseId === null
                   }
                   aria-busy={isSubmitting}
                 >

@@ -1,0 +1,121 @@
+.qa-public {
+  max-width: 1000px;
+  min-height: 55vh;
+  padding-block: 45px 72px;
+}
+.qa-board {
+  color: var(--ink);
+}
+.qa-heading,
+.qa-actions,
+.qa-search,
+.qa-pages {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.qa-heading {
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+.qa-heading h1 {
+  margin: 0;
+}
+.qa-tabs {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 20px;
+}
+.qa-tabs button {
+  background: transparent;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  padding: 10px 2px;
+  color: var(--body);
+  font: inherit;
+  cursor: pointer;
+}
+.qa-tabs [aria-current='page'] {
+  border-color: var(--navy-strong);
+  color: var(--navy-strong);
+  font-weight: 700;
+}
+.qa-board input:not([type='checkbox']),
+.qa-board textarea {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font: inherit;
+  background: white;
+  color: var(--ink);
+}
+.qa-board textarea {
+  resize: vertical;
+}
+.qa-search {
+  margin: 20px 0;
+}
+.qa-search input {
+  flex: 1;
+}
+.qa-list {
+  border-block: 1px solid var(--line);
+}
+.qa-list > p {
+  padding: 24px;
+  text-align: center;
+}
+.qa-list details + details {
+  border-top: 1px solid var(--line);
+}
+.qa-list summary {
+  padding: 15px 6px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.qa-list summary span,
+.qa-detail small {
+  margin-inline-start: 10px;
+  color: var(--body);
+  font-size: 0.85em;
+}
+.qa-detail,
+.qa-editor {
+  padding: 18px;
+  background: var(--blue-10);
+  border-radius: var(--radius);
+}
+.qa-detail p,
+.qa-question p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.qa-answer {
+  padding: 14px;
+  border-left: 3px solid var(--navy-strong);
+  background: white;
+}
+.qa-answer p {
+  margin-bottom: 0;
+}
+.qa-editor label {
+  display: grid;
+  gap: 6px;
+  margin: 14px 0;
+}
+.qa-editor .qa-visibility {
+  display: flex;
+  align-items: center;
+}
+.qa-actions {
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+.qa-pages {
+  margin-top: 20px;
+  justify-content: center;
+}

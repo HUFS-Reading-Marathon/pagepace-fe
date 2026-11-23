@@ -48,6 +48,8 @@ const ADMIN_MENUS: readonly AdminMenu[] = [
     path: '/admin/notices',
     group: '운영 관리',
   },
+  { label: '문의·FAQ 관리', path: '/admin/inquiries', group: '운영 관리' },
+  { label: '결과 보고서', path: '/admin/reports', group: '분석' },
   {
     label: '운영 통계',
     path: '/admin/statistics',

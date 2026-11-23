@@ -24,6 +24,9 @@ export type CreateApplicationRequest = {
   phone: string;
   affiliationType: ApplicationAffiliationType;
   department: string;
+  college?: string;
+  grade?: string;
+  gender?: string;
 };
 
 export type CreateApplicationResponse = {

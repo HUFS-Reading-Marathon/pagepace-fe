@@ -10,11 +10,11 @@ function Footer() {
         </div>
 
         <nav className="footer-links" aria-label="푸터 바로가기">
-          <a href="/#about">행사안내</a>
-          <a href="/#courses">코스</a>
-          <a href="/#process">참여방법</a>
+          <Link to="/guide">행사안내</Link>
+          <Link to="/courses">코스</Link>
+          <Link to="/guide/participation">참여방법</Link>
           <Link to="/status">대회 현황</Link>
-          <a href="/#contact">문의</a>
+          <Link to="/inquiries">문의</Link>
         </nav>
       </div>
 
