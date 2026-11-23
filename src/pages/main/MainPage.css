@@ -473,8 +473,7 @@
 }
 
 .about-card h3,
-.news-card h3,
-.contact-card h3 {
+.news-card h3 {
   margin: 0 0 18px;
   color: var(--navy-strong);
   font-size: 22px;
@@ -821,7 +820,9 @@
   align-items: start;
 }
 
-.check-card h2 {
+/* 좌우 섹션 제목을 같은 크기·굵기·하단 간격으로 */
+.check-card h2,
+.contact-card h3 {
   margin: 0 0 16px;
   color: var(--navy-strong);
   font-size: 25px;
@@ -837,7 +838,7 @@
 
 .check-list {
   list-style: none;
-  margin: 26px 0 0;
+  margin: 20px 0 0;
   padding: 0;
   border-top: 1px solid var(--line-soft);
 }
@@ -850,19 +851,18 @@
   font-weight: 500;
 }
 
-.contact-grid {
-  margin-top: 20px;
-  border-top: 1px solid var(--line-soft);
-}
-
-/* 라벨 | 값 한 줄 목록 (참여 전 확인사항 목록과 같은 행 간격·구분선) */
+/* 라벨 위·값 아래 세로 목록 (참여 전 확인사항 목록과 같은 행 간격·구분선) */
 .contact-item {
-  display: grid;
-  grid-template-columns: 110px minmax(0, 1fr);
-  gap: 18px;
-  align-items: baseline;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   padding: 14px 0;
   border-bottom: 1px solid var(--line-soft);
+}
+
+/* 첫 항목은 제목 바로 아래에서 시작 (왼쪽 설명 문구와 같은 시작선) */
+.contact-item:first-child {
+  padding-top: 0;
 }
 
 .contact-item span {
@@ -873,10 +873,27 @@
 
 .contact-item b,
 .contact-item a {
+  color: var(--body);
+  font-size: 16px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.contact-item a {
+  align-self: flex-start;
+  max-width: 100%;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  transition:
+    color 0.15s ease,
+    text-decoration-color 0.15s ease;
+}
+
+.contact-item a:hover,
+.contact-item a:focus-visible {
   color: var(--navy-strong);
-  font-size: 17px;
-  font-weight: 700;
-  word-break: break-word;
+  text-decoration-color: currentColor;
 }
 
 .cta-band {
