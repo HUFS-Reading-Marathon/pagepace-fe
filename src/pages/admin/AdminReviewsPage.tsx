@@ -4,9 +4,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ApiError, getApiErrorMessage } from '../../api/apiClient';
 import { getAdminEvents } from '../../api/adminEventApi';
-import ReviewExcelImport, {
+import ReviewImportWorkspace, {
   type ReviewPreview,
-} from '../../components/admin/reviews/ReviewExcelImport';
+} from '../../components/admin/reviews/ReviewImportWorkspace';
 import {
   compareReviewTime,
   getAdminReviewTargets,
@@ -249,12 +249,16 @@ function AdminReviews({
     });
   };
 
-  const refreshReviews = async () => {
+  /**
+   * 서평 확인 대기 목록을 다시 불러옵니다. studentNo를 주면 엑셀 대조 결과에서도 그 참가자의 행만
+   * 다시 불러옵니다 (개별 확인이나 인정 취소가 같은 참가자의 대조 상태를 바꿀 수 있습니다).
+   */
+  const refreshReviews = async (studentNo?: string) => {
     if (eventId === null) return;
     setCheckedItems({ targetId: null, keys: [] });
     const [queue, excel] = await Promise.allSettled([
       getAdminReviewTargets(eventId),
-      excelPreview.current?.reload(),
+      studentNo ? excelPreview.current?.reload(studentNo) : Promise.resolve(),
     ]);
     setTargets(queue.status === 'fulfilled' ? queue.value : []);
     setError(
@@ -304,14 +308,14 @@ function AdminReviews({
         setFeedbackMessage(
           `${target.userName} 님의 “${target.bookTitle}” · ${requestError.message}`,
         );
-        await refreshReviews();
+        await refreshReviews(target.studentNo);
       }
       manualBusy.current = false;
       setVerifyingId(null);
       return;
     }
 
-    await refreshReviews();
+    await refreshReviews(target.studentNo);
     manualBusy.current = false;
     setVerifyingId(null);
 
@@ -566,7 +570,7 @@ function AdminReviews({
             key={activeTarget.participantBookId + '-' + String(activeTarget.reviewVerified)}
             bookId={activeTarget.participantBookId}
             locked={eventLocked || verifyingId !== null || importBusy}
-            onChanged={refreshReviews}
+            onChanged={() => refreshReviews(activeTarget.studentNo)}
             onReplace={(id, content, time) => {
               setEvidence({
                 targetId: activeTarget.participantBookId,
@@ -611,6 +615,7 @@ function AdminReviews({
       <header className="admin-page__header admin-reviews__header">
         <div>
           <h1>서평 확인</h1>
+          <p>솔라스 서평 자료와 승인된 독서일지를 대조해 인정 거리를 반영합니다.</p>
         </div>
         <label>
           <span>관리 행사</span>
@@ -629,10 +634,18 @@ function AdminReviews({
         </label>
       </header>
 
-      <nav className="admin-reviews__workspace" aria-label="서평 확인 방식">
+      <div
+        className="admin-page-tabs admin-reviews__workspace"
+        role="tablist"
+        aria-label="서평 확인 방식"
+      >
         <button
           type="button"
-          aria-pressed={workspace === 'excel'}
+          role="tab"
+          id="reviewWorkspaceExcel"
+          aria-selected={workspace === 'excel'}
+          aria-controls="reviewWorkspaceExcelPanel"
+          className={`admin-page-tabs__link${workspace === 'excel' ? ' admin-page-tabs__link--active' : ''}`}
           disabled={importBusy || verifyingId !== null}
           onClick={() => setWorkspace('excel')}
         >
@@ -640,42 +653,56 @@ function AdminReviews({
         </button>
         <button
           type="button"
-          aria-pressed={workspace === 'manual'}
+          role="tab"
+          id="reviewWorkspaceManual"
+          aria-selected={workspace === 'manual'}
+          aria-controls="reviewWorkspaceManualPanel"
+          className={`admin-page-tabs__link${workspace === 'manual' ? ' admin-page-tabs__link--active' : ''}`}
           disabled={importBusy || verifyingId !== null}
           onClick={() => setWorkspace('manual')}
         >
-          개별 서평 확인
+          개별 확인
+          {pendingCount > 0 && <b className="admin-reviews__tab-count">{pendingCount}</b>}
         </button>
-      </nav>
+      </div>
       {error && (
         <p className="admin-reviews__error" role="alert">
           {error}
         </p>
       )}
       {eventId && (
-        <fieldset
-          className="review-import-fieldset"
+        <div
+          id="reviewWorkspaceExcelPanel"
+          role="tabpanel"
+          aria-labelledby="reviewWorkspaceExcel"
           hidden={workspace !== 'excel'}
-          disabled={verifyingId !== null}
         >
-          <ReviewExcelImport
+          <ReviewImportWorkspace
             ref={excelPreview}
             key={eventId}
             eventId={eventId}
             readOnly={eventLocked}
             onBusyChange={setImportBusy}
-            onVerified={refreshReviews}
+            onVerified={() => refreshReviews()}
           />
-        </fieldset>
+        </div>
       )}
 
       {workspace === 'excel' && !eventId && (
-        <p role="status">
+        <p className="admin-reviews__status" role="status">
           {isLoading ? '행사를 불러오고 있습니다.' : '대조할 행사를 선택해 주세요.'}
         </p>
       )}
       {workspace === 'manual' && (
-        <>
+        <div
+          id="reviewWorkspaceManualPanel"
+          role="tabpanel"
+          aria-labelledby="reviewWorkspaceManual"
+        >
+          <p className="admin-reviews__manual-intro">
+            엑셀에 없는 서평은 도서관 사이트에서 원문을 열어 확인한 뒤, 원문 시각과 본문을 남기고
+            직접 인정합니다.
+          </p>
           <div className="admin-reviews__tabs">
             <div className="admin-segmented" aria-label="서평 확인 상태">
               <button
@@ -734,7 +761,7 @@ function AdminReviews({
               {renderPanel()}
             </div>
           </div>
-        </>
+        </div>
       )}
     </section>
   );

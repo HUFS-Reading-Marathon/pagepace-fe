@@ -120,6 +120,64 @@ export async function verifyAdminReview(participantBookId: number, evidence: Man
   return result;
 }
 
+/** 서평 확인 대상 도서에 포함된 승인 독서일지 한 건 */
+export type ApprovedBookLog = {
+  readingLogId: number;
+  eventId: number;
+  readingDate: string;
+  pages: number;
+};
+
+export async function getApprovedBookLogs(participantBookId: number) {
+  validateId(participantBookId, '독서일지');
+  const logs = await apiRequest<ApprovedBookLog[]>(
+    `${ADMIN_READING_LOGS_PATH}/review-targets/${participantBookId}/approved-logs`,
+    { method: 'GET' },
+  );
+  return logs ?? [];
+}
+
+/** 참가 도서별 서평 인정 이력 (솔라스 대조 또는 수동 확인) */
+export type ReviewEvidence = {
+  id: number;
+  sourceUpdatedAt: string | null;
+  creditedPages: number;
+  sourceType: string;
+  verifiedBy: string;
+  verifiedAt: string;
+  revokedAt: string | null;
+  revokeReason: string | null;
+  sourceContent: string | null;
+  note: string | null;
+  revokedBy: string | null;
+};
+
+export async function getReviewEvidence(participantBookId: number) {
+  validateId(participantBookId, '독서일지');
+  const evidence = await apiRequest<ReviewEvidence[]>(
+    `${ADMIN_READING_LOGS_PATH}/review-targets/${participantBookId}/evidence`,
+    { method: 'GET' },
+  );
+  return evidence ?? [];
+}
+
+export function revokeReviewEvidence(
+  participantBookId: number,
+  evidenceId: number,
+  reason: string,
+) {
+  validateId(participantBookId, '독서일지');
+  validateId(evidenceId, '독서일지');
+  return apiRequest(
+    `${ADMIN_READING_LOGS_PATH}/review-targets/${participantBookId}/evidence/${evidenceId}/revoke`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason }),
+    },
+  );
+}
+
 export async function approveAdminReadingLog(readingLogId: number, expectedUpdatedAt: string) {
   validateId(readingLogId, '독서일지');
 
