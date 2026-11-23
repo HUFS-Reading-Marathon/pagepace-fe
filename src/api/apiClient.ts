@@ -81,10 +81,11 @@ function getHttpErrorMessage(status: number) {
   return '요청을 처리하는 중 오류가 발생했습니다.';
 }
 
-export async function apiRequest<T>(
+async function requestResponse(
   path: string,
-  options: ApiRequestOptions = {},
-): Promise<T | null> {
+  options: ApiRequestOptions,
+  accept: string,
+): Promise<Response> {
   const {
     skipAuth = false,
     skipRefresh = false,
@@ -94,7 +95,7 @@ export async function apiRequest<T>(
   const headers = new Headers(initialHeaders);
   const token = skipAuth ? null : getAccessToken();
 
-  headers.set('Accept', 'application/json');
+  headers.set('Accept', accept);
 
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
@@ -116,24 +117,39 @@ export async function apiRequest<T>(
     );
   }
 
-  const payload = await parseApiResponse<T>(response);
-
   if (response.status === 401 && !skipAuth && !skipRefresh) {
     try {
       await refreshAccessToken();
-
-      return apiRequest<T>(path, {
-        ...options,
-        headers: initialHeaders,
-        skipRefresh: true,
-      });
-    } catch (refreshError) {
+    } catch (error) {
       clearAuthStorage();
       emitAuthChange();
-      throw refreshError;
+      throw error;
     }
+    return requestResponse(path, { ...options, skipRefresh: true }, accept);
   }
+  return response;
+}
 
+export async function downloadExcel(path: string, options: RequestInit = {}) {
+  const excel = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  const response = await requestResponse(path, options, excel + ', application/json');
+  if (!response.ok || !response.headers.get('Content-Type')?.startsWith(excel)) {
+    const error = await parseApiResponse(response);
+    throw new ApiError(
+      error?.message || '엑셀 파일을 내려받지 못했습니다.',
+      response.status,
+      error?.code,
+    );
+  }
+  return response.blob();
+}
+
+export async function apiRequest<T>(
+  path: string,
+  options: ApiRequestOptions = {},
+): Promise<T | null> {
+  const response = await requestResponse(path, options, 'application/json');
+  const payload = await parseApiResponse<T>(response);
   if (!response.ok || !payload?.success) {
     throw new ApiError(
       payload?.message || getHttpErrorMessage(response.status),
