@@ -6,61 +6,74 @@
   flex: none;
   width: 140px;
 }
-.log-queue__table {
-  width: 100%;
-  min-width: 700px;
-}
-.log-queue__table:has(.log-col-status) {
-  min-width: 780px;
-}
-.log-col-check {
-  width: 28px;
-}
-.log-col-number {
-  width: 44px;
-}
-.log-col-name {
-  width: 100px;
-}
-.log-col-id {
-  width: 126px;
-}
-.log-col-date {
-  width: 122px;
-}
-.log-col-status {
-  width: 84px;
-}
-.log-col-pages {
-  width: 84px;
-}
-.log-queue__table .log-queue__pages {
+.log-queue__table th[data-column='totalReadPages'],
+.log-queue__table td[data-column='totalReadPages'] {
   text-align: right;
+  padding-inline-end: 14px;
 }
-.log-queue .log-queue__table tbody .log-queue__row,
-.log-queue .log-queue__table tbody .log-queue__detail-row {
+.log-queue__table td[data-column='createdAt'] {
+  color: #46596c;
+  font-size: 13px;
+}
+.log-queue__table td[data-column='userName'] {
+  color: var(--ink);
+  font-weight: 600;
+}
+.log-queue .log-queue__table tbody tr {
   cursor: default;
 }
-.log-cell-status[data-status='SUBMITTED'] {
+.log-queue__table td[data-status='SUBMITTED'] {
   color: #72511e;
 }
-.log-book-summary {
-  display: flex;
-  align-items: baseline;
-  gap: 5px;
+.log-queue__table .log-queue__disclosure {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  padding: 0 6px;
+  text-align: center;
+  box-shadow: inset 1px 0 #dae2ea;
 }
-.log-book-summary > span {
-  overflow: hidden;
-  text-overflow: ellipsis;
+.log-queue__table td.log-queue__disclosure {
+  background: white;
 }
-.log-book-summary small {
-  flex: none;
+.log-queue__row:hover .log-queue__disclosure {
+  background: #f3f7fa;
+}
+.log-queue__row[data-selected] .log-queue__disclosure {
+  background: #eaf2fa;
+}
+.log-queue__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 58px;
+  min-height: 28px;
+  padding: 2px 6px;
+  border: 1px solid #c4d1dd;
+  border-radius: 4px;
+  background: #fff;
+  color: var(--navy-strong);
+  font: inherit;
   font-size: 12px;
-  color: var(--body);
+  font-weight: 600;
 }
+.log-queue__toggle > span {
+  width: 6px;
+  height: 6px;
+  margin-top: -3px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+}
+.log-queue__toggle[aria-expanded='true'] > span {
+  margin-top: 3px;
+  transform: rotate(225deg);
+}
+.log-queue__toggle:hover,
 .log-queue__toggle[aria-expanded='true'] {
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  border-color: #7e9cb6;
+  background: #eef4f9;
 }
 .log-queue__table .log-queue__detail {
   height: auto;
@@ -83,9 +96,11 @@
     display: grid;
     gap: 3px;
   }
-  .log-queue__filters label:has(input[type='date']) {
-    grid-column: 1;
-    grid-row: 3;
+  .log-queue .log-queue__filters {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) auto;
+  }
+  .log-queue .roster-edit {
+    align-self: start;
   }
   .log-queue__filters input[type='date'] {
     width: 100%;

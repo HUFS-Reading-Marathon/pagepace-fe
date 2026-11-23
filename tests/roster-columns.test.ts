@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import {
-  CHECK_WIDTH,
-  defaultColumnWidths,
-  middleEllipsis,
-} from '../src/components/admin/participants/rosterColumns';
+import { defaultColumnWidths } from '../src/components/admin/participants/rosterColumns';
+import { CHECK_WIDTH } from '../src/components/admin/table/tableColumns';
+import { middleEllipsis } from '../src/components/admin/table/useTableCellText';
 
 describe('참가자 명단 열 너비', () => {
   it('작은 화면은 가로 스크롤에 필요한 최소 열 너비를 유지한다', () => {

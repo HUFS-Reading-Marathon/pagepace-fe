@@ -5,6 +5,19 @@ import type {
 } from '../../../types/adminReadingLogApi';
 import { READING_LOG_STATUS_LABELS } from '../../../types/readingLog';
 import { formatKoDateTime24 } from '../../../utils/date';
+import ColumnResizeHandle from '../table/ColumnResizeHandle';
+import { CHECK_WIDTH, useColumnSizing } from '../table/tableColumns';
+import { useTableCellText } from '../table/useTableCellText';
+import {
+  DEFAULT_LOG_SORT,
+  DETAIL_WIDTH,
+  LOG_COLUMNS,
+  LOG_MIN_WIDTH,
+  logColumnWidths,
+  visibleLogColumns,
+  type LogColumn,
+  type LogSort,
+} from './readingLogTable';
 import '../../../styles/admin-participants.css';
 import './reading-log-queue.css';
 
@@ -19,7 +32,7 @@ type Props = {
   filter: Filter;
   query: string;
   date: string;
-  order: string;
+  sort: LogSort;
   selected: number | null;
   selectedIds: ReadonlySet<number>;
   loading: boolean;
@@ -32,7 +45,8 @@ type Props = {
   onFilter: (value: Filter) => void;
   onQuery: (value: string) => void;
   onDate: (value: string) => void;
-  onOrder: (value: string) => void;
+  onSort: (key: LogSort['column']) => void;
+  onReset: () => void;
   onPage: (page: number) => void;
   onPageSize?: (size: number) => void;
   onSelect: (id: number | null) => void;
@@ -48,7 +62,7 @@ export default function ReadingLogQueueList({
   filter,
   query,
   date,
-  order,
+  sort,
   selected,
   selectedIds,
   loading,
@@ -61,7 +75,8 @@ export default function ReadingLogQueueList({
   onFilter,
   onQuery,
   onDate,
-  onOrder,
+  onSort,
+  onReset,
   onPage,
   onPageSize,
   onSelect,
@@ -74,7 +89,18 @@ export default function ReadingLogQueueList({
   const start = page * pageSize;
   const searching = !!(query.trim() || date);
   const showStatus = filter === 'ALL';
-  const columnCount = showStatus ? 8 : 7;
+  const columns = visibleLogColumns(showStatus);
+  const columnCount = columns.length + 2;
+  const { container, viewport, custom, resize, resetWidth } = useColumnSizing<LogColumn>();
+  const widths = logColumnWidths(columns, viewport, custom);
+  const tableWidth =
+    CHECK_WIDTH + DETAIL_WIDTH + columns.reduce((sum, key) => sum + widths[key], 0);
+  const { table, fitText } = useTableCellText(
+    rows.length > 0 && !loading && !error,
+    showStatus ? 'all' : 'filtered',
+  );
+  const defaultSort =
+    sort.column === DEFAULT_LOG_SORT.column && sort.direction === DEFAULT_LOG_SORT.direction;
   const selectable = rows.filter(canSelect).map((log) => log.readingLogId);
   const selectedCount = selectable.filter((id) => selectedIds.has(id)).length;
   const allChecked = selectable.length > 0 && selectedCount === selectable.length;
@@ -163,28 +189,11 @@ export default function ReadingLogQueueList({
               onChange={(e) => onDate(e.target.value)}
             />
           </label>
-          <label>
-            정렬
-            <select
-              aria-label="정렬"
-              value={order}
-              disabled={processing}
-              onChange={(e) => onOrder(e.target.value)}
-            >
-              <option value="oldest">제출 오래된 순</option>
-              <option value="newest">최근 제출 순</option>
-            </select>
-          </label>
           <button
             type="button"
             className="roster-link"
-            disabled={processing || (!searching && filter === 'SUBMITTED' && order === 'oldest')}
-            onClick={() => {
-              onQuery('');
-              onDate('');
-              onOrder('oldest');
-              onFilter('SUBMITTED');
-            }}
+            disabled={processing || (!searching && filter === 'SUBMITTED' && defaultSort)}
+            onClick={onReset}
           >
             초기화
           </button>
@@ -198,18 +207,26 @@ export default function ReadingLogQueueList({
           선택 승인{selectedCount > 0 && ` (${selectedCount}건)`}
         </button>
       </div>
-      <div className="roster-scroll" tabIndex={0} role="region" aria-label="독서일지 목록 표">
-        <table className="roster-table log-queue__table" aria-busy={loading}>
+      <div
+        ref={container}
+        className="roster-scroll"
+        tabIndex={0}
+        role="region"
+        aria-label="독서일지 목록 표"
+      >
+        <table
+          ref={table}
+          style={{ width: tableWidth }}
+          className="roster-table log-queue__table"
+          aria-busy={loading}
+        >
           <caption className="sr-only">독서일지 목록</caption>
           <colgroup>
-            <col className="log-col-check" />
-            <col className="log-col-number" />
-            <col className="log-col-name" />
-            <col className="log-col-id" />
-            <col className="log-col-date" />
-            {showStatus && <col className="log-col-status" />}
-            <col />
-            <col className="log-col-pages" />
+            <col style={{ width: CHECK_WIDTH }} />
+            {columns.map((key) => (
+              <col key={key} style={{ width: widths[key] }} />
+            ))}
+            <col style={{ width: DETAIL_WIDTH }} />
           </colgroup>
           <thead>
             <tr>
@@ -225,26 +242,39 @@ export default function ReadingLogQueueList({
                   onChange={(e) => check(selectable, e.target.checked)}
                 />
               </th>
-              <th scope="col" data-column="number">
-                순번
-              </th>
-              <th scope="col">이름</th>
-              <th scope="col">학번·사번</th>
-              <th scope="col" aria-sort={order === 'oldest' ? 'ascending' : 'descending'}>
-                <button
-                  type="button"
-                  className="roster-sort"
-                  disabled={processing}
-                  onClick={() => onOrder(order === 'oldest' ? 'newest' : 'oldest')}
-                >
-                  제출일
-                  <span className="sort-mark" aria-hidden="true" />
-                </button>
-              </th>
-              {showStatus && <th scope="col">상태</th>}
-              <th scope="col">도서명</th>
-              <th scope="col" className="log-queue__pages">
-                쪽수
+              {columns.map((key) => {
+                const direction = sort.column === key ? sort.direction : undefined;
+                return (
+                  <th key={key} scope="col" data-column={key} aria-sort={direction}>
+                    {key === 'number' ? (
+                      LOG_COLUMNS[key]
+                    ) : (
+                      <button
+                        type="button"
+                        className="roster-sort"
+                        disabled={processing}
+                        title={
+                          LOG_COLUMNS[key] +
+                          (direction === 'ascending' ? ' 내림차순 정렬' : ' 오름차순 정렬')
+                        }
+                        onClick={() => onSort(key)}
+                      >
+                        {LOG_COLUMNS[key]}
+                        <span className="sort-mark" aria-hidden="true" />
+                      </button>
+                    )}
+                    <ColumnResizeHandle
+                      label={LOG_COLUMNS[key]}
+                      width={widths[key]}
+                      minWidth={LOG_MIN_WIDTH[key]}
+                      onChange={(width) => resize(key, width)}
+                      onReset={() => resetWidth(key)}
+                    />
+                  </th>
+                );
+              })}
+              <th scope="col" className="log-queue__disclosure">
+                상세
               </th>
             </tr>
           </thead>
@@ -271,6 +301,16 @@ export default function ReadingLogQueueList({
                 const book = log.books[0]?.bookTitle || '도서 미등록';
                 const more = log.books.length > 1 ? ` 외 ${log.books.length - 1}권` : '';
                 const detailId = `log-review-detail-${id}`;
+                const values: Record<LogColumn, string> = {
+                  number: String(start + i + 1),
+                  userName: log.userName,
+                  studentNo: log.studentNo,
+                  createdAt: submittedDate + ' ' + log.createdAt.slice(11, 16),
+                  status: labels[log.status],
+                  bookTitle: book + more,
+                  author: log.books[0]?.author || '',
+                  totalReadPages: log.totalReadPages.toLocaleString() + '쪽',
+                };
                 const eligible = canSelect(log);
                 const checked = eligible && selectedIds.has(id);
                 return (
@@ -289,46 +329,44 @@ export default function ReadingLogQueueList({
                           onChange={(e) => check([id], e.target.checked)}
                         />
                       </td>
-                      <td data-column="number">
-                        <span>{start + i + 1}</span>
-                      </td>
-                      <td className="log-cell-name">
+                      {columns.map((key) => {
+                        const value = values[key];
+                        const display = fitText ? fitText(key, value, widths[key]) : value;
+                        return (
+                          <td
+                            key={key}
+                            data-column={key}
+                            data-status={key === 'status' ? log.status : undefined}
+                            title={
+                              key === 'createdAt'
+                                ? formatKoDateTime24(log.createdAt)
+                                : value || undefined
+                            }
+                            aria-label={display !== value ? value : undefined}
+                          >
+                            {key === 'createdAt' ? (
+                              <time dateTime={log.createdAt}>{display}</time>
+                            ) : (
+                              <span>{display || '—'}</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                      <td className="log-queue__disclosure">
                         <button
                           type="button"
                           id={`log-review-row-${id}`}
-                          className="roster-name log-queue__toggle"
-                          title={log.userName}
-                          aria-label={`${log.userName} ${submittedDate} 제출 일지, ${book}${more}`}
+                          className="log-queue__toggle"
+                          aria-label={`${start + i + 1}번 ${log.userName} 일지 ${open ? '접기' : '자세히'}`}
                           aria-expanded={open}
                           aria-controls={open ? detailId : undefined}
                           disabled={processing}
                           onClick={() => onSelect(open ? null : id)}
                         >
-                          {log.userName}
+                          {open ? '접기' : '자세히'}
+                          <span aria-hidden="true" />
                         </button>
                       </td>
-                      <td className="log-cell-id" title={log.studentNo}>
-                        {log.studentNo || '—'}
-                      </td>
-                      <td
-                        className="log-cell-submitted"
-                        data-column="registeredAt"
-                        title={formatKoDateTime24(log.createdAt)}
-                      >
-                        <time dateTime={log.createdAt}>{submittedDate}</time>
-                      </td>
-                      {showStatus && (
-                        <td className="log-cell-status" data-status={log.status}>
-                          {labels[log.status]}
-                        </td>
-                      )}
-                      <td title={book + more} className="log-cell-book">
-                        <span className="log-book-summary">
-                          <span>{book}</span>
-                          {more && <small>{more}</small>}
-                        </span>
-                      </td>
-                      <td className="log-queue__pages">{log.totalReadPages.toLocaleString()}쪽</td>
                     </tr>
                     {open && (
                       <tr className="log-queue__detail-row">

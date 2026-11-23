@@ -1,12 +1,7 @@
-import { useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
-import {
-  CHECK_WIDTH,
-  MIN_WIDTH,
-  MAX_WIDTH,
-  defaultColumnWidths,
-  measureRosterText,
-  type ColumnWidths,
-} from './rosterColumns';
+import ColumnResizeHandle from '../table/ColumnResizeHandle';
+import { useColumnSizing, CHECK_WIDTH } from '../table/tableColumns';
+import { useTableCellText } from '../table/useTableCellText';
+import { MIN_WIDTH, defaultColumnWidths } from './rosterColumns';
 import { rosterKey, rosterStatus } from '../../../api/adminRosterApi';
 import {
   ROSTER_COLUMNS,
@@ -38,78 +33,11 @@ export default function ParticipantTable({
   busy,
   message,
 }: Props) {
-  const container = useRef<HTMLDivElement>(null);
-  const table = useRef<HTMLTableElement>(null);
-  const drag = useRef<{
-    id: number;
-    column: RosterColumn;
-    startX: number;
-    startWidth: number;
-  } | null>(null);
-  const [viewport, setViewport] = useState(0);
-  const [custom, setCustom] = useState<Partial<ColumnWidths>>({});
-  const [fitText, setFitText] = useState<ReturnType<typeof measureRosterText> | null>(null);
-  const hasCells = !message && rows.length > 0;
-  useLayoutEffect(() => {
-    const wrapper = container.current;
-    if (!wrapper) return;
-    const observer = new ResizeObserver(() => setViewport(wrapper.clientWidth));
-    observer.observe(wrapper);
-    return () => observer.disconnect();
-  }, []);
-  useLayoutEffect(() => {
-    if (!hasCells) return;
-    let active = true;
-    const measure = () => {
-      if (active && table.current) {
-        const fit = measureRosterText(table.current);
-        setFitText(() => fit);
-      }
-    };
-    void document.fonts.ready.then(measure);
-    document.fonts.addEventListener('loadingdone', measure);
-    return () => {
-      active = false;
-      document.fonts.removeEventListener('loadingdone', measure);
-    };
-  }, [hasCells]);
-
+  const { container, viewport, custom, resize, resetWidth } = useColumnSizing<RosterColumn>();
+  const { table, fitText } = useTableCellText(!message && rows.length > 0);
   const defaults = defaultColumnWidths(viewport);
   const widths = { ...defaults, ...custom };
   const tableWidth = CHECK_WIDTH + columns.reduce((total, key) => total + widths[key], 0);
-  function resize(key: RosterColumn, width: number) {
-    const next = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH[key], Math.round(width)));
-    setCustom((current) => ({ ...current, [key]: next }));
-  }
-  function resetWidth(key: RosterColumn) {
-    setCustom((current) => {
-      const next = { ...current };
-      delete next[key];
-      return next;
-    });
-  }
-  function startDrag(e: PointerEvent<HTMLSpanElement>, column: RosterColumn) {
-    if (!e.isPrimary || e.button !== 0) return;
-    e.preventDefault();
-    e.currentTarget.focus({ preventScroll: true });
-    e.currentTarget.setPointerCapture(e.pointerId);
-    drag.current = { id: e.pointerId, column, startX: e.clientX, startWidth: widths[column] };
-  }
-  function moveDrag(e: PointerEvent<HTMLSpanElement>) {
-    const active = drag.current;
-    if (active?.id === e.pointerId)
-      resize(active.column, active.startWidth + e.clientX - active.startX);
-  }
-  function onResizeKey(e: KeyboardEvent<HTMLSpanElement>, column: RosterColumn) {
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-      e.preventDefault();
-      const step = e.shiftKey ? 40 : 8;
-      resize(column, widths[column] + (e.key === 'ArrowLeft' ? -step : step));
-    } else if (e.key === 'Home') {
-      e.preventDefault();
-      resetWidth(column);
-    }
-  }
   return (
     <div
       ref={container}
@@ -153,24 +81,12 @@ export default function ParticipantTable({
                       <span className="sort-mark" aria-hidden="true" />
                     </button>
                   )}
-                  <span
-                    className="roster-resize"
-                    role="separator"
-                    aria-orientation="vertical"
-                    tabIndex={0}
-                    aria-label={ROSTER_COLUMNS[key] + ' 열 너비'}
-                    aria-valuemin={MIN_WIDTH[key]}
-                    aria-valuemax={MAX_WIDTH}
-                    aria-valuenow={widths[key]}
-                    aria-valuetext={widths[key] + '픽셀'}
-                    title="드래그하거나 좌우 방향키로 너비 조절 · 두 번 클릭하면 기본 너비"
-                    onPointerDown={(e) => startDrag(e, key)}
-                    onPointerMove={moveDrag}
-                    onLostPointerCapture={() => {
-                      drag.current = null;
-                    }}
-                    onDoubleClick={() => resetWidth(key)}
-                    onKeyDown={(e) => onResizeKey(e, key)}
+                  <ColumnResizeHandle
+                    label={ROSTER_COLUMNS[key]}
+                    width={widths[key]}
+                    minWidth={MIN_WIDTH[key]}
+                    onChange={(width) => resize(key, width)}
+                    onReset={() => resetWidth(key)}
                   />
                 </th>
               );

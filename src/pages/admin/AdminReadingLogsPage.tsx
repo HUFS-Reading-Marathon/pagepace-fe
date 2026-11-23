@@ -12,48 +12,25 @@ import ReadingLogReviewPanel from '../../components/admin/readingLogs/ReadingLog
 import { selectEvent } from '../../utils/eventSelection';
 import { resolveAdminQueueEvent } from '../../utils/adminEvent';
 import ReadingLogQueueList from '../../components/admin/readingLogs/ReadingLogQueueList';
+import {
+  DEFAULT_LOG_SORT,
+  INITIAL_LOG_SEARCH,
+  visibleLogs,
+  type LogSearch,
+  type LogSort,
+} from '../../components/admin/readingLogs/readingLogTable';
 import type { AdminEvent } from '../../types/adminEvent';
 import type { AdminReadingLogResponse } from '../../types/adminReadingLogApi';
 import '../../styles/admin-reading-logs.css';
 
 type Filter = AdminReadingLogResponse['status'] | 'ALL';
-type Search = { query: string; date: string; order: string };
 type ApprovalIssue = { id: number; message: string };
 type QueueRequest = {
   status: Filter;
   linkedId?: string | null;
-  focus?: { candidates: number[]; search: Search; pageSize: number };
+  focus?: { candidates: number[]; search: LogSearch; pageSize: number };
 };
 const DEFAULT_PAGE_SIZE = 10;
-const initialSearch: Search = { query: '', date: '', order: 'oldest' };
-
-function visibleLogs(logs: AdminReadingLogResponse[], { query, date, order }: Search) {
-  const keyword = query.trim().toLocaleLowerCase();
-  return logs
-    .filter(
-      (log) =>
-        (!date || log.createdAt.slice(0, 10) === date) &&
-        (!keyword ||
-          [
-            log.userName,
-            log.studentNo,
-            log.courseName,
-            ...log.books.flatMap((book) => [
-              book.bookTitle,
-              book.author,
-              book.publisher,
-              book.isbn,
-              book.callNo,
-            ]),
-          ].some((value) => value?.toLocaleLowerCase().includes(keyword))),
-    )
-    .sort(
-      (a, b) =>
-        (order === 'oldest' ? 1 : -1) *
-        (a.createdAt.localeCompare(b.createdAt) || a.readingLogId - b.readingLogId),
-    );
-}
-
 function ReadingQueue({ event, linkedId }: { event: AdminEvent; linkedId: string | null }) {
   const [request, setRequest] = useState<QueueRequest>(() => ({ status: 'SUBMITTED', linkedId }));
   const [linkedStatus, setLinkedStatus] = useState<Filter>('SUBMITTED');
@@ -68,7 +45,7 @@ function ReadingQueue({ event, linkedId }: { event: AdminEvent; linkedId: string
   const [feedback, setFeedback] = useState('');
   const [actionError, setActionError] = useState('');
   const [processing, setProcessing] = useState(false);
-  const [search, setSearch] = useState(initialSearch);
+  const [search, setSearch] = useState(INITIAL_LOG_SEARCH);
   const [page, setPage] = useState(0);
   const focusAfterLoad = useRef<string | null>(null);
   const mutationLock = useRef(false);
@@ -93,7 +70,7 @@ function ReadingQueue({ event, linkedId }: { event: AdminEvent; linkedId: string
         if (target.eventId !== event.eventId)
           throw new Error('이 행사의 독서일지를 찾을 수 없습니다.');
         status = target.status;
-        focus = { candidates: [id], search: initialSearch, pageSize: DEFAULT_PAGE_SIZE };
+        focus = { candidates: [id], search: INITIAL_LOG_SEARCH, pageSize: DEFAULT_PAGE_SIZE };
       }
       const fresh = await getAdminReadingLogs({
         eventId: event.eventId,
@@ -151,12 +128,16 @@ function ReadingQueue({ event, linkedId }: { event: AdminEvent; linkedId: string
     setChecked(new Set());
     setBatchNotes([]);
   }
-  function updateSearch(patch: Partial<Search>) {
+  function updateSearch(patch: Partial<LogSearch>) {
     clearChecks();
     setSearch((current) => ({ ...current, ...patch }));
     setPage(0);
     select(null);
     setFeedback('');
+  }
+  function sortBy(column: LogSort['column']) {
+    const descending = search.sort.column === column && search.sort.direction === 'ascending';
+    updateSearch({ sort: { column, direction: descending ? 'descending' : 'ascending' } });
   }
   function reload(next: QueueRequest) {
     setError('');
@@ -165,6 +146,9 @@ function ReadingQueue({ event, linkedId }: { event: AdminEvent; linkedId: string
   }
   function changeFilter(status: Filter) {
     if (status === filter && !error) return;
+    if (status !== 'ALL' && search.sort.column === 'status') {
+      setSearch((current) => ({ ...current, sort: DEFAULT_LOG_SORT }));
+    }
     clearChecks();
     select(null);
     setFeedback('');
@@ -318,7 +302,11 @@ function ReadingQueue({ event, linkedId }: { event: AdminEvent; linkedId: string
         onFilter={changeFilter}
         onQuery={(query) => updateSearch({ query })}
         onDate={(date) => updateSearch({ date })}
-        onOrder={(order) => updateSearch({ order })}
+        onSort={sortBy}
+        onReset={() => {
+          changeFilter('SUBMITTED');
+          updateSearch(INITIAL_LOG_SEARCH);
+        }}
         onPage={(value) => {
           setPage(value);
           clearChecks();

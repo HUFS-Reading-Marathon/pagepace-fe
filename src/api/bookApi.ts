@@ -36,6 +36,15 @@ export async function lookupReviewBook(book: ReviewBook, signal: AbortSignal) {
   return null;
 }
 
+export async function getBookThumbnail(isbn: string, signal?: AbortSignal) {
+  const query = new URLSearchParams({ isbn });
+  const thumbnail = await apiRequest<{ thumbnailUrl: string | null }>(
+    '/api/books/thumbnail?' + query,
+    { method: 'GET', signal },
+  );
+  return thumbnail?.thumbnailUrl ?? null;
+}
+
 export async function searchBooks(query: string) {
   const books = await searchLibraryCatalog(query);
 
@@ -44,14 +53,7 @@ export async function searchBooks(query: string) {
       if (book.thumbnailUrl || !book.isbn) return book;
 
       try {
-        const searchParams = new URLSearchParams({ isbn: book.isbn });
-        const thumbnail = await apiRequest<{
-          isbn: string;
-          thumbnailUrl: string | null;
-        }>(`/api/books/thumbnail?${searchParams.toString()}`, {
-          method: 'GET',
-        });
-        return { ...book, thumbnailUrl: thumbnail?.thumbnailUrl ?? null };
+        return { ...book, thumbnailUrl: await getBookThumbnail(book.isbn) };
       } catch {
         return book;
       }
