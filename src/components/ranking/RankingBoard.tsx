@@ -2,7 +2,7 @@ import type { Ranking } from '../../api/rankingApi';
 import { METERS_PER_PAGE } from '../../constants/reading';
 import { getRewardTypeLabel } from '../../utils/adminEventForms';
 import { hasFinalResults } from '../../utils/eventSelection';
-import { formatDistance, getCreditedPages, getProgressPercent } from '../../utils/reading';
+import { formatPreciseDistance, getCreditedPages, getProgressPercent } from '../../utils/reading';
 import '../../styles/ranking.css';
 
 function RankingAvatar({ name }: { name: string }) {
@@ -126,7 +126,7 @@ function RankingBoard({
                   </div>
                   <div className="ranking-race-progress-meta">
                     <span>
-                      {formatDistance(ranking.distance)} · 일지 승인{' '}
+                      {formatPreciseDistance(ranking.distance)} · 일지 승인{' '}
                       {ranking.approvedPages.toLocaleString()}쪽
                     </span>
                     <small>
@@ -154,7 +154,7 @@ function RankingBoard({
                     <i className="ranking-finish-mark" aria-hidden="true">
                       FINISH
                     </i>
-                    <b>{formatDistance(ranking.distance)}</b>
+                    <b>{formatPreciseDistance(ranking.distance)}</b>
                   </div>
                   <div className="ranking-race-track is-pages">
                     <span className="ranking-race-fill" style={{ width: `${progress}%` }} />

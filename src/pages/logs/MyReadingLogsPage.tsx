@@ -9,7 +9,7 @@ import {
   type ReadingLogBook,
 } from '../../types/readingLog';
 import { canSubmitReadingLog } from '../../utils/eventSelection';
-import { formatDistance, getProgressPercent } from '../../utils/reading';
+import { formatPreciseDistance, getProgressPercent } from '../../utils/reading';
 import { formatKoDateKey } from '../../utils/date';
 import './logs.css';
 
@@ -288,7 +288,7 @@ function MyReadingLogsPage() {
                           <dd>
                             {log.status === 'REJECTED'
                               ? '반영 안 됨'
-                              : formatDistance(log.convertedDistanceMeter)}
+                              : formatPreciseDistance(log.convertedDistanceMeter)}
                           </dd>
                         </div>
                       </dl>

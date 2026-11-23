@@ -1,6 +1,12 @@
 import { METERS_PER_PAGE } from '../constants/reading';
 
+/** 메인페이지 "나의 기록" 카드용 거리 표시: 1km 이상은 소수 둘째 자리 (main 기준 동작 유지) */
 export function formatDistance(distance: number) {
+  return distance >= 1000 ? `${(distance / 1000).toFixed(2)}km` : `${distance.toLocaleString()}m`;
+}
+
+/** 5m 단위까지 드러나는 거리 표시: 10m 단위가 아니면 소수 셋째 자리까지 씁니다. */
+export function formatPreciseDistance(distance: number) {
   if (distance < 1000) return `${distance.toLocaleString()}m`;
   return `${(distance / 1000).toFixed(distance % 10 === 0 ? 2 : 3)}km`;
 }

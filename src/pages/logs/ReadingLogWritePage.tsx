@@ -21,7 +21,7 @@ import {
 import type { BookSearchResult } from '../../types/book';
 import type { MyParticipation } from '../../types/participation';
 import type { ParticipantBook, ReadingLog, ReviewTargetBook } from '../../types/readingLog';
-import { formatDistance, getProgressPercent, getCreditedPages } from '../../utils/reading';
+import { formatPreciseDistance, getProgressPercent, getCreditedPages } from '../../utils/reading';
 import { METERS_PER_PAGE } from '../../constants/reading';
 import './logs.css';
 
@@ -506,7 +506,7 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
               </div>
               <div className="reading-log-summary-item">
                 <span>예상 환산 거리</span>
-                <strong>{formatDistance(totalReadPages * METERS_PER_PAGE)}</strong>
+                <strong>{formatPreciseDistance(totalReadPages * METERS_PER_PAGE)}</strong>
               </div>
               <p>
                 서평이 확인된 책은 일지 승인 즉시 1쪽당 5m가 반영됩니다. 처음 읽는 책은 담당자가
@@ -550,15 +550,15 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
                 </div>
                 <div>
                   <dt>인정 거리</dt>
-                  <dd>{formatDistance(participation.totalDistanceMeter)}</dd>
+                  <dd>{formatPreciseDistance(participation.totalDistanceMeter)}</dd>
                 </div>
               </dl>
               <div className="reading-log-side-progress">
                 <div>
                   <span>목표 진행률</span>
                   <b>
-                    {formatDistance(participation.totalDistanceMeter)} /{' '}
-                    {formatDistance(participation.targetDistanceMeter)}
+                    {formatPreciseDistance(participation.totalDistanceMeter)} /{' '}
+                    {formatPreciseDistance(participation.targetDistanceMeter)}
                   </b>
                 </div>
                 <div

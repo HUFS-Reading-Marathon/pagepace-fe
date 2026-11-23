@@ -10,7 +10,7 @@ import {
   type ReadingLog,
   type ReadingLogBook,
 } from '../../types/readingLog';
-import { formatDistance } from '../../utils/reading';
+import { formatPreciseDistance } from '../../utils/reading';
 import { formatKoDateKey } from '../../utils/date';
 import './logs.css';
 
@@ -120,7 +120,7 @@ function ReadingLogDetailPage() {
             <dd>
               {log.status === 'REJECTED'
                 ? '반영 안 됨'
-                : formatDistance(log.convertedDistanceMeter)}
+                : formatPreciseDistance(log.convertedDistanceMeter)}
             </dd>
           </div>
         </dl>

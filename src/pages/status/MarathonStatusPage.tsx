@@ -14,7 +14,7 @@ import { selectEvent, selectedEventId } from '../../utils/eventSelection';
 import { getMyParticipations, getCurrentParticipation } from '../../api/participationApi';
 import { getRankings, type Ranking } from '../../api/rankingApi';
 import RankingBoard from '../../components/ranking/RankingBoard';
-import { formatDistance, getCreditedPages } from '../../utils/reading';
+import { formatPreciseDistance, getCreditedPages } from '../../utils/reading';
 import './status.css';
 
 const STATUS_ERROR_MESSAGE = '대회 현황을 불러오지 못했습니다.';
@@ -239,7 +239,7 @@ function MarathonStatusPage() {
     ],
     [
       '최고 누적 거리',
-      isReady ? formatDistance(summary?.maxDistanceMeter ?? 0) : '—',
+      isReady ? formatPreciseDistance(summary?.maxDistanceMeter ?? 0) : '—',
       '일지 승인과 서평 확인이 완료된 거리',
     ],
   ];
@@ -293,7 +293,7 @@ function MarathonStatusPage() {
             참가 코스 {mine.rank ? `${mine.rank}위` : '순위 집계 전'} · 일지 승인{' '}
             {mine.pages.toLocaleString()}쪽 · 거리 인정{' '}
             {getCreditedPages(mine.distance).toLocaleString()}쪽 · 인정 거리{' '}
-            {formatDistance(mine.distance)}
+            {formatPreciseDistance(mine.distance)}
           </p>
         </section>
       )}
