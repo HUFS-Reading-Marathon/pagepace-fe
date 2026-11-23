@@ -3,8 +3,8 @@ import type { RosterColumn } from '../../../utils/participantRoster';
 export const CHECK_WIDTH = 28;
 export type ColumnWidths = Record<RosterColumn, number>;
 
-// Columns expand only within these default ranges; manual resizing is independent.
-const DEFAULT_RANGES: Record<RosterColumn, readonly [number, number]> = {
+// The compact and desktop reference widths set each column’s share of available space.
+const REFERENCE_WIDTHS: Record<RosterColumn, readonly [number, number]> = {
   number: [44, 44],
   name: [84, 96],
   studentNo: [96, 124],
@@ -27,19 +27,19 @@ export const MIN_WIDTH: ColumnWidths = {
   registeredAt: 68,
 };
 export const MAX_WIDTH = 3200;
-const columns = Object.keys(DEFAULT_RANGES) as RosterColumn[];
-const compactTotal = CHECK_WIDTH + columns.reduce((sum, key) => sum + DEFAULT_RANGES[key][0], 0);
+const columns = Object.keys(REFERENCE_WIDTHS) as RosterColumn[];
+const compactTotal = CHECK_WIDTH + columns.reduce((sum, key) => sum + REFERENCE_WIDTHS[key][0], 0);
 const growthTotal = columns.reduce(
-  (sum, key) => sum + DEFAULT_RANGES[key][1] - DEFAULT_RANGES[key][0],
+  (sum, key) => sum + REFERENCE_WIDTHS[key][1] - REFERENCE_WIDTHS[key][0],
   0,
 );
 
 export function defaultColumnWidths(viewportWidth: number): ColumnWidths {
-  const ratio = Math.max(0, Math.min(1, (Math.floor(viewportWidth) - compactTotal) / growthTotal));
+  const ratio = Math.max(0, (Math.floor(viewportWidth) - compactTotal) / growthTotal);
   const widths = {} as ColumnWidths;
   let capacity = 0;
   for (const key of columns) {
-    const [compact, roomy] = DEFAULT_RANGES[key];
+    const [compact, roomy] = REFERENCE_WIDTHS[key];
     const used = Math.round(capacity * ratio);
     capacity += roomy - compact;
     widths[key] = compact + Math.round(capacity * ratio) - used;

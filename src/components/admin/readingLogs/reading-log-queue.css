@@ -84,19 +84,19 @@
   text-align: left;
 }
 .log-col-name {
-  width: 78px;
+  width: max(78px, 9%);
 }
 .log-col-id {
-  width: 98px;
+  width: max(98px, 11%);
 }
 .log-col-date {
-  width: 112px;
+  width: max(112px, 12%);
 }
 .log-col-pages {
-  width: 84px;
+  width: max(84px, 9%);
 }
 .log-col-status {
-  width: 86px;
+  width: max(86px, 8%);
 }
 .log-queue__table > thead th {
   padding: 8px 10px;

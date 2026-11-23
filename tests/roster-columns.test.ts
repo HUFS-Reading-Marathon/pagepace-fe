@@ -6,20 +6,28 @@ import {
 } from '../src/components/admin/participants/rosterColumns';
 
 describe('참가자 명단 열 너비', () => {
-  it('넓은 화면의 여유 공간이 짧은 이름이나 소속에 몰리지 않는다', () => {
-    const narrow = defaultColumnWidths(390);
+  it('작은 화면은 가로 스크롤에 필요한 최소 열 너비를 유지한다', () => {
+    const compact = defaultColumnWidths(390);
+    expect(defaultColumnWidths(826)).toEqual(compact);
+    expect(compact).toMatchObject({ number: 44, name: 84, department: 128, phone: 124 });
+    expect(defaultColumnWidths(1040)).toMatchObject({ name: 96, department: 164, phone: 156 });
+  });
+  it('전체 너비를 여러 열에 나누고 순번과 체크박스 간격을 유지한다', () => {
+    const desktop = defaultColumnWidths(1040);
+    for (const viewport of [826, 827, 931, 1039, 1040, 1041, 1277, 1440, 1920, 2559]) {
+      const widths = defaultColumnWidths(viewport);
+      expect(CHECK_WIDTH + Object.values(widths).reduce((sum, value) => sum + value, 0)).toBe(
+        viewport,
+      );
+      expect(widths.number).toBe(desktop.number);
+    }
     const wide = defaultColumnWidths(1440);
-    expect(wide.name).toBe(96);
-    expect(wide.department).toBe(164);
-    expect(wide.number).toBe(narrow.number);
-    expect(narrow.phone).toBeGreaterThanOrEqual(124);
-    expect(defaultColumnWidths(2200)).toEqual(wide);
-    const intermediate = defaultColumnWidths(931);
-    expect(CHECK_WIDTH + Object.values(intermediate).reduce((sum, value) => sum + value, 0)).toBe(
-      931,
-    );
-    expect(intermediate.name).toBeGreaterThan(narrow.name);
-    expect(intermediate.name).toBeLessThan(wide.name);
+    const added = 1440 - 1040;
+    expect(wide.name - desktop.name).toBeLessThan(added / 10);
+    for (const key of Object.keys(desktop) as Array<keyof typeof desktop>) {
+      expect(wide[key] - desktop[key]).toBeLessThan(added / 5);
+      if (key !== 'number') expect(wide[key]).toBeGreaterThan(desktop[key]);
+    }
   });
   it('양쪽 끝을 남기고 실제 글자 너비를 기준으로 중간만 생략한다', () => {
     const measure = (text: string) => Array.from(text).reduce((n, c) => n + (c === 'W' ? 3 : 1), 0);

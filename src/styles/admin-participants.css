@@ -1,6 +1,5 @@
 .participant-registry {
   min-width: 0;
-  max-width: 1040px;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
