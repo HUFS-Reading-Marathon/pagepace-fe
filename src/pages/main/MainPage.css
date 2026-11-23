@@ -481,7 +481,7 @@
 
 .about-highlight {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin-top: 26px;
 }
@@ -489,6 +489,7 @@
 .about-highlight div {
   min-height: 104px;
   padding: 19px 0;
+  text-align: center;
 }
 
 .about-highlight b {
