@@ -623,17 +623,11 @@
 
 .program-table th,
 .program-table td {
-  padding: 15px 13px;
-  border-right: 1px solid var(--line-soft);
+  padding: 13px;
   border-bottom: 1px solid var(--line);
   text-align: center;
   vertical-align: middle;
   white-space: nowrap;
-}
-
-.program-table th:last-child,
-.program-table td:last-child {
-  border-right: 0;
 }
 
 .program-table thead th {
@@ -646,11 +640,6 @@
   background: #fff;
   color: var(--navy-strong);
   font-weight: 700;
-}
-
-.program-table tbody tr:last-child th,
-.program-table tbody tr:last-child td {
-  border-bottom: 0;
 }
 
 .program-table tbody td {
@@ -1015,11 +1004,6 @@
 
   .about-highlight div {
     min-height: auto;
-  }
-
-  .table-scroll {
-    overflow-x: auto;
-    border: 1px solid var(--line);
   }
 
   .program-table {
