@@ -168,7 +168,7 @@
 }
 
 .status-board {
-  background: rgba(255, 255, 255, 0.92);
+  background: #fff;
   border: 1px solid #dce8f4;
   border-radius: var(--radius);
   box-shadow: var(--shadow);
@@ -182,7 +182,6 @@
   gap: 16px;
   padding: 22px 24px;
   border-bottom: 1px solid var(--line-soft);
-  background: #fbfdff;
 }
 
 .status-board-head span {
@@ -194,15 +193,30 @@
 .status-board-head b {
   display: inline-flex;
   align-items: center;
+  gap: 8px;
   height: 28px;
-  padding: 0 10px;
-  color: var(--navy-strong);
-  background: var(--blue-20);
-  border: 1px solid #cddded;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 650;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
   white-space: nowrap;
+}
+
+/* 상태 점: 참가신청 페이지 상단 상태 표시(.apply-status__state)와 같은 값 */
+.status-board-head b::before {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #aab4bf;
+  content: '';
+}
+
+.status-board-head b.is-open {
+  color: #2f7a5f;
+}
+
+.status-board-head b.is-open::before {
+  background: #22a06b;
+  box-shadow: 0 0 0 4px rgba(34, 160, 107, 0.14);
 }
 
 .hero-info-list {
@@ -232,7 +246,6 @@
 
 .conversion-box {
   padding: 24px;
-  background: linear-gradient(180deg, #fbfdff, #f4f8fc);
 }
 
 .conversion-box span {
@@ -272,28 +285,23 @@
 }
 
 .summary-card,
-.library-search-card,
-.contact-card,
-.check-card {
+.library-search-card {
   border-radius: var(--radius);
 }
 
 .summary-card {
   background: #fff;
-  border: 1px solid var(--line-soft);
-  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
   overflow: hidden;
 }
 
 .summary-head {
   padding: 24px 30px;
-  background: #fbfdff;
-  border-bottom: 1px solid var(--line);
 }
 
 .summary-head h2 {
   margin: 0;
-  color: var(--navy-strong);
+  color: var(--ink);
   font-size: 22px;
   line-height: 1.28;
   font-weight: 700;
@@ -331,12 +339,10 @@
 .library-search-card {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  min-height: 100%;
+  align-self: start;
   padding: 30px;
   background: #fff;
-  border: 1px solid var(--line-soft);
-  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
 }
 
 .library-search-card label {
@@ -386,7 +392,6 @@
   background: #fff;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-soft);
   overflow: hidden;
 }
 
@@ -436,7 +441,6 @@
 }
 
 .tone-section {
-  background: linear-gradient(180deg, #f8fbff 0%, #fff 100%);
   border-top: 1px solid var(--line-soft);
   border-bottom: 1px solid var(--line-soft);
 }
@@ -462,18 +466,14 @@
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 8px;
-  box-shadow: var(--shadow-soft);
 }
 
-.about-card,
-.contact-card,
-.check-card {
+.about-card {
   padding: 32px;
 }
 
 .about-card h3,
-.news-card h3,
-.contact-card h3 {
+.news-card h3 {
   margin: 0 0 18px;
   color: var(--navy-strong);
   font-size: 22px;
@@ -491,16 +491,15 @@
 
 .about-highlight {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin-top: 26px;
 }
 
 .about-highlight div {
   min-height: 104px;
-  padding: 18px;
-  background: #fbfdff;
-  border: 1px solid var(--line-soft);
+  padding: 19px 0;
+  text-align: center;
 }
 
 .about-highlight b {
@@ -628,27 +627,20 @@
   width: 100%;
   border-collapse: collapse;
   background: #fff;
-  border-top: 2px solid var(--navy-strong);
   font-size: 15px;
 }
 
 .program-table th,
 .program-table td {
-  padding: 15px 13px;
-  border-right: 1px solid var(--line-soft);
+  padding: 13px;
   border-bottom: 1px solid var(--line);
   text-align: center;
   vertical-align: middle;
   white-space: nowrap;
 }
 
-.program-table th:last-child,
-.program-table td:last-child {
-  border-right: 0;
-}
-
 .program-table thead th {
-  background: var(--blue-20);
+  background: #f5f8fc;
   color: #1c2d3d;
   font-weight: 700;
 }
@@ -657,11 +649,6 @@
   background: #fff;
   color: var(--navy-strong);
   font-weight: 700;
-}
-
-.program-table tbody tr:last-child th,
-.program-table tbody tr:last-child td {
-  border-bottom: 0;
 }
 
 .program-table tbody td {
@@ -785,9 +772,8 @@
   align-items: flex-start;
   gap: 12px;
   margin-top: 36px;
-  padding: 16px 22px;
-  border-radius: var(--radius);
-  background: var(--blue-20);
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
 }
 
 .process-note svg {
@@ -830,18 +816,15 @@
 .two-col {
   display: grid;
   grid-template-columns: 0.88fr 1.12fr;
-  gap: 26px;
+  gap: 40px 64px;
   align-items: start;
 }
 
-.check-card {
-  background: var(--navy-strong);
-  color: #fff;
-  box-shadow: var(--shadow);
-}
-
-.check-card h2 {
+/* 좌우 섹션 제목을 같은 크기·굵기·하단 간격으로 */
+.check-card h2,
+.contact-card h3 {
   margin: 0 0 16px;
+  color: var(--navy-strong);
   font-size: 25px;
   line-height: 1.25;
   letter-spacing: -0.05em;
@@ -850,45 +833,39 @@
 
 .check-card p {
   margin: 0;
-  color: rgba(255, 255, 255, 0.76);
+  color: var(--body);
 }
 
 .check-list {
   list-style: none;
-  margin: 26px 0 0;
+  margin: 20px 0 0;
   padding: 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  border-top: 1px solid var(--line-soft);
 }
 
 .check-list li {
   padding: 14px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
-  color: rgba(255, 255, 255, 0.9);
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--body);
   font-size: 15px;
   font-weight: 500;
 }
 
-.contact-card {
-  background: #fff;
-  border: 1px solid var(--line);
-}
-
-.contact-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-top: 20px;
-}
-
+/* 라벨 위·값 아래 세로 목록 (참여 전 확인사항 목록과 같은 행 간격·구분선) */
 .contact-item {
-  padding: 20px;
-  background: #fbfdff;
-  border: 1px solid var(--line-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+/* 첫 항목은 제목 바로 아래에서 시작 (왼쪽 설명 문구와 같은 시작선) */
+.contact-item:first-child {
+  padding-top: 0;
 }
 
 .contact-item span {
-  display: block;
-  margin-bottom: 6px;
   color: var(--muted);
   font-size: 13px;
   font-weight: 600;
@@ -896,10 +873,27 @@
 
 .contact-item b,
 .contact-item a {
+  color: var(--body);
+  font-size: 16px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.contact-item a {
+  align-self: flex-start;
+  max-width: 100%;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  transition:
+    color 0.15s ease,
+    text-decoration-color 0.15s ease;
+}
+
+.contact-item a:hover,
+.contact-item a:focus-visible {
   color: var(--navy-strong);
-  font-size: 17px;
-  font-weight: 700;
-  word-break: break-word;
+  text-decoration-color: currentColor;
 }
 
 .cta-band {
@@ -911,9 +905,7 @@
   padding: 32px 36px;
   background: #fff;
   border: 1px solid var(--line);
-  border-left: 5px solid var(--gold);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-soft);
 }
 
 .cta-band h2 {
@@ -1027,18 +1019,12 @@
     grid-template-columns: 1fr;
   }
 
-  .table-scroll {
-    overflow-x: auto;
-    border: 1px solid var(--line);
+  .about-highlight div {
+    min-height: auto;
   }
 
   .program-table {
     min-width: 900px;
-    border: 0;
-  }
-
-  .contact-grid {
-    grid-template-columns: 1fr;
   }
 
   .cta-band {
@@ -1053,11 +1039,8 @@
   }
 
   .hero-content,
-  .summary-head,
   .library-search-card,
-  .about-card,
-  .contact-card,
-  .check-card {
+  .about-card {
     padding: 24px;
   }
 
@@ -1152,7 +1135,6 @@
 
   .process-note {
     margin-top: 28px;
-    padding: 14px 16px;
   }
 
   .process-note p {
@@ -1808,5 +1790,26 @@
 
   .my-record-dashboard-actions {
     justify-content: flex-start;
+  }
+}
+
+/* ===== Scroll reveal (useScrollReveal) ===== */
+
+/* 숨김 상태는 JS가 첫 화면 아래 요소에만 붙이고, reduced motion에서는 적용하지 않습니다. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-reveal-state='hidden'] {
+    opacity: 0;
+    transform: translateY(32px);
+  }
+
+  [data-reveal-state='shown'] {
+    transition:
+      opacity 750ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 750ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* 같은 행의 운영 정보 카드보다 살짝 늦게 */
+  .library-search-card[data-reveal-state='shown'] {
+    transition-delay: 110ms;
   }
 }

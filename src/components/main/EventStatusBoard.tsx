@@ -16,7 +16,9 @@ function EventStatusBoard({ heroInfo, roundNo, status }: EventStatusBoardProps) 
     <div className="status-board">
       <div className="status-board-head">
         <span>{roundNo ? `제${roundNo}회 독서마라톤` : '독서마라톤'}</span>
-        {statusLabel && <b>{statusLabel}</b>}
+        {statusLabel && (
+          <b className={status === 'APPLICATION_OPEN' ? 'is-open' : undefined}>{statusLabel}</b>
+        )}
       </div>
 
       <ul className="hero-info-list">

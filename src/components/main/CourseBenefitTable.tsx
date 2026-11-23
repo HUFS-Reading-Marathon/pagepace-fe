@@ -7,7 +7,7 @@ type CourseBenefitTableProps = {
 /** 코스 및 혜택 표 */
 function CourseBenefitTable({ courses }: CourseBenefitTableProps) {
   return (
-    <div className="table-scroll official-card">
+    <div className="table-scroll">
       <table className="program-table">
         <caption className="sr-only">독서마라톤 코스 및 혜택 표</caption>
         <thead>
