@@ -645,7 +645,7 @@
 }
 
 .program-table thead th {
-  background: var(--blue-20);
+  background: #f5f8fc;
   color: #1c2d3d;
   font-weight: 700;
 }
