@@ -4,12 +4,11 @@ import { matchPath, NavLink, useLocation } from 'react-router-dom';
 type AdminMenu = {
   label: string;
   path: string;
-  group: '화면 이동' | '참가·기록' | '운영 관리' | '분석';
+  group: '참가·기록' | '운영 관리' | '분석';
   relatedPaths?: readonly string[];
 };
 
 const ADMIN_MENUS: readonly AdminMenu[] = [
-  { label: '사용자 화면 보기', path: '/', group: '화면 이동' },
   {
     label: '운영 현황',
     path: '/admin',
@@ -61,7 +60,7 @@ type AdminMenuGroup = AdminMenu['group'];
 
 function isMenuActive(menu: AdminMenu, pathname: string) {
   return [menu.path, ...(menu.relatedPaths ?? [])].some((path) =>
-    matchPath({ path, end: path === '/admin' || path === '/' }, pathname),
+    matchPath({ path, end: path === '/admin' }, pathname),
   );
 }
 
@@ -129,7 +128,7 @@ function AdminSidebar() {
                 {isGroupOpen && (
                   <NavLink
                     to={menu.path}
-                    end={menu.path === '/admin' || menu.path === '/'}
+                    end={menu.path === '/admin'}
                     className={({ isActive }) =>
                       [
                         'admin-sidebar__link',
