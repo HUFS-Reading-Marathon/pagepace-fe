@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { MyRecordSummary } from '../../pages/main/mainPageContent';
-import { formatDistance, getProgressRate } from '../../utils/reading';
+import { formatDistance, getCreditedPages, getProgressRate } from '../../utils/reading';
 
 type MyRecordDashboardProps = {
   record: MyRecordSummary;
@@ -8,7 +8,7 @@ type MyRecordDashboardProps = {
 
 /** 로그인 사용자의 메인 화면 우측 "나의 기록" 카드 */
 function MyRecordDashboard({ record }: MyRecordDashboardProps) {
-  const progressRate = getProgressRate(record.totalDistance, record.targetDistance);
+  const progressRate = Math.min(100, getProgressRate(record.totalDistance, record.targetDistance));
 
   return (
     <div className="my-record-dashboard">
@@ -39,8 +39,9 @@ function MyRecordDashboard({ record }: MyRecordDashboardProps) {
 
       <dl className="my-record-meta">
         <div>
-          <dt>인정 페이지</dt>
-          <dd>{record.totalPages.toLocaleString()}쪽</dd>
+          <dt>독서 쪽수</dt>
+          <dd>일지 승인 {record.totalPages.toLocaleString()}쪽</dd>
+          <dd>거리 인정 {getCreditedPages(record.totalDistance).toLocaleString()}쪽</dd>
         </div>
         <div>
           <dt>독서일지</dt>

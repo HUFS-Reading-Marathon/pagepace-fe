@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { getApiErrorMessage } from '../../api/apiClient';
 import {
   createAdminNotice,
@@ -7,363 +8,305 @@ import {
   updateAdminNotice,
   type Notice,
   type NoticeRequest,
+  type NoticeColor,
 } from '../../api/noticeApi';
 import { formatKoDateTime24 } from '../../utils/date';
+import NoticeBody from '../../components/notices/NoticeBody';
 import '../../styles/admin-notices.css';
 
-type NoticeTab = 'ALL' | 'visible' | 'hidden';
-
-/** 새 공지는 비공개 초안으로 시작합니다. 게시는 '게시하기'를 눌러 확인한 뒤에만 이뤄집니다. */
-const EMPTY_FORM: NoticeRequest = {
+const NEW_NOTICE: NoticeRequest = {
   title: '',
   content: '',
+  bodyColor: 'DEFAULT',
   pinned: false,
   visible: false,
 };
 
-const NOTICE_TABS: ReadonlyArray<{ value: NoticeTab; label: string }> = [
-  { value: 'ALL', label: '전체' },
-  { value: 'visible', label: '게시 중' },
-  { value: 'hidden', label: '비공개' },
-];
-
-function toNoticeForm(notice: Notice): NoticeRequest {
-  return {
-    title: notice.title,
-    content: notice.content,
-    pinned: notice.pinned,
-    visible: notice.visible,
-  };
-}
-
-function getNoticeDate(notice: Notice) {
-  return formatKoDateTime24(notice.publishedAt ?? notice.updatedAt);
-}
-
-function AdminNoticesPage() {
-  const [notices, setNotices] = useState<Notice[]>([]);
-  const [editing, setEditing] = useState<Notice | null>(null);
-  const [form, setForm] = useState<NoticeRequest>(EMPTY_FORM);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+function NoticeEditor({
+  notice,
+  onSaved,
+}: {
+  notice?: Notice;
+  onSaved: (visible: boolean) => void;
+}) {
+  const [form, setForm] = useState<NoticeRequest>(
+    notice
+      ? {
+          ...NEW_NOTICE,
+          title: notice.title,
+          content: notice.content,
+          bodyColor: notice.bodyColor ?? 'DEFAULT',
+          pinned: notice.pinned,
+          visible: notice.visible,
+        }
+      : NEW_NOTICE,
+  );
   const [error, setError] = useState('');
-  const [formError, setFormError] = useState('');
-  const [feedback, setFeedback] = useState('');
-  const [tab, setTab] = useState<NoticeTab>('ALL');
-  const [keyword, setKeyword] = useState('');
-  const [isConfirmingPublish, setIsConfirmingPublish] = useState(false);
-
-  const load = () =>
-    getAdminNotices()
-      .then((nextNotices) => {
-        setNotices(nextNotices);
-        setError('');
-      })
-      .catch((requestError: unknown) =>
-        setError(getApiErrorMessage(requestError, '공지사항을 불러오지 못했습니다.')),
-      )
-      .finally(() => setLoading(false));
-
-  useEffect(() => {
-    void load();
-  }, []);
-
-  const counts = {
-    ALL: notices.length,
-    visible: notices.filter((notice) => notice.visible).length,
-    hidden: notices.filter((notice) => !notice.visible).length,
-  };
-
-  const visibleNotices = useMemo(() => {
-    const normalizedKeyword = keyword.trim().toLowerCase();
-
-    return notices.filter((notice) => {
-      const matchesTab = tab === 'ALL' || (tab === 'visible' ? notice.visible : !notice.visible);
-      const matchesKeyword =
-        !normalizedKeyword ||
-        [notice.title, notice.content].some((value) =>
-          value.toLowerCase().includes(normalizedKeyword),
-        );
-
-      return matchesTab && matchesKeyword;
-    });
-  }, [keyword, notices, tab]);
-
-  const start = (notice?: Notice) => {
-    setEditing(notice ?? null);
-    setForm(notice ? toNoticeForm(notice) : EMPTY_FORM);
-    setFormError('');
-    setIsConfirmingPublish(false);
-  };
-
-  /** 공개 여부를 명시적으로 정해 저장합니다. 서버 저장이 성공한 뒤에만 목록과 폼을 갱신합니다. */
-  const save = async (visible: boolean) => {
+  const [busy, setBusy] = useState(false);
+  const lock = useRef(false);
+  async function save(visible: boolean) {
+    if (lock.current) return;
     if (!form.title.trim() || !form.content.trim()) {
-      setFormError('제목과 내용을 모두 입력해 주세요.');
-      setIsConfirmingPublish(false);
+      setError('제목과 내용을 입력해 주세요.');
       return;
     }
-
-    setSaving(true);
-    setFormError('');
-    setFeedback('');
-
+    if (
+      visible &&
+      !notice?.visible &&
+      !window.confirm('공지사항을 게시할까요? 모든 방문자가 볼 수 있습니다.')
+    )
+      return;
+    setBusy(true);
+    lock.current = true;
+    setError('');
     try {
       const request = { ...form, visible };
-
-      if (editing) {
-        await updateAdminNotice(editing.noticeId, request);
-      } else {
-        await createAdminNotice(request);
-      }
-
-      start();
-      await load();
-      setFeedback(
-        visible
-          ? '공지를 게시했습니다. 사용자 홈 공지사항에 표시됩니다.'
-          : '공지를 비공개로 저장했습니다. 사용자에게는 보이지 않습니다.',
-      );
-    } catch (requestError) {
-      setFormError(getApiErrorMessage(requestError, '공지사항을 저장하지 못했습니다.'));
+      if (notice) await updateAdminNotice(notice.noticeId, request);
+      else await createAdminNotice(request);
+      onSaved(visible);
+    } catch (e) {
+      setError(getApiErrorMessage(e, '공지사항을 저장하지 못했습니다.'));
     } finally {
-      setSaving(false);
-      setIsConfirmingPublish(false);
+      lock.current = false;
+      setBusy(false);
     }
-  };
-
-  // Enter 등으로 폼이 제출되면 현재 공개 상태를 유지해 저장합니다(실수로 게시·비공개 전환 방지).
-  const handleSubmit = (event: FormEvent) => {
+  }
+  const submit = (event: FormEvent) => {
     event.preventDefault();
-    void save(editing?.visible ?? false);
+    void save(notice?.visible ?? false);
   };
-
-  const remove = async (notice: Notice) => {
-    if (!confirm(`“${notice.title}” 공지를 삭제할까요? 삭제한 공지는 복구할 수 없습니다.`)) {
-      return;
-    }
-
-    setFeedback('');
-
+  return (
+    <form className="admin-notices__form" onSubmit={submit}>
+      <label>
+        제목
+        <input
+          required
+          maxLength={200}
+          value={form.title}
+          onChange={(e) => setForm({ ...form, title: e.target.value })}
+        />
+      </label>
+      <label>
+        내용
+        <textarea
+          required
+          rows={9}
+          value={form.content}
+          onChange={(e) => setForm({ ...form, content: e.target.value })}
+        />
+      </label>
+      <label>
+        본문 글자색
+        <select
+          value={form.bodyColor ?? 'DEFAULT'}
+          onChange={(e) => setForm({ ...form, bodyColor: e.target.value as NoticeColor })}
+        >
+          <option value="DEFAULT">기본</option>
+          <option value="NAVY">남색</option>
+          <option value="RED">진한 빨강</option>
+        </select>
+      </label>
+      <div className="admin-notices__checks">
+        <label>
+          <input
+            type="checkbox"
+            checked={form.pinned}
+            onChange={(e) => setForm({ ...form, pinned: e.target.checked })}
+          />{' '}
+          중요 공지
+        </label>
+      </div>
+      {(form.title || form.content) && (
+        <section className="admin-notices__preview" aria-label="사용자 화면 미리보기">
+          <h2>미리보기</h2>
+          <article>
+            <strong>{form.title}</strong>
+            <NoticeBody content={form.content} color={form.bodyColor} />
+          </article>
+        </section>
+      )}
+      {error && (
+        <p role="alert" className="admin-notices__form-error">
+          {error}
+        </p>
+      )}
+      <div className="admin-notices__actions">
+        <button
+          type="button"
+          className="admin-button"
+          disabled={busy}
+          onClick={() => void save(false)}
+        >
+          {notice?.visible ? '비공개로 전환' : '비공개로 저장'}
+        </button>
+        <button
+          type="button"
+          className="admin-button admin-button--primary"
+          disabled={busy}
+          onClick={() => void save(true)}
+        >
+          {notice?.visible ? '변경사항 게시' : '게시하기'}
+        </button>
+      </div>
+    </form>
+  );
+}
+type NoticeFilter = 'ALL' | 'visible' | 'hidden';
+export default function AdminNoticesPage() {
+  const [params, setParams] = useSearchParams();
+  const edit = params.get('edit');
+  const [notices, setNotices] = useState<Notice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [feedback, setFeedback] = useState('');
+  const [version, setVersion] = useState(0);
+  const [filter, setFilter] = useState<NoticeFilter>('ALL');
+  const [query, setQuery] = useState('');
+  useEffect(() => {
+    let active = true;
+    getAdminNotices()
+      .then((all) => {
+        if (active) {
+          setNotices(all);
+          setError('');
+        }
+      })
+      .catch((e) => {
+        if (active) setError(getApiErrorMessage(e, '공지를 불러오지 못했습니다.'));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [version]);
+  function refresh() {
+    setLoading(true);
+    setVersion((v) => v + 1);
+  }
+  async function remove(item: Notice) {
+    if (!window.confirm('“' + item.title + '” 공지를 삭제할까요?')) return;
     try {
-      await deleteAdminNotice(notice.noticeId);
-
-      if (editing?.noticeId === notice.noticeId) {
-        start();
-      }
-
-      await load();
+      await deleteAdminNotice(item.noticeId);
+      refresh();
       setFeedback('공지를 삭제했습니다.');
-    } catch (requestError) {
-      setError(getApiErrorMessage(requestError, '공지사항을 삭제하지 못했습니다.'));
+    } catch (e) {
+      setError(getApiErrorMessage(e, '공지를 삭제하지 못했습니다.'));
     }
-  };
-
-  const statusLabel = editing ? (editing.visible ? '게시 중' : '비공개') : '새 공지 · 저장 전';
-
+  }
+  const editing = notices.find((n) => String(n.noticeId) === edit);
+  const filtered = notices.filter(
+    (n) =>
+      (filter === 'ALL' || (filter === 'visible' ? n.visible : !n.visible)) &&
+      (n.title + ' ' + n.content).toLowerCase().includes(query.trim().toLowerCase()),
+  );
   return (
     <section className="admin-page admin-notices">
       <header className="admin-page__header admin-notices__header">
         <div>
-          <h1>공지사항 관리</h1>
-          <p>메인 화면 공지사항에 게시할 공지를 작성하고 공개 여부를 정합니다.</p>
+          <h1>
+            {edit === null ? '공지사항 관리' : edit === 'new' ? '공지사항 작성' : '공지사항 수정'}
+          </h1>
         </div>
-        <button
-          type="button"
+        <Link
           className="admin-button admin-button--primary"
-          onClick={() => start()}
+          to={edit === null ? '?edit=new' : '/admin/notices'}
         >
-          + 새 공지 작성
-        </button>
+          {edit === null ? '새 공지 작성' : '공지 목록으로'}
+        </Link>
       </header>
       {error && (
-        <p className="admin-notices__error" role="alert">
+        <p role="alert" className="admin-notices__error">
           {error}
         </p>
       )}
-      <p className="admin-feedback" role="status" aria-live="polite">
-        {feedback}
-      </p>
+      {edit === null && feedback && (
+        <p role="status" className="admin-feedback">
+          {feedback}
+        </p>
+      )}
       <div className="admin-notices__layout">
-        <section className="admin-notices__list" aria-labelledby="noticeListTitle">
-          <header>
-            <h2 id="noticeListTitle">등록된 공지</h2>
-            <span>{visibleNotices.length}건</span>
-          </header>
-          <div className="admin-notices__tools">
-            <div className="admin-segmented" aria-label="게시 상태 필터">
-              {NOTICE_TABS.map((item) => (
-                <button
-                  key={item.value}
-                  type="button"
-                  aria-pressed={tab === item.value}
-                  onClick={() => setTab(item.value)}
-                >
-                  {item.label} <b>{counts[item.value]}</b>
-                </button>
-              ))}
-            </div>
-            <input
-              type="search"
-              value={keyword}
-              aria-label="공지 검색"
-              placeholder="제목 또는 내용 검색"
-              onChange={(event) => setKeyword(event.target.value)}
+        {edit !== null ? (
+          edit === 'new' || editing ? (
+            <NoticeEditor
+              key={edit}
+              notice={editing}
+              onSaved={(visible) => {
+                setParams({});
+                refresh();
+                setFeedback(visible ? '공지를 게시했습니다.' : '비공개로 저장했습니다.');
+              }}
             />
-          </div>
-          {loading ? (
-            <p className="admin-notices__empty">불러오는 중입니다.</p>
-          ) : visibleNotices.length === 0 ? (
-            <p className="admin-notices__empty">
-              {notices.length === 0
-                ? '등록된 공지가 없습니다. 오른쪽에서 첫 공지를 작성해 주세요.'
-                : '조건에 맞는 공지가 없습니다.'}
-            </p>
           ) : (
-            visibleNotices.map((notice) => (
-              <article
-                key={notice.noticeId}
-                className={[
-                  !notice.visible ? 'is-hidden' : '',
-                  editing?.noticeId === notice.noticeId ? 'is-editing' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-              >
-                <div>
-                  <span>{notice.pinned ? '중요' : '일반'}</span>
-                  <strong>{notice.title}</strong>
-                  <small>
-                    <em className={notice.visible ? 'is-visible' : undefined}>
-                      {notice.visible ? '게시 중' : '비공개'}
-                    </em>{' '}
-                    · {getNoticeDate(notice)} · {notice.authorName}
-                  </small>
-                </div>
-                <div>
-                  <button type="button" onClick={() => start(notice)}>
-                    수정
+            <p role="status">{loading ? '불러오는 중입니다.' : '찾을 수 없는 공지입니다.'}</p>
+          )
+        ) : (
+          <section className="admin-notices__list">
+            <header>
+              <h2>등록된 공지</h2>
+              <span>{filtered.length}건</span>
+            </header>
+            <div className="admin-notices__tools">
+              <div className="admin-segmented" aria-label="게시 상태 필터">
+                {(
+                  [
+                    ['ALL', '전체'],
+                    ['visible', '게시 중'],
+                    ['hidden', '비공개'],
+                  ] as const
+                ).map(([key, label]) => (
+                  <button
+                    type="button"
+                    key={key}
+                    aria-pressed={filter === key}
+                    onClick={() => setFilter(key)}
+                  >
+                    {label}
                   </button>
-                  <button type="button" onClick={() => void remove(notice)}>
-                    삭제
-                  </button>
-                </div>
-              </article>
-            ))
-          )}
-        </section>
-        <form className="admin-notices__form" onSubmit={handleSubmit} noValidate>
-          <div className="admin-notices__form-head">
-            <div>
-              <span>{editing ? '공지 수정' : '새 공지'}</span>
-              <h2>{editing?.title || '공지사항 작성'}</h2>
-            </div>
-            <em
-              className={['admin-notices__state', editing?.visible ? 'is-visible' : '']
-                .filter(Boolean)
-                .join(' ')}
-            >
-              {statusLabel}
-            </em>
-          </div>
-          <label>
-            제목
-            <input
-              required
-              value={form.title}
-              onChange={(event) => setForm({ ...form, title: event.target.value })}
-            />
-          </label>
-          <label>
-            내용
-            <textarea
-              required
-              rows={9}
-              value={form.content}
-              onChange={(event) => setForm({ ...form, content: event.target.value })}
-            />
-          </label>
-          <div className="admin-notices__checks">
-            <label>
+                ))}
+              </div>
               <input
-                type="checkbox"
-                checked={form.pinned}
-                onChange={(event) => setForm({ ...form, pinned: event.target.checked })}
-              />{' '}
-              중요 공지 <small>목록에서 강조되어 표시됩니다.</small>
-            </label>
-          </div>
-
-          {(form.title.trim() || form.content.trim()) && (
-            <div className="admin-notices__preview" aria-label="사용자 화면 미리보기">
-              <span>미리보기</span>
-              <div>
-                <em>{form.pinned ? '중요' : '공지'}</em>
-                <strong>{form.title || '제목 없음'}</strong>
-                <p>{form.content}</p>
-              </div>
+                type="search"
+                aria-label="공지 검색"
+                placeholder="제목 또는 내용 검색"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
             </div>
-          )}
-
-          <p className="admin-notices__target">
-            게시 위치: 사용자 홈 공지사항 · 공개 대상: 로그인하지 않은 방문자를 포함한 모든 사용자
-          </p>
-
-          {formError && (
-            <p className="admin-notices__form-error" role="alert">
-              {formError}
-            </p>
-          )}
-
-          {isConfirmingPublish ? (
-            <div className="admin-notices__confirm" role="group" aria-label="게시 확인">
-              <p>저장 즉시 사용자 홈 공지사항에 공개됩니다. 게시할까요?</p>
-              <div className="admin-notices__actions">
-                <button
-                  type="button"
-                  className="admin-button"
-                  disabled={saving}
-                  onClick={() => setIsConfirmingPublish(false)}
-                >
-                  취소
-                </button>
-                <button
-                  type="button"
-                  className="admin-button admin-button--primary"
-                  disabled={saving}
-                  onClick={() => void save(true)}
-                >
-                  {saving ? '저장 중…' : '게시 확정'}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="admin-notices__actions">
-              <button type="button" className="admin-button" onClick={() => start()}>
-                {editing ? '새 공지로 전환' : '입력 지우기'}
-              </button>
-              <button
-                type="button"
-                className="admin-button"
-                disabled={saving}
-                onClick={() => void save(false)}
-              >
-                {saving ? '저장 중…' : editing?.visible ? '비공개로 전환' : '비공개로 저장'}
-              </button>
-              <button
-                type="button"
-                className="admin-button admin-button--primary"
-                disabled={saving}
-                onClick={() => setIsConfirmingPublish(true)}
-              >
-                {editing?.visible ? '변경사항 게시' : '게시하기'}
-              </button>
-            </div>
-          )}
-        </form>
+            {loading ? (
+              <p className="admin-notices__empty">불러오는 중입니다.</p>
+            ) : filtered.length ? (
+              filtered.map((n) => (
+                <article key={n.noticeId} className={n.visible ? '' : 'is-hidden'}>
+                  <div>
+                    <span>{n.pinned ? '중요' : '일반'}</span>
+                    <strong>{n.title}</strong>
+                    <small>
+                      <em className={n.visible ? 'is-visible' : undefined}>
+                        {n.visible ? '게시 중' : '비공개'}
+                      </em>
+                      {' · '}
+                      {formatKoDateTime24(n.updatedAt)} · {n.authorName}
+                    </small>
+                  </div>
+                  <div>
+                    {n.visible && <Link to={'/notices/' + n.noticeId}>게시 화면</Link>}
+                    <Link to={'?edit=' + n.noticeId}>수정</Link>
+                    <button type="button" onClick={() => void remove(n)}>
+                      삭제
+                    </button>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <p className="admin-notices__empty">
+                {notices.length ? '조건에 맞는 공지가 없습니다.' : '등록된 공지가 없습니다.'}
+              </p>
+            )}
+          </section>
+        )}
       </div>
     </section>
   );
 }
-
-export default AdminNoticesPage;

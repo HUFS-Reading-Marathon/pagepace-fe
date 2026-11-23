@@ -1,4 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react';
+import BookReviewActions from '../../components/logs/BookReviewActions';
+import { METERS_PER_PAGE } from '../../constants/reading';
 import { Link } from 'react-router-dom';
 import { ApiError, getApiErrorMessage } from '../../api/apiClient';
 import { getCurrentEvent } from '../../api/eventApi';
@@ -10,9 +12,9 @@ import {
   type ParticipantBook,
   type ReadingLog,
 } from '../../types/readingLog';
-import { formatDistance } from '../../utils/reading';
+import { formatDistance, getCreditedPages, getProgressRate } from '../../utils/reading';
 import { formatKoDateKey } from '../../utils/date';
-import { canApply } from '../../utils/eventSelection';
+import { canApply, hasFinalResults } from '../../utils/eventSelection';
 import './my.css';
 
 function MyPage() {
@@ -114,7 +116,10 @@ function MyPage() {
     );
   }
 
-  const progressRate = Math.min(Math.round(participation.progressRate), 100);
+  const progressRate = Math.min(
+    getProgressRate(participation.totalDistanceMeter, participation.targetDistanceMeter),
+    100,
+  );
   const remainingDistance = Math.max(
     participation.targetDistanceMeter - participation.totalDistanceMeter,
     0,
@@ -171,15 +176,18 @@ function MyPage() {
           </div>
           <p className="my-progress-caption">
             남은 거리 <strong>{formatDistance(remainingDistance)}</strong>
+            {remainingDistance > 0 && (
+              <> · {Math.ceil(remainingDistance / METERS_PER_PAGE).toLocaleString()}쪽 남음</>
+            )}
           </p>
         </div>
       </section>
 
       <section className="my-stat-grid" aria-label="나의 독서마라톤 요약">
         <article>
-          <span>인정 쪽수</span>
-          <strong>{participation.totalPages.toLocaleString()}쪽</strong>
-          <p>승인된 독서일지 기준</p>
+          <span>거리 인정 쪽수</span>
+          <strong>{getCreditedPages(participation.totalDistanceMeter).toLocaleString()}쪽</strong>
+          <p>일지 승인 {participation.totalPages.toLocaleString()}쪽</p>
         </article>
         <article>
           <span>인정 거리</span>
@@ -262,8 +270,25 @@ function MyPage() {
                     : book.reviewCompleted
                       ? '서평 확인 대기'
                       : '서평 작성 필요'}{' '}
-                  · 인정 거리 {formatDistance(book.creditedReadPages * 5)}
+                  · 인정 거리 {formatDistance(book.creditedReadPages * METERS_PER_PAGE)}
                 </p>
+                {!hasFinalResults(participation.eventStatus) &&
+                  ['APPROVED', 'COMPLETED'].includes(participation.participationStatus) &&
+                  book.approvedReadPages > book.creditedReadPages &&
+                  !book.reviewCompleted && (
+                    <BookReviewActions
+                      book={book}
+                      onReported={(result) =>
+                        setReadingBooks((current) =>
+                          current.map((item) =>
+                            item.participantBookId === result.participantBookId
+                              ? { ...item, reviewCompleted: result.reviewCompleted }
+                              : item,
+                          ),
+                        )
+                      }
+                    />
+                  )}
               </div>
               <dl>
                 <div>

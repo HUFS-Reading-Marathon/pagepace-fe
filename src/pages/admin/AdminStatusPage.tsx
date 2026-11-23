@@ -3,14 +3,12 @@ import { preferredAdminEvent } from '../../utils/eventSelection';
 import { useAdminEventState } from '../../hooks/useAdminEventState';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getAdminParticipations, type AdminParticipation } from '../../api/adminParticipationApi';
-import { getEventSummary, type EventSummary } from '../../api/eventApi';
 import { getApiErrorMessage } from '../../api/apiClient';
 import { getAdminEventCourses, getAdminEvents } from '../../api/adminEventApi';
 import { getAdminReadingLogs } from '../../api/adminReadingLogApi';
 import StatusCourseSummary from '../../components/admin/status/StatusCourseSummary';
 import StatusFilters from '../../components/admin/status/StatusFilters';
 import StatusPublishPanel from '../../components/admin/status/StatusPublishPanel';
-import StatusSummary from '../../components/admin/status/StatusSummary';
 import StatusTable from '../../components/admin/status/StatusTable';
 import type { AdminCourse, AdminEvent, EventStatus } from '../../types/adminEvent';
 import type { AdminReadingLogResponse } from '../../types/adminReadingLogApi';
@@ -21,6 +19,7 @@ import type {
 } from '../../types/adminStatus';
 import {
   buildAdminCompetitionRows,
+  sortCompetitionStandings,
   getAdminCompetitionCourseSummaries,
 } from '../../utils/statusAggregation';
 import { chooseEventIdByStatus } from '../../utils/adminEvent';
@@ -31,7 +30,6 @@ import '../../styles/admin-status.css';
 
 type CompetitionData = {
   participants: AdminParticipation[];
-  summary: EventSummary;
   logs: AdminReadingLogResponse[];
   courses: AdminCourse[];
   fetchedAt: string;
@@ -67,12 +65,10 @@ const LOAD_ERROR_MESSAGE = '대회 현황 데이터를 불러오지 못했습니
 function requestCompetitionData(eventId: number) {
   return Promise.all([
     getAdminParticipations(eventId),
-    getEventSummary(eventId, undefined, true),
     getAdminReadingLogs({ eventId }),
     getAdminEventCourses(eventId),
-  ]).then(([participants, summary, logs, courses]) => ({
+  ]).then(([participants, logs, courses]) => ({
     participants,
-    summary,
     logs,
     courses,
     fetchedAt: new Date().toISOString(),
@@ -195,7 +191,7 @@ function AdminStatusPage() {
   );
   const rows = useMemo(
     () =>
-      competitionData && selectedDate
+      competitionData
         ? buildAdminCompetitionRows(
             competitionData.participants,
             competitionData.logs,
@@ -205,31 +201,6 @@ function AdminStatusPage() {
         : [],
     [competitionData, selectedDate],
   );
-  const summary = useMemo(
-    () =>
-      competitionData
-        ? {
-            participantCount: competitionData.summary.participantCount,
-            activeParticipantCount: rows.filter((participant) => participant.dailyIncreasePages > 0)
-              .length,
-            completedCount: competitionData.summary.completedCount,
-            newlyCompletedCount: rows.filter((p) => p.completedAt === selectedDate).length,
-            totalPages: rows.reduce((sum, participant) => sum + participant.cumulativePages, 0),
-            totalDistanceMeters: rows.reduce(
-              (sum, participant) => sum + participant.cumulativeDistanceMeters,
-              0,
-            ),
-          }
-        : {
-            participantCount: null,
-            activeParticipantCount: null,
-            completedCount: null,
-            newlyCompletedCount: null,
-            totalPages: null,
-            totalDistanceMeters: null,
-          },
-    [competitionData, rows, selectedDate],
-  );
   const courseSummaries = useMemo(
     () => getAdminCompetitionCourseSummaries(rows, competitionData?.courses ?? []),
     [competitionData?.courses, rows],
@@ -237,43 +208,31 @@ function AdminStatusPage() {
   const filteredParticipants = useMemo(() => {
     const normalizedKeyword = searchKeyword.trim().toLowerCase();
 
-    return rows
-      .filter((participant) => {
-        const matchesKeyword =
-          !normalizedKeyword ||
-          participant.name.toLowerCase().includes(normalizedKeyword) ||
-          participant.studentNumber.toLowerCase().includes(normalizedKeyword);
-        const matchesCourse = courseFilter === 'ALL' || participant.courseId === courseFilter;
-        const matchesActivity =
-          activityFilter === 'ALL' ||
-          (activityFilter === 'active'
-            ? participant.dailyIncreasePages > 0
-            : participant.dailyIncreasePages === 0);
+    const matches = rows.filter((participant) => {
+      const matchesKeyword =
+        !normalizedKeyword ||
+        participant.name.toLowerCase().includes(normalizedKeyword) ||
+        participant.studentNumber.toLowerCase().includes(normalizedKeyword);
+      const matchesCourse = courseFilter === 'ALL' || participant.courseId === courseFilter;
+      const matchesActivity =
+        activityFilter === 'ALL' ||
+        (activityFilter === 'active'
+          ? participant.dailyIncreasePages > 0
+          : participant.dailyIncreasePages === 0);
 
-        return (
-          matchesKeyword &&
-          matchesCourse &&
-          matchesActivity &&
-          (completionFilter === 'ALL' || participant.completionStatus === completionFilter)
-        );
-      })
-      .sort((left, right) => {
-        if (sortOption === 'pages-desc') {
-          return (
-            right.cumulativePages - left.cumulativePages ||
-            left.name.localeCompare(right.name, 'ko-KR')
-          );
-        }
-
-        if (sortOption === 'name-asc') {
-          return left.name.localeCompare(right.name, 'ko-KR');
-        }
-
-        return (
-          right.cumulativeDistanceMeters - left.cumulativeDistanceMeters ||
-          left.name.localeCompare(right.name, 'ko-KR')
-        );
-      });
+      return (
+        matchesKeyword &&
+        matchesCourse &&
+        matchesActivity &&
+        (completionFilter === 'ALL' || participant.completionStatus === completionFilter)
+      );
+    });
+    return sortCompetitionStandings(
+      matches,
+      sortOption,
+      (row) => row.cumulativeDistanceMeters,
+      (row) => row.cumulativePages,
+    );
   }, [activityFilter, completionFilter, courseFilter, rows, searchKeyword, sortOption]);
 
   const handleEventSelection = (value: string) => {
@@ -350,9 +309,7 @@ function AdminStatusPage() {
       <header className="admin-page__header admin-status__header">
         <div className="admin-status__heading">
           <h1>대회 현황·랭킹</h1>
-          <p>
-            인정 쪽수·인정 거리·완주 여부는 현재 기준입니다. 기준 날짜는 당일 독서량에만 적용됩니다.
-          </p>
+          <p>기준 날짜는 당일 독서량에 적용됩니다.</p>
         </div>
 
         <div className="admin-status__header-controls">
@@ -383,7 +340,7 @@ function AdminStatusPage() {
               disabled={!selectedEvent}
               onChange={(event) => {
                 setSelectedDate(event.target.value);
-                setFeedbackMessage(`${formatKoDateKey(event.target.value)} 기준으로 표시합니다.`);
+                setFeedbackMessage('');
               }}
             />
             <small>행사 운영 기간 {eventPeriodLabel}</small>
@@ -393,21 +350,45 @@ function AdminStatusPage() {
 
       <AdminPageTabs label="대회 현황·랭킹 화면" tabs={COMPETITION_TABS} />
 
-      <StatusSummary {...summary} />
-
-      <aside className="admin-status__policy" aria-label="현황 집계 정책">
-        <strong>집계 정책</strong>
-        <span>승인·완주 참가자 포함</span>
-        <span>승인된 독서일지만 반영</span>
-        <span>인정 쪽수·거리 기준</span>
-        <span>완주는 참가 상태 기준</span>
-      </aside>
-
-      <div className="admin-status__section-heading admin-status__table-heading">
-        <div>
-          <h2>참가자별 현황</h2>
-          <p>검색과 필터는 조회된 전체 행사 데이터에 적용됩니다.</p>
-        </div>
+      {competitionData && !error && <StatusCourseSummary summaries={courseSummaries} />}
+      <div className="admin-status__table-toolbar">
+        <h2>참가자별 현황</h2>
+        <StatusPublishPanel
+          lastCalculatedAt={competitionData?.fetchedAt ?? null}
+          isRefreshing={isDataLoading}
+          canRefresh={selectedEventId !== null}
+          onRecalculate={handleRefresh}
+          publicVisible={
+            !!selectedEvent?.publicVisible && !['DRAFT', 'ARCHIVED'].includes(selectedEvent.status)
+          }
+          canExport={!!competitionData && !isDataLoading && !error}
+          onExport={() =>
+            downloadCsv(`event-${selectedEventId}-status.csv`, [
+              [
+                '순번',
+                '이름',
+                '학번',
+                '학과',
+                '코스',
+                '승인 쪽수',
+                '인정 거리(m)',
+                '완주 상태',
+                '완주일',
+              ],
+              ...filteredParticipants.map((p, index) => [
+                index + 1,
+                p.name,
+                p.studentNumber,
+                p.department,
+                p.courseName,
+                p.cumulativePages,
+                p.cumulativeDistanceMeters,
+                p.completionStatus === 'completed' ? '완주' : '진행 중',
+                p.completedAt ?? '',
+              ]),
+            ])
+          }
+        />
       </div>
 
       <StatusFilters
@@ -437,34 +418,6 @@ function AdminStatusPage() {
       <div className="admin-status__feedback" role="status" aria-live="polite">
         {feedbackMessage}
       </div>
-
-      <StatusPublishPanel
-        lastCalculatedAt={competitionData?.fetchedAt ?? null}
-        isRefreshing={isDataLoading}
-        canRefresh={selectedEventId !== null}
-        onRecalculate={handleRefresh}
-        publicVisible={
-          !!selectedEvent?.publicVisible && !['DRAFT', 'ARCHIVED'].includes(selectedEvent.status)
-        }
-        canExport={!!competitionData && !isDataLoading && !error}
-        onExport={() =>
-          downloadCsv(`event-${selectedEventId}-status.csv`, [
-            ['이름', '학번', '학과', '코스', '승인 쪽수', '인정 거리(m)', '완주 상태', '완주일'],
-            ...filteredParticipants.map((p) => [
-              p.name,
-              p.studentNumber,
-              p.department,
-              p.courseName,
-              p.cumulativePages,
-              p.cumulativeDistanceMeters,
-              p.completionStatus === 'completed' ? '완주' : '진행 중',
-              p.completedAt ?? '',
-            ]),
-          ])
-        }
-      />
-
-      <StatusCourseSummary summaries={courseSummaries} />
     </section>
   );
 }

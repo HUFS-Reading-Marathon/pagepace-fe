@@ -6,13 +6,17 @@ type StatusCourseSummaryProps = {
 };
 
 function StatusCourseSummary({ summaries }: StatusCourseSummaryProps) {
+  const participants = summaries.reduce((sum, row) => sum + row.participantCount, 0);
+  const completed = summaries.reduce((sum, row) => sum + row.completedCount, 0);
   return (
     <section className="admin-status__course-summary" aria-labelledby="statusCourseSummaryTitle">
       <div className="admin-status__section-heading">
         <div>
           <h2 id="statusCourseSummaryTitle">코스별 요약</h2>
-          <p>현재 누적 승인 쪽수와 서평 인정 거리를 코스별로 집계했습니다.</p>
         </div>
+        <p>
+          전체 <strong>{participants}명</strong> · 완주 <strong>{completed}명</strong>
+        </p>
       </div>
 
       <div className="admin-status__course-summary-wrapper">
@@ -23,8 +27,8 @@ function StatusCourseSummary({ summaries }: StatusCourseSummaryProps) {
               <th scope="col">참가자</th>
               <th scope="col">완주자</th>
               <th scope="col">평균 달성률</th>
-              <th scope="col">누적 페이지</th>
-              <th scope="col">누적 거리</th>
+              <th scope="col">승인 쪽수</th>
+              <th scope="col">인정 거리</th>
             </tr>
           </thead>
           <tbody>

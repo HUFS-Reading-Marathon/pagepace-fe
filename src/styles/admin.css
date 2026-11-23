@@ -17,6 +17,8 @@
    * 각자 자체 배경(흰색)을 갖고 있어 이 값의 영향을 받지 않습니다.
    */
   --admin-bg: #fafbfc;
+  --admin-header-height: 38px;
+  --admin-content-inset: 32px;
 
   display: flex;
   min-height: 100vh;
@@ -35,198 +37,58 @@
 .admin-layout__main {
   min-width: 0;
   flex: 1;
-  padding: 32px;
+  padding: 24px var(--admin-content-inset);
+  scroll-margin-top: var(--admin-header-height);
   overflow-wrap: anywhere;
 }
 
+.admin-layout > .skip-link {
+  position: fixed;
+  top: 0;
+  transform: translateY(-110%);
+}
+
+.admin-layout > .skip-link:focus {
+  transform: none;
+}
+
 .admin-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  min-height: var(--admin-header-height);
   flex: 0 0 auto;
-}
-
-/* 크기와 정렬은 global.css의 .header-main을 그대로 사용 */
-.admin-header__inner {
-  gap: 28px;
-}
-
-.admin-header__brand {
-  display: flex;
-  min-width: 0;
+  justify-content: flex-end;
   align-items: center;
+  padding-inline: var(--admin-content-inset);
+  gap: 6px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
 }
 
-.admin-header__title {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 10px;
-  color: var(--navy-deep);
-  font-size: 18px;
-  font-weight: var(--admin-fw-bold);
-  letter-spacing: -0.035em;
-  white-space: nowrap;
-}
-
-.admin-header__actions {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 8px;
-}
-
-.admin-header__account {
-  position: relative;
-}
-
-.admin-header__account-trigger,
-.admin-header__logout {
+.admin-header__action {
   display: inline-flex;
-  min-height: 38px;
   align-items: center;
   justify-content: center;
+  min-height: 30px;
+  padding: 3px 8px;
   border: 0;
   border-radius: var(--radius);
   background: transparent;
   color: var(--navy-strong);
   font: inherit;
-  line-height: 1;
+  font-size: 13px;
+  font-weight: var(--admin-fw-medium);
   cursor: pointer;
-  transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
 }
 
-.admin-header__account-trigger {
-  padding: 8px 10px;
-  gap: 7px;
-  font-size: 13px;
-  font-weight: var(--admin-fw-semibold);
+.admin-header__action:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-.admin-header__logout {
-  width: 38px;
-  padding: 0;
-}
-
-.admin-header__account-trigger:hover,
-.admin-header__logout:hover {
-  background: var(--blue-10);
-  color: var(--navy-deep);
-}
-
-.admin-header__account-icon,
-.admin-header__logout-icon {
-  flex: 0 0 auto;
-}
-
-.admin-header__account-label {
-  max-width: 144px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.admin-header__account-chevron {
-  flex: 0 0 auto;
-  transition: transform 0.15s ease;
-}
-
-.admin-header__account-trigger[aria-expanded='true'] .admin-header__account-chevron {
-  transform: rotate(180deg);
-}
-
-.admin-header__account-popover {
-  position: absolute;
-  z-index: 80;
-  top: calc(100% + 10px);
-  right: 0;
-  width: 260px;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  animation: admin-header-popover-enter 0.16s ease-out;
-}
-
-.admin-header__account-title {
-  margin: 0;
-  color: var(--navy-deep);
-  font-size: 15px;
-  font-weight: var(--admin-fw-semibold);
-  line-height: 1.4;
-  letter-spacing: -0.025em;
-}
-
-.admin-header__account-details {
-  display: grid;
-  margin: 14px 0 0;
-  gap: 12px;
-}
-
-.admin-header__account-row {
-  display: grid;
-  min-width: 0;
-  grid-template-columns: 52px minmax(0, 1fr);
-  align-items: start;
-  gap: 10px;
-}
-
-.admin-header__account-key,
-.admin-header__account-value {
-  margin: 0;
-  line-height: 1.45;
-}
-
-.admin-header__account-key {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.admin-header__account-value {
-  overflow-wrap: anywhere;
-  color: var(--body);
-  font-size: 13px;
-  font-weight: var(--admin-fw-regular);
-}
-
-.admin-header__account-menu {
-  margin: 15px -16px -16px;
-  padding: 8px;
-  border-top: 1px solid var(--line-soft);
-}
-
-.admin-header__account-user-view {
-  display: flex;
-  min-height: 38px;
-  padding: 8px;
-  align-items: center;
-  gap: 8px;
-  border-radius: var(--radius);
-  color: var(--navy-strong);
-  font-size: 13px;
-  font-weight: var(--admin-fw-semibold);
-}
-
-.admin-header__account-user-view:hover {
-  background: var(--blue-10);
-}
-
-@keyframes admin-header-popover-enter {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.admin-header__brand:focus-visible,
-.admin-header__account-trigger:focus-visible,
-.admin-header__account-user-view:focus-visible,
-.admin-header__logout:focus-visible,
+.admin-header__action:focus-visible,
 .admin-sidebar__group:focus-visible,
 .admin-sidebar__link:focus-visible {
   outline: 3px solid rgba(31, 79, 130, 0.2);
@@ -235,9 +97,9 @@
 
 .admin-sidebar {
   position: sticky;
-  top: 82px;
+  top: var(--admin-header-height);
   width: 232px;
-  height: calc(100vh - 82px);
+  height: calc(100dvh - var(--admin-header-height));
   flex: 0 0 232px;
   align-self: flex-start;
   padding: 24px 16px;
@@ -607,9 +469,9 @@
 
 .admin-detail-panel {
   position: sticky;
-  top: 98px;
+  top: calc(var(--admin-header-height) + 16px);
   display: flex;
-  max-height: calc(100vh - 114px);
+  max-height: calc(100dvh - var(--admin-header-height) - 32px);
   flex-direction: column;
 }
 
@@ -834,20 +696,8 @@
 }
 
 @media (max-width: 900px) {
-  .admin-header__inner {
-    gap: 18px;
-  }
-
-  .admin-header__title {
-    font-size: 16px;
-  }
-
-  .admin-header__actions {
-    gap: 6px;
-  }
-
-  .admin-header__account-label {
-    max-width: 96px;
+  .admin-layout {
+    --admin-content-inset: 24px;
   }
 
   .admin-sidebar {
@@ -855,34 +705,11 @@
     flex-basis: 196px;
     padding-inline: 12px;
   }
-
-  .admin-layout__main {
-    padding: 28px 24px;
-  }
 }
 
 @media (max-width: 700px) {
-  .admin-header__inner {
-    gap: 12px;
-  }
-
-  .admin-header__title {
-    font-size: 14px;
-  }
-
-  .admin-header__account-trigger {
-    min-height: 38px;
-    padding-inline: 8px;
-    font-size: 12px;
-  }
-
-  .admin-header__logout {
-    width: 38px;
-    min-height: 38px;
-  }
-
-  .admin-header__account-label {
-    max-width: 64px;
+  .admin-layout {
+    --admin-content-inset: 18px;
   }
 
   /* 휴대폰 폭에서는 세로 사이드바가 본문을 좁히므로 가로 스크롤 메뉴로 바꿉니다. */
@@ -892,6 +719,7 @@
 
   .admin-sidebar {
     position: relative;
+    top: auto;
     width: 100%;
     height: auto;
     flex-basis: auto;
@@ -962,19 +790,10 @@
   .admin-detail-panel__actions-hint {
     width: 100%;
   }
-
-  .admin-layout__main {
-    padding: 24px 18px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .admin-header__account-chevron,
   .admin-sidebar__group-chevron {
     transition: none;
-  }
-
-  .admin-header__account-popover {
-    animation: none;
   }
 }

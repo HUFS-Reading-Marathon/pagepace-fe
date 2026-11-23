@@ -4,12 +4,11 @@ import { matchPath, NavLink, useLocation } from 'react-router-dom';
 type AdminMenu = {
   label: string;
   path: string;
-  group: '화면 이동' | '참가·기록' | '운영 관리' | '분석';
+  group: '참가·기록' | '운영 관리' | '분석';
   relatedPaths?: readonly string[];
 };
 
 const ADMIN_MENUS: readonly AdminMenu[] = [
-  { label: '사용자 화면 보기', path: '/', group: '화면 이동' },
   {
     label: '운영 현황',
     path: '/admin',
@@ -20,6 +19,7 @@ const ADMIN_MENUS: readonly AdminMenu[] = [
     path: '/admin/participants',
     group: '참가·기록',
   },
+  { label: '도서 확인 요청', path: '/admin/book-requests', group: '참가·기록' },
   {
     label: '독서일지 검토',
     path: '/admin/logs',
@@ -47,6 +47,8 @@ const ADMIN_MENUS: readonly AdminMenu[] = [
     path: '/admin/notices',
     group: '운영 관리',
   },
+  { label: '문의·FAQ 관리', path: '/admin/inquiries', group: '운영 관리' },
+  { label: '결과 보고서', path: '/admin/reports', group: '분석' },
   {
     label: '운영 통계',
     path: '/admin/statistics',
@@ -58,7 +60,7 @@ type AdminMenuGroup = AdminMenu['group'];
 
 function isMenuActive(menu: AdminMenu, pathname: string) {
   return [menu.path, ...(menu.relatedPaths ?? [])].some((path) =>
-    matchPath({ path, end: path === '/admin' || path === '/' }, pathname),
+    matchPath({ path, end: path === '/admin' }, pathname),
   );
 }
 
@@ -126,7 +128,7 @@ function AdminSidebar() {
                 {isGroupOpen && (
                   <NavLink
                     to={menu.path}
-                    end={menu.path === '/admin' || menu.path === '/'}
+                    end={menu.path === '/admin'}
                     className={({ isActive }) =>
                       [
                         'admin-sidebar__link',

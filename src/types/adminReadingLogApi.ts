@@ -5,10 +5,12 @@ export type AdminReadingLogStatus = ReadingLogStatus;
 
 export type AdminReadingLogBookResponse = {
   readingLogBookId: number;
+  libraryBookId?: number | null;
   bookTitle: string;
   author: string | null;
   publisher: string | null;
   isbn: string | null;
+  callNo?: string | null;
   coverImageUrl: string | null;
   totalBookPages: number;
   submittedReadPages: number;
@@ -35,6 +37,7 @@ export type AdminReadingLogResponse = {
   totalReadPages: number;
   convertedDistanceMeter: number;
   status: AdminReadingLogStatus;
+  memo?: string | null;
   adminComment: string | null;
   reviewedAt: string | null;
   createdAt: string;
@@ -50,4 +53,5 @@ export type AdminReadingLogListParams = {
 
 export type RejectAdminReadingLogRequest = {
   reason: string;
+  expectedUpdatedAt: string;
 };

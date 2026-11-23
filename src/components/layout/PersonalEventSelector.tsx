@@ -6,7 +6,7 @@ import type { MyParticipation } from '../../types/participation';
 import { useAuth } from '../../auth';
 
 /** 회차 선택이 의미 있는 화면: 나의 현황, 나의 서재, 독서일지 작성 (상세·수정·계정 설정 제외) */
-const SELECTOR_PATHS = ['/my', '/logs', '/logs/new'];
+const SELECTOR_PATHS = ['/my', '/logs', '/logs/new', '/book-requests'];
 
 /** 현재 공개 행사로 볼 수 있는 상태. 이 상태의 참가 1건뿐이면 '현재 공개 행사'와 같은 대상이라 선택이 필요 없습니다. */
 const CURRENT_EVENT_STATUSES = ['APPLICATION_OPEN', 'APPLICATION_CLOSED', 'IN_PROGRESS'];

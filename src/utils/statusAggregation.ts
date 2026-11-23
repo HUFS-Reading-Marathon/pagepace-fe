@@ -4,15 +4,43 @@ import type { AdminReadingLogResponse } from '../types/adminReadingLogApi';
 import type {
   AdminCompetitionCourseSummary,
   AdminCompetitionParticipantRow,
+  AdminCompetitionSortOption,
 } from '../types/adminStatus';
 
 export function formatStatusDistance(meters: number) {
   return meters >= 1000
     ? `${(meters / 1000).toLocaleString('ko-KR', {
         minimumFractionDigits: 1,
-        maximumFractionDigits: 2,
+        maximumFractionDigits: 3,
       })}km`
     : `${meters.toLocaleString('ko-KR')}m`;
+}
+
+const koreanNameOrder = new Intl.Collator('ko-KR');
+
+export function sortCompetitionStandings<T extends { name: string }>(
+  rows: readonly T[],
+  order: AdminCompetitionSortOption,
+  distance: (row: T) => number,
+  pages: (row: T) => number,
+): T[] {
+  return [...rows].sort((left, right) => {
+    const nameOrder = koreanNameOrder.compare(left.name, right.name);
+    switch (order) {
+      case 'name-asc':
+        return nameOrder;
+      case 'name-desc':
+        return -nameOrder;
+      case 'distance-asc':
+        return distance(left) - distance(right) || nameOrder;
+      case 'pages-desc':
+        return pages(right) - pages(left) || nameOrder;
+      case 'pages-asc':
+        return pages(left) - pages(right) || nameOrder;
+      case 'distance-desc':
+        return distance(right) - distance(left) || nameOrder;
+    }
+  });
 }
 
 export function buildAdminCompetitionRows(

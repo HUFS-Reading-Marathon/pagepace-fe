@@ -8,7 +8,8 @@ import {
   type ReadingLog,
   type ReadingLogBook,
 } from '../../types/readingLog';
-import { formatDistance } from '../../utils/reading';
+import { canSubmitReadingLog } from '../../utils/eventSelection';
+import { formatDistance, getProgressRate } from '../../utils/reading';
 import { formatKoDateKey } from '../../utils/date';
 import './logs.css';
 
@@ -107,7 +108,7 @@ function BookShelf({
           <div className="my-library-book-grid">
             {visibleBooks.map((book) => {
               const totalPages = Math.max(book.totalBookPages, 1);
-              const progress = Math.min(100, Math.round((book.approvedPages / totalPages) * 100));
+              const progress = Math.min(100, getProgressRate(book.approvedPages, totalPages));
               const isCompleted =
                 book.approvedPages >= book.totalBookPages && book.totalBookPages > 0;
 
@@ -143,6 +144,7 @@ function BookShelf({
 function MyReadingLogsPage() {
   const [logs, setLogs] = useState<ReadingLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [canWrite, setCanWrite] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [showAllLogs, setShowAllLogs] = useState(false);
 
@@ -150,7 +152,10 @@ function MyReadingLogsPage() {
     let isActive = true;
 
     getCurrentParticipation()
-      .then((participation) => getMyReadingLogs(participation.participationId))
+      .then((participation) => {
+        if (isActive) setCanWrite(canSubmitReadingLog(participation));
+        return getMyReadingLogs(participation.participationId);
+      })
       .then((nextLogs) => {
         if (isActive) {
           setLogs([...nextLogs].sort((a, b) => b.readingDate.localeCompare(a.readingDate)));
@@ -186,9 +191,11 @@ function MyReadingLogsPage() {
           <h1>나의 서재</h1>
           <p>읽고 있는 책과 완독한 책, 제출한 독서일지를 모아 봅니다.</p>
         </div>
-        <Link to="/logs/new" className="log-primary-link">
-          독서일지 작성
-        </Link>
+        {canWrite && (
+          <Link to="/logs/new" className="log-primary-link">
+            독서일지 작성
+          </Link>
+        )}
       </section>
 
       {isLoading ? (

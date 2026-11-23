@@ -69,8 +69,14 @@ function AccountSettingsPage() {
         setMessage('변경한 이메일을 먼저 인증해 주세요.');
         return;
       }
-      await updateMe(form);
+      await updateMe({
+        ...form,
+        verificationToken: isEmailChanged ? form.verificationToken : undefined,
+      });
       setOriginalEmail(form.email);
+      setVerifiedEmail('');
+      setCode('');
+      setForm((current) => ({ ...current, verificationToken: undefined }));
       setMessage('내 정보가 저장되었습니다.');
     } catch (error) {
       setMessage(getApiErrorMessage(error, '저장하지 못했습니다.'));
@@ -117,7 +123,12 @@ function AccountSettingsPage() {
                 id="account-email"
                 type="email"
                 value={form.email}
-                onChange={(event) => setForm({ ...form, email: event.target.value })}
+                disabled={verifying}
+                onChange={(event) => {
+                  setForm({ ...form, email: event.target.value, verificationToken: undefined });
+                  setVerifiedEmail('');
+                  setCode('');
+                }}
               />
               {isEmailChanged && (
                 <button
@@ -129,6 +140,9 @@ function AccountSettingsPage() {
                     setVerifyingAction('send');
                     try {
                       await sendApplicationEmailVerification(form.email);
+                      setVerifiedEmail('');
+                      setCode('');
+                      setForm((current) => ({ ...current, verificationToken: undefined }));
                       setMessage('인증 코드를 보냈습니다.');
                     } catch (error) {
                       setMessage(error instanceof Error ? error.message : '발송 실패');
@@ -160,7 +174,11 @@ function AccountSettingsPage() {
                     const email = form.email;
                     setVerifyingAction('confirm');
                     try {
-                      await confirmApplicationEmailVerification(email, code);
+                      const verificationToken = await confirmApplicationEmailVerification(
+                        email,
+                        code,
+                      );
+                      setForm((current) => ({ ...current, verificationToken }));
                       setVerifiedEmail(email);
                       setMessage('이메일 인증이 완료되었습니다.');
                     } catch (error) {

@@ -1,7 +1,7 @@
-import { useSyncExternalStore } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import PersonalEventSelector from '../components/layout/PersonalEventSelector';
 import { selectedEventId } from '../utils/eventSelection';
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import AdminLayout from '../layouts/AdminLayout';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
@@ -14,7 +14,13 @@ import AdminEventSettingsPage from '../pages/admin/AdminEventSettingsPage';
 import AdminStatusPage from '../pages/admin/AdminStatusPage';
 import AdminRankingPage from '../pages/admin/AdminRankingPage';
 import AdminReviewsPage from '../pages/admin/AdminReviewsPage';
+import AdminBookRequestsPage from '../pages/admin/AdminBookRequestsPage';
+import BookRequestsPage from '../pages/logs/BookRequestsPage';
 import AdminNoticesPage from '../pages/admin/AdminNoticesPage';
+import ContestGuidePage from '../pages/main/ContestGuidePage';
+import NoticesPage from '../pages/notices/NoticesPage';
+import AdminContestReportsPage from '../pages/admin/AdminContestReportsPage';
+import InquiryBoard from '../pages/inquiries/InquiryBoard';
 import NoticeDetailPage from '../pages/notices/NoticeDetailPage';
 import AccountSettingsPage from '../pages/my/AccountSettingsPage';
 import NotFoundPage from '../pages/error';
@@ -29,7 +35,22 @@ const subscribeEvent = (listener: () => void) => {
   window.addEventListener('pagepace:event-selection', listener);
   return () => window.removeEventListener('pagepace:event-selection', listener);
 };
+const legacySections: Record<string, string> = {
+  '#about': '/guide',
+  '#courses': '/courses',
+  '#process': '/guide/participation',
+  '#notice': '/notices',
+  '#contact': '/inquiries',
+};
+function LandingPage() {
+  const { hash } = useLocation();
+  return legacySections[hash] ? <Navigate to={legacySections[hash]} replace /> : <MainPage />;
+}
 function UserLayout() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
   const eventId = useSyncExternalStore(subscribeEvent, () => selectedEventId('personal'));
   return (
     <>
@@ -55,6 +76,7 @@ function AppRouter() {
             }
           >
             <Route index element={<AdminOperationsDashboardPage />} />
+            <Route path="book-requests" element={<AdminBookRequestsPage />} />
             <Route path="participants" element={<AdminParticipantsPage />} />
             <Route path="logs" element={<AdminReadingLogsPage />} />
             <Route path="event" element={<AdminEventSettingsPage />} />
@@ -63,15 +85,33 @@ function AppRouter() {
             <Route path="rankings" element={<AdminRankingPage />} />
             <Route path="reviews" element={<AdminReviewsPage />} />
             <Route path="notices" element={<AdminNoticesPage />} />
+            <Route path="inquiries" element={<InquiryBoard admin />} />
+            <Route path="reports" element={<AdminContestReportsPage />} />
           </Route>
 
           <Route element={<UserLayout />}>
-            <Route path="/" element={<MainPage />} />
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/guide" element={<ContestGuidePage key="about" section="about" />} />
+            <Route path="/courses" element={<ContestGuidePage key="courses" section="courses" />} />
+            <Route
+              path="/guide/participation"
+              element={<ContestGuidePage key="process" section="process" />}
+            />
+            <Route path="/inquiries" element={<InquiryBoard />} />
+            <Route path="/notices" element={<NoticesPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/password-reset" element={<PasswordResetPage />} />
             <Route path="/signup" element={<ApplyPage />} />
             <Route path="/apply" element={<ApplyPage />} />
             <Route path="/apply/pending" element={<ApplyPendingPage />} />
+            <Route
+              path="/book-requests"
+              element={
+                <ProtectedRoute>
+                  <BookRequestsPage />
+                </ProtectedRoute>
+              }
+            />
 
             <Route
               path="/my"

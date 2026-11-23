@@ -1,257 +1,276 @@
-import { useState } from 'react';
-import {
-  formatReadingDistance,
-  getReadingDistanceMeters,
-  getReadingLogTotalPages,
-  validateReadingLog,
-  type AdminReadingLog,
-} from '../../../types/adminReadingLog';
-import { formatKoDateKey, formatKoDateTime24 } from '../../../utils/date';
-import ReadingLogBookDetails from './ReadingLogBookDetails';
+import { useEffect, useRef, useState } from 'react';
+import { getBookThumbnail, lookupReviewBook } from '../../../api/bookApi';
+import type {
+  AdminReadingLogBookResponse,
+  AdminReadingLogResponse,
+} from '../../../types/adminReadingLogApi';
+import type { BookSearchResult } from '../../../types/book';
+import { formatKoDateTime24 } from '../../../utils/date';
+import BookCover from '../../logs/BookCover';
 import ReadingLogRejectForm from './ReadingLogRejectForm';
-import ReadingLogStatusBadge from './ReadingLogStatusBadge';
+import './reading-log-review.css';
 
-/** 승인 전 관리자가 직접 확인해야 하는 항목. 자동 검증으로는 판단할 수 없는 내용입니다. */
-const MANUAL_CHECK_ITEMS = [
-  {
-    key: 'book-info',
-    label: '실제 도서와 정보가 일치합니다.',
-    description: '책 제목·저자·출판사와 전체 쪽수를 외부 검색 결과와 대조했습니다.',
-  },
-  {
-    key: 'not-excluded',
-    label: '대회 제외 도서가 아닙니다.',
-    description: '만화, 전공서적, 수험서·문제집, 원서, 정기간행물에 해당하지 않습니다.',
-  },
-] as const;
+const LIBRARY_CATALOG = 'https://lib.hufs.ac.kr/global/search/i-discovery';
 
-type ReadingLogReviewPanelProps = {
-  log: AdminReadingLog;
-  position: { index: number; total: number };
-  hasNextPending: boolean;
-  isLoading?: boolean;
-  error?: string | null;
-  isProcessing?: boolean;
-  onPrevious?: () => void;
-  onNext?: () => void;
-  onApprove: (logId: string) => Promise<boolean>;
-  onReject: (logId: string, reason: string) => Promise<boolean>;
-};
+function catalogLink(id: number | null | undefined, keyword: string) {
+  if (id) return LIBRARY_CATALOG + '/' + id;
+  return keyword
+    ? LIBRARY_CATALOG + '?' + new URLSearchParams({ ALL: 'k|a|' + keyword, offset: '0' })
+    : null;
+}
 
-/**
- * 독서일지 검토 화면 오른쪽 상세 패널입니다.
- * 목록을 유지한 채 상세를 확인하고, 승인·반려는 서버 응답이 성공한 뒤에만 다음 건으로 넘어갑니다.
- * 부모에서 일지별 key를 지정해 일지가 바뀌면 확인 항목과 반려 입력이 초기화됩니다.
- */
-function ReadingLogReviewPanel({
-  log,
-  position,
-  hasNextPending,
-  isLoading = false,
-  error = null,
-  isProcessing = false,
-  onPrevious,
-  onNext,
-  onApprove,
-  onReject,
-}: ReadingLogReviewPanelProps) {
-  const [isRejecting, setIsRejecting] = useState(false);
-  const [checkedItems, setCheckedItems] = useState<string[]>([]);
-  const totalReadPages = getReadingLogTotalPages(log);
-  const distanceMeters = log.convertedDistanceMeter ?? getReadingDistanceMeters(totalReadPages);
-  const validationIssues = validateReadingLog(log);
-  const hasValidationIssue = validationIssues.length > 0;
-  const isPending = log.status === 'submit';
-  const allChecked = MANUAL_CHECK_ITEMS.every((item) => checkedItems.includes(item.key));
-  const canApprove = isPending && !hasValidationIssue && allChecked && !isProcessing && !isLoading;
+type LookupResult =
+  { status: 'matched'; book: BookSearchResult } | { status: 'missing' | 'failed' };
 
-  const approveHint = hasValidationIssue
-    ? '자동 검증 문제가 있어 승인할 수 없습니다. 반려 사유를 안내해 주세요.'
-    : !allChecked
-      ? '검토 항목을 모두 확인하면 승인할 수 있습니다.'
-      : '승인 결과는 서버 처리 후 목록에 반영됩니다.';
+function SubmittedBook({
+  book,
+  pending,
+  bookNumber,
+}: {
+  book: AdminReadingLogBookResponse;
+  pending: boolean;
+  bookNumber?: number;
+}) {
+  const { libraryBookId, isbn, bookTitle } = book;
+  const [result, setResult] = useState<LookupResult | null>(null);
+  const [failedCovers, setFailedCovers] = useState<string[]>([]);
+  const [isbnCover, setIsbnCover] = useState<string | null>(null);
+  const storedCover = book.coverImageUrl?.trim();
+  const missingBibliography =
+    !libraryBookId ||
+    [bookTitle, book.callNo, isbn, book.author, book.publisher].some((value) => !value?.trim());
+  const needsLookup =
+    !!(libraryBookId || isbn?.trim()) &&
+    (missingBibliography || !storedCover || failedCovers.includes(storedCover));
 
-  const toggleCheckItem = (key: string, checked: boolean) => {
-    setCheckedItems((current) =>
-      checked ? [...new Set([...current, key])] : current.filter((item) => item !== key),
-    );
-  };
+  useEffect(() => {
+    if (!needsLookup) return;
+    const request = new AbortController();
+    lookupReviewBook({ libraryBookId, isbn, bookTitle }, request.signal)
+      .then((match) => {
+        if (!request.signal.aborted)
+          setResult(match ? { status: 'matched', book: match } : { status: 'missing' });
+      })
+      .catch(() => {
+        if (!request.signal.aborted) setResult({ status: 'failed' });
+      });
+    return () => request.abort();
+  }, [needsLookup, libraryBookId, isbn, bookTitle]);
 
+  const catalog = needsLookup && result?.status === 'matched' ? result.book : null;
+  const title = bookTitle?.trim() || catalog?.title?.trim();
+  const identifier = isbn?.trim() || catalog?.isbn?.trim();
+  const catalogId = libraryBookId || catalog?.libraryBookId;
+  const href = catalogLink(catalogId, identifier || title || '');
+  const author = book.author?.trim() || catalog?.author?.trim();
+  const publisher = book.publisher?.trim() || catalog?.publisher?.trim();
+  const cover = [storedCover, catalog?.thumbnailUrl, isbnCover].find(
+    (url) => url && !failedCovers.includes(url),
+  );
+  const thumbnailIsbn = !cover && !isbnCover && (!needsLookup || result) ? identifier : null;
+  useEffect(() => {
+    if (!thumbnailIsbn) return;
+    const request = new AbortController();
+    getBookThumbnail(thumbnailIsbn, request.signal)
+      .then((url) => {
+        if (!request.signal.aborted && url) setIsbnCover(url);
+      })
+      .catch(() => {
+        /* The cover is optional; the submitted record remains reviewable. */
+      });
+    return () => request.abort();
+  }, [thumbnailIsbn]);
   return (
-    <section className="admin-detail-panel" aria-labelledby="readingLogPanelTitle">
-      <header className="admin-detail-panel__head">
-        <div>
-          <p className="admin-detail-panel__eyebrow">
-            {isRejecting ? '독서일지 반려' : '독서일지 상세 검토'}
-          </p>
-          <h2 id="readingLogPanelTitle">
-            {log.participantName} 님의 독서일지
-            <ReadingLogStatusBadge status={log.status} />
-          </h2>
-          <p className="admin-reading-review__meta">
-            <span>독서일 {formatKoDateKey(log.readingDate)}</span>
-            <span>제출 {formatKoDateTime24(log.submittedAt)}</span>
-            <span>학번 {log.studentNumber}</span>
-            {log.courseName && <span>{log.courseName}</span>}
-          </p>
-        </div>
-        <div className="admin-detail-panel__nav">
-          <span>
-            {position.index + 1} / {position.total}
-          </span>
-          <button
-            type="button"
-            aria-label="이전 독서일지"
-            disabled={!onPrevious || isProcessing}
-            onClick={onPrevious}
-          >
-            ‹
-          </button>
-          <button
-            type="button"
-            aria-label="다음 독서일지"
-            disabled={!onNext || isProcessing}
-            onClick={onNext}
-          >
-            ›
-          </button>
-        </div>
-      </header>
-
-      {isRejecting ? (
-        <ReadingLogRejectForm
-          recommendedReasons={log.recommendedRejectReasons ?? []}
-          error={error}
-          isProcessing={isProcessing}
-          onSubmit={(reason) => onReject(log.id, reason)}
-          onSuccess={() => setIsRejecting(false)}
-          onBack={() => setIsRejecting(false)}
+    <li className="log-review__book">
+      <div className="log-review__cover">
+        <BookCover
+          book={{ thumbnailUrl: cover || null }}
+          placeholder="표지 없음"
+          onError={() => {
+            if (cover)
+              setFailedCovers((current) =>
+                current.includes(cover) ? current : [...current, cover],
+              );
+          }}
         />
-      ) : (
-        <>
-          <div className="admin-detail-panel__body">
-            {isLoading && (
-              <p className="admin-reading-log-dialog__notice" role="status">
-                최신 상세 정보를 불러오는 중입니다.
-              </p>
-            )}
-            {error && (
-              <p className="admin-reading-log-dialog__error" role="alert">
-                {error}
-              </p>
-            )}
-
-            <ReadingLogBookDetails books={log.books} validationIssues={validationIssues} />
-
-            {hasValidationIssue ? (
-              <ul className="admin-reading-log-dialog__issue-list admin-reading-review__block">
-                {validationIssues
-                  .filter((issue) => !issue.bookEntryId)
-                  .map((issue) => (
-                    <li key={`${issue.code}-${issue.detail}`}>
-                      <strong>{issue.label}</strong> — {issue.detail}
-                    </li>
-                  ))}
-                {validationIssues.every((issue) => issue.bookEntryId) && (
-                  <li>자동 검증에서 문제가 발견되었습니다. 위 책별 경고를 확인해 주세요.</li>
-                )}
-              </ul>
-            ) : (
-              <p className="admin-reading-log-dialog__warning admin-reading-review__block">
-                <strong>자동 검증 통과는 도서 적합성을 보장하지 않습니다.</strong> 형식·합계·누적
-                초과만 확인했습니다. 실제 도서 정보와 제외 도서 여부는 직접 확인해 주세요.
-              </p>
-            )}
-
-            {isPending && (
-              <section className="admin-reading-review__block" aria-labelledby="readingLogChecks">
-                <h3 id="readingLogChecks" className="admin-reading-review__title">
-                  검토 항목
-                </h3>
-                <ul className="admin-checklist">
-                  {MANUAL_CHECK_ITEMS.map((item) => (
-                    <li key={item.key}>
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={checkedItems.includes(item.key)}
-                          disabled={hasValidationIssue || isProcessing}
-                          onChange={(event) => toggleCheckItem(item.key, event.target.checked)}
-                        />
-                        <strong>{item.label}</strong>
-                        <small>{item.description}</small>
-                      </label>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
-
-            <div className="admin-reading-review__effect admin-reading-review__block">
-              <div>
-                <span>{isPending ? '승인 시 반영' : '이 일지의 독서량'}</span>
-                <strong>
-                  {isPending ? '+' : ''}
-                  {totalReadPages.toLocaleString('ko-KR')}쪽
-                </strong>
-                <small>
-                  {log.books.length}권 · 예상 환산 {formatReadingDistance(distanceMeters)}
-                </small>
-              </div>
-              <p>
-                {log.status === 'approve'
-                  ? '승인된 쪽수입니다. 인정 거리는 해당 책의 서평 확인 후 반영됩니다.'
-                  : log.status === 'rejected'
-                    ? '반려된 일지는 쪽수와 거리에 반영되지 않습니다.'
-                    : '승인하면 쪽수가 먼저 반영되고, 인정 거리는 서평 확인 후 반영됩니다.'}
-              </p>
-            </div>
-
-            {log.approvedAt && (
-              <p className="admin-reading-review__reviewed-at">
-                검토 시각 {formatKoDateTime24(log.approvedAt)}
-              </p>
-            )}
-
-            {log.status === 'rejected' && log.rejectionReason && (
-              <section className="admin-reading-review__block">
-                <h3 className="admin-reading-review__title">반려 사유</h3>
-                <div className="admin-reading-log-dialog__rejection-reason">
-                  {log.rejectionReason}
-                </div>
-                <p className="admin-reading-log-dialog__mode-description">
-                  참가자는 이 사유를 확인한 뒤 기록을 수정해 다시 제출할 수 있습니다.
-                </p>
-              </section>
-            )}
-          </div>
-
-          {isPending && (
-            <footer className="admin-detail-panel__actions">
-              <p className="admin-detail-panel__actions-hint">{approveHint}</p>
-              <button
-                type="button"
-                className="admin-button admin-button--danger"
-                disabled={isProcessing || isLoading}
-                onClick={() => setIsRejecting(true)}
-              >
-                반려 사유 입력
-              </button>
-              <button
-                type="button"
-                className="admin-button admin-button--primary"
-                disabled={!canApprove}
-                aria-busy={isProcessing}
-                onClick={() => void onApprove(log.id)}
-              >
-                {isProcessing ? '승인 중…' : hasNextPending ? '승인하고 다음' : '승인'}
-              </button>
-            </footer>
+      </div>
+      <div className="log-review__book-info">
+        <div className="log-review__book-heading">
+          {bookNumber && <span className="log-review__book-number">책 {bookNumber}</span>}
+          <h3>{title || '제목 미확인'}</h3>
+          {href && (
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="log-review__catalog"
+              aria-label={(title || '도서') + ' 도서관 조회 (새 창)'}
+            >
+              도서관 조회 <span aria-hidden="true">↗</span>
+            </a>
           )}
-        </>
+        </div>
+        <p className="log-review__byline">
+          <span className="sr-only">저자 </span>
+          {author || '저자 미확인'}
+          <span className="log-review__dot" aria-hidden="true">
+            {' '}
+            ·{' '}
+          </span>
+          <span className="sr-only">출판사 </span>
+          {publisher || '출판사 미확인'}
+        </p>
+        <dl className="log-review__bibliography">
+          <div>
+            <dt>청구기호</dt>
+            <dd>{book.callNo?.trim() || catalog?.callNo?.trim() || '미확인'}</dd>
+          </div>
+          <div>
+            <dt>ISBN</dt>
+            <dd>{identifier || '미확인'}</dd>
+          </div>
+          <div>
+            <dt>서지번호</dt>
+            <dd>{catalogId || '미확인'}</dd>
+          </div>
+        </dl>
+        {missingBibliography && needsLookup && result?.status !== 'matched' && (
+          <p className="log-review__lookup" role="status">
+            {!result
+              ? '도서관 서지정보 조회 중…'
+              : result.status === 'failed'
+                ? '도서관 서지정보를 불러오지 못했습니다.'
+                : '일치하는 도서관 서지정보가 없습니다.'}
+          </p>
+        )}
+      </div>
+      <dl className="log-review__pages" aria-label="독서 쪽수">
+        <div className="log-review__submitted">
+          <dt>이번 제출</dt>
+          <dd>
+            <strong>{book.submittedReadPages.toLocaleString('ko-KR')}</strong>쪽
+          </dd>
+        </div>
+        <div>
+          <dt>{pending ? '기존 승인' : '다른 일지 승인'}</dt>
+          <dd>{book.existingApprovedReadPages.toLocaleString('ko-KR')}쪽</dd>
+        </div>
+        <div>
+          <dt>책 전체</dt>
+          <dd>{book.totalBookPages.toLocaleString('ko-KR')}쪽</dd>
+        </div>
+      </dl>
+      {pending && (book.pageExceeded || book.warningMessage) && (
+        <p className="log-review__warning">
+          {book.warningMessage || '이번 기록을 더하면 책 전체 쪽수를 초과합니다.'}
+        </p>
       )}
-    </section>
+    </li>
   );
 }
 
-export default ReadingLogReviewPanel;
+export default function ReadingLogReviewPanel({
+  log,
+  disabled,
+  actionError,
+  readOnly = false,
+  onApprove,
+  onReject,
+}: {
+  log: AdminReadingLogResponse;
+  disabled: boolean;
+  actionError?: string;
+  readOnly?: boolean;
+  onApprove: () => Promise<boolean>;
+  onReject: (reason: string) => Promise<boolean>;
+}) {
+  const [rejecting, setRejecting] = useState(false);
+  const rejectButton = useRef<HTMLButtonElement>(null);
+  const pending = log.status === 'SUBMITTED';
+  const canApprove = log.books.length > 0 && !log.books.some((book) => book.pageExceeded);
+  const hasDetails = !!log.memo?.trim() || (!pending && !!(log.reviewedAt || log.adminComment));
+  return (
+    <section className="log-review" aria-label={log.userName + ' 님의 독서일지'}>
+      <ul className="log-review__books" aria-label="기록한 도서">
+        {log.books.map((book, index) => (
+          <SubmittedBook
+            key={JSON.stringify([
+              book.readingLogBookId,
+              book.libraryBookId,
+              book.isbn,
+              book.bookTitle,
+            ])}
+            book={book}
+            pending={pending}
+            bookNumber={log.books.length > 1 ? index + 1 : undefined}
+          />
+        ))}
+      </ul>
+      {!log.books.length && <p className="log-review__message">등록된 도서가 없습니다.</p>}
+      {hasDetails && (
+        <dl className="log-review__details">
+          {log.memo?.trim() && (
+            <div>
+              <dt>일지 메모</dt>
+              <dd>{log.memo}</dd>
+            </div>
+          )}
+          {!pending && log.reviewedAt && (
+            <div>
+              <dt>{log.status === 'APPROVED' ? '승인 일시' : '반려 일시'}</dt>
+              <dd>
+                <time dateTime={log.reviewedAt}>{formatKoDateTime24(log.reviewedAt)}</time>
+              </dd>
+            </div>
+          )}
+          {!pending && log.adminComment && (
+            <div>
+              <dt>{log.status === 'REJECTED' ? '반려 사유' : '처리 의견'}</dt>
+              <dd>{log.adminComment}</dd>
+            </div>
+          )}
+        </dl>
+      )}
+      {actionError && (
+        <p className="log-review__error" role="alert">
+          {actionError}
+        </p>
+      )}
+      {pending && readOnly && <p className="log-review__message">결과가 확정된 행사입니다.</p>}
+      {pending &&
+        !readOnly &&
+        (rejecting ? (
+          <ReadingLogRejectForm
+            recommendedReasons={log.recommendedRejectReasons ?? []}
+            isProcessing={disabled}
+            onSubmit={onReject}
+            onSuccess={() => setRejecting(false)}
+            onBack={() => {
+              setRejecting(false);
+              requestAnimationFrame(() => rejectButton.current?.focus({ preventScroll: true }));
+            }}
+          />
+        ) : (
+          <div className="log-review__actions">
+            <button
+              type="button"
+              ref={rejectButton}
+              className="admin-button admin-button--danger"
+              onClick={() => setRejecting(true)}
+              disabled={disabled}
+            >
+              반려
+            </button>
+            <button
+              type="button"
+              className="admin-button admin-button--primary"
+              onClick={() => void onApprove()}
+              disabled={disabled || !canApprove}
+            >
+              승인
+            </button>
+          </div>
+        ))}
+    </section>
+  );
+}

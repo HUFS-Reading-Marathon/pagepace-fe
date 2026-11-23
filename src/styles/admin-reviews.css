@@ -1,8 +1,17 @@
+/*
+ * 서평 확인 화면
+ * - 상단: 관리 행사 선택, 엑셀 대조 / 개별 확인 탭
+ * - 엑셀 대조: 대조 자료(업로드) → 상태별 결과 표 + 오른쪽 상세 패널 → 선택 반영 막대
+ * - 개별 확인: 공통 admin-split 대기 목록 + 상세 패널
+ * 색은 global.css 토큰만 씁니다. 네이비 상단선과 골드 라벨이 한국외대 도서관 화면의 네이비·골드
+ * 조합을 따릅니다.
+ */
+
 .admin-reviews {
-  max-width: 1380px;
-  margin: 0 auto;
+  width: 100%;
 }
 
+/* 페이지 머리말 */
 .admin-reviews__header {
   display: flex;
   align-items: flex-end;
@@ -40,14 +49,1272 @@
   padding: 0 36px 0 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--surface);
+  background-color: var(--surface);
   font: inherit;
   font-size: 14px;
 }
 
-.admin-reviews__tabs {
+/* 엑셀 대조 / 개별 확인 탭 (admin-page-tabs를 버튼으로 사용) */
+.admin-reviews__workspace .admin-page-tabs__link {
+  gap: 8px;
+  border-top: 0;
+  border-right: 0;
+  border-left: 0;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.admin-reviews__workspace .admin-page-tabs__link:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.admin-reviews__workspace .admin-page-tabs__link:focus-visible {
+  outline: 3px solid rgba(31, 79, 130, 0.22);
+  outline-offset: -3px;
+}
+
+.admin-reviews__tab-count {
+  min-width: 20px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--navy-deep);
+  color: #fff;
+  font-size: 11px;
+  font-weight: var(--admin-fw-semibold);
+  line-height: 1.6;
+  text-align: center;
+}
+
+.admin-reviews__error {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(159, 48, 48, 0.2);
+  border-radius: var(--radius);
+  background: rgba(159, 48, 48, 0.05);
+  color: #9f3030;
+  font-size: 13px;
+}
+
+.admin-reviews__status {
+  margin: 20px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* ───────────── 엑셀 대조: 대조 자료 ───────────── */
+.admin-review-source {
+  display: grid;
+  margin-top: 20px;
+  padding: 16px 20px;
+  grid-template-columns: minmax(0, 1.15fr) minmax(220px, 0.85fr) auto;
+  align-items: end;
+  gap: 14px 24px;
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--navy-deep);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.admin-review-source__loading {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.admin-review-source__label {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: var(--admin-fw-semibold);
+}
+
+.admin-review-source__current {
+  min-width: 0;
+}
+
+.admin-review-source__current strong {
+  display: block;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: var(--admin-fw-bold);
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-review-source__current strong + span {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.admin-review-source__history {
+  min-width: 0;
+}
+
+.admin-review-source__history label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: var(--admin-fw-medium);
+}
+
+.admin-review-source__history select {
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  padding-left: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background-color: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+
+.admin-review-source__history-pages {
+  display: flex;
+  margin-top: 6px;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.admin-review-source__history-pages button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--navy-strong);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.admin-review-source__history-pages button:disabled {
+  color: var(--muted);
+  text-decoration: none;
+  cursor: default;
+}
+
+.admin-review-source__upload {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  border-radius: var(--radius);
+}
+
+.admin-review-source__upload.is-dragging {
+  outline: 2px dashed var(--navy);
+  outline-offset: 6px;
+}
+
+/* 파일 입력은 키보드 포커스를 유지한 채 화면에서만 숨기고, 연결된 label을 버튼처럼 보여 줍니다. */
+.admin-review-source__file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.admin-review-source__file-input:focus-visible + label {
+  outline: 3px solid rgba(31, 79, 130, 0.22);
+  outline-offset: 1px;
+}
+
+.admin-review-source__upload label[aria-disabled='true'] {
+  border-color: var(--line);
+  background: var(--line-soft);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.admin-review-source__file {
+  max-width: 240px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-review-source__file.is-selected {
+  color: var(--ink);
+  font-weight: var(--admin-fw-medium);
+}
+
+/* 업로드 내역이 없을 때의 안내 */
+.admin-review-source--empty {
+  padding: 24px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 440px);
+  align-items: stretch;
+  gap: 24px 32px;
+}
+
+.admin-review-source__guide h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: var(--admin-fw-bold);
+}
+
+.admin-review-source__guide ol {
+  display: grid;
+  margin: 14px 0 0;
+  padding: 0;
+  gap: 8px;
+  counter-reset: review-step;
+  list-style: none;
+}
+
+.admin-review-source__guide li {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 10px;
+  color: var(--body);
+  font-size: 14px;
+  counter-increment: review-step;
+}
+
+.admin-review-source__guide li::before {
+  display: inline-grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--navy-deep);
+  color: #fff;
+  content: counter(review-step);
+  font-size: 12px;
+  font-weight: var(--admin-fw-semibold);
+  line-height: 1;
+}
+
+.admin-review-source__guide p {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.admin-review-source__drop {
+  display: grid;
+  padding: 20px;
+  align-content: center;
+  gap: 12px;
+  border: 1px dashed #bccbdb;
+  border-radius: var(--radius);
+  background: var(--blue-10);
+}
+
+.admin-review-source__drop .admin-review-source__upload {
+  justify-content: flex-start;
+}
+
+.admin-review-source__format {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+/* ───────────── 엑셀 대조: 결과 ───────────── */
+.admin-review-import__feedback {
+  margin: 14px 0 0;
+}
+
+.admin-review-import__loading {
+  margin: 16px 0 0;
+  padding: 48px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.admin-review-import__toolbar {
   display: flex;
   margin-top: 20px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  flex-wrap: wrap;
+}
+
+.admin-review-import__search {
+  width: min(100%, 300px);
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+
+.admin-review-import__search:focus-visible {
+  border-color: var(--navy);
+  outline: 3px solid rgba(31, 79, 130, 0.14);
+}
+
+.admin-review-import__description {
+  margin: 10px 0 0;
+  color: var(--body);
+  font-size: 13px;
+}
+
+.admin-review-import__description strong {
+  color: var(--navy-deep);
+  font-weight: var(--admin-fw-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-review-import__split {
+  display: grid;
+  margin-top: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(380px, 440px);
+  align-items: start;
+  gap: 16px;
+}
+
+.admin-review-import__list {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.admin-review-import__panel {
+  min-width: 0;
+  scroll-margin-top: calc(var(--admin-header-height) + 16px);
+}
+
+.admin-review-import__excluded {
+  margin-top: 12px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--body);
+  font-size: 13px;
+}
+
+.admin-review-import__excluded p {
+  margin: 0;
+}
+
+.admin-review-import__row-numbers {
+  margin-top: 8px !important;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.9;
+  word-spacing: 2px;
+}
+
+.admin-review-import__empty {
+  display: grid;
+  margin-top: 12px;
+  padding: 56px 24px;
+  justify-items: center;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: center;
+}
+
+.admin-review-import__empty p {
+  margin: 0;
+  color: var(--body);
+  font-size: 14px;
+}
+
+/* 결과 표 */
+.admin-review-table__wrapper {
+  max-height: calc(100dvh - var(--admin-header-height) - 250px);
+  min-height: 240px;
+  overflow: auto;
+}
+
+.admin-review-table {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: separate;
+  border-spacing: 0;
+  color: var(--body);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-review-table th,
+.admin-review-table td {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--line-soft);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.admin-review-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-bottom-color: var(--line);
+  background: #f4f7fa;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: var(--admin-fw-semibold);
+  white-space: nowrap;
+}
+
+.admin-review-table tbody tr {
+  cursor: pointer;
+}
+
+.admin-review-table tbody tr:hover {
+  background: var(--blue-10);
+}
+
+.admin-review-table tbody tr.is-active {
+  background: var(--blue-20);
+  box-shadow: inset 3px 0 0 var(--navy-strong);
+}
+
+.admin-review-table tbody tr:focus-visible {
+  outline: 3px solid rgba(31, 79, 130, 0.22);
+  outline-offset: -3px;
+}
+
+.admin-review-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.admin-review-table__check {
+  width: 44px;
+  text-align: center !important;
+}
+
+.admin-review-table__check input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--navy-strong);
+  vertical-align: middle;
+}
+
+.admin-review-table__row-no {
+  width: 64px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.admin-review-table__person strong,
+.admin-review-table__book strong {
+  display: block;
+  color: var(--ink);
+  font-weight: var(--admin-fw-semibold);
+}
+
+.admin-review-table__book strong {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-review-table__person small,
+.admin-review-table__book small,
+.admin-review-table__note small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.admin-review-table__book small {
+  white-space: nowrap;
+}
+
+.admin-review-table__person {
+  white-space: nowrap;
+}
+
+.admin-review-table__date {
+  white-space: nowrap;
+}
+
+.admin-review-table__number {
+  text-align: right !important;
+  white-space: nowrap;
+}
+
+.admin-review-table__meters {
+  color: var(--navy-deep);
+  font-weight: var(--admin-fw-semibold);
+}
+
+.admin-review-table__note {
+  min-width: 200px;
+  max-width: 380px;
+  line-height: 1.5;
+}
+
+.admin-review-table__note strong {
+  display: block;
+  color: var(--navy-strong);
+  font-weight: var(--admin-fw-semibold);
+}
+
+.admin-review-table__empty {
+  margin: 0;
+  padding: 64px 16px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* 선택 반영 막대 */
+.admin-review-import__bulk {
+  display: flex;
+  padding: 12px 16px;
+  align-items: center;
+  gap: 8px 14px;
+  background: var(--navy-deep);
+  color: #fff;
+  flex-wrap: wrap;
+}
+
+.admin-review-import__bulk p {
+  display: flex;
+  margin: 0 auto 0 0;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.admin-review-import__bulk p strong {
+  font-size: 14px;
+  font-weight: var(--admin-fw-bold);
+}
+
+.admin-review-import__bulk p span {
+  color: #e3cf9f;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-review-import__bulk-clear {
+  padding: 4px;
+  border: 0;
+  background: none;
+  color: rgba(255, 255, 255, 0.8);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.admin-review-import__bulk-submit {
+  min-height: 38px;
+  padding: 8px 16px;
+  border: 1px solid #fff;
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--navy-deep);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--admin-fw-bold);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.admin-review-import__bulk-submit:hover {
+  background: var(--blue-20);
+}
+
+.admin-review-import__bulk-submit:disabled,
+.admin-review-import__bulk-clear:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-review-import__bulk-clear:focus-visible,
+.admin-review-import__bulk-submit:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* 대조 상태 표시 */
+.admin-review-status {
+  display: inline-flex;
+  padding: 2px 8px 2px 7px;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: var(--admin-fw-semibold);
+  line-height: 1.5;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.admin-review-status::before {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: currentColor;
+  content: '';
+}
+
+.admin-review-status--matched {
+  background: rgba(61, 121, 105, 0.1);
+  color: var(--green);
+}
+
+.admin-review-status--needs-review {
+  background: rgba(211, 144, 69, 0.16);
+  color: #8b551d;
+}
+
+.admin-review-status--already-applied,
+.admin-review-status--book-verified {
+  background: var(--blue-20);
+  color: var(--navy-strong);
+}
+
+.admin-review-status--no-credit,
+.admin-review-status--unmatched,
+.admin-review-status--invalid {
+  background: rgba(159, 48, 48, 0.07);
+  color: #9f3030;
+}
+
+.admin-review-status--excluded {
+  background: var(--line-soft);
+  color: var(--muted);
+}
+
+/* 엑셀 행 상세 패널 */
+.admin-review-detail .admin-detail-panel__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-review-detail__section {
+  margin-top: 20px;
+}
+
+.admin-review-detail__section:first-child {
+  margin-top: 0;
+}
+
+.admin-review-detail__section h3 {
+  margin: 0 0 8px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: var(--admin-fw-semibold);
+}
+
+.admin-review-detail__warnings {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border-left: 3px solid #c58a45;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: rgba(211, 144, 69, 0.1);
+  color: #714719;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.admin-review-detail__warnings.is-blocked {
+  border-left-color: #b45050;
+  background: rgba(159, 48, 48, 0.06);
+  color: #7f2a2a;
+}
+
+.admin-review-detail__warnings strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.admin-review-detail__warnings ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.admin-review-detail__guide {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--blue-10);
+  color: var(--body);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.admin-review-detail__guide a {
+  color: var(--navy-strong);
+  font-weight: var(--admin-fw-semibold);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.admin-review-detail__candidates {
+  display: grid;
+  margin: 0 0 18px;
+  padding: 0;
+  gap: 6px;
+  border: 0;
+}
+
+.admin-review-detail__candidates legend {
+  margin-bottom: 8px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: var(--admin-fw-semibold);
+}
+
+.admin-review-detail__candidates label {
+  display: grid;
+  padding: 10px 12px;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.admin-review-detail__candidates label:has(input:checked) {
+  border-color: var(--navy-strong);
+  background: var(--blue-20);
+}
+
+.admin-review-detail__candidates input {
+  margin: 3px 0 0;
+  accent-color: var(--navy-strong);
+}
+
+.admin-review-detail__candidates strong {
+  display: block;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.admin-review-detail__candidates small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* 솔라스 ↔ PagePace 대조표 */
+.admin-review-compare {
+  width: 100%;
+  border: 1px solid var(--line-soft);
+  border-collapse: collapse;
+  font-size: 13px;
+  table-layout: fixed;
+}
+
+.admin-review-compare th,
+.admin-review-compare td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line-soft);
+  overflow-wrap: anywhere;
+  text-align: left;
+  vertical-align: top;
+}
+
+.admin-review-compare thead th {
+  background: var(--blue-10);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: var(--admin-fw-semibold);
+}
+
+.admin-review-compare thead th:first-child {
+  width: 72px;
+}
+
+.admin-review-compare thead th:last-child {
+  width: 96px;
+}
+
+.admin-review-compare tbody th {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: var(--admin-fw-medium);
+}
+
+.admin-review-compare td {
+  color: var(--ink);
+}
+
+.admin-review-compare__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.admin-review-compare__mark {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: var(--admin-fw-semibold);
+  white-space: nowrap;
+}
+
+.admin-review-compare__mark.is-same {
+  background: rgba(61, 121, 105, 0.1);
+  color: var(--green);
+}
+
+.admin-review-compare__mark.is-edition {
+  background: var(--blue-20);
+  color: var(--navy-strong);
+}
+
+.admin-review-compare__mark.is-title {
+  background: rgba(211, 144, 69, 0.16);
+  color: #8b551d;
+}
+
+.admin-review-compare__mark.is-different {
+  background: rgba(159, 48, 48, 0.08);
+  color: #9f3030;
+}
+
+.admin-review-compare__mark.is-none {
+  color: var(--muted);
+}
+
+/* 서평 원문 */
+.admin-review-detail__source {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fbfcfd;
+}
+
+.admin-review-detail__source-head {
+  display: flex;
+  padding: 10px 12px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  border-bottom: 1px solid var(--line-soft);
+  flex-wrap: wrap;
+}
+
+.admin-review-detail__source-head strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: var(--admin-fw-semibold);
+}
+
+.admin-review-detail__source-head span {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.admin-review-detail__biblio {
+  margin: 0;
+  padding: 8px 12px 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.admin-review-detail__content {
+  max-height: 220px;
+  margin: 0;
+  padding: 10px 12px 12px;
+  overflow-y: auto;
+  color: var(--body);
+  font-size: 13px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.admin-review-detail__note {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.admin-review-detail__facts {
+  display: grid;
+  margin: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  background: var(--line-soft);
+  overflow: hidden;
+}
+
+.admin-review-detail__facts div {
+  padding: 8px 10px;
+  background: var(--surface);
+}
+
+.admin-review-detail__facts dt {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.admin-review-detail__facts dd {
+  margin: 2px 0 0;
+  color: var(--ink);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.admin-review-import__row-numbers span {
+  margin-right: 6px;
+  color: var(--body);
+  font-weight: var(--admin-fw-semibold);
+}
+
+.admin-review-detail__applied {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--blue-20);
+  color: var(--navy-strong);
+  font-size: 13px;
+  font-weight: var(--admin-fw-medium);
+}
+
+.admin-review-detail__memo {
+  display: grid;
+  margin-bottom: 10px;
+  gap: 5px;
+}
+
+.admin-review-detail__memo span {
+  color: var(--body);
+  font-size: 12px;
+  font-weight: var(--admin-fw-medium);
+}
+
+.admin-review-detail__memo textarea {
+  min-height: 64px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  resize: vertical;
+}
+
+.admin-review-detail__memo textarea:focus-visible {
+  border-color: var(--navy);
+  outline: 3px solid rgba(31, 79, 130, 0.14);
+}
+
+/* 선택 반영 확인 창 */
+.admin-review-bulk__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  padding: 24px 16px;
+  align-items: center;
+  justify-content: center;
+  background: rgba(16, 47, 81, 0.34);
+}
+
+.admin-review-bulk {
+  display: flex;
+  width: min(720px, 100%);
+  max-height: calc(100vh - 48px);
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--navy-deep);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.admin-review-bulk header {
+  padding: 20px 22px 14px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.admin-review-bulk h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 19px;
+  font-weight: var(--admin-fw-bold);
+}
+
+.admin-review-bulk header p {
+  margin: 4px 0 0;
+  color: var(--body);
+  font-size: 13px;
+}
+
+.admin-review-bulk__table-wrapper {
+  min-height: 0;
+  padding: 0 22px;
+  overflow: auto;
+}
+
+.admin-review-bulk table {
+  width: 100%;
+  margin-top: 12px;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-review-bulk th,
+.admin-review-bulk td {
+  padding: 9px 8px;
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--body);
+  text-align: left;
+}
+
+.admin-review-bulk thead th {
+  position: sticky;
+  top: 0;
+  background: var(--blue-10);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: var(--admin-fw-semibold);
+}
+
+.admin-review-bulk td small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.admin-review-bulk tfoot th,
+.admin-review-bulk tfoot td {
+  border-top: 1px solid var(--line);
+  border-bottom: 0;
+  color: var(--navy-deep);
+  font-weight: var(--admin-fw-bold);
+}
+
+.admin-review-bulk__check {
+  display: flex;
+  margin: 14px 22px 0;
+  padding: 12px 14px;
+  align-items: flex-start;
+  gap: 10px;
+  border-radius: var(--radius);
+  background: var(--blue-10);
+  color: var(--ink);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.admin-review-bulk__check input {
+  width: 16px;
+  height: 16px;
+  margin: 3px 0 0;
+  flex: 0 0 auto;
+  accent-color: var(--navy-strong);
+}
+
+.admin-review-bulk footer {
+  display: flex;
+  margin-top: 16px;
+  padding: 14px 22px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.admin-review-bulk__progress {
+  margin: 0 auto 0 0;
+  color: var(--body);
+  font-size: 13px;
+}
+
+/* ───────────── 인정 계산 (엑셀 대조·개별 확인 공통) ───────────── */
+.admin-reviews__equation {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-reviews__equation div {
+  display: grid;
+  padding: 10px 8px;
+  gap: 2px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  background: var(--blue-10);
+  text-align: center;
+}
+
+.admin-reviews__equation div.is-result {
+  border-color: rgba(61, 121, 105, 0.25);
+  background: rgba(61, 121, 105, 0.08);
+}
+
+.admin-reviews__equation span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.admin-reviews__equation strong {
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: var(--admin-fw-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-reviews__equation .is-result strong {
+  color: var(--green);
+}
+
+.admin-reviews__equation b {
+  color: var(--muted);
+  font-size: 17px;
+  font-weight: var(--admin-fw-medium);
+}
+
+.admin-reviews__distance {
+  display: flex;
+  margin-top: 10px;
+  padding: 12px 16px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 20px;
+  border: 1px solid rgba(61, 121, 105, 0.22);
+  border-radius: var(--radius);
+  background: rgba(61, 121, 105, 0.06);
+  flex-wrap: wrap;
+}
+
+.admin-reviews__distance div {
+  display: grid;
+}
+
+.admin-reviews__distance span,
+.admin-reviews__distance p {
+  margin: 0;
+  color: var(--body);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.admin-reviews__distance strong {
+  color: var(--green);
+  font-size: 26px;
+  font-weight: var(--admin-fw-bold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+}
+
+/* 개별 확인 패널에서는 승인 일지 목록 다음에 계산식이 이어집니다. */
+.admin-reviews__logs + .admin-reviews__equation,
+.admin-reviews__logs + .admin-reviews__warning {
+  margin-top: 16px;
+}
+
+/* 승인 독서일지 펼쳐 보기 */
+.admin-reviews__logs {
+  margin-top: 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+}
+
+.admin-reviews__logs summary {
+  padding: 9px 12px;
+  color: var(--navy-strong);
+  font-size: 12px;
+  font-weight: var(--admin-fw-semibold);
+  cursor: pointer;
+}
+
+.admin-reviews__logs[open] summary {
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.admin-reviews__logs-list {
+  max-height: 200px;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.admin-reviews__logs-list a {
+  display: flex;
+  padding: 6px 12px;
+  justify-content: space-between;
+  color: var(--body);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-reviews__logs-list a:hover {
+  background: var(--blue-10);
+  color: var(--navy-strong);
+}
+
+.admin-reviews__logs-list strong {
+  color: var(--ink);
+  font-weight: var(--admin-fw-semibold);
+}
+
+.admin-reviews__logs-message,
+.admin-reviews__logs-total {
+  margin: 0;
+  padding: 8px 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.admin-reviews__logs-total {
+  border-top: 1px solid var(--line-soft);
+}
+
+/* ───────────── 개별 확인 ───────────── */
+.admin-reviews__manual-intro {
+  margin: 16px 0 0;
+  color: var(--body);
+  font-size: 13px;
+}
+
+.admin-reviews__tabs {
+  display: flex;
+  margin-top: 14px;
   align-items: center;
   justify-content: space-between;
   gap: 8px 16px;
@@ -60,7 +1327,7 @@
 
 .admin-reviews__panel {
   min-width: 0;
-  scroll-margin-top: 96px;
+  scroll-margin-top: calc(var(--admin-header-height) + 16px);
 }
 
 .admin-reviews__student {
@@ -92,103 +1359,56 @@
 .admin-reviews__no-link {
   color: var(--muted);
   font-size: 12px;
+  white-space: nowrap;
 }
 
 .admin-reviews__source-note {
-  margin: 8px 0 0;
+  margin: 8px 0 16px;
   color: var(--muted);
   font-size: 12px;
-}
-
-.admin-reviews__equation {
-  display: grid;
-  margin-top: 16px;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
-  gap: 8px;
-}
-
-.admin-reviews__equation div {
-  display: grid;
-  padding: 12px;
-  gap: 2px;
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius);
-  background: var(--blue-10);
-  text-align: center;
-}
-
-.admin-reviews__equation div.is-result {
-  border-color: rgba(61, 121, 105, 0.25);
-  background: rgba(61, 121, 105, 0.08);
-}
-
-.admin-reviews__equation span {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.admin-reviews__equation strong {
-  color: var(--ink);
-  font-size: 18px;
-  font-weight: var(--admin-fw-bold);
-}
-
-.admin-reviews__equation .is-result strong {
-  color: var(--green);
-}
-
-.admin-reviews__equation b {
-  color: var(--muted);
-  font-size: 18px;
-  font-weight: var(--admin-fw-medium);
-}
-
-.admin-reviews__distance {
-  display: flex;
-  margin-top: 12px;
-  padding: 14px 16px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px 20px;
-  border: 1px solid rgba(61, 121, 105, 0.22);
-  border-radius: var(--radius);
-  background: rgba(61, 121, 105, 0.06);
-  flex-wrap: wrap;
-}
-
-.admin-reviews__distance div {
-  display: grid;
-}
-
-.admin-reviews__distance span,
-.admin-reviews__distance p {
-  margin: 0;
-  color: var(--body);
-  font-size: 12px;
-  line-height: 1.6;
-}
-
-.admin-reviews__distance strong {
-  color: var(--green);
-  font-size: 28px;
-  font-weight: var(--admin-fw-bold);
-  line-height: 1.25;
 }
 
 .admin-reviews__checks {
   margin-top: 18px;
 }
 
+.admin-reviews__evidence {
+  display: grid;
+  margin-bottom: 12px;
+  gap: 5px;
+  color: var(--body);
+  font-size: 12px;
+  font-weight: var(--admin-fw-medium);
+}
+
+.admin-reviews__evidence input,
+.admin-reviews__evidence textarea {
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--admin-fw-regular);
+}
+
+.admin-reviews__evidence textarea {
+  resize: vertical;
+}
+
 .admin-reviews__checks h3 {
   margin: 0 0 10px;
   color: var(--ink);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: var(--admin-fw-semibold);
 }
 
 .admin-reviews__verified {
   margin: 18px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: rgba(61, 121, 105, 0.08);
   color: var(--green);
   font-size: 13px;
   font-weight: var(--admin-fw-semibold);
@@ -212,14 +1432,166 @@
   font-weight: var(--admin-fw-medium);
 }
 
-.admin-reviews__error {
-  margin-top: 16px;
-  padding: 14px;
-  border: 1px dashed var(--line);
+/* 서평 인정 이력 */
+.admin-reviews__history {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.admin-reviews__history h3 {
+  margin: 0 0 8px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: var(--admin-fw-semibold);
+}
+
+.admin-reviews__history-error {
+  margin: 0 0 8px;
+  color: #9f3030;
+  font-size: 12px;
+}
+
+.admin-reviews__history-error button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--navy-strong);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.admin-reviews__history-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  gap: 6px;
+  list-style: none;
+}
+
+.admin-reviews__history-list details {
+  border: 1px solid var(--line-soft);
   border-radius: var(--radius);
-  background: var(--surface);
-  color: #a24444;
-  text-align: center;
+}
+
+.admin-reviews__history-list summary {
+  display: flex;
+  padding: 8px 10px;
+  align-items: center;
+  gap: 8px;
+  color: var(--body);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.admin-reviews__history-state {
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: rgba(61, 121, 105, 0.1);
+  color: var(--green);
+  font-size: 11px;
+  font-weight: var(--admin-fw-semibold);
+}
+
+.admin-reviews__history-state.is-revoked {
+  background: var(--line-soft);
+  color: var(--muted);
+}
+
+.admin-reviews__history-list dl {
+  display: grid;
+  margin: 0;
+  padding: 4px 10px 8px;
+  gap: 4px;
+}
+
+.admin-reviews__history-list dl div {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 8px;
+  font-size: 12px;
+}
+
+.admin-reviews__history-list dt {
+  color: var(--muted);
+}
+
+.admin-reviews__history-list dd {
+  margin: 0;
+  color: var(--body);
+}
+
+.admin-reviews__history-list blockquote {
+  max-height: 160px;
+  margin: 0 10px 10px;
+  padding: 8px 10px;
+  overflow-y: auto;
+  border-left: 3px solid var(--line);
+  background: #fbfcfd;
+  color: var(--body);
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+.admin-reviews__history-list .admin-button {
+  min-height: 32px;
+  margin: 0 10px 10px;
+  font-size: 12px;
+}
+
+.admin-reviews__revoke {
+  display: flex;
+  margin-top: 10px;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.admin-reviews__revoke label {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 5px;
+  color: var(--body);
+  font-size: 12px;
+}
+
+.admin-reviews__revoke input {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+
+.admin-reviews__revoke .admin-button {
+  min-height: 36px;
+}
+
+/* ───────────── 반응형 ───────────── */
+@media (max-width: 1180px) {
+  .admin-review-import__split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-review-table__wrapper {
+    max-height: 420px;
+  }
+
+  .admin-review-source {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .admin-review-source > .admin-review-source__upload {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .admin-review-source--empty {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media (max-width: 700px) {
@@ -228,8 +1600,36 @@
     flex-direction: column;
   }
 
+  .admin-reviews__header > div {
+    flex: none;
+  }
+
   .admin-reviews__header label {
+    width: 100%;
     min-width: 0;
+  }
+
+  .admin-review-source {
+    padding: 14px 16px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-review-source__file {
+    max-width: 100%;
+    flex: 1 1 100%;
+    order: 3;
+  }
+
+  .admin-review-import__search {
+    width: 100%;
+  }
+
+  .admin-review-import__bulk p {
+    width: 100%;
+  }
+
+  .admin-review-import__bulk-submit {
+    flex: 1;
   }
 
   .admin-reviews__book {
@@ -246,5 +1646,20 @@
 
   .admin-reviews__equation strong {
     font-size: 15px;
+  }
+
+  .admin-reviews__revoke {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-review-bulk header,
+  .admin-review-bulk__table-wrapper,
+  .admin-review-bulk footer {
+    padding-inline: 16px;
+  }
+
+  .admin-review-bulk__check {
+    margin-inline: 16px;
   }
 }

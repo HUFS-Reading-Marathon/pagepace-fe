@@ -637,3 +637,19 @@
   font-weight: 700;
   line-height: 1.5;
 }
+
+.admin-ranking .ranking-race-person--simple {
+  grid-template-columns: 32px 28px minmax(0, 1fr);
+}
+.admin-ranking .ranking-race-person--simple em {
+  grid-column: 3;
+}
+.admin-ranking .ranking-row-number {
+  justify-items: center;
+  color: var(--body);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.admin-ranking .ranking-row-number small {
+  font-size: 10px;
+}

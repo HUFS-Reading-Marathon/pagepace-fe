@@ -1,32 +1,24 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth';
 import { ApiError } from '../../api/apiClient';
-import { getCurrentEvent, getEventCourses, type CurrentEvent } from '../../api/eventApi';
+import { getCurrentEvent, getEvent, type CurrentEvent } from '../../api/eventApi';
 import { getCurrentParticipation } from '../../api/participationApi';
 import { getMyReadingLogs } from '../../api/readingLogApi';
 import { getNotices, type Notice } from '../../api/noticeApi';
-import CourseBenefitTable from '../../components/main/CourseBenefitTable';
 import EventStatusBoard from '../../components/main/EventStatusBoard';
 import MainNoticeList from '../../components/main/MainNoticeList';
 import MyRecordDashboard from '../../components/main/MyRecordDashboard';
-import ProcessStepIcon from '../../components/main/ProcessStepIcon';
 import type { MyParticipation } from '../../types/participation';
 import { getExternalLinkAttrs } from '../../utils/links';
 import { formatKoDateKey } from '../../utils/date';
 import {
+  canSubmitReadingLog,
+  selectedEventId,
   getApplicationAvailability,
   getApplicationClosedMessage,
 } from '../../utils/eventSelection';
-import {
-  CHECK_ITEMS,
-  PROCESS_STEPS,
-  QUICK_LINKS,
-  SUMMARY_ITEMS,
-  toCourseRow,
-  type CourseRow,
-  type MyRecordSummary,
-} from './mainPageContent';
+import { QUICK_LINKS, SUMMARY_ITEMS, type MyRecordSummary } from './mainPageContent';
 import { useScrollReveal } from './useScrollReveal';
 import './MainPage.css';
 
@@ -52,17 +44,16 @@ function handleLibrarySearchSubmit(event: FormEvent<HTMLFormElement>) {
   window.open(buildLibrarySearchUrl(keyword), '_blank', 'noopener,noreferrer');
 }
 
-/** 앱 내부 라우트('/status' 등)면 true. '#courses' 같은 hash와 외부 URL은 <a>로 렌더링합니다. */
+/** 앱 내부 라우트('/status' 등)면 true. 외부 URL은 <a>로 렌더링합니다. */
 function isRouteHref(link: { href: string; external?: boolean }) {
   return !link.external && link.href.startsWith('/');
 }
 
 function MainPage() {
-  const { hash } = useLocation();
   const { user, isAuthenticated, isInitializing } = useAuth();
+  const personalEventId = isAuthenticated ? selectedEventId('personal') : undefined;
   const displayName = user?.name || '참가자';
   const [currentEvent, setCurrentEvent] = useState<CurrentEvent | null>(null);
-  const [eventCourses, setEventCourses] = useState<CourseRow[]>([]);
   const [myParticipation, setMyParticipation] = useState<MyParticipation | null>(null);
   const [approvedLogs, setApprovedLogs] = useState(0);
   const [lastSubmittedAt, setLastSubmittedAt] = useState('-');
@@ -74,37 +65,37 @@ function MainPage() {
   useScrollReveal(mainRef);
 
   useEffect(() => {
-    // 다른 페이지(/status 등)에서 /#notice 같은 링크로 들어오면 브라우저의 fragment 스크롤이
-    // React 렌더링보다 먼저 실행되어 섹션을 찾지 못하므로, 마운트 후 직접 스크롤합니다.
-    if (!hash) return;
-
-    document.getElementById(hash.slice(1))?.scrollIntoView();
-  }, [hash]);
-
-  useEffect(() => {
     getNotices()
       .then(setNotices)
       .catch(() => setNoticeError('공지사항을 불러오지 못했습니다.'));
   }, []);
 
   useEffect(() => {
-    getCurrentEvent()
-      .then(async (event) => {
+    if (isInitializing) return;
+    let active = true;
+    const eventRequest = personalEventId ? getEvent(personalEventId) : getCurrentEvent();
+    eventRequest
+      .then((event) => {
+        if (!active) return;
         setCurrentEvent(event);
-        const courses = await getEventCourses(event.eventId);
-        setEventCourses(courses.map(toCourseRow));
+        setEventError(null);
       })
-      .catch((error: unknown) =>
-        setEventError(
-          error instanceof ApiError && error.code === 'EVENT_NOT_FOUND' ? 'missing' : 'failed',
-        ),
-      );
-  }, []);
+      .catch((error: unknown) => {
+        if (active) {
+          setEventError(
+            error instanceof ApiError && error.code === 'EVENT_NOT_FOUND' ? 'missing' : 'failed',
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [isInitializing, personalEventId]);
 
   useEffect(() => {
     if (isInitializing || !isAuthenticated) return;
     let active = true;
-    getCurrentParticipation()
+    getCurrentParticipation(personalEventId)
       .then(async (participation) => {
         if (!active) return;
         setMyParticipation(participation);
@@ -122,13 +113,11 @@ function MainPage() {
     return () => {
       active = false;
     };
-  }, [isAuthenticated, isInitializing, user?.userId]);
+  }, [isAuthenticated, isInitializing, personalEventId, user?.userId]);
 
   const eventTitle = currentEvent?.title ?? '독서마라톤';
   const contactPhone = currentEvent?.contactPhone?.trim() ?? '';
   const contactEmail = currentEvent?.contactEmail?.trim() ?? '';
-  const kakaoOpenChatUrl = currentEvent?.kakaoOpenChatUrl?.trim() ?? '';
-  const hasKakaoOpenChat = /^https?:\/\//.test(kakaoOpenChatUrl);
   // 행사에 등록되지 않은 값은 빈 행으로 두지 않고 숨깁니다.
   const heroInfo: [string, string][] = currentEvent
     ? (
@@ -164,6 +153,9 @@ function MainPage() {
       };
 
   const showMyRecord = isAuthenticated && !isInitializing && myParticipation !== null;
+  const myLogOpen = myParticipation && canSubmitReadingLog(myParticipation);
+  const myLogPath = myLogOpen ? '/logs/new' : '/logs';
+  const myLogLinkText = myLogOpen ? '독서일지 작성하기' : '내 독서일지 보기';
   // 행사 조회 전(null)에는 기존 신청 버튼을 그대로 두어 화면이 깜빡이지 않게 합니다.
   const applyAvailability = currentEvent
     ? getApplicationAvailability(currentEvent)
@@ -177,7 +169,7 @@ function MainPage() {
 
   return (
     <main id="main" ref={mainRef}>
-      {eventError && (
+      {eventError && !(eventError === 'missing' && showMyRecord) && (
         <div className="wrap main-load-message">
           {eventError === 'missing' ? (
             <p role="status">현재 공개된 독서마라톤 행사가 없습니다.</p>
@@ -202,12 +194,14 @@ function MainPage() {
             {showMyRecord ? (
               <div className="personal-hero-message">
                 <h1 id="heroTitle">
-                  {eventTitle}
+                  {myParticipation.eventTitle}
                   <span>{displayName}님, 환영합니다.</span>
                 </h1>
 
                 <p className="hero-copy hero-copy-personal">
-                  {myRecord.course} 완주를 향해 오늘도 한 걸음 더 달려볼까요?
+                  {myLogOpen
+                    ? `${myRecord.course} 완주를 향해 오늘도 한 걸음 더 달려볼까요?`
+                    : `${myRecord.course} 참가 기록을 확인할 수 있습니다.`}
                 </p>
               </div>
             ) : (
@@ -226,8 +220,8 @@ function MainPage() {
 
             <div className="hero-actions hero-actions-minimal" aria-label="주요 이동 버튼">
               {showMyRecord ? (
-                <Link className="btn btn-primary" to="/logs/new">
-                  독서일지 작성하기
+                <Link className="btn btn-primary" to={myLogPath}>
+                  {myLogLinkText}
                 </Link>
               ) : applyClosedMessage && !isAuthenticated ? (
                 <Link className="btn btn-primary" to="/login">
@@ -326,91 +320,6 @@ function MainPage() {
         </div>
       </section>
 
-      <section className="section compact" id="about" aria-labelledby="aboutTitle">
-        <div className="wrap" data-reveal>
-          <div className="section-head">
-            <div className="section-title">
-              <h2 id="aboutTitle">행사 개요</h2>
-            </div>
-          </div>
-
-          <article className="official-card about-card">
-            <h3>독서마라톤이란?</h3>
-            <p>
-              읽은 쪽수를 거리로 환산해 누적하고, 선택한 코스의 목표 거리에 도달하면 완주로
-              인정합니다. 독서일지는 접수기간 안에 제출하며, 인정 여부는 도서관 기준에 따라
-              결정됩니다.
-            </p>
-
-            <div className="about-highlight" aria-label="독서마라톤 핵심 수치">
-              <div>
-                <b>1쪽 = 5m</b>
-                <span>독서량을 거리로 환산</span>
-              </div>
-              <div>
-                <b>접수기간 내 제출</b>
-                <span>독서일지 접수기간에 기록 제출</span>
-              </div>
-              <div>
-                <b>{eventCourses.length}개 코스</b>
-                <span>공개된 코스 중 선택</span>
-              </div>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section className="section" id="courses" aria-labelledby="coursesTitle">
-        <div className="wrap" data-reveal>
-          <div className="section-head">
-            <div className="section-title">
-              <h2 id="coursesTitle">코스 및 혜택</h2>
-            </div>
-          </div>
-
-          <CourseBenefitTable courses={eventCourses} />
-
-          <p className="table-note">추가 대출 기간과 시상 기준은 공지사항을 따릅니다.</p>
-        </div>
-      </section>
-
-      <section className="section" id="process" aria-labelledby="processTitle">
-        <div className="wrap" data-reveal>
-          <div className="section-head">
-            <div className="section-title">
-              <h2 id="processTitle">참여방법</h2>
-            </div>
-          </div>
-
-          <ol className="process">
-            {PROCESS_STEPS.map((step) => (
-              <li className="process-step" key={step.no}>
-                <span className="process-icon">
-                  <ProcessStepIcon name={step.icon} />
-                  <span className="step-no" aria-hidden="true">
-                    {step.no}
-                  </span>
-                </span>
-                <h3>{step.title}</h3>
-                <p>{step.desc}</p>
-              </li>
-            ))}
-          </ol>
-
-          <div className="process-note">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 11v5M12 8h.01" />
-            </svg>
-            <p>
-              <span>독서일지 승인으로 인정 쪽수 확정</span>
-              <span>서평 확인을 거친 분량이 최종 인정 거리에 반영</span>
-              <small>서평 확인을 기다리는 동안에도 다음 독서일지를 제출할 수 있습니다.</small>
-            </p>
-          </div>
-        </div>
-      </section>
-
       <section className="section tone-section" id="notice" aria-labelledby="noticeTitle">
         <div className="wrap" data-reveal>
           <div className="section-head">
@@ -422,7 +331,7 @@ function MainPage() {
           <div className="news-card">
             <div className="card-title-row">
               <h3>최근 공지</h3>
-              <a href="#contact">문의하기</a>
+              <Link to="/notices">공지 전체 보기</Link>
             </div>
             {notices.length === 0 && (
               <p className="notice-empty" role="status">
@@ -435,85 +344,6 @@ function MainPage() {
               maxCount={NOTICE_PREVIEW_COUNT}
             />
           </div>
-        </div>
-      </section>
-
-      <section className="section" id="contact" aria-labelledby="contactTitle">
-        <div className="wrap two-col" data-reveal>
-          <aside className="check-card">
-            <h2>참여 전 확인사항</h2>
-            <p>세부 기준은 공지사항을 따릅니다.</p>
-            <ul className="check-list">
-              {CHECK_ITEMS.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </aside>
-
-          <div className="contact-card">
-            <h3 id="contactTitle">문의 및 운영 정보</h3>
-
-            <div className="contact-grid">
-              {contactPhone && (
-                <div className="contact-item">
-                  <span>전화 문의</span>
-                  <b>{contactPhone}</b>
-                </div>
-              )}
-              {contactEmail && (
-                <div className="contact-item">
-                  <span>이메일</span>
-                  <a href={`mailto:${contactEmail}`}>{contactEmail}</a>
-                </div>
-              )}
-              {hasKakaoOpenChat && (
-                <div className="contact-item">
-                  <span>운영 채널</span>
-                  <a href={kakaoOpenChatUrl} target="_blank" rel="noopener noreferrer">
-                    카카오톡 오픈채팅
-                  </a>
-                </div>
-              )}
-              <div className="contact-item">
-                <span>소속</span>
-                <b>글로벌캠퍼스 도서관</b>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="wrap cta-band" data-reveal>
-          <div>
-            <h2>
-              {showMyRecord
-                ? '오늘 읽은 기록을 독서일지로 남겨보세요'
-                : applyClosedMessage
-                  ? eventTitle
-                  : `${eventTitle} 참가신청`}
-            </h2>
-            <p>
-              {showMyRecord
-                ? '일지 승인 시 쪽수, 서평 확인 시 거리와 완주율에 반영됩니다.'
-                : (applyClosedMessage ??
-                  (currentEvent
-                    ? `신청기간 ${formatDateRange(currentEvent.applicationStartDate, currentEvent.applicationEndDate)}`
-                    : ''))}
-            </p>
-          </div>
-
-          {showMyRecord ? (
-            <Link className="btn btn-navy" to="/logs/new">
-              독서일지 작성하기
-            </Link>
-          ) : applyClosedMessage ? (
-            <Link className="btn btn-navy" to="/status">
-              대회 현황 보기
-            </Link>
-          ) : (
-            <Link className="btn btn-navy" to="/apply">
-              참가신청하기
-            </Link>
-          )}
         </div>
       </section>
     </main>
