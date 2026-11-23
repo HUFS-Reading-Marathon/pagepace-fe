@@ -5,6 +5,7 @@ export type AdminReadingLogStatus = ReadingLogStatus;
 
 export type AdminReadingLogBookResponse = {
   readingLogBookId: number;
+  libraryBookId?: number | null;
   bookTitle: string;
   author: string | null;
   publisher: string | null;

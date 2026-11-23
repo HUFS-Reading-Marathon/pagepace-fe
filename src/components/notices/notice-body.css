@@ -1,0 +1,13 @@
+.notice-body {
+  font-size: 15px;
+  line-height: 1.8;
+  color: #394b5c;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.notice-body[data-color='NAVY'] {
+  color: #174675;
+}
+.notice-body[data-color='RED'] {
+  color: #8e2a37;
+}

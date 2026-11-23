@@ -209,6 +209,11 @@
   gap: 16px;
 }
 
+.admin-event-settings__basic-grid {
+  grid-template-columns: minmax(12rem, 2.8fr) minmax(5rem, 0.8fr) minmax(8rem, 1.3fr) auto;
+  align-items: end;
+}
+
 .admin-event-settings__basic-grid label,
 .admin-event-settings__contact-grid label {
   display: block;

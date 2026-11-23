@@ -875,7 +875,7 @@ function AdminEventSettingsPage() {
               className="admin-event-settings__basic-grid"
               disabled={isEventDetailLoading || fieldsLocked}
             >
-              <label className="admin-event-settings__wide-field admin-event-settings__title-field">
+              <label className="admin-event-settings__title-field">
                 <span>행사명</span>
                 <input
                   type="text"

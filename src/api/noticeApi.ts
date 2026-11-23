@@ -1,9 +1,12 @@
 import { ApiError, apiRequest } from './apiClient';
 
+export type NoticeColor = 'DEFAULT' | 'NAVY' | 'RED';
+
 export type Notice = {
   noticeId: number;
   title: string;
   content: string;
+  bodyColor?: NoticeColor | null;
   pinned: boolean;
   visible: boolean;
   authorName: string;
@@ -11,7 +14,7 @@ export type Notice = {
   updatedAt: string;
 };
 
-export type NoticeRequest = Pick<Notice, 'title' | 'content' | 'pinned' | 'visible'>;
+export type NoticeRequest = Pick<Notice, 'title' | 'content' | 'bodyColor' | 'pinned' | 'visible'>;
 
 const NOTICES_PATH = '/api/notices';
 const ADMIN_NOTICES_PATH = '/api/admin/notices';

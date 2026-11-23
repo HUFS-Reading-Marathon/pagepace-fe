@@ -469,6 +469,11 @@ function AdminParticipantsPage() {
         <ParticipantRegistration
           key={`${currentEventId}-${statistics.approved}`}
           eventId={currentEventId}
+          courseChangeOpen={events.some(
+            (e) =>
+              e.eventId === currentEventId &&
+              ['APPLICATION_OPEN', 'APPLICATION_CLOSED', 'IN_PROGRESS'].includes(e.status),
+          )}
         />
       )}
       <h2>참가신청서</h2>

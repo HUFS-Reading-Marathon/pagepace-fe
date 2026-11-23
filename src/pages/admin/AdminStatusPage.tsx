@@ -3,14 +3,12 @@ import { preferredAdminEvent } from '../../utils/eventSelection';
 import { useAdminEventState } from '../../hooks/useAdminEventState';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getAdminParticipations, type AdminParticipation } from '../../api/adminParticipationApi';
-import { getEventSummary, type EventSummary } from '../../api/eventApi';
 import { getApiErrorMessage } from '../../api/apiClient';
 import { getAdminEventCourses, getAdminEvents } from '../../api/adminEventApi';
 import { getAdminReadingLogs } from '../../api/adminReadingLogApi';
 import StatusCourseSummary from '../../components/admin/status/StatusCourseSummary';
 import StatusFilters from '../../components/admin/status/StatusFilters';
 import StatusPublishPanel from '../../components/admin/status/StatusPublishPanel';
-import StatusSummary from '../../components/admin/status/StatusSummary';
 import StatusTable from '../../components/admin/status/StatusTable';
 import type { AdminCourse, AdminEvent, EventStatus } from '../../types/adminEvent';
 import type { AdminReadingLogResponse } from '../../types/adminReadingLogApi';
@@ -31,7 +29,6 @@ import '../../styles/admin-status.css';
 
 type CompetitionData = {
   participants: AdminParticipation[];
-  summary: EventSummary;
   logs: AdminReadingLogResponse[];
   courses: AdminCourse[];
   fetchedAt: string;
@@ -67,12 +64,10 @@ const LOAD_ERROR_MESSAGE = '대회 현황 데이터를 불러오지 못했습니
 function requestCompetitionData(eventId: number) {
   return Promise.all([
     getAdminParticipations(eventId),
-    getEventSummary(eventId, undefined, true),
     getAdminReadingLogs({ eventId }),
     getAdminEventCourses(eventId),
-  ]).then(([participants, summary, logs, courses]) => ({
+  ]).then(([participants, logs, courses]) => ({
     participants,
-    summary,
     logs,
     courses,
     fetchedAt: new Date().toISOString(),
@@ -204,31 +199,6 @@ function AdminStatusPage() {
           )
         : [],
     [competitionData, selectedDate],
-  );
-  const summary = useMemo(
-    () =>
-      competitionData
-        ? {
-            participantCount: competitionData.summary.participantCount,
-            activeParticipantCount: rows.filter((participant) => participant.dailyIncreasePages > 0)
-              .length,
-            completedCount: competitionData.summary.completedCount,
-            newlyCompletedCount: rows.filter((p) => p.completedAt === selectedDate).length,
-            totalPages: rows.reduce((sum, participant) => sum + participant.cumulativePages, 0),
-            totalDistanceMeters: rows.reduce(
-              (sum, participant) => sum + participant.cumulativeDistanceMeters,
-              0,
-            ),
-          }
-        : {
-            participantCount: null,
-            activeParticipantCount: null,
-            completedCount: null,
-            newlyCompletedCount: null,
-            totalPages: null,
-            totalDistanceMeters: null,
-          },
-    [competitionData, rows, selectedDate],
   );
   const courseSummaries = useMemo(
     () => getAdminCompetitionCourseSummaries(rows, competitionData?.courses ?? []),
@@ -392,16 +362,6 @@ function AdminStatusPage() {
       </header>
 
       <AdminPageTabs label="대회 현황·랭킹 화면" tabs={COMPETITION_TABS} />
-
-      <StatusSummary {...summary} />
-
-      <aside className="admin-status__policy" aria-label="현황 집계 정책">
-        <strong>집계 정책</strong>
-        <span>승인·완주 참가자 포함</span>
-        <span>승인된 독서일지만 반영</span>
-        <span>인정 쪽수·거리 기준</span>
-        <span>완주는 참가 상태 기준</span>
-      </aside>
 
       <div className="admin-status__section-heading admin-status__table-heading">
         <div>

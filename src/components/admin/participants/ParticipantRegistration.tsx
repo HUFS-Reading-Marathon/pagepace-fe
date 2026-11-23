@@ -4,6 +4,7 @@ import {
   createAdminUser,
   getAdminParticipations,
   registerParticipant,
+  promoteParticipant,
   type AdminUser,
   type AdminParticipation,
 } from '../../../api/adminParticipationApi';
@@ -12,7 +13,13 @@ import { getEventSummary, type EventSummary } from '../../../api/eventApi';
 import type { AdminCourse } from '../../../types/adminEvent';
 import { getParticipationStatusLabel } from '../../../types/participation';
 
-export default function ParticipantRegistration({ eventId }: { eventId: number }) {
+export default function ParticipantRegistration({
+  eventId,
+  courseChangeOpen,
+}: {
+  eventId: number;
+  courseChangeOpen: boolean;
+}) {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [courses, setCourses] = useState<AdminCourse[]>([]);
   const [participants, setParticipants] = useState<AdminParticipation[]>([]);
@@ -23,6 +30,9 @@ export default function ParticipantRegistration({ eventId }: { eventId: number }
   const [newAccount, setNewAccount] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const [promotingId, setPromotingId] = useState<number | null>(null);
+  const [targetId, setTargetId] = useState(0);
+  const [rosterQuery, setRosterQuery] = useState('');
   const [form, setForm] = useState({
     name: '',
     studentNo: '',
@@ -95,9 +105,31 @@ export default function ParticipantRegistration({ eventId }: { eventId: number }
       setBusy(false);
     }
   };
+  const promote = async (p: AdminParticipation, course: AdminCourse) => {
+    if (
+      busy ||
+      !window.confirm(`${p.name} 님의 ${p.courseName}를 ${course.name}(으)로 변경할까요?`)
+    )
+      return;
+    setBusy(true);
+    try {
+      const updated = await promoteParticipant(p.participationId, course.courseId);
+      setParticipants((list) =>
+        list.map((item) => (item.participationId === updated.participationId ? updated : item)),
+      );
+      setPromotingId(null);
+      setMessage(`${p.name} 님의 코스를 ${updated.courseName}(으)로 변경했습니다.`);
+      const nextSummary = await getEventSummary(eventId, undefined, true).catch(() => undefined);
+      setSummary(nextSummary);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '코스를 변경하지 못했습니다.');
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <section className="admin-participants__registration">
-      <h2>승인 참가자 · 직접 등록</h2>
+      <h2>승인 참가자 관리</h2>
       <p>
         {summary
           ? `실제 참가자 ${summary.participantCount}명 · 완주 ${summary.completedCount}명 (취소·실격 제외)`
@@ -223,7 +255,14 @@ export default function ParticipantRegistration({ eventId }: { eventId: number }
         </form>
       </details>
       <details>
-        <summary>참가 기록 전체 {participants.length}건</summary>
+        <summary>참가 명단 · 코스 승급 ({participants.length}명)</summary>
+        <input
+          aria-label="승인 참가자 검색"
+          placeholder="이름 또는 학번"
+          type="search"
+          value={rosterQuery}
+          onChange={(e) => setRosterQuery(e.target.value)}
+        />
         <div className="table-scroll">
           <table>
             <thead>
@@ -234,19 +273,87 @@ export default function ParticipantRegistration({ eventId }: { eventId: number }
                 <th>상태</th>
                 <th>승인 쪽수</th>
                 <th>인정 거리</th>
+                <th>코스 변경</th>
               </tr>
             </thead>
             <tbody>
-              {participants.map((p) => (
-                <tr key={p.participationId}>
-                  <td>{p.name}</td>
-                  <td>{p.studentNo}</td>
-                  <td>{p.courseName}</td>
-                  <td>{getParticipationStatusLabel(p.status)}</td>
-                  <td>{p.totalPages}</td>
-                  <td>{(p.totalDistanceMeter / 1000).toFixed(2)}km</td>
-                </tr>
-              ))}
+              {participants
+                .filter((p) => (p.name + ' ' + p.studentNo).includes(rosterQuery.trim()))
+                .map((p) => {
+                  const current = courses.find((c) => c.courseId === p.courseId);
+                  const options = current
+                    ? courses
+                        .filter(
+                          (c) =>
+                            c.active !== false &&
+                            c.targetDistanceMeter > current.targetDistanceMeter,
+                        )
+                        .sort((a, b) => a.targetDistanceMeter - b.targetDistanceMeter)
+                    : [];
+                  const target = options.find((c) => c.courseId === targetId);
+                  return (
+                    <tr key={p.participationId}>
+                      <td>{p.name}</td>
+                      <td>{p.studentNo}</td>
+                      <td>{p.courseName}</td>
+                      <td>{getParticipationStatusLabel(p.status)}</td>
+                      <td>{p.totalPages}</td>
+                      <td>{p.totalDistanceMeter.toLocaleString()}m</td>
+                      <td>
+                        {courseChangeOpen &&
+                        ['APPROVED', 'COMPLETED'].includes(p.status) &&
+                        options.length ? (
+                          promotingId === p.participationId ? (
+                            <div className="admin-course-change">
+                              <select
+                                aria-label={p.name + ' 님의 상위 코스'}
+                                value={targetId || ''}
+                                disabled={busy}
+                                onChange={(e) => setTargetId(Number(e.target.value))}
+                              >
+                                <option value="">상위 코스 선택</option>
+                                {options.map((c) => (
+                                  <option value={c.courseId} key={c.courseId}>
+                                    {c.name}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                type="button"
+                                disabled={!target || busy}
+                                onClick={() => {
+                                  if (target) void promote(p, target);
+                                }}
+                              >
+                                변경
+                              </button>
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => setPromotingId(null)}
+                              >
+                                취소
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => {
+                                setPromotingId(p.participationId);
+                                setTargetId(0);
+                              }}
+                            >
+                              코스 승급
+                            </button>
+                          )
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>

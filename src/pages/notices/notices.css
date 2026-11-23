@@ -35,11 +35,7 @@
   color: #7c8996;
   font-size: 12px;
 }
-.notice-detail-page article > div {
+.notice-detail-page article > .notice-body {
   min-height: 280px;
   padding: 34px;
-  color: #394b5c;
-  font-size: 15px;
-  line-height: 1.8;
-  white-space: pre-wrap;
 }

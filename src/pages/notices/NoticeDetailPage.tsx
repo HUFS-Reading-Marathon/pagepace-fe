@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { getApiErrorMessage } from '../../api/apiClient';
 import { getNotice, type Notice } from '../../api/noticeApi';
 import './notices.css';
+import NoticeBody from '../../components/notices/NoticeBody';
 
 function NoticeDetailPage() {
   const { id } = useParams();
@@ -23,7 +24,7 @@ function NoticeDetailPage() {
 
   return (
     <main className="notice-detail-page">
-      <Link to="/#notice">← 공지사항으로 돌아가기</Link>
+      <Link to="/notices">← 공지사항으로 돌아가기</Link>
       {error ? (
         <div>{error}</div>
       ) : notice ? (
@@ -36,7 +37,7 @@ function NoticeDetailPage() {
               {new Date(notice.publishedAt ?? notice.updatedAt).toLocaleString('ko-KR')}
             </p>
           </header>
-          <div>{notice.content}</div>
+          <NoticeBody content={notice.content} color={notice.bodyColor} />
         </article>
       ) : (
         <div>공지사항을 불러오고 있습니다.</div>

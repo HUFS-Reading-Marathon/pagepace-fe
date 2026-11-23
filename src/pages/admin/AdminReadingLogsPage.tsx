@@ -1,6 +1,6 @@
-import { useAdminEventState } from '../../hooks/useAdminEventState';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { getAdminEvents } from '../../api/adminEventApi';
 import {
   approveAdminReadingLog,
   getAdminReadingLogDetail,
@@ -8,672 +8,339 @@ import {
   rejectAdminReadingLog,
 } from '../../api/adminReadingLogApi';
 import { getApiErrorMessage } from '../../api/apiClient';
-import { getAdminEvents } from '../../api/adminEventApi';
 import ReadingLogReviewPanel from '../../components/admin/readingLogs/ReadingLogReviewPanel';
-import ReadingLogStatusBadge from '../../components/admin/readingLogs/ReadingLogStatusBadge';
-import type { AdminEvent } from '../../types/adminEvent';
-import {
-  READING_LOG_REVIEW_OPTIONS,
-  getReadingLogQueuePage,
-  getReadingLogTotalPages,
-  validateReadingLog,
-  type AdminReadingLog,
-  type ReadingLogReviewFilter,
-  type ReadingLogStatus,
-  type ReadingLogStatusFilter,
-} from '../../types/adminReadingLog';
-import type {
-  AdminReadingLogResponse,
-  AdminReadingLogStatus,
-} from '../../types/adminReadingLogApi';
+import { selectEvent } from '../../utils/eventSelection';
 import { resolveAdminQueueEvent } from '../../utils/adminEvent';
 import { formatKoDateKey } from '../../utils/date';
+import type { AdminEvent } from '../../types/adminEvent';
+import type { AdminReadingLogResponse } from '../../types/adminReadingLogApi';
 import '../../styles/admin-reading-logs.css';
 
-type QueueSort = 'oldest' | 'newest';
+const STATUS = { SUBMITTED: '검토 대기', APPROVED: '승인', REJECTED: '반려', ALL: '전체' } as const;
+type Filter = keyof typeof STATUS;
+const PAGE_SIZE = 25;
 
-type DetailState = {
-  logId: string;
-  log: AdminReadingLog | null;
-  error: string | null;
-};
-
-/** 상단 상태 필터. 검토 대기를 기본으로 두어 들어오자마자 처리할 일지부터 보이게 합니다. */
-const QUEUE_TABS: ReadonlyArray<{
-  label: string;
-  status: ReadingLogStatusFilter;
-  review: ReadingLogReviewFilter;
-}> = [
-  { label: '검토 대기', status: 'submit', review: 'ALL' },
-  { label: '확인 필요', status: 'ALL', review: 'warning' },
-  { label: '승인', status: 'approve', review: 'ALL' },
-  { label: '반려', status: 'rejected', review: 'ALL' },
-  { label: '전체', status: 'ALL', review: 'ALL' },
-];
-
-const NARROW_LAYOUT_QUERY = '(max-width: 1180px)';
-
-const STATUS_MAP: Record<AdminReadingLogStatus, ReadingLogStatus> = {
-  SUBMITTED: 'submit',
-  APPROVED: 'approve',
-  REJECTED: 'rejected',
-};
-
-function toDisplayLog(log: AdminReadingLogResponse): AdminReadingLog {
-  const sortedBooks = [...log.books].sort(
-    (first, second) => first.displayOrder - second.displayOrder,
-  );
-
-  return {
-    id: String(log.readingLogId),
-    participantName: log.userName || '-',
-    studentNumber: log.studentNo || '-',
-    readingDate: log.readingDate,
-    submittedAt: log.createdAt,
-    status: STATUS_MAP[log.status],
-    approvedAt: log.reviewedAt || undefined,
-    rejectionReason: log.status === 'REJECTED' ? log.adminComment || undefined : undefined,
-    totalReadPages: log.totalReadPages,
-    convertedDistanceMeter: log.convertedDistanceMeter,
-    eventTitle: log.eventTitle,
-    courseName: log.courseName,
-    recommendedRejectReasons: log.recommendedRejectReasons ?? [],
-    books: sortedBooks.map((book) => ({
-      id: String(book.readingLogBookId),
-      title: book.bookTitle || '-',
-      author: book.author || '-',
-      publisher: book.publisher || '-',
-      totalPages: book.totalBookPages,
-      previouslyApprovedPages: book.existingApprovedReadPages,
-      readPages: book.submittedReadPages,
-      expectedApprovedPages: book.expectedApprovedReadPages,
-      remainingPagesAfterApproval: book.remainingPagesAfterApproval,
-      pageExceeded: book.pageExceeded,
-      warningMessage: book.warningMessage || undefined,
-    })),
-  };
-}
-
-function AdminReadingLogsPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const linkedEvent = searchParams.get('eventId');
-  const linkedLog = searchParams.get('logId');
-  const [events, setEvents] = useState<AdminEvent[]>([]);
-  const [selectedEventId, setSelectedEventId] = useAdminEventState();
-  const [logs, setLogs] = useState<AdminReadingLog[]>([]);
-  const [searchKeyword, setSearchKeyword] = useState('');
-  const [statusFilter, setStatusFilter] = useState<ReadingLogStatusFilter>('submit');
-  const [reviewFilter, setReviewFilter] = useState<ReadingLogReviewFilter>('ALL');
-  const [dateFilter, setDateFilter] = useState('');
-  const [sortOrder, setSortOrder] = useState<QueueSort>('oldest');
-  const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
-  const [missingLinkedLog, setMissingLinkedLog] = useState(false);
-  const [detailState, setDetailState] = useState<DetailState | null>(null);
-  const [detailVersion, setDetailVersion] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [listError, setListError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [processingLogId, setProcessingLogId] = useState<number | null>(null);
-  const [feedbackMessage, setFeedbackMessage] = useState('');
-  const [feedbackIsError, setFeedbackIsError] = useState(false);
-  const initialRequestRef = useRef<Promise<AdminEvent[]> | null>(null);
-  const requestSequenceRef = useRef(0);
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  const statistics = useMemo(
-    () => ({
-      total: logs.length,
-      submit: logs.filter((log) => log.status === 'submit').length,
-      approve: logs.filter((log) => log.status === 'approve').length,
-      rejected: logs.filter((log) => log.status === 'rejected').length,
-      warning: logs.filter((log) => validateReadingLog(log).length > 0).length,
-    }),
-    [logs],
-  );
-
-  const getTabCount = (tab: (typeof QUEUE_TABS)[number]) => {
-    if (tab.review === 'warning') return statistics.warning;
-    if (tab.status === 'ALL') return statistics.total;
-    return statistics[tab.status];
-  };
-
-  const filteredLogs = useMemo(() => {
-    const normalizedKeyword = searchKeyword.trim().toLowerCase();
-    const direction = sortOrder === 'oldest' ? 1 : -1;
-
-    return logs
-      .filter((log) => {
-        const searchableValues = [
-          log.participantName,
-          log.studentNumber,
-          log.courseName ?? '',
-          ...log.books.flatMap((book) => [book.title, book.author, book.publisher]),
-        ];
-        const matchesKeyword =
-          !normalizedKeyword ||
-          searchableValues.some((value) => value.toLowerCase().includes(normalizedKeyword));
-        const matchesStatus = statusFilter === 'ALL' || log.status === statusFilter;
-        const hasWarning = validateReadingLog(log).length > 0;
-        const matchesReview =
-          reviewFilter === 'ALL' || (reviewFilter === 'warning' ? hasWarning : !hasWarning);
-        const matchesDate = !dateFilter || log.readingDate === dateFilter;
-
-        return matchesKeyword && matchesStatus && matchesReview && matchesDate;
-      })
-      .sort(
-        (firstLog, secondLog) =>
-          direction *
-          (new Date(firstLog.submittedAt).getTime() - new Date(secondLog.submittedAt).getTime()),
-      );
-  }, [dateFilter, logs, reviewFilter, searchKeyword, sortOrder, statusFilter]);
-
-  // 선택한 일지가 현재 목록에 없으면(필터 변경·처리 완료 등) 목록의 첫 일지를 보여 줍니다.
-  const activeLogId = missingLinkedLog
-    ? null
-    : selectedLogId && filteredLogs.some((log) => log.id === selectedLogId)
-      ? selectedLogId
-      : (filteredLogs[0]?.id ?? null);
-  const activeIndex = filteredLogs.findIndex((log) => log.id === activeLogId);
-  const { visibleLogs, pageStart, pageNumber, pageCount, previousPageId, nextPageId } =
-    getReadingLogQueuePage(filteredLogs, activeIndex);
-  const activeListLog = activeIndex >= 0 ? filteredLogs[activeIndex] : undefined;
-  const activeDetail = detailState?.logId === activeLogId ? detailState : null;
-  const activeLog = activeDetail?.log ?? activeListLog;
-  const isDetailLoading = activeLogId !== null && activeDetail === null;
-  const hasActiveFilters = Boolean(searchKeyword.trim() || dateFilter || reviewFilter !== 'ALL');
-
-  /** 처리한 일지 다음에 볼 검토 대기 일지(없으면 null)를 현재 목록 순서 기준으로 고릅니다. */
-  const findNextPendingId = (logId: string) => {
-    const index = filteredLogs.findIndex((log) => log.id === logId);
-    const ordered = [
-      ...filteredLogs.slice(index + 1),
-      ...filteredLogs.slice(0, Math.max(index, 0)),
-    ];
-
-    return ordered.find((log) => log.status === 'submit' && log.id !== logId)?.id ?? null;
-  };
-
-  const loadLogs = useCallback(async (eventId: number, linkedId: string | null) => {
-    const requestSequence = ++requestSequenceRef.current;
-    setIsLoading(true);
-
-    try {
-      const response = await getAdminReadingLogs({ eventId });
-
-      if (requestSequence !== requestSequenceRef.current) {
-        return;
-      }
-
-      const nextLogs = response.map(toDisplayLog);
-      setLogs(nextLogs);
-      if (linkedId !== null) {
-        const target = nextLogs.find((log) => log.id === linkedId);
-        setSelectedLogId(target?.id ?? null);
-        setMissingLinkedLog(!target);
-        if (target) {
-          setStatusFilter(target.status);
-          setReviewFilter('ALL');
-          setDateFilter('');
-          setSearchKeyword('');
-        } else {
-          setFeedbackMessage('이 행사에서 링크에 지정된 독서일지를 찾을 수 없습니다.');
-          setFeedbackIsError(true);
-        }
-      }
-      setListError(null);
-    } catch (error: unknown) {
-      if (requestSequence !== requestSequenceRef.current) {
-        return;
-      }
-
-      setLogs([]);
-      setListError(getApiErrorMessage(error, '독서일지 목록을 불러오지 못했습니다.'));
-    } finally {
-      if (requestSequence === requestSequenceRef.current) {
-        setIsLoading(false);
-      }
-    }
-  }, []);
-
+function ReadingQueue({ event, linkedId }: { event: AdminEvent; linkedId: string | null }) {
+  const [filter, setFilter] = useState<Filter>('SUBMITTED');
+  const [selected, setSelected] = useState<number | null>(null);
+  const [logs, setLogs] = useState<AdminReadingLogResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [feedback, setFeedback] = useState('');
+  const [processing, setProcessing] = useState(false);
+  const [query, setQuery] = useState('');
+  const [date, setDate] = useState('');
+  const [order, setOrder] = useState('oldest');
+  const [page, setPage] = useState(0);
+  const [version, setVersion] = useState(0);
+  const linkToOpen = useRef(linkedId);
+  const mutationLock = useRef(false);
+  const frozen = ['FINALIZED', 'ARCHIVED'].includes(event.status);
   useEffect(() => {
-    let isActive = true;
-
-    if (initialRequestRef.current === null) {
-      initialRequestRef.current = getAdminEvents();
-    }
-
-    initialRequestRef.current
-      .then((nextEvents) => {
-        if (!isActive) return;
-        const eventId = resolveAdminQueueEvent(nextEvents, linkedEvent)?.eventId ?? null;
-        setEvents(nextEvents);
-        setSelectedEventId(eventId);
-
-        if (eventId === null) {
-          setIsLoading(false);
+    let active = true;
+    const load = async () => {
+      const initialLink = linkToOpen.current;
+      let target: AdminReadingLogResponse | undefined;
+      let scope = filter;
+      if (initialLink !== null) {
+        const id = Number(initialLink);
+        if (!Number.isSafeInteger(id) || id <= 0)
+          throw new Error('이 행사의 독서일지를 찾을 수 없습니다.');
+        target = await getAdminReadingLogDetail(id);
+        if (target.eventId !== event.eventId)
+          throw new Error('이 행사의 독서일지를 찾을 수 없습니다.');
+        scope = target.status;
+      }
+      const rows = await getAdminReadingLogs({
+        eventId: event.eventId,
+        status: scope === 'ALL' ? undefined : scope,
+      });
+      if (!active) return;
+      setLogs(rows);
+      if (target) {
+        if (!rows.some((row) => row.readingLogId === target.readingLogId))
+          throw new Error('일지 상태가 달라졌습니다. 목록에서 다시 선택해 주세요.');
+        setSelected(target.readingLogId);
+        const sorted = [...rows].sort(
+          (a, b) => a.createdAt.localeCompare(b.createdAt) || a.readingLogId - b.readingLogId,
+        );
+        setPage(
+          Math.floor(
+            sorted.findIndex((row) => row.readingLogId === target.readingLogId) / PAGE_SIZE,
+          ),
+        );
+        linkToOpen.current = null;
+        setFilter(scope);
+      }
+      setError('');
+    };
+    load()
+      .catch((e) => {
+        if (active) {
+          setError(e instanceof Error ? e.message : '독서일지를 불러오지 못했습니다.');
           setLogs([]);
-          setListError(
-            linkedEvent === null
-              ? '관리할 행사가 없습니다.'
-              : '링크에 지정된 행사를 찾을 수 없습니다.',
-          );
-        } else {
-          void loadLogs(eventId, linkedLog);
         }
       })
-      .catch((error: unknown) => {
-        if (isActive) {
-          setIsLoading(false);
-          setListError(getApiErrorMessage(error, '행사 목록을 불러오지 못했습니다.'));
-        }
+      .finally(() => {
+        if (active) setLoading(false);
       });
-
     return () => {
-      isActive = false;
+      active = false;
     };
-  }, [linkedEvent, linkedLog, loadLogs, setSelectedEventId]);
-
-  // 선택한 일지의 최신 상세(이전 승인 누적 등)를 서버에서 다시 받아 패널에 표시합니다.
-  useEffect(() => {
-    const readingLogId = Number(activeLogId);
-
-    if (activeLogId === null || !Number.isInteger(readingLogId) || readingLogId <= 0) {
-      return;
-    }
-
-    let isActive = true;
-
-    getAdminReadingLogDetail(readingLogId)
-      .then((response) => {
-        if (isActive) {
-          setDetailState({ logId: activeLogId, log: toDisplayLog(response), error: null });
-        }
-      })
-      .catch((error: unknown) => {
-        if (isActive) {
-          setDetailState({
-            logId: activeLogId,
-            log: null,
-            error: getApiErrorMessage(error, '독서일지 상세를 불러오지 못했습니다.'),
-          });
-        }
-      });
-
-    return () => {
-      isActive = false;
-    };
-  }, [activeLogId, detailVersion]);
-
-  const selectLog = (logId: string | null, scrollToDetail = true) => {
-    if (missingLinkedLog) {
-      setMissingLinkedLog(false);
-      setFeedbackMessage('');
-    }
-    setSelectedLogId(logId);
-    setActionError(null);
-
-    if (scrollToDetail && logId && window.matchMedia(NARROW_LAYOUT_QUERY).matches) {
-      window.requestAnimationFrame(() =>
-        panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+  }, [event.eventId, filter, version]);
+  const rows = useMemo(() => {
+    const keyword = query.trim().toLowerCase();
+    return logs
+      .filter(
+        (log) =>
+          (!date || log.readingDate === date) &&
+          (!keyword ||
+            [
+              log.userName,
+              log.studentNo,
+              log.courseName,
+              ...log.books.flatMap((book) => [book.bookTitle, book.author, book.publisher]),
+            ].some((value) => value?.toLowerCase().includes(keyword))),
+      )
+      .sort(
+        (a, b) =>
+          (order === 'oldest' ? 1 : -1) *
+          (a.createdAt.localeCompare(b.createdAt) || a.readingLogId - b.readingLogId),
       );
-    }
-  };
-
-  const handleTabChange = (tab: (typeof QUEUE_TABS)[number]) => {
-    setStatusFilter(tab.status);
-    setReviewFilter(tab.review);
-  };
-
-  const handleResetFilters = () => {
-    setSearchKeyword('');
-    setReviewFilter('ALL');
-    setDateFilter('');
-  };
-
-  const refreshAfterMutation = async () => {
-    if (selectedEventId === null) {
-      return;
-    }
-
-    const nextLogs = await getAdminReadingLogs({ eventId: selectedEventId });
-
-    setLogs(nextLogs.map(toDisplayLog));
-    setDetailVersion((current) => current + 1);
-  };
-
-  /**
-   * 승인·반려 공통 처리: 서버 요청이 성공한 경우에만 목록을 갱신하고 다음 대기 일지로 이동합니다.
-   * 실패하면 현재 일지에 머물며 오류를 패널에 보여 줍니다.
-   */
-  const runReviewAction = async (
-    logId: string,
-    request: (readingLogId: number) => Promise<unknown>,
-    messages: { success: string; failure: string },
-  ) => {
-    const readingLogId = Number(logId);
-
-    if (!Number.isInteger(readingLogId) || readingLogId <= 0 || processingLogId !== null) {
-      return false;
-    }
-
-    const nextPendingId = findNextPendingId(logId);
-    const participantName = logs.find((log) => log.id === logId)?.participantName ?? '참가자';
-
-    setProcessingLogId(readingLogId);
-    setFeedbackMessage('');
-    setActionError(null);
-
+  }, [logs, query, date, order]);
+  const pages = Math.ceil(rows.length / PAGE_SIZE);
+  const currentPage = Math.min(page, Math.max(0, pages - 1));
+  function changeFilter(next: Filter) {
+    if (next === filter && !error) return;
+    linkToOpen.current = null;
+    setSelected(null);
+    setPage(0);
+    setError('');
+    setFeedback('');
+    setLoading(true);
+    if (next === filter) setVersion((v) => v + 1);
+    setFilter(next);
+  }
+  async function review(log: AdminReadingLogResponse, reason?: string) {
+    if (mutationLock.current || frozen || log.status !== 'SUBMITTED') return false;
+    mutationLock.current = true;
+    setProcessing(true);
+    setError('');
+    setFeedback('');
     try {
-      await request(readingLogId);
-    } catch (error: unknown) {
-      const message = getApiErrorMessage(error, messages.failure);
-      setFeedbackMessage(message);
-      setFeedbackIsError(true);
-      setActionError(message);
-      setProcessingLogId(null);
-      return false;
-    }
-
-    try {
-      await refreshAfterMutation();
-      setFeedbackMessage(`${participantName} 님의 ${messages.success}`);
-      setFeedbackIsError(false);
-      selectLog(nextPendingId ?? logId);
-    } catch (error: unknown) {
-      setFeedbackMessage(
-        getApiErrorMessage(error, '처리는 완료됐지만 목록을 다시 불러오지 못했습니다.'),
+      if (reason === undefined) await approveAdminReadingLog(log.readingLogId);
+      else await rejectAdminReadingLog(log.readingLogId, { reason });
+      setFeedback(
+        log.userName + ' 님의 일지를 ' + (reason === undefined ? '승인' : '반려') + '했습니다.',
       );
-      setFeedbackIsError(true);
+      setSelected(null);
+      setLoading(true);
+      setVersion((v) => v + 1);
+      return true;
+    } catch (e) {
+      setError(getApiErrorMessage(e, '일지를 처리하지 못했습니다.'));
+      return false;
     } finally {
-      setProcessingLogId(null);
+      mutationLock.current = false;
+      setProcessing(false);
     }
-
-    return true;
-  };
-
-  const handleApprove = (logId: string) =>
-    runReviewAction(logId, (readingLogId) => approveAdminReadingLog(readingLogId), {
-      success: '독서일지를 승인했습니다.',
-      failure: '독서일지를 승인하지 못했습니다.',
-    });
-
-  const handleReject = (logId: string, reason: string) => {
-    const normalizedReason = reason.trim();
-
-    if (!normalizedReason) {
-      return Promise.resolve(false);
-    }
-
-    return runReviewAction(
-      logId,
-      (readingLogId) => rejectAdminReadingLog(readingLogId, { reason: normalizedReason }),
-      {
-        success: '독서일지를 반려했습니다.',
-        failure: '독서일지를 반려하지 못했습니다.',
-      },
-    );
-  };
-
-  const handleEventChange = (value: string) => {
-    const eventId = Number(value);
-
-    if (!Number.isInteger(eventId) || eventId <= 0) {
-      return;
-    }
-
-    requestSequenceRef.current += 1;
-    setSearchParams({ eventId: String(eventId) }, { replace: true });
-    setSelectedLogId(null);
-    setMissingLinkedLog(false);
-    setLogs([]);
-    setIsLoading(true);
-    setDetailState(null);
-    setFeedbackMessage('');
-  };
-
-  const renderQueue = () => {
-    if (isLoading) {
-      return (
-        <p className="admin-queue__message" role="status">
-          독서일지를 불러오는 중입니다.
-        </p>
-      );
-    }
-
-    if (listError) {
-      return (
-        <p className="admin-queue__message" role="alert">
-          {listError}
-        </p>
-      );
-    }
-
-    if (filteredLogs.length === 0) {
-      return (
-        <p className="admin-queue__message">
-          {logs.length === 0
-            ? '제출된 독서일지가 없습니다.'
-            : statusFilter === 'submit' && !hasActiveFilters
-              ? '검토할 독서일지가 없습니다. 모두 처리했습니다.'
-              : '조건에 맞는 독서일지가 없습니다.'}
-        </p>
-      );
-    }
-
-    return (
-      <ul className="admin-queue__list">
-        {visibleLogs.map((log) => {
-          const hasWarning = validateReadingLog(log).length > 0;
-          const firstBookTitle = log.books[0]?.title ?? '등록 도서 없음';
-          const bookLabel =
-            log.books.length > 1
-              ? `${firstBookTitle} 외 ${log.books.length - 1}권`
-              : firstBookTitle;
-
-          return (
-            <li key={log.id}>
-              <button
-                type="button"
-                className="admin-queue__item"
-                aria-current={log.id === activeLogId ? 'true' : undefined}
-                onClick={() => selectLog(log.id)}
-              >
-                <strong>{log.participantName}</strong>
-                <small>
-                  {formatKoDateKey(log.readingDate)} · {bookLabel}
-                </small>
-                <span className="admin-queue__item-side">
-                  <span className="admin-queue__pages">
-                    {getReadingLogTotalPages(log).toLocaleString('ko-KR')}쪽
-                  </span>
-                  {hasWarning ? (
-                    <span className="admin-reading-log-review admin-reading-log-review--warning">
-                      확인 필요
-                    </span>
-                  ) : (
-                    statusFilter !== 'submit' && <ReadingLogStatusBadge status={log.status} />
-                  )}
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    );
-  };
-
+  }
   return (
-    <section className="admin-page admin-reading-logs">
-      <header className="admin-page__header admin-reading-logs__header">
-        <div className="admin-reading-logs__heading">
-          <h1>독서일지 검토</h1>
-          <p>도서 정보와 제출 쪽수를 확인한 뒤 승인하거나 반려합니다.</p>
-        </div>
-
-        <div className="admin-reading-logs__event-selector">
-          <label htmlFor="readingLogEvent">관리 행사</label>
-          <select
-            id="readingLogEvent"
-            value={selectedEventId ?? ''}
-            disabled={events.length === 0 || isLoading || processingLogId !== null}
-            onChange={(event) => handleEventChange(event.target.value)}
-          >
-            {selectedEventId === null && (
-              <option value="">
-                {events.length ? '행사를 선택해 주세요.' : '등록된 행사 없음'}
-              </option>
-            )}
-            {events.map((event) => (
-              <option key={event.eventId} value={event.eventId}>
-                {event.roundNo}회 · {event.title}
-              </option>
-            ))}
-          </select>
-        </div>
-      </header>
-
-      <div className="admin-reading-logs__tabs">
-        <div className="admin-segmented" aria-label="독서일지 상태 필터">
-          {QUEUE_TABS.map((tab) => (
+    <section className="admin-queue admin-ledger" aria-label="독서일지 목록">
+      <div className="admin-queue__head">
+        <h2>독서일지</h2>
+        <div className="admin-segmented" aria-label="일지 상태">
+          {(Object.keys(STATUS) as Filter[]).map((key) => (
             <button
-              key={tab.label}
               type="button"
-              aria-pressed={statusFilter === tab.status && reviewFilter === tab.review}
-              onClick={() => handleTabChange(tab)}
+              key={key}
+              aria-pressed={filter === key}
+              disabled={processing}
+              onClick={() => changeFilter(key)}
             >
-              {tab.label}
-              <b className={tab.review === 'warning' ? 'is-warning' : undefined}>
-                {getTabCount(tab)}
-              </b>
+              {STATUS[key]}
             </button>
           ))}
         </div>
-        <p
-          className={['admin-feedback', feedbackIsError ? 'admin-feedback--error' : '']
-            .filter(Boolean)
-            .join(' ')}
-          role={feedbackIsError ? 'alert' : 'status'}
-          aria-live="polite"
-        >
-          {feedbackMessage}
-        </p>
       </div>
-
-      <div className="admin-split">
-        <section className="admin-queue" aria-labelledby="readingLogQueueTitle">
-          <div className="admin-queue__head">
-            <h2 id="readingLogQueueTitle">
-              목록 <span>{filteredLogs.length.toLocaleString('ko-KR')}건</span>
-            </h2>
-            <select
-              aria-label="정렬"
-              value={sortOrder}
-              onChange={(event) => setSortOrder(event.target.value as QueueSort)}
-            >
-              <option value="oldest">제출 오래된 순</option>
-              <option value="newest">최근 제출 순</option>
-            </select>
-          </div>
-          <div className="admin-queue__tools">
-            <input
-              type="search"
-              value={searchKeyword}
-              aria-label="독서일지 검색"
-              placeholder="참가자, 학번, 책 제목, 저자, 출판사"
-              onChange={(event) => setSearchKeyword(event.target.value)}
-            />
-            <div className="admin-queue__tools-row">
-              <select
-                aria-label="자동 검증 상태"
-                value={reviewFilter}
-                onChange={(event) => setReviewFilter(event.target.value as ReadingLogReviewFilter)}
-              >
-                {READING_LOG_REVIEW_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="date"
-                aria-label="독서 날짜"
-                value={dateFilter}
-                onChange={(event) => setDateFilter(event.target.value)}
-              />
-            </div>
-          </div>
-          {renderQueue()}
-          {pageCount > 1 && (
-            <nav className="admin-queue__footer" aria-label="독서일지 목록 페이지">
-              <button
-                type="button"
-                disabled={!previousPageId}
-                onClick={() => selectLog(previousPageId, false)}
-              >
-                이전 페이지
-              </button>
-              <span aria-live="polite">
-                {pageNumber} / {pageCount}
+      <div className="admin-queue__tools admin-ledger__tools">
+        <input
+          type="search"
+          aria-label="독서일지 검색"
+          placeholder="참가자, 학번, 책 제목, 저자, 출판사"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setPage(0);
+          }}
+        />
+        <input
+          type="date"
+          aria-label="독서 날짜"
+          value={date}
+          onChange={(e) => {
+            setDate(e.target.value);
+            setPage(0);
+          }}
+        />
+        <select
+          aria-label="정렬"
+          value={order}
+          onChange={(e) => {
+            setOrder(e.target.value);
+            setPage(0);
+          }}
+        >
+          <option value="oldest">제출 오래된 순</option>
+          <option value="newest">최근 제출 순</option>
+        </select>
+      </div>
+      {error && (
+        <p role="alert" className="admin-feedback admin-feedback--error">
+          {error}
+        </p>
+      )}
+      {feedback && (
+        <p role="status" className="admin-feedback">
+          {feedback}
+        </p>
+      )}
+      {loading ? (
+        <p role="status" className="admin-queue__message">
+          일지를 불러오는 중입니다.
+        </p>
+      ) : (
+        <>
+          {!rows.length && !error && (
+            <p className="admin-queue__message">
+              {query || date
+                ? '조건에 맞는 일지가 없습니다.'
+                : filter === 'SUBMITTED'
+                  ? '검토 대기 중인 일지가 없습니다.'
+                  : '해당 상태의 일지가 없습니다.'}
+            </p>
+          )}
+          <ul className="admin-ledger__list">
+            {rows.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE).map((log) => {
+              const open = selected === log.readingLogId;
+              return (
+                <li key={log.readingLogId}>
+                  <button
+                    type="button"
+                    className="admin-ledger__row"
+                    aria-expanded={open}
+                    disabled={processing}
+                    onClick={() => setSelected(open ? null : log.readingLogId)}
+                  >
+                    <span>{formatKoDateKey(log.readingDate)}</span>
+                    <strong>{log.userName}</strong>
+                    <span className="admin-ledger__title">
+                      {log.books[0]?.bookTitle ?? '도서 미등록'}
+                      {log.books.length > 1 && ' 외 ' + (log.books.length - 1) + '권'}
+                    </span>
+                    <span>{log.totalReadPages.toLocaleString()}쪽</span>
+                    <span>{STATUS[log.status]}</span>
+                    <span aria-hidden="true">{open ? '−' : '+'}</span>
+                  </button>
+                  {open && (
+                    <ReadingLogReviewPanel
+                      log={log}
+                      disabled={processing || frozen}
+                      onApprove={() => review(log)}
+                      onReject={(reason) => review(log, reason)}
+                    />
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+          {!!rows.length && (
+            <nav className="admin-queue__footer" aria-label="일지 페이지">
+              <span>
+                총 {rows.length.toLocaleString()}건 · {currentPage + 1} / {pages}페이지
               </span>
-              <button
-                type="button"
-                disabled={!nextPageId}
-                onClick={() => selectLog(nextPageId, false)}
-              >
-                다음 페이지
-              </button>
+              {pages > 1 && (
+                <>
+                  <button
+                    type="button"
+                    disabled={currentPage === 0}
+                    onClick={() => setPage(currentPage - 1)}
+                  >
+                    이전 페이지
+                  </button>
+                  <button
+                    type="button"
+                    disabled={currentPage + 1 >= pages}
+                    onClick={() => setPage(currentPage + 1)}
+                  >
+                    다음 페이지
+                  </button>
+                </>
+              )}
             </nav>
           )}
-          <div className="admin-queue__footer">
-            {filteredLogs.length > 0
-              ? `검색 결과 ${filteredLogs.length.toLocaleString('ko-KR')}건 중 ${pageStart + 1}–${pageStart + visibleLogs.length}건 표시`
-              : '표시할 일지 0건'}
-            {hasActiveFilters && (
-              <button
-                type="button"
-                className="admin-reading-logs__reset"
-                onClick={handleResetFilters}
-              >
-                검색·필터 초기화
-              </button>
-            )}
-          </div>
-        </section>
-
-        <div ref={panelRef} className="admin-reading-logs__panel">
-          {activeLog ? (
-            <ReadingLogReviewPanel
-              key={activeLog.id}
-              log={activeLog}
-              position={{ index: activeIndex, total: filteredLogs.length }}
-              hasNextPending={findNextPendingId(activeLog.id) !== null}
-              isLoading={isDetailLoading}
-              error={actionError ?? activeDetail?.error ?? null}
-              isProcessing={processingLogId === Number(activeLog.id)}
-              onPrevious={
-                activeIndex > 0 ? () => selectLog(filteredLogs[activeIndex - 1].id) : undefined
-              }
-              onNext={
-                activeIndex >= 0 && activeIndex < filteredLogs.length - 1
-                  ? () => selectLog(filteredLogs[activeIndex + 1].id)
-                  : undefined
-              }
-              onApprove={handleApprove}
-              onReject={handleReject}
-            />
-          ) : (
-            <div className="admin-detail-panel">
-              <p className="admin-detail-panel__empty">
-                {isLoading
-                  ? '독서일지를 불러오는 중입니다.'
-                  : '왼쪽 목록에서 검토할 독서일지를 선택하세요.'}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
+        </>
+      )}
     </section>
   );
 }
-
-export default AdminReadingLogsPage;
+export default function AdminReadingLogsPage() {
+  const [params, setParams] = useSearchParams();
+  const [events, setEvents] = useState<AdminEvent[]>([]);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let active = true;
+    getAdminEvents()
+      .then((list) => {
+        if (active) setEvents(list);
+      })
+      .catch((e) => {
+        if (active) setError(getApiErrorMessage(e, '행사 목록을 불러오지 못했습니다.'));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+  const event = resolveAdminQueueEvent(events, params.get('eventId'));
+  return (
+    <section className="admin-page admin-reading-logs">
+      <header className="admin-page__header admin-reading-logs__header">
+        <div>
+          <h1>독서일지 검토</h1>
+          <p>일지를 선택해 도서와 독서량을 확인하고 승인하거나 반려합니다.</p>
+        </div>
+        <label className="admin-reading-logs__event-selector">
+          관리 행사
+          <select
+            value={event?.eventId ?? ''}
+            onChange={(e) => {
+              selectEvent('admin', Number(e.target.value));
+              setParams({ eventId: e.target.value });
+            }}
+          >
+            {!event && <option value="">행사 선택</option>}
+            {events.map((item) => (
+              <option key={item.eventId} value={item.eventId}>
+                {item.roundNo}회 · {item.title}
+              </option>
+            ))}
+          </select>
+        </label>
+      </header>
+      {error && <p role="alert">{error}</p>}
+      {event ? (
+        <ReadingQueue
+          key={event.eventId + '-' + params.get('logId')}
+          event={event}
+          linkedId={params.get('logId')}
+        />
+      ) : (
+        !loading && !error && <p role="status">관리할 행사를 선택해 주세요.</p>
+      )}
+    </section>
+  );
+}

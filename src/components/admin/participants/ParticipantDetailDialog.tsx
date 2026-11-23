@@ -180,7 +180,7 @@ function ParticipantDetailDialog({
                   <dd>{displayedApplication.eventTitle || '-'}</dd>
                 </div>
                 <div>
-                  <dt>선택 코스</dt>
+                  <dt>신청 당시 코스</dt>
                   <dd>{displayedApplication.courseName || '-'}</dd>
                 </div>
                 <div>
@@ -269,9 +269,11 @@ function ParticipantDetailDialog({
               </>
             ) : (
               !isLoading &&
-              !error && (
+              !error &&
+              displayedApplication.status === 'APPROVED' && (
                 <p className="admin-participant-dialog__pending-note">
-                  정보 수정·코스 변경·참가 취소는 서버 API가 확인되면 제공됩니다.
+                  현재 코스와 승급은 승인 참가자 관리의 ‘참가 명단 · 코스 승급’에서 확인할 수
+                  있습니다.
                 </p>
               )
             )}

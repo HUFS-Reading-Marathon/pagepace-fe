@@ -14,7 +14,7 @@
 .admin-notices__layout {
   display: grid;
   margin-top: 12px;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
   gap: 18px;
 }
@@ -302,4 +302,17 @@
   .admin-notices__form {
     position: static;
   }
+}
+
+.admin-notices__preview article {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  background: var(--surface);
+}
+.admin-notices__preview .notice-body {
+  margin-top: 12px;
+}
+.admin-notices__list article a {
+  margin-inline-end: 10px;
 }
