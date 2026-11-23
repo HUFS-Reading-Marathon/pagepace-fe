@@ -121,7 +121,13 @@ async function requestResponse(
     try {
       await refreshAccessToken();
     } catch (error) {
-      if (error instanceof ApiError && error.status === 401 && getAccessToken() === token) {
+      // 백엔드는 리프레시 쿠키가 없으면 400(REFRESH_REQUIRED), 무효·만료·비활성 계정이면 401을 돌려줍니다.
+      // 둘 다 세션을 되살릴 수 없으므로 정리하고, 네트워크 오류·5xx는 다음 요청에서 다시 시도합니다.
+      if (
+        error instanceof ApiError &&
+        (error.status === 400 || error.status === 401) &&
+        getAccessToken() === token
+      ) {
         clearAuthStorage();
         emitAuthChange();
       }

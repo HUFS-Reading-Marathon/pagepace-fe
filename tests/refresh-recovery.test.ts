@@ -39,4 +39,25 @@ describe('일시적 연결 장애 후 인증 갱신', () => {
     await expect(apiRequest('/api/me')).rejects.toMatchObject({ status: 401 });
     expect(values.has(ACCESS_TOKEN_STORAGE_KEY)).toBe(false);
   });
+
+  it('리프레시 쿠키가 없다는 400 응답(REFRESH_REQUIRED)도 세션을 종료한다', async () => {
+    const { values, fetch } = session();
+    fetch.mockResolvedValueOnce(new Response(null, { status: 401 }));
+    fetch.mockResolvedValueOnce(
+      Response.json(
+        { success: false, code: 'REFRESH_REQUIRED', message: '리프레시 토큰이 필요합니다.' },
+        { status: 400 },
+      ),
+    );
+    await expect(apiRequest('/api/me')).rejects.toMatchObject({ status: 400 });
+    expect(values.has(ACCESS_TOKEN_STORAGE_KEY)).toBe(false);
+  });
+
+  it('갱신 요청의 서버 오류(5xx)는 세션을 유지해 다음 요청에서 다시 갱신한다', async () => {
+    const { values, fetch } = session();
+    fetch.mockResolvedValueOnce(new Response(null, { status: 401 }));
+    fetch.mockResolvedValueOnce(new Response(null, { status: 503 }));
+    await expect(apiRequest('/api/me')).rejects.toMatchObject({ status: 503 });
+    expect(values.get(ACCESS_TOKEN_STORAGE_KEY)).toBe('original');
+  });
 });
