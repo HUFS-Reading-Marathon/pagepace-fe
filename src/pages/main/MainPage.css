@@ -193,15 +193,30 @@
 .status-board-head b {
   display: inline-flex;
   align-items: center;
+  gap: 8px;
   height: 28px;
-  padding: 0 10px;
-  color: var(--navy-strong);
-  background: var(--blue-20);
-  border: 1px solid #cddded;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 650;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
   white-space: nowrap;
+}
+
+/* 상태 점: 참가신청 페이지 상단 상태 표시(.apply-status__state)와 같은 값 */
+.status-board-head b::before {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #aab4bf;
+  content: '';
+}
+
+.status-board-head b.is-open {
+  color: #2f7a5f;
+}
+
+.status-board-head b.is-open::before {
+  background: #22a06b;
+  box-shadow: 0 0 0 4px rgba(34, 160, 107, 0.14);
 }
 
 .hero-info-list {
