@@ -28,7 +28,7 @@ export function useScrollReveal(rootRef: RefObject<HTMLElement | null>) {
           observer.unobserve(element);
         }
       },
-      { rootMargin: '0px 0px -8% 0px' },
+      { rootMargin: '0px 0px -5% 0px' },
     );
 
     for (const element of targets) {
