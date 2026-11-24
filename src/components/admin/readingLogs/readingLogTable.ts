@@ -149,3 +149,24 @@ export function visibleLogs(
       );
     });
 }
+
+/**
+ * 처리한 일지 다음에 볼 대기 일지 후보: 보던 순서로 뒤쪽을 먼저, 그다음 앞쪽을 가까운 순으로 봅니다.
+ * 최신 목록에 남아 있는 첫 후보로 이동하고, 후보가 모두 처리됐으면 최신 목록의 첫 일지로 갑니다.
+ */
+export function nextPendingLog(
+  before: AdminReadingLogResponse[],
+  processedId: number,
+  after: AdminReadingLogResponse[],
+) {
+  const index = before.findIndex((row) => row.readingLogId === processedId);
+  const candidates =
+    index < 0 ? [] : [...before.slice(index + 1), ...before.slice(0, index).reverse()];
+  const remaining = new Set(after.map((row) => row.readingLogId));
+  remaining.delete(processedId);
+  return (
+    candidates.find((row) => remaining.has(row.readingLogId))?.readingLogId ??
+    after.find((row) => row.readingLogId !== processedId)?.readingLogId ??
+    null
+  );
+}

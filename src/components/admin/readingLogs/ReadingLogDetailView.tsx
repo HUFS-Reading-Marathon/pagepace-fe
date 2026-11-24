@@ -16,6 +16,8 @@ type Props = {
   onList: () => void;
   onPrevious?: () => void;
   onNext?: () => void;
+  /** 처리 후 다음 대기 일지로 이동 옵션. 검토 대기 목록에서 대기 일지를 볼 때만 줍니다. */
+  autoNext?: { checked: boolean; onChange: (checked: boolean) => void };
   /** 승인·반려 영역 (ReadingLogReviewPanel) */
   children?: ReactNode;
 };
@@ -31,6 +33,7 @@ export default function ReadingLogDetailView({
   onList,
   onPrevious,
   onNext,
+  autoNext,
   children,
 }: Props) {
   const heading = useRef<HTMLHeadingElement>(null);
@@ -137,6 +140,17 @@ export default function ReadingLogDetailView({
             )}
           </dl>
           {children}
+          {autoNext && (
+            <label className="log-detail__auto">
+              <input
+                type="checkbox"
+                checked={autoNext.checked}
+                disabled={busy}
+                onChange={(e) => autoNext.onChange(e.target.checked)}
+              />
+              처리 후 다음 대기 일지로 이동
+            </label>
+          )}
         </>
       )}
     </article>

@@ -13,6 +13,7 @@ import {
 import {
   DEFAULT_LOG_SORT,
   INITIAL_LOG_SEARCH,
+  nextPendingLog,
 } from '../src/components/admin/readingLogs/readingLogTable';
 import type { AdminReadingLogResponse } from '../src/types/adminReadingLogApi';
 
@@ -167,5 +168,50 @@ describe('독서일지 상세 검토 화면', () => {
     expect(html).toContain('>검토하기</button>');
     expect(html).toContain('>상세 보기</button>');
     expect(html).not.toContain('log-review__books');
+  });
+});
+
+describe('독서일지 연속 검토', () => {
+  const rows = [11, 12, 13, 14, 15].map((id) => ({ ...log, readingLogId: id }));
+  const without = (...ids: number[]) => rows.filter((row) => !ids.includes(row.readingLogId));
+
+  it('처리한 일지 다음 순서의 대기 일지로 이어 간다', () => {
+    expect(nextPendingLog(rows, 12, without(12))).toBe(13);
+  });
+
+  it('뒤쪽 후보가 모두 처리됐으면 가장 가까운 앞쪽 대기 일지로 간다', () => {
+    expect(nextPendingLog(rows, 14, without(14, 15))).toBe(13);
+    expect(nextPendingLog(rows, 15, without(15))).toBe(14);
+  });
+
+  it('다른 관리자가 처리한 후보는 건너뛰고, 처리한 일지가 아직 목록에 있어도 다시 고르지 않는다', () => {
+    expect(nextPendingLog(rows, 11, without(12, 13))).toBe(14);
+    expect(nextPendingLog(rows, 11, rows)).toBe(12);
+  });
+
+  it('남은 대기 일지가 없으면 이동하지 않고, 새로 들어온 일지만 있으면 그 일지로 간다', () => {
+    expect(nextPendingLog(rows, 11, [])).toBeNull();
+    expect(nextPendingLog([rows[0]], 11, [{ ...log, readingLogId: 99 }])).toBe(99);
+  });
+
+  it('처리 후 자동 이동 옵션은 작은 체크박스로 상세 화면 하단에 둔다', () => {
+    const html = renderToStaticMarkup(
+      <ReadingLogDetailView
+        log={log}
+        position={{ index: 0, total: 3 }}
+        onList={vi.fn()}
+        autoNext={{ checked: true, onChange: vi.fn() }}
+      >
+        <p>검토 영역</p>
+      </ReadingLogDetailView>,
+    );
+    expect(html).toMatch(
+      /<p>검토 영역<\/p><label class="log-detail__auto"><input type="checkbox" checked=""/,
+    );
+    expect(html).toContain('처리 후 다음 대기 일지로 이동');
+    const without = renderToStaticMarkup(
+      <ReadingLogDetailView log={log} position={null} onList={vi.fn()} />,
+    );
+    expect(without).not.toContain('log-detail__auto');
   });
 });

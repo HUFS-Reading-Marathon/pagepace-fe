@@ -147,6 +147,28 @@
   color: #9f3030;
 }
 
+.log-detail__feedback--warning {
+  background: #fdf7e9;
+  color: #7a5710;
+}
+
+.log-detail__auto {
+  display: inline-flex;
+  margin-top: 10px;
+  align-items: center;
+  gap: 6px;
+  color: var(--body);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.log-detail__auto input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--navy-strong);
+}
+
 .log-detail__feedback--success {
   background: #f0f7f2;
   color: #24683f;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   useLocation,
   useNavigate,
@@ -22,7 +22,9 @@ import { clampPage } from '../../components/admin/table/pagination';
 import {
   DEFAULT_LOG_SORT,
   INITIAL_LOG_SEARCH,
+  hasLogFilters,
   logCourseOptions,
+  nextPendingLog,
   visibleLogs,
   type LogSearch,
   type LogSort,
@@ -42,7 +44,7 @@ import '../../styles/admin-reading-logs.css';
 
 type ApprovalIssue = { id: number; message: string };
 /** 상세 화면 안내. 어느 일지에 대한 안내인지 함께 두어, 다른 일지로 옮기면 보이지 않게 합니다. */
-type Feedback = { logId: number; tone: 'success' | 'error'; text: string };
+type Feedback = { logId: number; tone: 'success' | 'warning' | 'error'; text: string };
 type LoadedList = {
   key: string;
   status: LogFilter | null;
@@ -58,6 +60,18 @@ const CONFLICT_CODES = [
   'READING_LOG_ALREADY_REJECTED',
   'BOOK_TOTAL_PAGES_EXCEEDED',
 ];
+
+const AUTO_NEXT_KEY = 'pagepace:admin:log-auto-next';
+const LEAVE_WITH_DRAFT =
+  '작성 중인 반려 사유가 있습니다. 이동하면 입력한 내용이 사라집니다. 이동할까요?';
+
+function readAutoNext() {
+  try {
+    return localStorage.getItem(AUTO_NEXT_KEY) !== 'false';
+  } catch {
+    return true;
+  }
+}
 
 /** 같은 일지의 두 응답 중 더 최근에 바뀐 쪽을 씁니다. */
 function newerLog(left?: AdminReadingLogResponse | null, right?: AdminReadingLogResponse | null) {
@@ -96,6 +110,12 @@ function ReadingQueue({
   const [actionError, setActionError] = useState('');
   const [processing, setProcessing] = useState(false);
   const [recent, setRecent] = useState<number | null>(null);
+  const [autoNext, setAutoNext] = useState(readAutoNext);
+  const rejectDraft = useRef(false);
+  const prefetched = useRef<string | null>(null);
+  const trackRejectDraft = useCallback((dirty: boolean) => {
+    rejectDraft.current = dirty;
+  }, []);
   const listScroll = useRef<number | null>(null);
   const mutationLock = useRef(false);
   const queueActive = useRef(true);
@@ -115,6 +135,11 @@ function ReadingQueue({
 
   useEffect(() => {
     if (linking) return;
+    // 처리 직후 이미 받아 둔 목록이면 다시 요청하지 않습니다.
+    if (prefetched.current === listKey) {
+      prefetched.current = null;
+      return;
+    }
     let active = true;
     getAdminReadingLogs({ eventId: event.eventId, status: filter === 'ALL' ? undefined : filter })
       .then((fresh) => {
@@ -196,13 +221,24 @@ function ReadingQueue({
   const index = current ? rows.findIndex((row) => row.readingLogId === current.readingLogId) : -1;
 
   // 상세에서 목록으로 돌아오면 이전 스크롤 위치와 마지막으로 본 행으로 돌아갑니다.
+  // 그 일지가 처리되어 목록에 없으면 건수 제목으로 초점을 옮깁니다.
   useEffect(() => {
     if (logId !== null || loading || listScroll.current === null) return;
     window.scrollTo(0, listScroll.current);
     listScroll.current = null;
-    if (recent !== null)
-      document.getElementById('log-review-row-' + recent)?.focus({ preventScroll: true });
+    const row = recent === null ? null : document.getElementById('log-review-row-' + recent);
+    (row ?? document.getElementById('log-review-count'))?.focus({ preventScroll: true });
   }, [logId, loading, recent]);
+
+  // 반려 사유를 쓰는 중에 새로고침하거나 창을 닫으면 브라우저 확인 창을 띄웁니다.
+  useEffect(() => {
+    if (logId === null) return;
+    const warn = (e: BeforeUnloadEvent) => {
+      if (rejectDraft.current) e.preventDefault();
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [logId]);
 
   function clearChecks() {
     setChecked(new Set());
@@ -230,9 +266,17 @@ function ReadingQueue({
     setReloadTick((tick) => tick + 1);
   }
 
+  /** 반려 사유를 쓰는 중이면 이동 전에 확인합니다. */
+  function canLeave() {
+    if (!rejectDraft.current) return true;
+    if (!window.confirm(LEAVE_WITH_DRAFT)) return false;
+    rejectDraft.current = false;
+    return true;
+  }
+
   /** 상세 화면 열기. 목록에서 들어오면 기록을 쌓고, 상세 안에서의 이동은 기록을 바꿔 뒤로 가기가 목록으로 가게 합니다. */
-  function openLog(id: number, fromDetail = false) {
-    const position = rows.findIndex((row) => row.readingLogId === id);
+  function openLog(id: number, fromDetail = false, sourceRows = rows) {
+    const position = sourceRows.findIndex((row) => row.readingLogId === id);
     const page = position >= 0 ? Math.floor(position / pageSize) : list.page;
     if (!fromDetail) listScroll.current = window.scrollY;
     clearChecks();
@@ -252,6 +296,11 @@ function ReadingQueue({
     else setParams(logListParams(params), { replace: true });
   }
 
+  /**
+   * 승인·반려. 서버가 성공을 돌려준 뒤에만 결과를 반영합니다. 검토 대기 목록에서 자동 이동이 켜져 있으면
+   * 최신 대기 목록을 다시 받아 같은 조건의 다음 일지로 옮기고, 남은 일지가 없으면 목록으로 돌아갑니다.
+   * 실패·충돌이면 이동하지 않고 현재 일지에 머뭅니다.
+   */
   async function review(log: AdminReadingLogResponse, reason?: string) {
     if (mutationLock.current || loading || frozen || log.status !== 'SUBMITTED') return false;
     mutationLock.current = true;
@@ -259,38 +308,74 @@ function ReadingQueue({
     setActionError('');
     setDetailFeedback(null);
     const verb = reason === undefined ? '승인' : '반려';
+    const before = rows;
     try {
-      const updated =
-        reason === undefined
-          ? await approveAdminReadingLog(log.readingLogId, log.updatedAt)
-          : await rejectAdminReadingLog(log.readingLogId, {
-              reason,
-              expectedUpdatedAt: log.updatedAt,
-            });
-      setDetailFeedback({
-        logId: log.readingLogId,
-        tone: 'success',
-        text: `${log.userName} 님의 일지를 ${verb}했습니다.`,
-      });
+      let updated: AdminReadingLogResponse | null;
+      try {
+        updated =
+          reason === undefined
+            ? await approveAdminReadingLog(log.readingLogId, log.updatedAt)
+            : await rejectAdminReadingLog(log.readingLogId, {
+                reason,
+                expectedUpdatedAt: log.updatedAt,
+              });
+      } catch (e) {
+        if (e instanceof ApiError && CONFLICT_CODES.includes(e.code ?? '')) {
+          setDetailFeedback({
+            logId: log.readingLogId,
+            tone: 'error',
+            text:
+              e.code === 'BOOK_TOTAL_PAGES_EXCEEDED'
+                ? '같은 책의 승인 쪽수가 달라졌습니다. 최신 내용을 확인해 주세요.'
+                : '일지 내용 또는 처리 상태가 바뀌었습니다. 최신 내용을 확인해 주세요.',
+          });
+          setDetailTick((tick) => tick + 1);
+          reload();
+        } else {
+          setActionError(getApiErrorMessage(e, '일지를 처리하지 못했습니다.'));
+        }
+        return false;
+      }
+
+      rejectDraft.current = false;
+      const done = `${log.userName} 님의 일지를 ${verb}했습니다.`;
       if (updated) setFetched({ id: log.readingLogId, tick: detailTick, log: updated, error: '' });
-      reload();
-      return true;
-    } catch (e) {
-      if (e instanceof ApiError && CONFLICT_CODES.includes(e.code ?? '')) {
+      if (!autoNext || filter !== 'SUBMITTED') {
+        setDetailFeedback({ logId: log.readingLogId, tone: 'success', text: done });
+        reload();
+        return true;
+      }
+
+      let fresh: AdminReadingLogResponse[];
+      try {
+        fresh = await getAdminReadingLogs({ eventId: event.eventId, status: 'SUBMITTED' });
+      } catch {
+        // 처리는 끝났으므로 실패로 알리거나 다시 보내지 않습니다. 이동만 멈추고 두 결과를 나눠 알립니다.
         setDetailFeedback({
           logId: log.readingLogId,
-          tone: 'error',
-          text:
-            e.code === 'BOOK_TOTAL_PAGES_EXCEEDED'
-              ? '같은 책의 승인 쪽수가 달라졌습니다. 최신 내용을 확인해 주세요.'
-              : '일지 내용 또는 처리 상태가 바뀌었습니다. 최신 내용을 확인해 주세요.',
+          tone: 'warning',
+          text: `${done} 다만 다음 검토 대기 목록을 불러오지 못해 이동하지 않았습니다. 목록에서 다시 조회해 주세요.`,
         });
-        setDetailTick((tick) => tick + 1);
         reload();
-      } else {
-        setActionError(getApiErrorMessage(e, '일지를 처리하지 못했습니다.'));
+        return true;
       }
-      return false;
+      if (!queueActive.current) return true;
+      const tick = reloadTick + 1;
+      prefetched.current = filter + ':' + tick;
+      setReloadTick(tick);
+      setLoaded({ key: filter + ':' + tick, status: filter, logs: fresh, error: '' });
+      const nextRows = visibleLogs(fresh, search);
+      const nextId = nextPendingLog(before, log.readingLogId, nextRows);
+      if (nextId !== null) {
+        openLog(nextId, true, nextRows);
+        setDetailFeedback({ logId: nextId, tone: 'success', text: `${done} 다음 일지입니다.` });
+      } else {
+        backToList();
+        setFeedback(
+          `${done} ${hasLogFilters(search) ? '현재 조건에 남은' : '남은'} 검토 대기 일지가 없습니다.`,
+        );
+      }
+      return true;
     } finally {
       mutationLock.current = false;
       setProcessing(false);
@@ -372,11 +457,28 @@ function ReadingQueue({
             </p>
           )
         }
-        onList={backToList}
-        onPrevious={index > 0 ? () => openLog(rows[index - 1].readingLogId, true) : undefined}
+        onList={() => canLeave() && backToList()}
+        onPrevious={
+          index > 0 ? () => canLeave() && openLog(rows[index - 1].readingLogId, true) : undefined
+        }
         onNext={
           index >= 0 && index < rows.length - 1
-            ? () => openLog(rows[index + 1].readingLogId, true)
+            ? () => canLeave() && openLog(rows[index + 1].readingLogId, true)
+            : undefined
+        }
+        autoNext={
+          filter === 'SUBMITTED' && current?.status === 'SUBMITTED' && !frozen
+            ? {
+                checked: autoNext,
+                onChange: (checked) => {
+                  setAutoNext(checked);
+                  try {
+                    localStorage.setItem(AUTO_NEXT_KEY, String(checked));
+                  } catch {
+                    /* 저장하지 못해도 이번 화면에서는 그대로 동작합니다. */
+                  }
+                },
+              }
             : undefined
         }
       >
@@ -389,6 +491,7 @@ function ReadingQueue({
             actionError={actionError}
             onApprove={() => review(current)}
             onReject={(reason) => review(current, reason)}
+            onRejectDraftChange={trackRejectDraft}
           />
         )}
       </ReadingLogDetailView>
