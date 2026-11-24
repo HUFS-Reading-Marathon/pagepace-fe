@@ -1,275 +1,473 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useLocation,
+  useNavigate,
+  useSearchParams,
+  type SetURLSearchParams,
+} from 'react-router-dom';
+import { ApiError, getApiErrorMessage } from '../../api/apiClient';
 import { getAdminEvents } from '../../api/adminEventApi';
-import { searchBooks } from '../../api/bookApi';
 import {
   approveBookRequest,
   getBookRequests,
   rejectBookRequest,
-  REQUEST_REASON_LABELS,
-  REQUEST_STATUS_LABELS,
   type BookRequest,
 } from '../../api/bookRequestApi';
-import { getApiErrorMessage } from '../../api/apiClient';
-import { preferredAdminEvent } from '../../utils/eventSelection';
-import { useAdminEventState } from '../../hooks/useAdminEventState';
+import BookRequestDetail from '../../components/admin/bookRequests/BookRequestDetail';
+import BookRequestProcessPanel from '../../components/admin/bookRequests/BookRequestProcessPanel';
+import BookRequestTable from '../../components/admin/bookRequests/BookRequestTable';
+import {
+  bookRequestCounts,
+  INITIAL_BOOK_REQUEST_SEARCH,
+  parseRequestId,
+  readBookRequestListState,
+  visibleBookRequests,
+  writeBookRequestListState,
+  type BookRequestListState,
+} from '../../components/admin/bookRequests/bookRequestList';
+import { clampPage } from '../../components/admin/table/pagination';
+import { nextCandidateId } from '../../components/admin/table/queueNavigation';
 import type { AdminEvent } from '../../types/adminEvent';
-import type { BookSearchResult } from '../../types/book';
-import '../logs/book-requests.css';
+import { resolveAdminQueueEvent } from '../../utils/adminEvent';
+import { selectEvent } from '../../utils/eventSelection';
+import '../../styles/admin-participants.css';
 
-function RequestReview({
-  row,
-  onChange,
+type NavigationState = { fromList?: boolean } | null;
+type Feedback = { requestId: number; tone: 'success' | 'warning' | 'error'; text: string };
+
+const AUTO_NEXT_KEY = 'pagepace:admin:book-request-auto-next';
+const LEAVE_WITH_DRAFT =
+  '선택한 판본이나 작성 중인 반려 사유가 있습니다. 이동하면 입력한 내용이 사라집니다. 이동할까요?';
+/** 다른 관리자가 먼저 처리한 요청 (서버 ConflictException 코드) */
+const PROCESSED_CODES = ['BOOK_REQUEST_PROCESSED'];
+
+function readAutoNext() {
+  try {
+    return localStorage.getItem(AUTO_NEXT_KEY) !== 'false';
+  } catch {
+    return true;
+  }
+}
+
+function BookRequestQueue({
+  event,
+  params,
+  setParams,
 }: {
-  row: BookRequest;
-  onChange: (updated: BookRequest) => void;
+  event: AdminEvent;
+  params: URLSearchParams;
+  setParams: SetURLSearchParams;
 }) {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState(row.isbn || row.title);
-  const [found, setFound] = useState<BookSearchResult[]>([]);
-  const [selected, setSelected] = useState<BookSearchResult | null>(null);
-  const [total, setTotal] = useState('');
-  const [reason, setReason] = useState('');
-  const [message, setMessage] = useState('');
-  const [busy, setBusy] = useState(false);
-  const search = async (e: FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    setSelected(null);
-    setFound([]);
-    setMessage('');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const navigationState = location.state as NavigationState;
+  const fromList = navigationState?.fromList === true;
+  const listState = useMemo(() => readBookRequestListState(params), [params]);
+  const { search, pageSize } = listState;
+  // requestId가 있으면 상세 화면입니다.
+  const selectedId = parseRequestId(params.get('requestId'));
+
+  const [rows, setRows] = useState<BookRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [listError, setListError] = useState('');
+  const [reloading, setReloading] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const processingRef = useRef(false);
+  const [listFeedback, setListFeedback] = useState('');
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [recent, setRecent] = useState<number | null>(null);
+  const [autoNext, setAutoNext] = useState(readAutoNext);
+  const draft = useRef(false);
+  const [hasDraft, setHasDraft] = useState(false);
+  const trackDraft = useCallback((dirty: boolean) => {
+    draft.current = dirty;
+    setHasDraft(dirty);
+  }, []);
+  const listScroll = useRef<number | null>(null);
+
+  /** 최신 요청 목록. 실패하면 마지막 목록을 그대로 두고 null을 돌려줍니다. */
+  const refresh = useCallback(async () => {
     try {
-      const books = await searchBooks(query);
-      setFound(books);
-      if (!books.length)
-        setMessage('일치하는 소장 자료가 없습니다. 제목이나 ISBN을 확인해 주세요.');
+      const next = await getBookRequests(event.eventId, true);
+      setRows(next);
+      setHasLoaded(true);
+      setListError('');
+      return next;
     } catch (error) {
-      setMessage(getApiErrorMessage(error, '서지를 조회하지 못했습니다.'));
+      setListError(getApiErrorMessage(error, '도서 확인 요청을 불러오지 못했습니다.'));
+      return null;
+    }
+  }, [event.eventId]);
+
+  useEffect(() => {
+    let active = true;
+    getBookRequests(event.eventId, true)
+      .then((next) => {
+        if (!active) return;
+        setRows(next);
+        setHasLoaded(true);
+      })
+      .catch((error) => {
+        if (active)
+          setListError(getApiErrorMessage(error, '도서 확인 요청을 불러오지 못했습니다.'));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [event.eventId]);
+
+  const counts = useMemo(() => bookRequestCounts(rows), [rows]);
+  const visible = useMemo(() => visibleBookRequests(rows, search), [rows, search]);
+  const currentPage = clampPage(listState.page, visible.length, pageSize);
+  const pageRows = visible.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+  const active =
+    selectedId === null || Number.isNaN(selectedId)
+      ? undefined
+      : rows.find((row) => row.id === selectedId);
+  const activeIndex = active ? visible.indexOf(active) : -1;
+
+  // 다른 화면에서 처리된 요청을 바로 열면, 그 상태로 목록 조건을 맞춰 이전·다음 이동을 그 안에서 합니다.
+  const adoptFilter =
+    !loading && !!active && !params.has('status') && !fromList && active.status !== 'PENDING';
+  useEffect(() => {
+    if (!adoptFilter || !active) return;
+    const next = new URLSearchParams(params);
+    next.set('status', active.status);
+    setParams(next, { replace: true, state: navigationState });
+  }, [adoptFilter, active, params, setParams, navigationState]);
+
+  // 상세에서 목록으로 돌아오면 이전 스크롤 위치와 마지막으로 본 행으로 돌아갑니다.
+  const wasDetail = useRef(false);
+  useEffect(() => {
+    if (selectedId !== null) {
+      wasDetail.current = true;
+      return;
+    }
+    if (!wasDetail.current) return;
+    wasDetail.current = false;
+    window.scrollTo(0, listScroll.current ?? 0);
+    listScroll.current = null;
+    const row = recent === null ? null : document.getElementById('book-request-row-' + recent);
+    (row ?? document.getElementById('book-request-count'))?.focus({ preventScroll: true });
+  }, [selectedId, recent]);
+
+  // 처리 전 입력이 있을 때 새로고침하거나 창을 닫으면 브라우저 확인 창을 띄웁니다.
+  useEffect(() => {
+    if (!hasDraft) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [hasDraft]);
+
+  /** 목록 조건 변경: 빠르게 이어지는 입력이 서로 덮어쓰지 않도록 최신 주소 파라미터를 기준으로 계산합니다. */
+  const setList = (update: (current: BookRequestListState) => Partial<BookRequestListState>) => {
+    setListFeedback('');
+    setParams(
+      (latest) => {
+        const current = readBookRequestListState(latest);
+        return writeBookRequestListState(latest, { ...current, ...update(current) });
+      },
+      { replace: true },
+    );
+  };
+
+  const canLeave = () => {
+    if (!draft.current) return true;
+    if (!window.confirm(LEAVE_WITH_DRAFT)) return false;
+    trackDraft(false);
+    return true;
+  };
+
+  /** 상세 화면 열기. 목록에서 들어오면 기록을 쌓고, 상세 안에서의 이동은 기록을 바꿔 뒤로 가기가 목록으로 가게 합니다. */
+  const openRequest = (requestId: number, fromDetail = false, sourceRows = visible) => {
+    const position = sourceRows.findIndex((row) => row.id === requestId);
+    const page = position >= 0 ? Math.floor(position / pageSize) : listState.page;
+    if (!fromDetail) listScroll.current = window.scrollY;
+    setRecent(requestId);
+    const next = writeBookRequestListState(params, { ...listState, page });
+    next.set('requestId', String(requestId));
+    setParams(next, { replace: fromDetail, state: { fromList: fromDetail ? fromList : true } });
+  };
+
+  const backToList = (message = '') => {
+    setFeedback(null);
+    setListFeedback(message);
+    if (fromList) {
+      navigate(-1);
+      return;
+    }
+    const next = new URLSearchParams(params);
+    next.delete('requestId');
+    setParams(next, { replace: true });
+  };
+
+  const retryList = async () => {
+    if (reloading) return;
+    setReloading(true);
+    setListFeedback('');
+    await refresh();
+    setReloading(false);
+  };
+
+  /**
+   * 서버에서 처리가 성공한 뒤에만 결과를 반영합니다. 확인 대기 목록에서 자동 이동이 켜져 있으면 최신 목록을
+   * 다시 받아 같은 검색·정렬 조건의 다음 대기 요청으로 옮기고, 남은 요청이 없으면 목록으로 돌아갑니다.
+   * 실패하면 현재 요청과 입력한 값을 그대로 둡니다.
+   */
+  const process = async (
+    request: BookRequest,
+    send: () => Promise<BookRequest>,
+    done: (updated: BookRequest) => string,
+  ) => {
+    if (processingRef.current) return false;
+    processingRef.current = true;
+    setProcessing(true);
+    setFeedback(null);
+    const beforeIds = visible.map((row) => row.id);
+    try {
+      let updated: BookRequest;
+      try {
+        updated = await send();
+      } catch (error) {
+        if (error instanceof ApiError && PROCESSED_CODES.includes(error.code ?? '')) {
+          // 다른 관리자가 먼저 처리했습니다. 최신 상태를 불러오고 이 요청에 머뭅니다.
+          // 서버에서 처리된 요청이면 처리 영역이 사라지고, 아직 대기라면 입력한 값을 그대로 둡니다.
+          await refresh();
+          setFeedback({
+            requestId: request.id,
+            tone: 'warning',
+            text: `${getApiErrorMessage(error, '이미 처리된 요청입니다.')} 최신 상태를 불러왔습니다.`,
+          });
+        } else {
+          setFeedback({
+            requestId: request.id,
+            tone: 'error',
+            text: getApiErrorMessage(error, '요청을 처리하지 못했습니다. 다시 시도해 주세요.'),
+          });
+        }
+        return false;
+      }
+
+      setRows((current) => current.map((row) => (row.id === updated.id ? updated : row)));
+      trackDraft(false);
+      const message = done(updated);
+      if (!autoNext || search.filter !== 'PENDING') {
+        setFeedback({ requestId: request.id, tone: 'success', text: message });
+        return true;
+      }
+      const fresh = await refresh();
+      if (!fresh) {
+        setFeedback({
+          requestId: request.id,
+          tone: 'warning',
+          text: `${message} 다음 요청 목록을 불러오지 못해 이 화면에 머뭅니다. 목록을 새로고침해 주세요.`,
+        });
+        return true;
+      }
+      const nextRows = visibleBookRequests(fresh, search);
+      const nextId = nextCandidateId(
+        beforeIds,
+        request.id,
+        nextRows.map((row) => row.id),
+      );
+      if (nextId === null) {
+        backToList(`${message} 남은 확인 대기 요청이 없습니다.`);
+      } else {
+        setFeedback({ requestId: nextId, tone: 'success', text: `${message} 다음 요청입니다.` });
+        openRequest(nextId, true, nextRows);
+      }
+      return true;
     } finally {
-      setBusy(false);
+      processingRef.current = false;
+      setProcessing(false);
     }
   };
-  const review = async (accept: boolean) => {
-    if (
-      busy ||
-      (accept &&
-        (!selected || !Number.isSafeInteger(Number(total)) || Number(total) < row.readPages)) ||
-      (!accept && !reason.trim())
-    )
-      return;
-    if (
-      !window.confirm(
-        accept
-          ? `${row.participantName}님의 ${row.readPages}쪽을 확인한 판본으로 일반 일지 심사에 보낼까요?`
-          : '사유와 함께 확인 요청을 반려할까요?',
-      )
-    )
-      return;
-    setBusy(true);
-    setMessage('');
-    try {
-      const updated =
-        accept && selected
-          ? await approveBookRequest(row.id, {
-              libraryBookId: selected.libraryBookId,
-              bookTitle: selected.title,
-              totalBookPages: Number(total),
-              author: selected.author,
-              publisher: selected.publisher,
-              isbn: selected.isbn,
-              callNo: selected.callNo,
-              coverImageUrl: selected.thumbnailUrl,
-            })
-          : await rejectBookRequest(row.id, reason.trim());
-      onChange(updated);
-      setOpen(false);
-    } catch (error) {
-      setMessage(getApiErrorMessage(error, '요청을 처리하지 못했습니다.'));
-    } finally {
-      setBusy(false);
-    }
-  };
+
+  if (selectedId !== null) {
+    const invalid = Number.isNaN(selectedId);
+    const detailError = invalid
+      ? '요청 번호가 올바르지 않습니다.'
+      : !loading && !active
+        ? listError && !hasLoaded
+          ? listError
+          : '이 행사에서 해당 도서 확인 요청을 찾을 수 없습니다.'
+        : '';
+    const go = (offset: number) => {
+      const target = visible[activeIndex + offset];
+      if (target && canLeave()) {
+        setFeedback(null);
+        openRequest(target.id, true);
+      }
+    };
+    const shownFeedback = feedback && active && feedback.requestId === active.id ? feedback : null;
+    return (
+      <BookRequestDetail
+        request={active ?? null}
+        position={activeIndex >= 0 ? { index: activeIndex, total: visible.length } : null}
+        loading={loading}
+        error={detailError}
+        busy={processing}
+        feedback={
+          shownFeedback && (
+            <p
+              className={`log-detail__feedback log-detail__feedback--${shownFeedback.tone}`}
+              role={shownFeedback.tone === 'error' ? 'alert' : 'status'}
+            >
+              {shownFeedback.text}
+            </p>
+          )
+        }
+        onList={() => canLeave() && backToList()}
+        onPrevious={activeIndex > 0 ? () => go(-1) : undefined}
+        onNext={activeIndex >= 0 && activeIndex < visible.length - 1 ? () => go(1) : undefined}
+        autoNext={
+          active?.status === 'PENDING' && search.filter === 'PENDING'
+            ? {
+                checked: autoNext,
+                onChange: (checked) => {
+                  setAutoNext(checked);
+                  try {
+                    localStorage.setItem(AUTO_NEXT_KEY, String(checked));
+                  } catch {
+                    /* 저장하지 못해도 이번 화면에서는 그대로 동작합니다. */
+                  }
+                },
+              }
+            : undefined
+        }
+      >
+        {active?.status === 'PENDING' && (
+          <BookRequestProcessPanel
+            key={active.id}
+            request={active}
+            processing={processing}
+            onDraftChange={trackDraft}
+            onApprove={(book) =>
+              process(
+                active,
+                () => approveBookRequest(active.id, book),
+                () =>
+                  `${active.participantName} 님의 요청을 “${book.bookTitle}” 판본으로 일지 심사에 이관했습니다.`,
+              )
+            }
+            onReject={(reason) =>
+              process(
+                active,
+                () => rejectBookRequest(active.id, reason),
+                () => `${active.participantName} 님의 요청을 반려했습니다.`,
+              )
+            }
+          />
+        )}
+      </BookRequestDetail>
+    );
+  }
+
   return (
-    <article>
-      <h3>{row.title}</h3>
-      <p>
-        {row.participantName} · {row.studentNo} · {row.readingDate} · {row.readPages}쪽 ·{' '}
-        {REQUEST_STATUS_LABELS[row.status]}
-      </p>
-      <p>
-        {REQUEST_REASON_LABELS[row.reason]} ·{' '}
-        {[row.author, row.publisher, row.isbn].filter(Boolean).join(' / ')}
-      </p>
-      {row.note && <p>{row.note}</p>}
-      {row.rejectReason && <p>반려 사유 · {row.rejectReason}</p>}
-      {row.readingLogId && (
-        <Link to={`/admin/logs?eventId=${row.eventId}&logId=${row.readingLogId}`}>
-          이관된 일지 검토
-        </Link>
-      )}
-      {row.status === 'PENDING' && (
-        <button
-          type="button"
-          className="admin-button"
-          onClick={() => setOpen(!open)}
-          disabled={busy}
-        >
-          {open ? '검토 접기' : '판본 확인·처리'}
-        </button>
-      )}
-      {open && row.status === 'PENDING' && (
-        <>
-          <form onSubmit={search}>
-            <label>
-              소장 도서 또는 ISBN
-              <input
-                required
-                value={query}
-                disabled={busy}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  setFound([]);
-                  setSelected(null);
-                }}
-              />
-            </label>
-            <button disabled={busy || !query.trim()}>소장 서지 검색</button>
-          </form>
-          {found.length > 0 && (
-            <label>
-              확인한 실물 판본
-              <select
-                value={selected?.libraryBookId ?? ''}
-                disabled={busy}
-                onChange={(e) => {
-                  const next =
-                    found.find((b) => b.libraryBookId === Number(e.target.value)) ?? null;
-                  setSelected(next);
-                  setTotal(next?.pageCount ? String(next.pageCount) : '');
-                }}
-              >
-                <option value="">판본 선택</option>
-                {found.map((b) => (
-                  <option value={b.libraryBookId} key={b.libraryBookId}>
-                    {[b.title, b.author, b.publisher, b.isbn].filter(Boolean).join(' · ')}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          {selected && (
-            <>
-              <label>
-                확인한 종이책 총쪽수
-                <input
-                  type="number"
-                  min={row.readPages}
-                  value={total}
-                  disabled={busy}
-                  onChange={(e) => setTotal(e.target.value)}
-                />
-              </label>
-              <button
-                disabled={
-                  busy || !Number.isSafeInteger(Number(total)) || Number(total) < row.readPages
-                }
-                onClick={() => void review(true)}
-              >
-                일지 심사로 이관
-              </button>
-            </>
-          )}
-          <label>
-            반려 사유
-            <textarea
-              maxLength={1000}
-              value={reason}
-              disabled={busy}
-              onChange={(e) => setReason(e.target.value)}
-            />
-          </label>
-          <button disabled={busy || !reason.trim()} onClick={() => void review(false)}>
-            요청 반려
-          </button>
-        </>
-      )}
-      {message && <p role="status">{message}</p>}
-    </article>
+    <BookRequestTable
+      rows={pageRows}
+      total={visible.length}
+      page={currentPage}
+      pageSize={pageSize}
+      search={search}
+      counts={counts}
+      loading={loading}
+      busy={reloading}
+      error={listError}
+      hasLoaded={hasLoaded}
+      feedback={listFeedback}
+      recent={recent}
+      onSearch={(patch) =>
+        setList((current) => ({ search: { ...current.search, ...patch }, page: 0 }))
+      }
+      onReset={() => setList(() => ({ search: INITIAL_BOOK_REQUEST_SEARCH, page: 0 }))}
+      onRefresh={() => void retryList()}
+      onPage={(page) => setList(() => ({ page }))}
+      onPageSize={(size) => setList(() => ({ pageSize: size, page: 0 }))}
+      onOpen={(row) => openRequest(row.id)}
+    />
   );
 }
 
+/** 관리자 도서 확인 요청: 확인 대기 요청 표와 요청별 독립 검토 화면 */
 export default function AdminBookRequestsPage() {
+  const [params, setParams] = useSearchParams();
+  const [attempt, setAttempt] = useState(0);
   const [events, setEvents] = useState<AdminEvent[]>([]);
-  const [eventId, setEventId] = useAdminEventState();
-  const [rows, setRows] = useState<BookRequest[]>([]);
-  const [message, setMessage] = useState('');
-  const [reload, setReload] = useState(0);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     let active = true;
     getAdminEvents()
       .then((list) => {
-        if (active) {
-          setEvents(list);
-          setEventId(preferredAdminEvent(list)?.eventId ?? null);
-        }
+        if (active) setEvents(list);
       })
       .catch((e) => {
-        if (active) setMessage(getApiErrorMessage(e, '행사를 조회하지 못했습니다.'));
+        if (active) setError(getApiErrorMessage(e, '행사 목록을 불러오지 못했습니다.'));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
       });
     return () => {
       active = false;
     };
-  }, [setEventId]);
-  useEffect(() => {
-    if (!eventId) return;
-    let active = true;
-    getBookRequests(eventId, true)
-      .then((list) => {
-        if (active) {
-          setRows(list);
-          setMessage(list.length ? '' : '이 행사의 도서 확인 요청이 없습니다.');
-        }
-      })
-      .catch((e) => {
-        if (active) setMessage(getApiErrorMessage(e, '요청을 조회하지 못했습니다.'));
-      });
-    return () => {
-      active = false;
-    };
-  }, [eventId, reload]);
+  }, [attempt]);
+  const event = resolveAdminQueueEvent(events, params.get('eventId'));
   return (
-    <section className="admin-page book-requests">
-      <h1>도서 확인 요청</h1>
-      <label>
-        관리 행사
-        <select
-          value={eventId ?? ''}
-          onChange={(e) => {
-            setRows([]);
-            setMessage('');
-            setEventId(Number(e.target.value));
-          }}
-        >
-          {events.map((e) => (
-            <option value={e.eventId} key={e.eventId}>
-              {e.title}
-            </option>
-          ))}
-        </select>
-      </label>
-      <button className="admin-button" onClick={() => setReload((n) => n + 1)}>
-        목록 새로고침
-      </button>
-      {message && <p role="status">{message}</p>}
-      {rows.map((row) => (
-        <RequestReview
-          key={row.id}
-          row={row}
-          onChange={(updated) =>
-            setRows((previous) => previous.map((item) => (item.id === updated.id ? updated : item)))
-          }
-        />
-      ))}
+    <section className="admin-page admin-book-requests">
+      <header className="roster-heading">
+        <h1>도서 확인 요청</h1>
+        <div className="roster-heading-actions">
+          <label>
+            관리 행사
+            <select
+              value={event?.eventId ?? ''}
+              onChange={(e) => {
+                selectEvent('admin', Number(e.target.value));
+                setParams({ eventId: e.target.value });
+              }}
+            >
+              {!event && <option value="">행사 선택</option>}
+              {events.map((item) => (
+                <option key={item.eventId} value={item.eventId}>
+                  {item.title}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </header>
+      {error && (
+        <div className="roster-error" role="alert">
+          {error}
+          <button
+            type="button"
+            className="roster-link"
+            onClick={() => {
+              setError('');
+              setLoading(true);
+              setAttempt((value) => value + 1);
+            }}
+          >
+            다시 조회
+          </button>
+        </div>
+      )}
+      {event ? (
+        <BookRequestQueue key={event.eventId} event={event} params={params} setParams={setParams} />
+      ) : (
+        !loading &&
+        !error &&
+        (params.get('eventId') !== null && events.length ? (
+          <p role="status">링크의 행사를 찾을 수 없습니다. 관리 행사를 선택해 주세요.</p>
+        ) : (
+          <p role="status">관리할 행사를 선택해 주세요.</p>
+        ))
+      )}
     </section>
   );
 }
