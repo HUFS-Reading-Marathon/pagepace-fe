@@ -1,0 +1,92 @@
+/* 행사안내·코스 및 혜택·참여방법: 메인페이지 콘텐츠 블록을 흰 바탕 한 페이지에 순서대로 배치 */
+.info-page__section {
+  margin-top: 36px;
+}
+
+.info-page__section > h2 {
+  margin: 0 0 14px;
+  color: #172838;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.info-page__text {
+  margin: 16px 0 0;
+  color: #39495a;
+  font-size: 16px;
+  line-height: 1.8;
+  white-space: pre-line;
+}
+
+.info-page__facts {
+  display: grid;
+  margin: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+}
+
+.info-page__facts div {
+  padding: 16px 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+.info-page__facts dt {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.info-page__facts dd {
+  margin: 6px 0 0;
+  color: #172838;
+  font-size: 18px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.info-page__message {
+  margin: 24px 0 0;
+  padding: 40px 16px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 15px;
+  text-align: center;
+}
+
+.info-page__links {
+  margin: 14px 0 0;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.info-page__links a {
+  color: var(--navy-strong);
+}
+
+.user-page__cta {
+  display: flex;
+  margin-top: 40px;
+  padding-top: 24px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--line);
+}
+
+.user-page__cta p {
+  margin: 0;
+  color: #39495a;
+  font-size: 16px;
+}
+
+@media (max-width: 640px) {
+  .info-page__facts {
+    grid-template-columns: 1fr;
+  }
+
+  .user-page__cta .btn {
+    width: 100%;
+  }
+}

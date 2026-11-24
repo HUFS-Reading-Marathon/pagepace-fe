@@ -1,16 +1,17 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth';
-import { ApiError } from '../../api/apiClient';
-import { getCurrentEvent, getEventCourses, type CurrentEvent } from '../../api/eventApi';
 import { getCurrentParticipation } from '../../api/participationApi';
 import { getMyReadingLogs } from '../../api/readingLogApi';
 import { getNotices, type Notice } from '../../api/noticeApi';
 import CourseBenefitTable from '../../components/main/CourseBenefitTable';
+import EventAboutCard from '../../components/main/EventAboutCard';
+import EventContactCard from '../../components/main/EventContactCard';
 import EventStatusBoard from '../../components/main/EventStatusBoard';
 import MainNoticeList from '../../components/main/MainNoticeList';
 import MyRecordDashboard from '../../components/main/MyRecordDashboard';
-import ProcessStepIcon from '../../components/main/ProcessStepIcon';
+import ParticipationChecklist from '../../components/main/ParticipationChecklist';
+import ProcessGuide from '../../components/main/ProcessGuide';
 import type { MyParticipation } from '../../types/participation';
 import { getExternalLinkAttrs } from '../../utils/links';
 import { formatKoDateKey } from '../../utils/date';
@@ -18,15 +19,8 @@ import {
   getApplicationAvailability,
   getApplicationClosedMessage,
 } from '../../utils/eventSelection';
-import {
-  CHECK_ITEMS,
-  PROCESS_STEPS,
-  QUICK_LINKS,
-  SUMMARY_ITEMS,
-  toCourseRow,
-  type CourseRow,
-  type MyRecordSummary,
-} from './mainPageContent';
+import { QUICK_LINKS, SUMMARY_ITEMS, type MyRecordSummary } from './mainPageContent';
+import { useCurrentEventInfo } from './useCurrentEventInfo';
 import { useScrollReveal } from './useScrollReveal';
 import './MainPage.css';
 
@@ -61,14 +55,11 @@ function MainPage() {
   const { hash } = useLocation();
   const { user, isAuthenticated, isInitializing } = useAuth();
   const displayName = user?.name || '참가자';
-  const [currentEvent, setCurrentEvent] = useState<CurrentEvent | null>(null);
-  const [eventCourses, setEventCourses] = useState<CourseRow[]>([]);
+  const { currentEvent, eventCourses, eventError } = useCurrentEventInfo();
   const [myParticipation, setMyParticipation] = useState<MyParticipation | null>(null);
   const [approvedLogs, setApprovedLogs] = useState(0);
   const [lastSubmittedAt, setLastSubmittedAt] = useState('-');
   const [notices, setNotices] = useState<Notice[]>([]);
-  // 'missing': 공개된 행사가 없음(404 EVENT_NOT_FOUND), 'failed': 그 외 조회 실패
-  const [eventError, setEventError] = useState<'missing' | 'failed' | null>(null);
   const [noticeError, setNoticeError] = useState('');
   const mainRef = useRef<HTMLElement>(null);
   useScrollReveal(mainRef);
@@ -85,20 +76,6 @@ function MainPage() {
     getNotices()
       .then(setNotices)
       .catch(() => setNoticeError('공지사항을 불러오지 못했습니다.'));
-  }, []);
-
-  useEffect(() => {
-    getCurrentEvent()
-      .then(async (event) => {
-        setCurrentEvent(event);
-        const courses = await getEventCourses(event.eventId);
-        setEventCourses(courses.map(toCourseRow));
-      })
-      .catch((error: unknown) =>
-        setEventError(
-          error instanceof ApiError && error.code === 'EVENT_NOT_FOUND' ? 'missing' : 'failed',
-        ),
-      );
   }, []);
 
   useEffect(() => {
@@ -127,8 +104,6 @@ function MainPage() {
   const eventTitle = currentEvent?.title ?? '독서마라톤';
   const contactPhone = currentEvent?.contactPhone?.trim() ?? '';
   const contactEmail = currentEvent?.contactEmail?.trim() ?? '';
-  const kakaoOpenChatUrl = currentEvent?.kakaoOpenChatUrl?.trim() ?? '';
-  const hasKakaoOpenChat = /^https?:\/\//.test(kakaoOpenChatUrl);
   // 행사에 등록되지 않은 값은 빈 행으로 두지 않고 숨깁니다.
   const heroInfo: [string, string][] = currentEvent
     ? (
@@ -334,29 +309,7 @@ function MainPage() {
             </div>
           </div>
 
-          <article className="official-card about-card">
-            <h3>독서마라톤이란?</h3>
-            <p>
-              읽은 쪽수를 거리로 환산해 누적하고, 선택한 코스의 목표 거리에 도달하면 완주로
-              인정합니다. 독서일지는 접수기간 안에 제출하며, 인정 여부는 도서관 기준에 따라
-              결정됩니다.
-            </p>
-
-            <div className="about-highlight" aria-label="독서마라톤 핵심 수치">
-              <div>
-                <b>1쪽 = 5m</b>
-                <span>독서량을 거리로 환산</span>
-              </div>
-              <div>
-                <b>접수기간 내 제출</b>
-                <span>독서일지 접수기간에 기록 제출</span>
-              </div>
-              <div>
-                <b>{eventCourses.length}개 코스</b>
-                <span>공개된 코스 중 선택</span>
-              </div>
-            </div>
-          </article>
+          <EventAboutCard courseCount={eventCourses.length} />
         </div>
       </section>
 
@@ -382,32 +335,7 @@ function MainPage() {
             </div>
           </div>
 
-          <ol className="process">
-            {PROCESS_STEPS.map((step) => (
-              <li className="process-step" key={step.no}>
-                <span className="process-icon">
-                  <ProcessStepIcon name={step.icon} />
-                  <span className="step-no" aria-hidden="true">
-                    {step.no}
-                  </span>
-                </span>
-                <h3>{step.title}</h3>
-                <p>{step.desc}</p>
-              </li>
-            ))}
-          </ol>
-
-          <div className="process-note">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 11v5M12 8h.01" />
-            </svg>
-            <p>
-              <span>독서일지 승인으로 인정 쪽수 확정</span>
-              <span>서평 확인을 거친 분량이 최종 인정 거리에 반영</span>
-              <small>서평 확인을 기다리는 동안에도 다음 독서일지를 제출할 수 있습니다.</small>
-            </p>
-          </div>
+          <ProcessGuide />
         </div>
       </section>
 
@@ -442,46 +370,9 @@ function MainPage() {
 
       <section className="section" id="contact" aria-labelledby="contactTitle">
         <div className="wrap two-col" data-reveal>
-          <aside className="check-card">
-            <h2>참여 전 확인사항</h2>
-            <p>세부 기준은 공지사항을 따릅니다.</p>
-            <ul className="check-list">
-              {CHECK_ITEMS.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </aside>
+          <ParticipationChecklist />
 
-          <div className="contact-card">
-            <h3 id="contactTitle">문의 및 운영 정보</h3>
-
-            <div className="contact-grid">
-              {contactPhone && (
-                <div className="contact-item">
-                  <span>전화 문의</span>
-                  <b>{contactPhone}</b>
-                </div>
-              )}
-              {contactEmail && (
-                <div className="contact-item">
-                  <span>이메일</span>
-                  <a href={`mailto:${contactEmail}`}>{contactEmail}</a>
-                </div>
-              )}
-              {hasKakaoOpenChat && (
-                <div className="contact-item">
-                  <span>운영 채널</span>
-                  <a href={kakaoOpenChatUrl} target="_blank" rel="noopener noreferrer">
-                    카카오톡 오픈채팅
-                  </a>
-                </div>
-              )}
-              <div className="contact-item">
-                <span>소속</span>
-                <b>글로벌캠퍼스 도서관</b>
-              </div>
-            </div>
-          </div>
+          <EventContactCard currentEvent={currentEvent} />
         </div>
 
         <div className="wrap cta-band" data-reveal>

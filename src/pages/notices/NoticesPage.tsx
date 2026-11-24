@@ -14,6 +14,7 @@ import {
   writeNoticeBoardState,
   type NoticeLinkState,
 } from './noticeBoard';
+import '../main/MainPage.css';
 import './notice-board.css';
 
 /** 사용자 공지사항 게시판: 중요 공지 먼저, 제목 검색, 10건씩 쪽 나누기(검색어·쪽 번호는 주소에 유지) */
