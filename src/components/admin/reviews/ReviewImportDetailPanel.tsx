@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import type {
   ImportedReview,
@@ -22,12 +22,22 @@ import ReviewImportStatusBadge from './ReviewImportStatusBadge';
 type ReviewImportDetailPanelProps = {
   row: ImportedReview;
   eventId: number;
-  position: number;
+  /** 현재 보기·검색 조건에서의 위치(1부터). 조건에서 빠진 행(방금 반영한 행 등)이면 null */
+  position: number | null;
   total: number;
   busy: boolean;
   readOnly: boolean;
+  /** 상세 창 안에서 보여 줄 처리 결과·오류 */
+  feedback?: { message: string; isError: boolean } | null;
+  /** 반영 후 다음 대상으로 이동 옵션 (반영할 수 있는 행에서만) */
+  autoNext?: { checked: boolean; onChange: (checked: boolean) => void };
   onMove: (offset: -1 | 1) => void;
+  onClose?: () => void;
   onConfirm: (row: ImportedReview, request: ReviewConfirmation) => Promise<void>;
+  /** 이전에 작성하던 검토 메모 (반영 실패 후 다시 그려져도 이어서 씁니다) */
+  initialNote?: string;
+  /** 작성 중인 검토 메모 (닫거나 이동할 때 확인) */
+  onNoteChange?: (note: string) => void;
 };
 
 type CompareMark = 'same' | 'edition' | 'title' | 'different' | 'none';
@@ -119,13 +129,19 @@ function ReviewImportDetailPanel({
   total,
   busy,
   readOnly,
+  feedback = null,
+  autoNext,
   onMove,
+  onClose,
   onConfirm,
+  initialNote = '',
+  onNoteChange,
 }: ReviewImportDetailPanelProps) {
+  const heading = useRef<HTMLHeadingElement>(null);
   const [candidateId, setCandidateId] = useState(
     () => getDefaultCandidate(row)?.participantBookId ?? 0,
   );
-  const [note, setNote] = useState('');
+  const [note, setNote] = useState(initialNote);
   const [checked, setChecked] = useState(false);
   const candidate =
     row.candidates.find((item) => item.participantBookId === candidateId) ??
@@ -136,6 +152,14 @@ function ReviewImportDetailPanel({
   const comparisons = getComparisons(row, confirmable ? candidate : undefined);
   const canSubmit =
     confirmable && !readOnly && !busy && !!candidate && checked && (!needsNote || !!note.trim());
+
+  useEffect(() => {
+    onNoteChange?.(note);
+  }, [note, onNoteChange]);
+  // 다른 행으로 바뀌면 제목으로 초점을 옮겨, 화면 낭독기와 키보드 사용자가 새 행에서 시작하게 합니다.
+  useEffect(() => {
+    heading.current?.focus();
+  }, [row.id]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -162,44 +186,69 @@ function ReviewImportDetailPanel({
 
   return (
     <form
-      className="admin-detail-panel admin-review-detail"
+      className="admin-review-dialog__form admin-review-detail"
       aria-labelledby="reviewImportDetailTitle"
       onSubmit={submit}
     >
-      <header className="admin-detail-panel__head">
-        <div>
-          <p className="admin-detail-panel__eyebrow">
-            엑셀 {row.sourceRow}행 <ReviewImportStatusBadge status={row.status} />
-          </p>
-          <h2 id="reviewImportDetailTitle">
-            {row.memberName || '이름 없음'}
-            <small className="admin-reviews__student">{row.memberNo}</small>
-          </h2>
-        </div>
-        <div className="admin-detail-panel__nav">
-          <span>
-            {position} / {total}
-          </span>
+      <header className="admin-review-dialog__head">
+        <h2 id="reviewImportDetailTitle" ref={heading} tabIndex={-1}>
+          서평 대조 상세
+        </h2>
+        <div className="admin-review-dialog__nav">
+          {position !== null && (
+            <span className="admin-review-dialog__position">
+              {position.toLocaleString('ko-KR')} / {total.toLocaleString('ko-KR')}
+            </span>
+          )}
           <button
             type="button"
-            aria-label="이전 서평"
-            disabled={position <= 1 || busy}
+            className="admin-button"
+            disabled={position === null || position <= 1 || busy}
             onClick={() => onMove(-1)}
           >
-            ‹
+            이전 대상
           </button>
           <button
             type="button"
-            aria-label="다음 서평"
-            disabled={position >= total || busy}
+            className="admin-button"
+            disabled={position === null || position >= total || busy}
             onClick={() => onMove(1)}
           >
-            ›
+            다음 대상
           </button>
+          {onClose && (
+            <button
+              type="button"
+              className="admin-button admin-review-dialog__close"
+              disabled={busy}
+              onClick={onClose}
+            >
+              닫기
+            </button>
+          )}
         </div>
       </header>
 
-      <div className="admin-detail-panel__body">
+      <div className="admin-review-dialog__body">
+        <div className="admin-review-dialog__who">
+          <strong>{row.memberName || '이름 없음'}</strong>
+          <span>{row.memberNo || '회원번호 없음'}</span>
+          <span>엑셀 {row.sourceRow}행</span>
+          <ReviewImportStatusBadge status={row.status} />
+        </div>
+        {position === null && (
+          <p className="admin-review-dialog__out">
+            현재 보기·검색 조건에 포함되지 않은 행입니다. 이전·다음 이동은 조건 안에서만 가능합니다.
+          </p>
+        )}
+        {feedback && (
+          <p
+            className={`admin-feedback admin-review-dialog__feedback${feedback.isError ? ' admin-feedback--error' : ''}`}
+            role={feedback.isError ? 'alert' : 'status'}
+          >
+            {feedback.message}
+          </p>
+        )}
         {row.warnings.length > 0 && (
           <div
             className={`admin-review-detail__warnings${confirmable ? '' : ' is-blocked'}`}
@@ -367,7 +416,7 @@ function ReviewImportDetailPanel({
 
         {confirmable && (
           <section className="admin-review-detail__section" aria-labelledby="reviewConfirmTitle">
-            <h3 id="reviewConfirmTitle">확인</h3>
+            <h3 id="reviewConfirmTitle">검토 메모</h3>
             <label className="admin-review-detail__memo">
               <span>검토 메모 {needsNote ? '(필수)' : '(선택)'}</span>
               <textarea
@@ -381,27 +430,37 @@ function ReviewImportDetailPanel({
                 onChange={(event) => setNote(event.target.value)}
               />
             </label>
-            <ul className="admin-checklist">
-              <li>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    disabled={busy || readOnly || !candidate}
-                    onChange={(event) => setChecked(event.target.checked)}
-                  />
-                  <strong>원문 확인</strong>
-                  <small>작성자·도서·서평 내용과 행사 인정 기간을 확인했습니다.</small>
-                </label>
-              </li>
-            </ul>
           </section>
         )}
       </div>
 
       {confirmable && (
-        <footer className="admin-detail-panel__actions">
-          <p className="admin-detail-panel__actions-hint">{hint}</p>
+        <footer className="admin-review-dialog__foot">
+          <label className="admin-review-dialog__check">
+            <input
+              type="checkbox"
+              checked={checked}
+              disabled={busy || readOnly || !candidate}
+              onChange={(event) => setChecked(event.target.checked)}
+            />
+            <span>
+              <strong>원문 확인</strong> 작성자·도서·서평 내용과 행사 인정 기간을 확인했습니다.
+            </span>
+          </label>
+          <p className="admin-review-dialog__hint" aria-live="polite">
+            {hint}
+          </p>
+          {autoNext && (
+            <label className="admin-review-dialog__auto">
+              <input
+                type="checkbox"
+                checked={autoNext.checked}
+                disabled={busy}
+                onChange={(event) => autoNext.onChange(event.target.checked)}
+              />
+              반영 후 다음 대상으로 이동
+            </label>
+          )}
           <button
             type="submit"
             className="admin-button admin-button--primary"

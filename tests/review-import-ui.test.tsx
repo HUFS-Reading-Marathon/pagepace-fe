@@ -161,6 +161,64 @@ describe('솔라스 자료 대조 기능', () => {
       'type="checkbox"',
     );
   });
+  it('상세 창은 위에 제목·위치·이전·다음·닫기, 아래에 원문 확인·자동 이동·반영 버튼을 고정한다', () => {
+    const html = renderToStaticMarkup(
+      <MemoryRouter>
+        <ReviewImportDetailPanel
+          row={{ ...row, status: 'NEEDS_REVIEW', warnings: ['도서명이 다릅니다.'] }}
+          eventId={7}
+          position={3}
+          total={12}
+          busy={false}
+          readOnly={false}
+          autoNext={{ checked: true, onChange: () => {} }}
+          initialNote="판본만 다름"
+          onMove={() => {}}
+          onClose={() => {}}
+          onConfirm={async () => {}}
+        />
+      </MemoryRouter>,
+    );
+    const head = html.match(/<header class="admin-review-dialog__head">([\s\S]*?)<\/header>/)![1];
+    expect(head).toContain('서평 대조 상세');
+    expect(head).toContain('3 / 12');
+    for (const label of ['이전 대상', '다음 대상', '닫기'])
+      expect(head).toContain(`>${label}</button>`);
+    const foot = html.match(/<footer class="admin-review-dialog__foot">([\s\S]*?)<\/footer>/)![1];
+    expect(foot).toContain('원문 확인');
+    expect(foot).toContain('반영 후 다음 대상으로 이동');
+    expect(foot).toMatch(/<button type="submit"[^>]*disabled=""/);
+    // 작성 중이던 검토 메모를 다시 그려도 이어서 보여 주고, 메모 칸은 본문(스크롤 영역)에 둡니다.
+    expect(html).toMatch(/<div class="admin-review-dialog__body">[\s\S]*판본만 다름<\/textarea>/);
+    expect(html).toContain('검토 메모 (필수)');
+  });
+  it('현재 보기에서 빠진 행(방금 반영한 행)은 위치 없이 보여 주고 이전·다음을 끈다', () => {
+    const html = renderToStaticMarkup(
+      <MemoryRouter>
+        <ReviewImportDetailPanel
+          row={{ ...row, status: 'ALREADY_APPLIED', candidates: [] }}
+          eventId={7}
+          position={null}
+          total={5}
+          busy={false}
+          readOnly={false}
+          onMove={() => {}}
+          onClose={() => {}}
+          onConfirm={async () => {}}
+        />
+      </MemoryRouter>,
+    );
+    expect(html).toContain('현재 보기·검색 조건에 포함되지 않은 행입니다.');
+    expect(html).toMatch(/disabled=""[^>]*>이전 대상<\/button>/);
+    expect(html).toMatch(/disabled=""[^>]*>다음 대상<\/button>/);
+    expect(html).not.toContain('admin-review-dialog__foot');
+  });
+  it('표의 행마다 상세 보기 버튼을 두고, 전체 선택은 이 쪽의 반영 가능 행만 고른다', () => {
+    const html = renderTable('ready', [row]);
+    expect(html).toContain('aria-label="이 쪽의 반영 가능 서평 전체 선택"');
+    expect(html).toMatch(/<button type="button" id="review-import-row-4"[^>]*>상세 보기<\/button>/);
+    expect(html).not.toContain('tabindex="0"');
+  });
   it('엑셀 행 번호·작성자·회원번호·도서명으로 대조 결과를 찾는다', () => {
     expect(matchesReviewImportKeyword(row, '2')).toBe(true);
     expect(matchesReviewImportKeyword(row, '테스트')).toBe(true);
