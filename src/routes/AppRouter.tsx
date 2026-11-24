@@ -4,6 +4,7 @@ import { selectedEventId } from '../utils/eventSelection';
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import AdminLayout from '../layouts/AdminLayout';
 import Header from '../components/layout/Header';
+import ScrollToTopOnNavigate from '../components/layout/ScrollToTopOnNavigate';
 import Footer from '../components/layout/Footer';
 import { LoginPage, ApplyPage, ApplyPendingPage, PasswordResetPage } from '../pages/auth';
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
@@ -38,6 +39,7 @@ function UserLayout() {
   const eventId = useSyncExternalStore(subscribeEvent, () => selectedEventId('personal'));
   return (
     <>
+      <ScrollToTopOnNavigate />
       <Header />
       <PersonalEventSelector />
       <Outlet key={eventId ?? 'current'} />

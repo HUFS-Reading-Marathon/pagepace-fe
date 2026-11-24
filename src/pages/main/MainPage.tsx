@@ -422,7 +422,9 @@ function MainPage() {
           <div className="news-card">
             <div className="card-title-row">
               <h3>최근 공지</h3>
-              <a href="#contact">문의하기</a>
+              <Link to="/notices">
+                전체 보기 <span aria-hidden="true">→</span>
+              </Link>
             </div>
             {notices.length === 0 && (
               <p className="notice-empty" role="status">
