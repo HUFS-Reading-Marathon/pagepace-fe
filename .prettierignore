@@ -2,3 +2,5 @@ node_modules
 dist
 dist-ssr
 package-lock.json
+# 로컬 Claude 설정·작업 트리(.claude/worktrees 등)는 이 프로젝트 소스가 아닙니다.
+.claude

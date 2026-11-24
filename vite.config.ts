@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv, type ProxyOptions } from 'vite';
 import react from '@vitejs/plugin-react';
+import { configDefaults } from 'vitest/config';
 
 // https://vite.dev/config/
 export default defineConfig(({ mode, isPreview }) => {
@@ -34,5 +35,9 @@ export default defineConfig(({ mode, isPreview }) => {
         }
       : undefined,
     preview: apiProxy ? { proxy: apiProxy } : undefined,
+    test: {
+      // 기본 제외 규칙은 그대로 두고, 프로젝트 안에 생기는 Claude 작업 트리(.claude/worktrees 등)만 더 뺍니다.
+      exclude: [...configDefaults.exclude, '**/.claude/**'],
+    },
   };
 });
