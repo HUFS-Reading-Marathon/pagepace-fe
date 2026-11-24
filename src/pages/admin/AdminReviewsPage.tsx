@@ -1,17 +1,26 @@
 import ApprovedBookLogs from '../../components/admin/reviews/ApprovedBookLogs';
 import EvidenceHistory from '../../components/admin/reviews/EvidenceHistory';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import {
+  useLocation,
+  useNavigate,
+  useSearchParams,
+  type SetURLSearchParams,
+} from 'react-router-dom';
 import { ApiError, getApiErrorMessage } from '../../api/apiClient';
 import { getAdminEvents } from '../../api/adminEventApi';
 import ReviewTargetTable from '../../components/admin/reviews/ReviewTargetTable';
 import {
   INITIAL_REVIEW_SEARCH,
+  readReviewListState,
   reviewFilterCounts,
   visibleReviewTargets,
-  type ReviewSearch,
+  writeReviewListState,
+  type ReviewListState,
 } from '../../components/admin/reviews/reviewTargetFilters';
-import { DEFAULT_PAGE_SIZE, clampPage } from '../../components/admin/table/pagination';
+import DetailNavBar from '../../components/admin/table/DetailNavBar';
+import { clampPage } from '../../components/admin/table/pagination';
+import { nextCandidateId } from '../../components/admin/table/queueNavigation';
 import ReviewImportWorkspace, {
   type ReviewPreview,
 } from '../../components/admin/reviews/ReviewImportWorkspace';
@@ -41,6 +50,27 @@ const REVIEW_CHECK_ITEMS = [
     description: '행사 기간에 작성·수정된 이 책의 서평 원문을 확인했습니다.',
   },
 ] as const;
+
+const AUTO_NEXT_KEY = 'pagepace:admin:review-auto-next';
+const LEAVE_WITH_DRAFT =
+  '입력 중인 서평 원문 시각·본문이 있습니다. 이동하면 입력한 내용이 사라집니다. 이동할까요?';
+type DetailFeedback = { targetId: number; tone: 'success' | 'warning' | 'error'; text: string };
+type NavigationState = { fromList?: boolean } | null;
+
+function readAutoNext() {
+  try {
+    return localStorage.getItem(AUTO_NEXT_KEY) !== 'false';
+  } catch {
+    return true;
+  }
+}
+
+/** 상세 대상 파라미터: 없으면 null, 양의 정수가 아니면 NaN */
+function parseBookId(value: string | null) {
+  if (value === null) return null;
+  const id = Number(value);
+  return Number.isSafeInteger(id) && id > 0 ? id : NaN;
+}
 
 const EMPTY_EVIDENCE = {
   targetId: null as number | null,
@@ -75,17 +105,23 @@ function getCreditBreakdown(target: AdminReviewTarget) {
 }
 
 function AdminReviews({
-  requestedEvent,
-  requestedBook,
-  onSelectEvent,
+  params,
+  setParams,
 }: {
-  requestedEvent: string | null;
-  requestedBook: string | null;
-  onSelectEvent: (eventId: string) => void;
+  params: URLSearchParams;
+  setParams: SetURLSearchParams;
 }) {
-  const [workspace, setWorkspace] = useState<'excel' | 'manual'>(
-    requestedBook ? 'manual' : 'excel',
-  );
+  const location = useLocation();
+  const navigate = useNavigate();
+  const navigationState = location.state as NavigationState;
+  const fromList = navigationState?.fromList === true;
+  const requestedEvent = params.get('eventId');
+  // participantBookId가 있으면 개별 확인 상세 화면입니다(기존 바로가기 주소와 같음).
+  const selectedId = parseBookId(params.get('participantBookId'));
+  const workspace: 'excel' | 'manual' =
+    selectedId !== null || params.get('tab') === 'manual' ? 'manual' : 'excel';
+  const listState = useMemo(() => readReviewListState(params), [params]);
+  const { search, pageSize } = listState;
   const [importBusy, setImportBusy] = useState(false);
   const manualBusy = useRef(false);
   const [events, setEvents] = useState<AdminEvent[]>([]);
@@ -99,11 +135,11 @@ function AdminReviews({
   const [queueReloading, setQueueReloading] = useState(false);
   const [actionError, setActionError] = useState('');
   const [feedbackMessage, setFeedbackMessage] = useState('');
-  const [search, setSearch] = useState<ReviewSearch>(INITIAL_REVIEW_SEARCH);
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [missingLinkedBook, setMissingLinkedBook] = useState(false);
+  const [detailFeedback, setDetailFeedback] = useState<DetailFeedback | null>(null);
+  const [recent, setRecent] = useState<number | null>(null);
+  const [autoNext, setAutoNext] = useState(readAutoNext);
+  const listScroll = useRef<number | null>(null);
+  const panelHeading = useRef<HTMLHeadingElement>(null);
   const [evidence, setEvidence] = useState(EMPTY_EVIDENCE);
   const [checkedItems, setCheckedItems] = useState<{ targetId: number | null; keys: string[] }>({
     targetId: null,
@@ -152,23 +188,6 @@ function AdminReviews({
           setTargets(next);
           setError('');
           setQueueError('');
-          if (requestedBook !== null) {
-            const requested = next.find(
-              (target) => String(target.participantBookId) === requestedBook,
-            );
-            if (requested) {
-              setSearch((current) => ({
-                ...current,
-                filter: requested.reviewVerified ? 'verified' : 'pending',
-              }));
-              setSelectedId(requested.participantBookId);
-            } else {
-              setMissingLinkedBook(true);
-              setFeedbackMessage(
-                '선택한 서평이 이 회차의 확인 대상에 없습니다. 목록에서 다른 도서를 선택해 주세요.',
-              );
-            }
-          }
         }
       })
       .catch((requestError: unknown) => {
@@ -185,16 +204,18 @@ function AdminReviews({
     return () => {
       active = false;
     };
-  }, [eventId, requestedBook]);
+  }, [eventId]);
 
   const counts = useMemo(() => reviewFilterCounts(targets), [targets]);
   const pendingCount = counts.pending;
   const visibleTargets = useMemo(() => visibleReviewTargets(targets, search), [search, targets]);
-  const currentPage = clampPage(page, visibleTargets.length, pageSize);
+  const currentPage = clampPage(listState.page, visibleTargets.length, pageSize);
   const pageTargets = visibleTargets.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
 
-  // 표에서 고른 대상만 확인 영역에 보여 줍니다. 아무것도 고르지 않았으면 빈 상세 영역을 두지 않습니다.
-  const activeTarget = targets.find((target) => target.participantBookId === selectedId);
+  const activeTarget =
+    selectedId === null || Number.isNaN(selectedId)
+      ? undefined
+      : targets.find((target) => target.participantBookId === selectedId);
   const draft =
     activeTarget && evidence.targetId === activeTarget.participantBookId
       ? evidence
@@ -203,7 +224,50 @@ function AdminReviews({
     (event) => event.eventId === eventId && ['FINALIZED', 'ARCHIVED'].includes(event.status),
   );
   const activeIndex = activeTarget ? visibleTargets.indexOf(activeTarget) : -1;
-  const panelTotal = visibleTargets.length;
+  const hasDraft =
+    selectedId !== null &&
+    evidence.targetId === selectedId &&
+    !!(evidence.time || evidence.content.trim() || evidence.note.trim());
+
+  // 다른 화면의 바로가기로 확인 완료 서평을 열면, 목록 상태를 확인 완료로 맞춰 이전·다음 이동을 그 안에서 합니다.
+  const adoptFilter =
+    !isLoading && !!activeTarget && !params.has('rf') && !fromList && activeTarget.reviewVerified;
+  useEffect(() => {
+    if (!adoptFilter) return;
+    const next = new URLSearchParams(params);
+    next.set('rf', 'verified');
+    setParams(next, { replace: true, state: navigationState });
+  }, [adoptFilter, params, setParams, navigationState]);
+
+  // 다른 서평으로 바뀌면 제목으로 초점을 옮깁니다.
+  const activeId = activeTarget?.participantBookId;
+  useEffect(() => {
+    if (activeId != null) panelHeading.current?.focus();
+  }, [activeId]);
+
+  // 상세에서 목록으로 돌아오면 이전 스크롤 위치와 마지막으로 본 행으로 돌아갑니다.
+  // 상세를 거쳐 목록으로 바뀐 때에만 되돌립니다(주소 변경은 전환으로 늦게 그려질 수 있음).
+  const wasDetail = useRef(false);
+  useEffect(() => {
+    if (selectedId !== null) {
+      wasDetail.current = true;
+      return;
+    }
+    if (!wasDetail.current || workspace !== 'manual') return;
+    wasDetail.current = false;
+    window.scrollTo(0, listScroll.current ?? 0);
+    listScroll.current = null;
+    const row = recent === null ? null : document.getElementById('review-target-row-' + recent);
+    (row ?? document.getElementById('review-target-count'))?.focus({ preventScroll: true });
+  }, [selectedId, workspace, recent]);
+
+  // 원문을 입력하는 중에 새로고침하거나 창을 닫으면 브라우저 확인 창을 띄웁니다.
+  useEffect(() => {
+    if (!hasDraft) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [hasDraft]);
   const activeChecks =
     activeTarget && checkedItems.targetId === activeTarget.participantBookId
       ? checkedItems.keys
@@ -222,18 +286,54 @@ function AdminReviews({
     verifyingId === null &&
     !importBusy;
 
-  const selectTarget = (targetId: number) => {
-    setSelectedId(targetId);
-    setActionError('');
-    if (missingLinkedBook) {
-      setMissingLinkedBook(false);
-      setFeedbackMessage('');
-    }
+  const setWorkspace = (next: 'excel' | 'manual') => {
+    const nextParams = new URLSearchParams(params);
+    nextParams.delete('participantBookId');
+    if (next === 'manual') nextParams.set('tab', 'manual');
+    else nextParams.delete('tab');
+    setParams(nextParams, { replace: true });
+  };
 
-    // 확인 영역은 표 아래에 열리므로 그 위치로 옮깁니다.
-    window.requestAnimationFrame(() =>
-      panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
-    );
+  const setList = (patch: Partial<ReviewListState>) => {
+    setFeedbackMessage('');
+    setParams(writeReviewListState(params, { ...listState, ...patch }), { replace: true });
+  };
+
+  const canLeave = () => {
+    if (!hasDraft) return true;
+    if (!window.confirm(LEAVE_WITH_DRAFT)) return false;
+    setEvidence(EMPTY_EVIDENCE);
+    return true;
+  };
+
+  /** 상세 화면 열기. 목록에서 들어오면 기록을 쌓고, 상세 안에서의 이동은 기록을 바꿔 뒤로 가기가 목록으로 가게 합니다. */
+  const openTarget = (targetId: number, fromDetail = false, sourceRows = visibleTargets) => {
+    const position = sourceRows.findIndex((target) => target.participantBookId === targetId);
+    const page = position >= 0 ? Math.floor(position / pageSize) : listState.page;
+    if (!fromDetail) listScroll.current = window.scrollY;
+    setActionError('');
+    setDetailFeedback(null);
+    setRecent(targetId);
+    const next = writeReviewListState(params, { ...listState, page });
+    next.set('tab', 'manual');
+    next.set('participantBookId', String(targetId));
+    setParams(next, {
+      replace: fromDetail,
+      state: { fromList: fromDetail ? fromList : true },
+    });
+  };
+
+  const backToList = () => {
+    setActionError('');
+    setDetailFeedback(null);
+    if (fromList) {
+      navigate(-1);
+      return;
+    }
+    const next = new URLSearchParams(params);
+    next.delete('participantBookId');
+    next.set('tab', 'manual');
+    setParams(next, { replace: true });
   };
 
   const toggleCheck = (targetId: number, key: string, checked: boolean) => {
@@ -252,7 +352,7 @@ function AdminReviews({
    * 다시 불러옵니다 (개별 확인이나 인정 취소가 같은 참가자의 대조 상태를 바꿀 수 있습니다).
    */
   const refreshReviews = async (studentNo?: string) => {
-    if (eventId === null) return;
+    if (eventId === null) return null;
     setCheckedItems({ targetId: null, keys: [] });
     const [queue, excel] = await Promise.allSettled([
       getAdminReviewTargets(eventId),
@@ -270,6 +370,7 @@ function AdminReviews({
         ? '엑셀 대조 결과를 다시 불러오지 못했습니다. 새로고침 후 다시 확인해 주세요.'
         : '',
     );
+    return queue.status === 'fulfilled' ? queue.value : null;
   };
 
   const retryQueue = async () => {
@@ -279,20 +380,24 @@ function AdminReviews({
     setQueueReloading(false);
   };
 
-  /** 서버에서 확인 처리가 성공한 뒤에만 다음 대기 서평으로 이동합니다. */
+  /**
+   * 서버에서 확인 처리가 성공한 뒤에만 결과를 반영합니다. 확인 대기 목록에서 자동 이동이 켜져 있으면
+   * 최신 대상을 다시 받아 같은 검색·정렬 조건의 다음 대기 서평으로 옮기고, 남은 대상이 없으면 목록으로
+   * 돌아갑니다. 실패하면 현재 대상과 입력한 원문을 그대로 둡니다.
+   */
   const verify = async (target: AdminReviewTarget) => {
     if (!canVerify || !breakdown || eventId === null || manualBusy.current) {
       return;
     }
     manualBusy.current = true;
-
-    const index = visibleTargets.indexOf(target);
-    const nextTarget = visibleTargets[index + 1] ?? visibleTargets[index - 1] ?? null;
+    const beforeIds = visibleTargets.map((item) => item.participantBookId);
 
     setVerifyingId(target.participantBookId);
     setActionError('');
     setFeedbackMessage('');
+    setDetailFeedback(null);
 
+    let done: string;
     try {
       const updated = await verifyAdminReview(target.participantBookId, {
         sourceUpdatedAt: draft.time,
@@ -305,9 +410,7 @@ function AdminReviews({
           : {}),
       });
       const creditedDistance = target.distanceToCreditMeter - updated.distanceToCreditMeter;
-      setFeedbackMessage(
-        `${target.userName} 님의 “${target.bookTitle}”에 ${(creditedDistance / METERS_PER_PAGE).toLocaleString('ko-KR')}쪽(${creditedDistance.toLocaleString('ko-KR')}m)을 반영했습니다.`,
-      );
+      done = `${target.userName} 님의 “${target.bookTitle}”에 ${(creditedDistance / METERS_PER_PAGE).toLocaleString('ko-KR')}쪽(${creditedDistance.toLocaleString('ko-KR')}m)을 반영했습니다.`;
       setEvidence(EMPTY_EVIDENCE);
       // 서버가 확인한 결과는 재조회 성공 여부와 관계없이 목록에 바로 반영합니다.
       setTargets((current) => replaceReviewTarget(current, updated));
@@ -318,9 +421,11 @@ function AdminReviews({
         ['REVIEW_TOTALS_CHANGED', 'REVIEW_ALREADY_VERIFIED'].includes(requestError.code ?? '')
       ) {
         setActionError('');
-        setFeedbackMessage(
-          `${target.userName} 님의 “${target.bookTitle}” · ${requestError.message}`,
-        );
+        setDetailFeedback({
+          targetId: target.participantBookId,
+          tone: 'error',
+          text: `${target.userName} 님의 “${target.bookTitle}” · ${requestError.message}`,
+        });
         await refreshReviews(target.studentNo);
       }
       manualBusy.current = false;
@@ -328,12 +433,37 @@ function AdminReviews({
       return;
     }
 
-    await refreshReviews(target.studentNo);
+    const fresh = await refreshReviews(target.studentNo);
     manualBusy.current = false;
     setVerifyingId(null);
 
-    if (nextTarget) {
-      selectTarget(nextTarget.participantBookId);
+    if (!autoNext || search.filter !== 'pending') {
+      setDetailFeedback({ targetId: target.participantBookId, tone: 'success', text: done });
+      return;
+    }
+    if (!fresh) {
+      // 확인은 끝났으므로 실패로 알리거나 다시 보내지 않습니다. 이동만 멈추고 두 결과를 나눠 알립니다.
+      setDetailFeedback({
+        targetId: target.participantBookId,
+        tone: 'warning',
+        text: `${done} 다만 확인 대기 목록을 다시 불러오지 못해 이동하지 않았습니다. 목록에서 다시 조회해 주세요.`,
+      });
+      return;
+    }
+    const nextRows = visibleReviewTargets(fresh, search);
+    const nextId = nextCandidateId(
+      beforeIds,
+      target.participantBookId,
+      nextRows.map((item) => item.participantBookId),
+    );
+    if (nextId !== null) {
+      openTarget(nextId, true, nextRows);
+      setDetailFeedback({ targetId: nextId, tone: 'success', text: `${done} 다음 서평입니다.` });
+    } else {
+      backToList();
+      setFeedbackMessage(
+        `${done} ${search.query.trim() ? '현재 조건에 남은' : '남은'} 확인 대기 서평이 없습니다.`,
+      );
     }
   };
 
@@ -347,36 +477,17 @@ function AdminReviews({
         <header className="admin-detail-panel__head">
           <div>
             <p className="admin-detail-panel__eyebrow">인정할 독서량 확인</p>
-            <h2 id="reviewPanelTitle">
+            <h2 id="reviewPanelTitle" ref={panelHeading} tabIndex={-1}>
               {activeTarget.userName}
               <small className="admin-reviews__student">{activeTarget.studentNo}</small>
             </h2>
           </div>
-          <div className="admin-detail-panel__nav">
-            {activeIndex >= 0 && (
-              <span>
-                {activeIndex + 1} / {panelTotal}
-              </span>
-            )}
-            <button
-              type="button"
-              aria-label="이전 서평"
-              disabled={activeIndex <= 0 || verifyingId !== null}
-              onClick={() => selectTarget(visibleTargets[activeIndex - 1].participantBookId)}
-            >
-              ‹
-            </button>
-            <button
-              type="button"
-              aria-label="다음 서평"
-              disabled={
-                activeIndex < 0 || activeIndex >= visibleTargets.length - 1 || verifyingId !== null
-              }
-              onClick={() => selectTarget(visibleTargets[activeIndex + 1].participantBookId)}
-            >
-              ›
-            </button>
-          </div>
+          <span
+            className="review-detail__status"
+            data-verified={activeTarget.reviewVerified || undefined}
+          >
+            {activeTarget.reviewVerified ? '확인 완료' : '확인 대기'}
+          </span>
         </header>
 
         <div className="admin-detail-panel__body">
@@ -529,7 +640,9 @@ function AdminReviews({
             key={activeTarget.participantBookId + '-' + String(activeTarget.reviewVerified)}
             bookId={activeTarget.participantBookId}
             locked={eventLocked || verifyingId !== null || importBusy}
-            onChanged={() => refreshReviews(activeTarget.studentNo)}
+            onChanged={async () => {
+              await refreshReviews(activeTarget.studentNo);
+            }}
             onReplace={(id, content, time) => {
               setEvidence({
                 targetId: activeTarget.participantBookId,
@@ -554,6 +667,24 @@ function AdminReviews({
                 ? '결과가 확정된 회차입니다.'
                 : '원문 시각과 본문을 입력하고 두 항목을 확인해 주세요.'}
             </p>
+            {search.filter === 'pending' && !eventLocked && (
+              <label className="review-detail__auto">
+                <input
+                  type="checkbox"
+                  checked={autoNext}
+                  disabled={verifyingId !== null}
+                  onChange={(e) => {
+                    setAutoNext(e.target.checked);
+                    try {
+                      localStorage.setItem(AUTO_NEXT_KEY, String(e.target.checked));
+                    } catch {
+                      /* 저장하지 못해도 이번 화면에서는 그대로 동작합니다. */
+                    }
+                  }}
+                />
+                처리 후 다음 대기 서평으로 이동
+              </label>
+            )}
             <button
               type="button"
               className="admin-button admin-button--primary"
@@ -581,7 +712,9 @@ function AdminReviews({
           <select
             disabled={verifyingId !== null || importBusy}
             value={eventId ?? ''}
-            onChange={(event) => onSelectEvent(event.target.value)}
+            onChange={(event) => {
+              if (canLeave()) setParams({ eventId: event.target.value }, { replace: true });
+            }}
           >
             {!eventId && <option value="">행사를 선택해 주세요</option>}
             {events.map((event) => (
@@ -642,7 +775,9 @@ function AdminReviews({
             eventId={eventId}
             readOnly={eventLocked}
             onBusyChange={setImportBusy}
-            onVerified={() => refreshReviews()}
+            onVerified={async () => {
+              await refreshReviews();
+            }}
           />
         </div>
       )}
@@ -662,39 +797,93 @@ function AdminReviews({
             엑셀에 없는 서평은 도서관 사이트에서 원문을 열어 확인한 뒤, 원문 시각과 본문을 남기고
             직접 인정합니다.
           </p>
-          <ReviewTargetTable
-            rows={pageTargets}
-            total={visibleTargets.length}
-            page={currentPage}
-            pageSize={pageSize}
-            search={search}
-            counts={counts}
-            loading={isLoading}
-            busy={verifyingId !== null || queueReloading}
-            error={queueError}
-            hasLoaded={targets.length > 0}
-            feedback={feedbackMessage}
-            recent={activeTarget?.participantBookId ?? null}
-            onSearch={(patch) => {
-              setSearch((current) => ({ ...current, ...patch }));
-              setPage(0);
-            }}
-            onReset={() => {
-              setSearch(INITIAL_REVIEW_SEARCH);
-              setPage(0);
-            }}
-            onRefresh={() => void retryQueue()}
-            onPage={setPage}
-            onPageSize={(size) => {
-              setPageSize(size);
-              setPage(0);
-            }}
-            onOpen={(target) => selectTarget(target.participantBookId)}
-          />
-
-          <div ref={panelRef} className="admin-reviews__panel review-targets__detail">
-            {renderPanel()}
-          </div>
+          {selectedId === null ? (
+            <ReviewTargetTable
+              rows={pageTargets}
+              total={visibleTargets.length}
+              page={currentPage}
+              pageSize={pageSize}
+              search={search}
+              counts={counts}
+              loading={isLoading}
+              busy={verifyingId !== null || queueReloading}
+              error={queueError}
+              hasLoaded={targets.length > 0}
+              feedback={feedbackMessage}
+              recent={recent}
+              onSearch={(patch) => setList({ search: { ...search, ...patch }, page: 0 })}
+              onReset={() => setList({ search: INITIAL_REVIEW_SEARCH, page: 0 })}
+              onRefresh={() => void retryQueue()}
+              onPage={(page) => setList({ page })}
+              onPageSize={(size) => setList({ pageSize: size, page: 0 })}
+              onOpen={(target) => openTarget(target.participantBookId)}
+            />
+          ) : (
+            <div className="review-detail">
+              <DetailNavBar
+                noun="서평"
+                position={
+                  activeIndex >= 0 ? { index: activeIndex, total: visibleTargets.length } : null
+                }
+                busy={verifyingId !== null}
+                onBack={() => canLeave() && backToList()}
+                onPrevious={
+                  activeIndex > 0
+                    ? () =>
+                        canLeave() &&
+                        openTarget(visibleTargets[activeIndex - 1].participantBookId, true)
+                    : undefined
+                }
+                onNext={
+                  activeIndex >= 0 && activeIndex < visibleTargets.length - 1
+                    ? () =>
+                        canLeave() &&
+                        openTarget(visibleTargets[activeIndex + 1].participantBookId, true)
+                    : undefined
+                }
+              />
+              {detailFeedback?.targetId === selectedId && (
+                <p
+                  className={`review-detail__feedback review-detail__feedback--${detailFeedback.tone}`}
+                  role={detailFeedback.tone === 'error' ? 'alert' : 'status'}
+                >
+                  {detailFeedback.text}
+                </p>
+              )}
+              {Number.isNaN(selectedId) ? (
+                <p className="review-detail__message" role="alert">
+                  서평 주소가 올바르지 않습니다.
+                </p>
+              ) : isLoading ? (
+                <p className="review-detail__message" role="status">
+                  확인 대상을 불러오고 있습니다.
+                </p>
+              ) : !activeTarget ? (
+                <p className="review-detail__message" role="alert">
+                  {queueError && !targets.length
+                    ? queueError
+                    : '선택한 서평이 이 회차의 확인 대상에 없습니다. 목록에서 다른 도서를 선택해 주세요.'}
+                </p>
+              ) : (
+                <>
+                  {activeIndex < 0 && (
+                    <p className="review-detail__note">
+                      현재 목록 조건에 포함되지 않은 서평입니다. 이전·다음 이동은 목록 조건 안에서만
+                      가능합니다.
+                    </p>
+                  )}
+                  {queueError && (
+                    <p className="review-detail__note" role="alert">
+                      {queueError} 화면의 값은 마지막으로 불러온 내용입니다.
+                    </p>
+                  )}
+                  <div ref={panelRef} className="admin-reviews__panel">
+                    {renderPanel()}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
       )}
     </section>
@@ -703,14 +892,12 @@ function AdminReviews({
 
 export default function AdminReviewsPage() {
   const [parameters, setParameters] = useSearchParams();
-  const requestedEvent = parameters.get('eventId');
-  const requestedBook = parameters.get('participantBookId');
+  // 행사가 바뀔 때만 새로 그립니다. 목록·상세 이동에서는 엑셀 대조 결과와 업로드 상태를 그대로 둡니다.
   return (
     <AdminReviews
-      key={parameters.toString()}
-      requestedEvent={requestedEvent}
-      requestedBook={requestedBook}
-      onSelectEvent={(eventId) => setParameters({ eventId }, { replace: true })}
+      key={parameters.get('eventId') ?? ''}
+      params={parameters}
+      setParams={setParameters}
     />
   );
 }

@@ -69,7 +69,99 @@
   background: #eef4f9;
 }
 
-/* 표 아래에 여는 확인 영역(상세 화면 분리 전 임시 배치) */
-.review-targets__detail {
+/* 서평 상세 확인 화면: 목록과 따로 한 화면에 이동 막대 → 안내 → 확인 영역 */
+.review-detail {
+  max-width: 1080px;
   margin-top: 16px;
+}
+
+.review-detail .admin-reviews__panel {
+  margin-top: 12px;
+}
+
+/* 옆 패널이 아니라 한 화면 전체이므로 고정 위치·높이 제한을 풉니다. */
+.review-detail .admin-detail-panel {
+  position: static;
+  max-height: none;
+}
+
+.review-detail__status {
+  align-self: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--blue-20);
+  color: var(--navy-strong);
+  font-size: 12px;
+  font-weight: var(--admin-fw-semibold);
+  white-space: nowrap;
+}
+
+.review-detail__status[data-verified] {
+  background: rgba(61, 121, 105, 0.1);
+  color: var(--green);
+}
+
+#reviewPanelTitle:focus {
+  outline: none;
+}
+
+#reviewPanelTitle:focus-visible {
+  outline: 3px solid rgba(31, 79, 130, 0.2);
+  outline-offset: 2px;
+}
+
+.review-detail__feedback,
+.review-detail__note,
+.review-detail__message {
+  margin: 12px 0 0;
+  font-size: 13px;
+}
+
+.review-detail__feedback {
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: var(--blue-10);
+  color: var(--body);
+}
+
+.review-detail__feedback--success {
+  background: #f0f7f2;
+  color: #24683f;
+}
+
+.review-detail__feedback--warning {
+  background: #fdf7e9;
+  color: #7a5710;
+}
+
+.review-detail__feedback--error {
+  background: #fbf2f2;
+  color: #9f3030;
+}
+
+.review-detail__note {
+  color: var(--body);
+}
+
+.review-detail__message {
+  padding: 24px 0;
+  color: var(--body);
+  text-align: center;
+}
+
+.review-detail__auto {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--body);
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.review-detail__auto input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--navy-strong);
 }

@@ -1,4 +1,5 @@
 import { compareReviewTime, type AdminReviewTarget } from '../../../api/adminReadingLogApi';
+import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from '../table/pagination';
 
 /** 개별 확인 목록 상태 필터. 서버의 reviewVerified 값만 씁니다. */
 export type ReviewFilter = 'pending' | 'verified' | 'all';
@@ -50,4 +51,40 @@ export function reviewDate(target: AdminReviewTarget) {
   if (target.reviewSubmittedAt) return { label: '제출', at: target.reviewSubmittedAt };
   if (target.reviewVerifiedAt) return { label: '확인', at: target.reviewVerifiedAt };
   return null;
+}
+
+/** 개별 확인 목록 상태. URL에 담아 상세에서 돌아오거나 새로고침해도 복원합니다. */
+export type ReviewListState = { search: ReviewSearch; page: number; pageSize: number };
+
+const REVIEW_LIST_KEYS = ['rf', 'rq', 'rsort', 'rpage', 'rsize'];
+const REVIEW_FILTERS = Object.keys(REVIEW_FILTER_LABELS);
+
+export function readReviewListState(params: URLSearchParams): ReviewListState {
+  const filter = params.get('rf') ?? '';
+  const size = Number(params.get('rsize'));
+  const page = Number(params.get('rpage'));
+  return {
+    search: {
+      filter: REVIEW_FILTERS.includes(filter) ? (filter as ReviewFilter) : 'pending',
+      query: params.get('rq') ?? '',
+      sort: params.get('rsort') === 'newest' ? 'newest' : 'oldest',
+    },
+    page: Number.isInteger(page) && page > 1 ? page - 1 : 0,
+    pageSize: (PAGE_SIZE_OPTIONS as readonly number[]).includes(size) ? size : DEFAULT_PAGE_SIZE,
+  };
+}
+
+/** 목록 상태를 URL에 씁니다. 행사·탭 같은 다른 파라미터는 그대로 두고 기본값은 생략합니다. */
+export function writeReviewListState(
+  base: URLSearchParams,
+  { search, page, pageSize }: ReviewListState,
+) {
+  const next = new URLSearchParams(base);
+  for (const key of REVIEW_LIST_KEYS) next.delete(key);
+  if (search.filter !== 'pending') next.set('rf', search.filter);
+  if (search.query) next.set('rq', search.query);
+  if (search.sort !== 'oldest') next.set('rsort', search.sort);
+  if (page > 0) next.set('rpage', String(page + 1));
+  if (pageSize !== DEFAULT_PAGE_SIZE) next.set('rsize', String(pageSize));
+  return next;
 }

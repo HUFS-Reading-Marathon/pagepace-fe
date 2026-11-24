@@ -3,10 +3,14 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import type { AdminReviewTarget } from '../src/api/adminReadingLogApi';
 import ReviewTargetTable from '../src/components/admin/reviews/ReviewTargetTable';
+import DetailNavBar from '../src/components/admin/table/DetailNavBar';
+import { nextCandidateId } from '../src/components/admin/table/queueNavigation';
 import {
   INITIAL_REVIEW_SEARCH,
+  readReviewListState,
   reviewFilterCounts,
   visibleReviewTargets,
+  writeReviewListState,
   type ReviewSearch,
 } from '../src/components/admin/reviews/reviewTargetFilters';
 
@@ -152,5 +156,57 @@ describe('서평 개별 확인 표', () => {
     expect(html).toContain('아래는 마지막으로 불러온 목록입니다.');
     expect(html).toContain('김서평');
     expect(html).toContain('>다시 조회</button>');
+  });
+});
+
+describe('서평 상세 확인 이동', () => {
+  it('목록 조건을 URL에 담고 기본값은 생략하며 행사·탭 파라미터는 그대로 둔다', () => {
+    const base = new URLSearchParams('eventId=6&tab=manual');
+    const state = {
+      search: { filter: 'all' as const, query: '코스모스', sort: 'newest' as const },
+      page: 2,
+      pageSize: 50,
+    };
+    const written = writeReviewListState(base, state);
+    expect(written.get('eventId')).toBe('6');
+    expect(written.get('tab')).toBe('manual');
+    expect(readReviewListState(written)).toEqual(state);
+    expect(
+      writeReviewListState(base, {
+        search: INITIAL_REVIEW_SEARCH,
+        page: 0,
+        pageSize: 20,
+      }).toString(),
+    ).toBe('eventId=6&tab=manual');
+    expect(readReviewListState(new URLSearchParams('rf=done&rsize=7&rpage=0'))).toEqual({
+      search: INITIAL_REVIEW_SEARCH,
+      page: 0,
+      pageSize: 20,
+    });
+  });
+
+  it('확인 후에는 같은 조건의 다음 대기 대상으로, 없으면 가까운 앞쪽 대상으로 이어 간다', () => {
+    expect(nextCandidateId([1, 2, 3, 4], 2, [1, 3, 4])).toBe(3);
+    expect(nextCandidateId([1, 2, 3, 4], 4, [1, 2, 3])).toBe(3);
+    expect(nextCandidateId([1, 2, 3, 4], 2, [1, 4])).toBe(4);
+    expect(nextCandidateId([1, 2], 2, [])).toBeNull();
+    // 확인한 대상이 재조회 결과에 아직 남아 있어도 다시 고르지 않는다
+    expect(nextCandidateId([1, 2], 1, [1, 2])).toBe(2);
+  });
+
+  it('상세 이동 막대는 목록으로·위치·이전·다음을 보여 주고 이동할 곳이 없으면 버튼을 끈다', () => {
+    const html = renderToStaticMarkup(
+      <DetailNavBar
+        noun="서평"
+        position={{ index: 0, total: 30 }}
+        onBack={vi.fn()}
+        onNext={vi.fn()}
+      />,
+    );
+    expect(html).toContain('aria-label="서평 이동"');
+    expect(html).toContain('목록으로');
+    expect(html).toContain('1 / 30');
+    expect(html).toMatch(/disabled=""[^>]*>이전 서평<\/button>/);
+    expect(html).toMatch(/<button[^>]*class="admin-button">다음 서평<\/button>/);
   });
 });
