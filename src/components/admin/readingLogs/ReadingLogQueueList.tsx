@@ -1,4 +1,3 @@
-import { Fragment, type ReactNode } from 'react';
 import type {
   AdminReadingLogResponse,
   AdminReadingLogStatus,
@@ -38,7 +37,8 @@ type Props = {
   /** 코스 필터 선택지. 비어 있으면 코스 필터를 숨깁니다. */
   courseOptions?: string[];
   sort: LogSort;
-  selected: number | null;
+  /** 상세 화면에서 돌아왔을 때 표시할 행 */
+  recent?: number | null;
   selectedIds: ReadonlySet<number>;
   loading: boolean;
   processing: boolean;
@@ -55,11 +55,11 @@ type Props = {
   onReset: () => void;
   onPage: (page: number) => void;
   onPageSize?: (size: number) => void;
-  onSelect: (id: number | null) => void;
+  /** 일지 상세 검토 화면을 엽니다. */
+  onOpen: (id: number) => void;
   onRetry?: () => void;
   /** 현재 조건으로 서버 목록을 다시 불러옵니다. */
   onRefresh?: () => void;
-  renderDetail: (log: AdminReadingLogResponse) => ReactNode;
 };
 
 export default function ReadingLogQueueList({
@@ -74,7 +74,7 @@ export default function ReadingLogQueueList({
   course,
   courseOptions = [],
   sort,
-  selected,
+  recent = null,
   selectedIds,
   loading,
   processing,
@@ -91,10 +91,9 @@ export default function ReadingLogQueueList({
   onReset,
   onPage,
   onPageSize,
-  onSelect,
+  onOpen,
   onRetry,
   onRefresh,
-  renderDetail,
 }: Props) {
   const start = page * pageSize;
   const searching = !!(query.trim() || from || to || course);
@@ -317,7 +316,7 @@ export default function ReadingLogQueueList({
                 );
               })}
               <th scope="col" className="log-queue__disclosure">
-                상세
+                검토
               </th>
             </tr>
           </thead>
@@ -339,11 +338,9 @@ export default function ReadingLogQueueList({
             ) : (
               rows.map((log, i) => {
                 const id = log.readingLogId;
-                const open = selected === id;
                 const submittedDate = log.createdAt.slice(0, 10);
                 const book = log.books[0]?.bookTitle || '도서 미등록';
                 const more = log.books.length > 1 ? ` 외 ${log.books.length - 1}권` : '';
-                const detailId = `log-review-detail-${id}`;
                 const values: Record<LogColumn, string> = {
                   number: String(start + i + 1),
                   userName: log.userName,
@@ -357,68 +354,57 @@ export default function ReadingLogQueueList({
                 const eligible = canSelect(log);
                 const checked = eligible && selectedIds.has(id);
                 return (
-                  <Fragment key={id}>
-                    <tr
-                      className="log-queue__row"
-                      data-selected={checked || undefined}
-                      data-open={open || undefined}
-                    >
-                      <td className="roster-check">
-                        <input
-                          type="checkbox"
-                          aria-label={`${start + i + 1}번 ${log.userName} ${submittedDate} 제출 일지 선택, ${book}${more}`}
-                          checked={checked}
-                          disabled={busy || !eligible}
-                          onChange={(e) => check([id], e.target.checked)}
-                        />
-                      </td>
-                      {columns.map((key) => {
-                        const value = values[key];
-                        const display = fitText ? fitText(key, value, widths[key]) : value;
-                        return (
-                          <td
-                            key={key}
-                            data-column={key}
-                            data-status={key === 'status' ? log.status : undefined}
-                            title={
-                              key === 'createdAt'
-                                ? formatKoDateTime24(log.createdAt)
-                                : value || undefined
-                            }
-                            aria-label={display !== value ? value : undefined}
-                          >
-                            {key === 'createdAt' ? (
-                              <time dateTime={log.createdAt}>{display}</time>
-                            ) : (
-                              <span>{display || '—'}</span>
-                            )}
-                          </td>
-                        );
-                      })}
-                      <td className="log-queue__disclosure">
-                        <button
-                          type="button"
-                          id={`log-review-row-${id}`}
-                          className="log-queue__toggle"
-                          aria-label={`${start + i + 1}번 ${log.userName} 일지 ${open ? '접기' : '자세히'}`}
-                          aria-expanded={open}
-                          aria-controls={open ? detailId : undefined}
-                          disabled={processing}
-                          onClick={() => onSelect(open ? null : id)}
+                  <tr
+                    key={id}
+                    className="log-queue__row"
+                    data-selected={checked || undefined}
+                    data-recent={recent === id || undefined}
+                  >
+                    <td className="roster-check">
+                      <input
+                        type="checkbox"
+                        aria-label={`${start + i + 1}번 ${log.userName} ${submittedDate} 제출 일지 선택, ${book}${more}`}
+                        checked={checked}
+                        disabled={busy || !eligible}
+                        onChange={(e) => check([id], e.target.checked)}
+                      />
+                    </td>
+                    {columns.map((key) => {
+                      const value = values[key];
+                      const display = fitText ? fitText(key, value, widths[key]) : value;
+                      return (
+                        <td
+                          key={key}
+                          data-column={key}
+                          data-status={key === 'status' ? log.status : undefined}
+                          title={
+                            key === 'createdAt'
+                              ? formatKoDateTime24(log.createdAt)
+                              : value || undefined
+                          }
+                          aria-label={display !== value ? value : undefined}
                         >
-                          {open ? '접기' : '자세히'}
-                          <span aria-hidden="true" />
-                        </button>
-                      </td>
-                    </tr>
-                    {open && (
-                      <tr className="log-queue__detail-row">
-                        <td colSpan={columnCount} className="log-queue__detail" id={detailId}>
-                          <div className="log-queue__detail-content">{renderDetail(log)}</div>
+                          {key === 'createdAt' ? (
+                            <time dateTime={log.createdAt}>{display}</time>
+                          ) : (
+                            <span>{display || '—'}</span>
+                          )}
                         </td>
-                      </tr>
-                    )}
-                  </Fragment>
+                      );
+                    })}
+                    <td className="log-queue__disclosure">
+                      <button
+                        type="button"
+                        id={`log-review-row-${id}`}
+                        className="log-queue__open"
+                        aria-label={`${start + i + 1}번 ${log.userName} 일지 ${log.status === 'SUBMITTED' ? '검토하기' : '상세 보기'}`}
+                        disabled={processing}
+                        onClick={() => onOpen(id)}
+                      >
+                        {log.status === 'SUBMITTED' ? '검토하기' : '상세 보기'}
+                      </button>
+                    </td>
+                  </tr>
                 );
               })
             )}

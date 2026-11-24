@@ -60,14 +60,16 @@
 .log-queue__row[data-selected] .log-queue__disclosure {
   background: #eaf2fa;
 }
-.log-queue__toggle {
+.log-queue__row[data-recent] td {
+  background: #f3f7fa;
+}
+.log-queue__open {
   display: inline-flex;
+  min-width: 64px;
+  min-height: 28px;
+  padding: 2px 8px;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  min-width: 58px;
-  min-height: 28px;
-  padding: 2px 6px;
   border: 1px solid #c4d1dd;
   border-radius: 4px;
   background: #fff;
@@ -75,37 +77,14 @@
   font: inherit;
   font-size: 12px;
   font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
 }
-.log-queue__toggle > span {
-  width: 6px;
-  height: 6px;
-  margin-top: -3px;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  transform: rotate(45deg);
-}
-.log-queue__toggle[aria-expanded='true'] > span {
-  margin-top: 3px;
-  transform: rotate(225deg);
-}
-.log-queue__toggle:hover,
-.log-queue__toggle[aria-expanded='true'] {
+.log-queue__open:hover:not(:disabled) {
   border-color: #7e9cb6;
   background: #eef4f9;
 }
-.log-queue__table .log-queue__detail {
-  height: auto;
-  padding: 0;
-  overflow: visible;
-  white-space: normal;
-}
-.log-queue__detail-content {
-  position: sticky;
-  left: 0;
-  width: min(100%, 100cqi);
-  background: var(--surface);
-}
-.log-queue .log-queue__toggle:focus-visible,
+.log-queue .log-queue__open:focus-visible,
 .log-queue__table .roster-check input:focus-visible {
   outline-offset: 0;
 }

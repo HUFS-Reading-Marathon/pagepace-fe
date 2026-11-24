@@ -57,7 +57,6 @@ function list(filter: 'ALL' | 'SUBMITTED') {
       to=""
       course=""
       sort={DEFAULT_LOG_SORT}
-      selected={null}
       selectedIds={new Set([17, 18])}
       loading={false}
       processing={false}
@@ -72,8 +71,7 @@ function list(filter: 'ALL' | 'SUBMITTED') {
       onSort={vi.fn()}
       onReset={vi.fn()}
       onPage={vi.fn()}
-      onSelect={vi.fn()}
-      renderDetail={() => null}
+      onOpen={vi.fn()}
     />,
   );
 }
@@ -93,12 +91,14 @@ it('제출일만 보여 주고 순번·이름·학번 다음에 제출일과 도
     '도서명',
     '저자',
     '쪽수',
-    '상세',
+    '검토',
   ]);
   expect(html).toContain('11번 김도서 2026-11-23 제출 일지 선택');
   expect(html).not.toContain(submitted.readingDate);
   expect(html).toMatch(/<td[^>]*data-column="userName"[^>]*><span>김도서<\/span>/);
-  expect(html).toContain('aria-label="11번 김도서 일지 자세히"');
+  // 행 안에서 펼치지 않고 독립 상세 화면을 여는 버튼을 둔다
+  expect(html).toContain('aria-label="11번 김도서 일지 검토하기"');
+  expect(html).not.toContain('aria-expanded');
   expect(html).toContain('role="separator"');
   expect(html).toContain('aria-label="도서명 열 너비"');
 });
@@ -221,7 +221,6 @@ it('검색 영역에 코스·제출 기간·초기화·새로고침을 함께 �
       course=""
       courseOptions={['단축', '풀']}
       sort={DEFAULT_LOG_SORT}
-      selected={null}
       selectedIds={new Set()}
       loading={false}
       processing={false}
@@ -237,9 +236,8 @@ it('검색 영역에 코스·제출 기간·초기화·새로고침을 함께 �
       onSort={vi.fn()}
       onReset={vi.fn()}
       onPage={vi.fn()}
-      onSelect={vi.fn()}
+      onOpen={vi.fn()}
       onRefresh={vi.fn()}
-      renderDetail={() => null}
     />,
   );
   expect(html).toMatch(/<option value=""[^>]*>전체 코스<\/option>/);
