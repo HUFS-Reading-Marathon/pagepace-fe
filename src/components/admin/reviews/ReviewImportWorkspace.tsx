@@ -36,6 +36,13 @@ import ReviewImportDetailDialog from './ReviewImportDetailDialog';
 import ReviewImportDetailPanel from './ReviewImportDetailPanel';
 import ReviewImportSource from './ReviewImportSource';
 import ReviewImportTable from './ReviewImportTable';
+import {
+  DEFAULT_REVIEW_IMPORT_SORT,
+  sortForView,
+  sortImportRows,
+  type ReviewImportSort,
+} from './reviewImportSort';
+import { nextSort } from '../table/sorting';
 import '../../../styles/admin-participants.css';
 import './review-import-dialog.css';
 
@@ -65,11 +72,20 @@ function readAutoNext() {
   }
 }
 
-/** 보기(상태 묶음)와 검색어에 맞는 행. 표·상세 창의 이전·다음 이동이 같은 순서를 씁니다. */
-function filterRows(rows: ImportedReview[], view: ReviewImportView, keyword: string) {
+/**
+ * 보기(상태 묶음)와 검색어에 맞는 전체 행을 정렬합니다(페이지 나누기 전).
+ * 표·상세 창의 이전·다음 이동·반영 후 다음 대상이 모두 같은 순서를 씁니다.
+ */
+function filterRows(
+  rows: ImportedReview[],
+  view: ReviewImportView,
+  keyword: string,
+  sort: ReviewImportSort,
+) {
   const statuses = REVIEW_IMPORT_VIEWS.find((item) => item.key === view)?.statuses ?? [];
-  return rows.filter(
-    (row) => statuses.includes(row.status) && matchesReviewImportKeyword(row, keyword),
+  return sortImportRows(
+    rows.filter((row) => statuses.includes(row.status) && matchesReviewImportKeyword(row, keyword)),
+    sortForView(sort, view),
   );
 }
 const REFRESH_ON_ERROR_CODES = [
@@ -197,6 +213,7 @@ function ReviewImportWorkspace({
   const [recentRowId, setRecentRowId] = useState<number | null>(null);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [sort, setSort] = useState<ReviewImportSort>(DEFAULT_REVIEW_IMPORT_SORT);
   const [autoNext, setAutoNext] = useState(readAutoNext);
   /** 작성 중인 검토 메모. 반영 실패로 상세가 다시 그려져도 이어서 씁니다. */
   const [draftNote, setDraftNote] = useState<{ rowId: number; text: string } | null>(null);
@@ -339,7 +356,11 @@ function ReviewImportWorkspace({
       ) as Record<ReviewImportView, number>,
     [rows],
   );
-  const visibleRows = useMemo(() => filterRows(rows, view, keyword), [keyword, rows, view]);
+  const viewSort = sortForView(sort, view);
+  const visibleRows = useMemo(
+    () => filterRows(rows, view, keyword, sort),
+    [keyword, rows, view, sort],
+  );
   const currentPage = clampPage(page, visibleRows.length, pageSize);
   const pageRows = visibleRows.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
   const readyTotals = useMemo(() => sumCredit(rows.filter(isBulkConfirmableRow)), [rows]);
@@ -536,7 +557,7 @@ function ReviewImportWorkspace({
         setFeedback({ message, isError: false });
         return;
       }
-      const fresh = filterRows(loadedRef.current?.pages.flat() ?? [], view, keyword);
+      const fresh = filterRows(loadedRef.current?.pages.flat() ?? [], view, keyword, sort);
       const nextId = nextCandidateId(
         beforeIds,
         row.id,
@@ -781,6 +802,11 @@ function ReviewImportWorkspace({
                 busy={busy}
                 readOnly={readOnly}
                 emptyMessage={keyword.trim() ? '조건에 맞는 행이 없습니다.' : EMPTY_MESSAGES[view]}
+                sort={viewSort}
+                onSort={(column) => {
+                  setSort(nextSort(viewSort, column));
+                  setPage(0);
+                }}
                 onSelectRow={selectRow}
                 onToggleRow={(rowId, checked) =>
                   setSelectedIds((current) =>

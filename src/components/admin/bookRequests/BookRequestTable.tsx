@@ -1,12 +1,16 @@
 import type { BookRequest } from '../../../api/bookRequestApi';
 import { formatKoDateTime24 } from '../../../utils/date';
+import SortHeaderButton from '../table/SortHeaderButton';
 import TablePagination from '../table/TablePagination';
 import {
   BOOK_REQUEST_FILTER_LABELS,
   BOOK_REQUEST_FILTERS,
+  BOOK_REQUEST_SORT_COLUMNS,
   INITIAL_BOOK_REQUEST_SEARCH,
+  isDefaultBookRequestSort,
   type BookRequestFilter,
   type BookRequestSearch,
+  type BookRequestSortColumn,
 } from './bookRequestList';
 import '../../../styles/admin-participants.css';
 import './book-request-admin.css';
@@ -28,6 +32,8 @@ type Props = {
   /** 상세에서 돌아왔을 때 표시할 행 */
   recent?: number | null;
   onSearch: (patch: Partial<BookRequestSearch>) => void;
+  /** 컬럼 제목을 눌러 정렬 (같은 컬럼을 다시 누르면 방향 전환) */
+  onSort: (column: BookRequestSortColumn) => void;
   onReset: () => void;
   onRefresh: () => void;
   onPage: (page: number) => void;
@@ -41,7 +47,7 @@ const COLUMNS = [
   ['studentNo', '학번·사번', 112],
   ['title', '요청 도서명', 0],
   ['author', '저자', 130],
-  ['pages', '요청 독서량', 92],
+  ['readPages', '요청 독서량', 92],
   ['createdAt', '요청일', 140],
   ['status', '상태', 116],
   ['action', '검토', 92],
@@ -62,6 +68,7 @@ export default function BookRequestTable({
   feedback,
   recent = null,
   onSearch,
+  onSort,
   onReset,
   onRefresh,
   onPage,
@@ -73,7 +80,7 @@ export default function BookRequestTable({
   const changed =
     searching ||
     search.filter !== INITIAL_BOOK_REQUEST_SEARCH.filter ||
-    search.sort !== INITIAL_BOOK_REQUEST_SEARCH.sort;
+    !isDefaultBookRequestSort(search.sort);
   const emptyText = loading
     ? '도서 확인 요청을 불러오고 있습니다.'
     : error && !hasLoaded
@@ -134,18 +141,6 @@ export default function BookRequestTable({
               ))}
             </select>
           </label>
-          <label>
-            정렬
-            <select
-              aria-label="정렬"
-              value={search.sort}
-              disabled={busy}
-              onChange={(e) => onSearch({ sort: e.target.value as BookRequestSearch['sort'] })}
-            >
-              <option value="oldest">요청 오래된 순</option>
-              <option value="newest">최근 요청 순</option>
-            </select>
-          </label>
           <button
             type="button"
             className="roster-link"
@@ -169,11 +164,25 @@ export default function BookRequestTable({
           </colgroup>
           <thead>
             <tr>
-              {COLUMNS.map(([key, label]) => (
-                <th key={key} scope="col" data-column={key}>
-                  {label}
-                </th>
-              ))}
+              {COLUMNS.map(([key, label]) => {
+                const sortable = key in BOOK_REQUEST_SORT_COLUMNS;
+                const direction =
+                  sortable && search.sort.column === key ? search.sort.direction : undefined;
+                return (
+                  <th key={key} scope="col" data-column={key} aria-sort={direction}>
+                    {sortable ? (
+                      <SortHeaderButton
+                        label={label}
+                        direction={direction}
+                        disabled={busy}
+                        onSort={() => onSort(key as BookRequestSortColumn)}
+                      />
+                    ) : (
+                      label
+                    )}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
@@ -201,7 +210,7 @@ export default function BookRequestTable({
                     <td data-column="author" title={row.author || undefined}>
                       {row.author || '—'}
                     </td>
-                    <td data-column="pages">{row.readPages.toLocaleString('ko-KR')}쪽</td>
+                    <td data-column="readPages">{row.readPages.toLocaleString('ko-KR')}쪽</td>
                     <td data-column="createdAt">
                       <time dateTime={row.createdAt} title={formatKoDateTime24(row.createdAt)}>
                         {row.createdAt.slice(0, 16).replace('T', ' ')}

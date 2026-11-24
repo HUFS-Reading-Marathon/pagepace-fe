@@ -1,11 +1,15 @@
 import type { AdminReviewTarget } from '../../../api/adminReadingLogApi';
 import { formatKoDateTime24 } from '../../../utils/date';
+import SortHeaderButton from '../table/SortHeaderButton';
 import TablePagination from '../table/TablePagination';
 import {
+  isDefaultReviewSort,
   REVIEW_FILTER_LABELS,
+  REVIEW_SORT_COLUMNS,
   reviewDate,
   type ReviewFilter,
   type ReviewSearch,
+  type ReviewSortColumn,
 } from './reviewTargetFilters';
 import '../../../styles/admin-participants.css';
 import './review-target-table.css';
@@ -27,6 +31,8 @@ type Props = {
   /** 상세에서 돌아왔을 때 표시할 행 */
   recent?: number | null;
   onSearch: (patch: Partial<ReviewSearch>) => void;
+  /** 컬럼 제목을 눌러 정렬 (같은 컬럼을 다시 누르면 방향 전환) */
+  onSort: (column: ReviewSortColumn) => void;
   onReset: () => void;
   onRefresh: () => void;
   onPage: (page: number) => void;
@@ -62,6 +68,7 @@ export default function ReviewTargetTable({
   feedback,
   recent = null,
   onSearch,
+  onSort,
   onReset,
   onRefresh,
   onPage,
@@ -70,7 +77,7 @@ export default function ReviewTargetTable({
 }: Props) {
   const start = page * pageSize;
   const searching = !!search.query.trim();
-  const changed = searching || search.filter !== 'pending' || search.sort !== 'oldest';
+  const changed = searching || search.filter !== 'pending' || !isDefaultReviewSort(search.sort);
   const emptyText = loading
     ? '확인 대상을 불러오고 있습니다.'
     : error && !hasLoaded
@@ -131,18 +138,6 @@ export default function ReviewTargetTable({
               ))}
             </select>
           </label>
-          <label>
-            정렬
-            <select
-              aria-label="정렬"
-              value={search.sort}
-              disabled={busy}
-              onChange={(e) => onSearch({ sort: e.target.value as ReviewSearch['sort'] })}
-            >
-              <option value="oldest">제출 오래된 순</option>
-              <option value="newest">최근 제출 순</option>
-            </select>
-          </label>
           <button
             type="button"
             className="roster-link"
@@ -166,11 +161,25 @@ export default function ReviewTargetTable({
           </colgroup>
           <thead>
             <tr>
-              {COLUMNS.map(([key, label]) => (
-                <th key={key} scope="col" data-column={key}>
-                  {label}
-                </th>
-              ))}
+              {COLUMNS.map(([key, label]) => {
+                const sortable = key in REVIEW_SORT_COLUMNS;
+                const direction =
+                  sortable && search.sort.column === key ? search.sort.direction : undefined;
+                return (
+                  <th key={key} scope="col" data-column={key} aria-sort={direction}>
+                    {sortable ? (
+                      <SortHeaderButton
+                        label={label}
+                        direction={direction}
+                        disabled={busy}
+                        onSort={() => onSort(key as ReviewSortColumn)}
+                      />
+                    ) : (
+                      label
+                    )}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>

@@ -75,7 +75,10 @@ describe('도서 확인 요청 목록 조건', () => {
     expect(ids({ filter: 'REJECTED' })).toEqual([3]);
     // 요청 시각이 같으면 요청 번호 순으로 고정합니다.
     expect(ids({ filter: 'ALL' })).toEqual([2, 1, 3, 4]);
-    expect(ids({ filter: 'ALL', sort: 'newest' })).toEqual([4, 3, 1, 2]);
+    // 같은 요청 시각(1·3번)은 정렬 방향과 관계없이 요청 번호 순으로 고정합니다.
+    expect(ids({ filter: 'ALL', sort: { column: 'createdAt', direction: 'descending' } })).toEqual([
+      4, 1, 3, 2,
+    ]);
     expect(bookRequestCounts(rows)).toEqual({ PENDING: 2, LINKED: 1, REJECTED: 1, ALL: 4 });
   });
 
@@ -90,7 +93,11 @@ describe('도서 확인 요청 목록 조건', () => {
 
   it('목록 조건을 URL에 담고 기본값은 생략하며 행사·상세 파라미터는 그대로 둔다', () => {
     const state = {
-      search: { filter: 'REJECTED' as const, query: '반려', sort: 'newest' as const },
+      search: {
+        filter: 'REJECTED' as const,
+        query: '반려',
+        sort: { column: 'createdAt' as const, direction: 'descending' as const },
+      },
       page: 1,
       pageSize: 50,
     };
@@ -146,7 +153,7 @@ describe('도서 확인 요청 표', () => {
     const html = render();
     const headings = Array.from(
       html.match(/<thead>(.*?)<\/thead>/s)![1].matchAll(/<th\b[^>]*>(.*?)<\/th>/gs),
-      (match) => match[1],
+      (match) => match[1].replace(/<[^>]+>/g, ''),
     );
     expect(headings).toEqual([
       '순번',

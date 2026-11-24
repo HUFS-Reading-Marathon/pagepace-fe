@@ -14,7 +14,7 @@
   font-weight: 600;
 }
 
-.book-request-list__table :is(th, td)[data-column='pages'] {
+.book-request-list__table :is(th, td)[data-column='readPages'] {
   text-align: right;
 }
 

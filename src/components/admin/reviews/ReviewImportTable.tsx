@@ -9,7 +9,19 @@ import {
   type ReviewImportView,
 } from '../../../types/adminReviewImport';
 import { formatKoDateTime24 } from '../../../utils/date';
+import SortHeaderButton from '../table/SortHeaderButton';
 import ReviewImportStatusBadge from './ReviewImportStatusBadge';
+import {
+  REVIEW_IMPORT_SORT_COLUMNS,
+  type ReviewImportSort,
+  type ReviewImportSortColumn,
+} from './reviewImportSort';
+
+const HEADER_CLASS: Partial<Record<ReviewImportSortColumn, string>> = {
+  sourceRow: 'admin-review-table__row-no',
+  pages: 'admin-review-table__number',
+  meters: 'admin-review-table__number',
+};
 
 type ReviewImportTableProps = {
   view: Exclude<ReviewImportView, 'excluded'>;
@@ -21,6 +33,10 @@ type ReviewImportTableProps = {
   busy: boolean;
   readOnly: boolean;
   emptyMessage: string;
+  /** 현재 정렬. 표는 이미 정렬된 행(현재 쪽)을 받습니다. */
+  sort: ReviewImportSort;
+  /** 컬럼 제목을 눌러 정렬 (같은 컬럼을 다시 누르면 방향 전환) */
+  onSort: (column: ReviewImportSortColumn) => void;
   /** 상세 창 열기 */
   onSelectRow: (rowId: number) => void;
   onToggleRow: (rowId: number, checked: boolean) => void;
@@ -96,6 +112,8 @@ function ReviewImportTable({
   busy,
   readOnly,
   emptyMessage,
+  sort,
+  onSort,
   onSelectRow,
   onToggleRow,
   onToggleAll,
@@ -133,35 +151,19 @@ function ReviewImportTable({
                 />
               </th>
             )}
-            <th scope="col" className="admin-review-table__row-no">
-              엑셀 행
-            </th>
-            <th scope="col">작성자</th>
-            <th scope="col">서평 도서</th>
-            {(view === 'ready' || view === 'review') && (
-              <>
-                {view === 'review' && <th scope="col">확인 사항</th>}
-                {view === 'ready' && <th scope="col">서평 최종 수정</th>}
-                <th scope="col" className="admin-review-table__number">
-                  인정 쪽수
+            {REVIEW_IMPORT_SORT_COLUMNS[view].map(([column, label]) => {
+              const direction = sort.column === column ? sort.direction : undefined;
+              return (
+                <th key={column} scope="col" className={HEADER_CLASS[column]} aria-sort={direction}>
+                  <SortHeaderButton
+                    label={label}
+                    direction={direction}
+                    disabled={busy}
+                    onSort={() => onSort(column)}
+                  />
                 </th>
-                <th scope="col" className="admin-review-table__number">
-                  인정 거리
-                </th>
-              </>
-            )}
-            {view === 'done' && (
-              <>
-                <th scope="col">상태</th>
-                <th scope="col">반영 내용</th>
-              </>
-            )}
-            {view === 'blocked' && (
-              <>
-                <th scope="col">상태</th>
-                <th scope="col">사유</th>
-              </>
-            )}
+              );
+            })}
             <th scope="col" className="admin-review-table__open">
               상세
             </th>

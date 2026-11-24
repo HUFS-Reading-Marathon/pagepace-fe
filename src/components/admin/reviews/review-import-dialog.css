@@ -18,6 +18,17 @@
   border-bottom: 0;
 }
 
+/* 정렬 중인 컬럼: 참가자 관리 표(roster-table)와 같은 네이비 글자·옅은 배경 */
+.admin-review-table th[aria-sort] {
+  background: #e4ebf1;
+  color: #103f6a;
+}
+
+.admin-review-table th .roster-sort {
+  min-height: 0;
+  text-align: inherit;
+}
+
 .admin-review-table__open {
   width: 92px;
   text-align: center !important;

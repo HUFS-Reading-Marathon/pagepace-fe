@@ -90,6 +90,7 @@ export function logColumnWidths(
 }
 
 const collator = new Intl.Collator('ko-KR', { numeric: true, sensitivity: 'base' });
+const LOG_STATUS_ORDER: AdminReadingLogResponse['status'][] = ['SUBMITTED', 'APPROVED', 'REJECTED'];
 function textValue(
   log: AdminReadingLogResponse,
   column: Exclude<LogSort['column'], 'totalReadPages'>,
@@ -135,6 +136,9 @@ export function visibleLogs(
       let comparison: number;
       if (sort.column === 'totalReadPages') {
         comparison = a.totalReadPages - b.totalReadPages;
+      } else if (sort.column === 'status') {
+        // 상태는 업무 순서(검토 대기 → 승인 → 반려)로 정렬합니다.
+        comparison = LOG_STATUS_ORDER.indexOf(a.status) - LOG_STATUS_ORDER.indexOf(b.status);
       } else {
         const left = textValue(a, sort.column);
         const right = textValue(b, sort.column);

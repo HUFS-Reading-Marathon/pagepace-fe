@@ -1,5 +1,6 @@
 import { ROSTER_STATUSES, rosterStatus, type RosterRow } from '../api/adminRosterApi';
 import { ADMIN_APPLICATION_AFFILIATION_LABELS } from '../types/adminApplication';
+import { compareBy, orderValue } from '../components/admin/table/sorting';
 
 export const EMPTY_FILTERS = { query: '', status: '', course: '', affiliation: '' };
 export const DEFAULT_FILTERS = { ...EMPTY_FILTERS, status: 'PARTICIPANTS' };
@@ -84,6 +85,12 @@ function dataCell(row: RosterRow, column: RosterSort['column']): string {
   }
 }
 
+const STATUS_ORDER = Object.keys(ROSTER_STATUSES) as (keyof typeof ROSTER_STATUSES)[];
+function statusOrder(row: RosterRow) {
+  const status = rosterStatus(row);
+  return status ? orderValue(STATUS_ORDER, status) : null;
+}
+
 export function sortedRoster(
   rows: RosterRow[],
   filters: RosterFilters,
@@ -93,6 +100,10 @@ export function sortedRoster(
   return rows
     .filter((row) => matchesRosterRow(row, filters))
     .sort((a, b) => {
+      if (sort.column === 'status') {
+        // 상태는 글자 순이 아니라 업무 순서(승인 대기 → 승인 → 완주 → 반려 → 참가 취소 → 실격)로 정렬합니다.
+        return compareBy(statusOrder(a), statusOrder(b), sort.direction) || byName(a, b);
+      }
       const left = dataCell(a, sort.column);
       const right = dataCell(b, sort.column);
       if (!left || !right) return Number(!left) - Number(!right) || byName(a, b);

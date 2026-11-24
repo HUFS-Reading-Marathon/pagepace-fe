@@ -27,6 +27,7 @@ import {
 } from '../../components/admin/bookRequests/bookRequestList';
 import { clampPage } from '../../components/admin/table/pagination';
 import { nextCandidateId } from '../../components/admin/table/queueNavigation';
+import { nextSort } from '../../components/admin/table/sorting';
 import type { AdminEvent } from '../../types/adminEvent';
 import { resolveAdminQueueEvent } from '../../utils/adminEvent';
 import { selectEvent } from '../../utils/eventSelection';
@@ -383,6 +384,12 @@ function BookRequestQueue({
       recent={recent}
       onSearch={(patch) =>
         setList((current) => ({ search: { ...current.search, ...patch }, page: 0 }))
+      }
+      onSort={(column) =>
+        setList((current) => ({
+          search: { ...current.search, sort: nextSort(current.search.sort, column) },
+          page: 0,
+        }))
       }
       onReset={() => setList(() => ({ search: INITIAL_BOOK_REQUEST_SEARCH, page: 0 }))}
       onRefresh={() => void retryList()}

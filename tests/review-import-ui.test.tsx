@@ -81,6 +81,8 @@ function renderTable(view: 'ready' | 'review', rows: ImportedReview[]) {
       onSelectRow={() => {}}
       onToggleRow={() => {}}
       onToggleAll={() => {}}
+      sort={{ column: 'sourceRow', direction: 'ascending' }}
+      onSort={() => {}}
     />,
   );
 }

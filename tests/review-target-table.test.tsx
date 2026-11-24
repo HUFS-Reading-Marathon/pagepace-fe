@@ -72,7 +72,7 @@ describe('서평 개별 확인 목록 필터', () => {
       );
     expect(ids({ query: '세이건' })).toEqual([1, 3]);
     expect(ids({ query: '사피' })).toEqual([2]);
-    expect(ids({ sort: 'newest' })).toEqual([2, 1, 3]);
+    expect(ids({ sort: { column: 'date', direction: 'descending' } })).toEqual([2, 1, 3]);
   });
 });
 
@@ -104,7 +104,7 @@ describe('서평 개별 확인 표', () => {
     const html = render();
     const headings = Array.from(
       html.match(/<thead>(.*?)<\/thead>/s)![1].matchAll(/<th\b[^>]*>(.*?)<\/th>/gs),
-      (match) => match[1],
+      (match) => match[1].replace(/<[^>]+>/g, ''),
     );
     expect(headings).toEqual([
       '순번',
@@ -163,7 +163,11 @@ describe('서평 상세 확인 이동', () => {
   it('목록 조건을 URL에 담고 기본값은 생략하며 행사·탭 파라미터는 그대로 둔다', () => {
     const base = new URLSearchParams('eventId=6&tab=manual');
     const state = {
-      search: { filter: 'all' as const, query: '코스모스', sort: 'newest' as const },
+      search: {
+        filter: 'all' as const,
+        query: '코스모스',
+        sort: { column: 'date' as const, direction: 'descending' as const },
+      },
       page: 2,
       pageSize: 50,
     };
