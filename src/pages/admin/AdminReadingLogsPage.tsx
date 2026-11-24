@@ -222,9 +222,16 @@ function ReadingQueue({
 
   // 상세에서 목록으로 돌아오면 이전 스크롤 위치와 마지막으로 본 행으로 돌아갑니다.
   // 그 일지가 처리되어 목록에 없으면 건수 제목으로 초점을 옮깁니다.
+  // 상세를 거쳐 목록으로 바뀐 때에만 되돌립니다(주소 변경은 전환으로 늦게 그려질 수 있음).
+  const wasDetail = useRef(false);
   useEffect(() => {
-    if (logId !== null || loading || listScroll.current === null) return;
-    window.scrollTo(0, listScroll.current);
+    if (logId !== null) {
+      wasDetail.current = true;
+      return;
+    }
+    if (!wasDetail.current || loading) return;
+    wasDetail.current = false;
+    window.scrollTo(0, listScroll.current ?? 0);
     listScroll.current = null;
     const row = recent === null ? null : document.getElementById('log-review-row-' + recent);
     (row ?? document.getElementById('log-review-count'))?.focus({ preventScroll: true });
