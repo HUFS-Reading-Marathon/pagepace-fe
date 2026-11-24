@@ -251,13 +251,23 @@ function ReadingQueue({
     setChecked(new Set());
     setBatchNotes([]);
   }
-  function setList(patch: Partial<LogListState>) {
+  /**
+   * 목록 조건을 바꿉니다. 주소 변경은 전환으로 늦게 반영될 수 있으므로, 빠르게 이어지는 입력이 서로
+   * 덮어쓰지 않도록 항상 최신 주소 파라미터를 기준으로 계산합니다.
+   */
+  function setList(update: (current: LogListState) => Partial<LogListState>) {
     clearChecks();
     setFeedback('');
-    setParams(writeLogListState(params, { ...list, ...patch }), { replace: true });
+    setParams(
+      (latest) => {
+        const current = readLogListState(latest);
+        return writeLogListState(latest, { ...current, ...update(current) });
+      },
+      { replace: true },
+    );
   }
   function updateSearch(patch: Partial<LogSearch>) {
-    setList({ search: { ...search, ...patch }, page: 0 });
+    setList((current) => ({ search: { ...current.search, ...patch }, page: 0 }));
   }
   function sortBy(column: LogSort['column']) {
     const descending = search.sort.column === column && search.sort.direction === 'ascending';
@@ -267,7 +277,7 @@ function ReadingQueue({
     if (status === filter && !error) return;
     const sort =
       status !== 'ALL' && search.sort.column === 'status' ? DEFAULT_LOG_SORT : search.sort;
-    setList({ status, search: { ...search, sort }, page: 0 });
+    setList((current) => ({ status, search: { ...current.search, sort }, page: 0 }));
   }
   function reload() {
     setReloadTick((tick) => tick + 1);
@@ -529,7 +539,7 @@ function ReadingQueue({
         onSelectionChange={setChecked}
         canSelect={canSelect}
         onApproveSelection={() => void approveChecked()}
-        onPageSize={(size) => setList({ pageSize: size, page: 0 })}
+        onPageSize={(size) => setList(() => ({ pageSize: size, page: 0 }))}
         loading={loading && !rows.length}
         processing={processing || loading}
         error={error}
@@ -540,8 +550,10 @@ function ReadingQueue({
         onDates={(patch) => updateSearch(patch)}
         onCourse={(course) => updateSearch({ course })}
         onSort={sortBy}
-        onReset={() => setList({ status: 'SUBMITTED', search: INITIAL_LOG_SEARCH, page: 0 })}
-        onPage={(page) => setList({ page })}
+        onReset={() =>
+          setList(() => ({ status: 'SUBMITTED', search: INITIAL_LOG_SEARCH, page: 0 }))
+        }
+        onPage={(page) => setList(() => ({ page }))}
         onOpen={(id) => openLog(id)}
         onRetry={reload}
         onRefresh={() => {

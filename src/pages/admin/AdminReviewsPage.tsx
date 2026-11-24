@@ -294,9 +294,16 @@ function AdminReviews({
     setParams(nextParams, { replace: true });
   };
 
-  const setList = (patch: Partial<ReviewListState>) => {
+  /** 목록 조건 변경: 빠르게 이어지는 입력이 서로 덮어쓰지 않도록 최신 주소 파라미터를 기준으로 계산합니다. */
+  const setList = (update: (current: ReviewListState) => Partial<ReviewListState>) => {
     setFeedbackMessage('');
-    setParams(writeReviewListState(params, { ...listState, ...patch }), { replace: true });
+    setParams(
+      (latest) => {
+        const current = readReviewListState(latest);
+        return writeReviewListState(latest, { ...current, ...update(current) });
+      },
+      { replace: true },
+    );
   };
 
   const canLeave = () => {
@@ -811,11 +818,13 @@ function AdminReviews({
               hasLoaded={targets.length > 0}
               feedback={feedbackMessage}
               recent={recent}
-              onSearch={(patch) => setList({ search: { ...search, ...patch }, page: 0 })}
-              onReset={() => setList({ search: INITIAL_REVIEW_SEARCH, page: 0 })}
+              onSearch={(patch) =>
+                setList((current) => ({ search: { ...current.search, ...patch }, page: 0 }))
+              }
+              onReset={() => setList(() => ({ search: INITIAL_REVIEW_SEARCH, page: 0 }))}
               onRefresh={() => void retryQueue()}
-              onPage={(page) => setList({ page })}
-              onPageSize={(size) => setList({ pageSize: size, page: 0 })}
+              onPage={(page) => setList(() => ({ page }))}
+              onPageSize={(size) => setList(() => ({ pageSize: size, page: 0 }))}
               onOpen={(target) => openTarget(target.participantBookId)}
             />
           ) : (
