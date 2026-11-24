@@ -4,11 +4,18 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ApiError, getApiErrorMessage } from '../../api/apiClient';
 import { getAdminEvents } from '../../api/adminEventApi';
+import ReviewTargetTable from '../../components/admin/reviews/ReviewTargetTable';
+import {
+  INITIAL_REVIEW_SEARCH,
+  reviewFilterCounts,
+  visibleReviewTargets,
+  type ReviewSearch,
+} from '../../components/admin/reviews/reviewTargetFilters';
+import { DEFAULT_PAGE_SIZE, clampPage } from '../../components/admin/table/pagination';
 import ReviewImportWorkspace, {
   type ReviewPreview,
 } from '../../components/admin/reviews/ReviewImportWorkspace';
 import {
-  compareReviewTime,
   getAdminReviewTargets,
   replaceReviewTarget,
   settleReviewTargets,
@@ -21,9 +28,6 @@ import { formatKoDateTime24 } from '../../utils/date';
 import { preferredAdminEvent } from '../../utils/eventSelection';
 import { useAdminEventState } from '../../hooks/useAdminEventState';
 import '../../styles/admin-reviews.css';
-
-type ReviewTab = 'pending' | 'verified';
-type QueueSort = 'oldest' | 'newest';
 
 const REVIEW_CHECK_ITEMS = [
   {
@@ -38,7 +42,6 @@ const REVIEW_CHECK_ITEMS = [
   },
 ] as const;
 
-const NARROW_LAYOUT_QUERY = '(max-width: 1180px)';
 const EMPTY_EVIDENCE = {
   targetId: null as number | null,
   time: '',
@@ -96,9 +99,9 @@ function AdminReviews({
   const [queueReloading, setQueueReloading] = useState(false);
   const [actionError, setActionError] = useState('');
   const [feedbackMessage, setFeedbackMessage] = useState('');
-  const [tab, setTab] = useState<ReviewTab>('pending');
-  const [searchKeyword, setSearchKeyword] = useState('');
-  const [sortOrder, setSortOrder] = useState<QueueSort>('oldest');
+  const [search, setSearch] = useState<ReviewSearch>(INITIAL_REVIEW_SEARCH);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [missingLinkedBook, setMissingLinkedBook] = useState(false);
   const [evidence, setEvidence] = useState(EMPTY_EVIDENCE);
@@ -154,7 +157,10 @@ function AdminReviews({
               (target) => String(target.participantBookId) === requestedBook,
             );
             if (requested) {
-              setTab(requested.reviewVerified ? 'verified' : 'pending');
+              setSearch((current) => ({
+                ...current,
+                filter: requested.reviewVerified ? 'verified' : 'pending',
+              }));
               setSelectedId(requested.participantBookId);
             } else {
               setMissingLinkedBook(true);
@@ -181,28 +187,14 @@ function AdminReviews({
     };
   }, [eventId, requestedBook]);
 
-  const pendingCount = targets.filter((target) => !target.reviewVerified).length;
-  const verifiedCount = targets.length - pendingCount;
+  const counts = useMemo(() => reviewFilterCounts(targets), [targets]);
+  const pendingCount = counts.pending;
+  const visibleTargets = useMemo(() => visibleReviewTargets(targets, search), [search, targets]);
+  const currentPage = clampPage(page, visibleTargets.length, pageSize);
+  const pageTargets = visibleTargets.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
 
-  const visibleTargets = useMemo(() => {
-    const keyword = searchKeyword.trim().toLowerCase();
-    const direction = sortOrder === 'oldest' ? 1 : -1;
-
-    return targets
-      .filter((target) => (tab === 'pending' ? !target.reviewVerified : target.reviewVerified))
-      .filter(
-        (target) =>
-          !keyword ||
-          [target.userName, target.studentNo, target.bookTitle, target.author ?? ''].some((value) =>
-            value.toLowerCase().includes(keyword),
-          ),
-      )
-      .sort((left, right) => compareReviewTime(left, right, direction));
-  }, [searchKeyword, sortOrder, tab, targets]);
-
-  const activeTarget =
-    visibleTargets.find((target) => target.participantBookId === selectedId) ??
-    (missingLinkedBook ? undefined : visibleTargets[0]);
+  // 표에서 고른 대상만 확인 영역에 보여 줍니다. 아무것도 고르지 않았으면 빈 상세 영역을 두지 않습니다.
+  const activeTarget = targets.find((target) => target.participantBookId === selectedId);
   const draft =
     activeTarget && evidence.targetId === activeTarget.participantBookId
       ? evidence
@@ -211,6 +203,7 @@ function AdminReviews({
     (event) => event.eventId === eventId && ['FINALIZED', 'ARCHIVED'].includes(event.status),
   );
   const activeIndex = activeTarget ? visibleTargets.indexOf(activeTarget) : -1;
+  const panelTotal = visibleTargets.length;
   const activeChecks =
     activeTarget && checkedItems.targetId === activeTarget.participantBookId
       ? checkedItems.keys
@@ -237,11 +230,10 @@ function AdminReviews({
       setFeedbackMessage('');
     }
 
-    if (window.matchMedia(NARROW_LAYOUT_QUERY).matches) {
-      window.requestAnimationFrame(() =>
-        panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
-      );
-    }
+    // 확인 영역은 표 아래에 열리므로 그 위치로 옮깁니다.
+    window.requestAnimationFrame(() =>
+      panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+    );
   };
 
   const toggleCheck = (targetId: number, key: string, checked: boolean) => {
@@ -345,90 +337,8 @@ function AdminReviews({
     }
   };
 
-  const renderQueue = () => {
-    if (isLoading) {
-      return (
-        <p className="admin-queue__message" role="status">
-          확인 대상을 불러오고 있습니다.
-        </p>
-      );
-    }
-
-    const queueAlert = queueError ? (
-      <div className="admin-reviews__error admin-reviews__queue-error" role="alert">
-        <p>
-          {queueError}
-          {targets.length > 0 && ' 아래는 마지막으로 불러온 목록입니다.'}
-        </p>
-        <button
-          type="button"
-          className="admin-button"
-          disabled={queueReloading || verifyingId !== null}
-          onClick={() => void retryQueue()}
-        >
-          {queueReloading ? '불러오는 중…' : '다시 불러오기'}
-        </button>
-      </div>
-    ) : null;
-
-    if (queueError && targets.length === 0) {
-      return queueAlert;
-    }
-
-    if (visibleTargets.length === 0) {
-      return (
-        <p className="admin-queue__message">
-          {searchKeyword.trim()
-            ? '조건에 맞는 서평이 없습니다.'
-            : tab === 'pending'
-              ? '서평 대조가 필요한 승인 도서가 없습니다.'
-              : '이 목록에 포함된 확인 완료 서평이 없습니다.'}
-        </p>
-      );
-    }
-
-    return (
-      <>
-        {queueAlert}
-        <ul className="admin-queue__list">
-          {visibleTargets.map((target) => (
-            <li key={target.participantBookId}>
-              <button
-                type="button"
-                className="admin-queue__item"
-                disabled={verifyingId !== null}
-                aria-current={target === activeTarget ? 'true' : undefined}
-                onClick={() => selectTarget(target.participantBookId)}
-              >
-                <strong>{target.userName}</strong>
-                <small>
-                  {target.bookTitle} · {reviewTimeLabel(target)}
-                </small>
-                <span className="admin-queue__item-side">
-                  <span className="admin-queue__pages">
-                    {target.reviewVerified
-                      ? '확인 완료'
-                      : `미인정 ${target.distanceToCreditMeter.toLocaleString('ko-KR')}m`}
-                  </span>
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </>
-    );
-  };
-
   const renderPanel = () => {
-    if (!activeTarget) {
-      return (
-        <div className="admin-detail-panel">
-          <p className="admin-detail-panel__empty">
-            {isLoading ? '확인 대상을 불러오고 있습니다.' : '왼쪽 목록에서 서평을 선택하세요.'}
-          </p>
-        </div>
-      );
-    }
+    if (!activeTarget) return null;
 
     const isVerifying = verifyingId === activeTarget.participantBookId;
 
@@ -443,9 +353,11 @@ function AdminReviews({
             </h2>
           </div>
           <div className="admin-detail-panel__nav">
-            <span>
-              {activeIndex + 1} / {visibleTargets.length}
-            </span>
+            {activeIndex >= 0 && (
+              <span>
+                {activeIndex + 1} / {panelTotal}
+              </span>
+            )}
             <button
               type="button"
               aria-label="이전 서평"
@@ -457,7 +369,9 @@ function AdminReviews({
             <button
               type="button"
               aria-label="다음 서평"
-              disabled={activeIndex >= visibleTargets.length - 1 || verifyingId !== null}
+              disabled={
+                activeIndex < 0 || activeIndex >= visibleTargets.length - 1 || verifyingId !== null
+              }
               onClick={() => selectTarget(visibleTargets[activeIndex + 1].participantBookId)}
             >
               ›
@@ -748,63 +662,38 @@ function AdminReviews({
             엑셀에 없는 서평은 도서관 사이트에서 원문을 열어 확인한 뒤, 원문 시각과 본문을 남기고
             직접 인정합니다.
           </p>
-          <div className="admin-reviews__tabs">
-            <div className="admin-segmented" aria-label="서평 확인 상태">
-              <button
-                type="button"
-                disabled={verifyingId !== null}
-                aria-pressed={tab === 'pending'}
-                onClick={() => setTab('pending')}
-              >
-                서평 대조 대기 <b>{pendingCount}</b>
-              </button>
-              <button
-                type="button"
-                aria-pressed={tab === 'verified'}
-                disabled={verifyingId !== null}
-                onClick={() => setTab('verified')}
-              >
-                확인 완료 <b>{verifiedCount}</b>
-              </button>
-            </div>
-            <p className="admin-feedback" role="status" aria-live="polite">
-              {feedbackMessage}
-            </p>
-          </div>
+          <ReviewTargetTable
+            rows={pageTargets}
+            total={visibleTargets.length}
+            page={currentPage}
+            pageSize={pageSize}
+            search={search}
+            counts={counts}
+            loading={isLoading}
+            busy={verifyingId !== null || queueReloading}
+            error={queueError}
+            hasLoaded={targets.length > 0}
+            feedback={feedbackMessage}
+            recent={activeTarget?.participantBookId ?? null}
+            onSearch={(patch) => {
+              setSearch((current) => ({ ...current, ...patch }));
+              setPage(0);
+            }}
+            onReset={() => {
+              setSearch(INITIAL_REVIEW_SEARCH);
+              setPage(0);
+            }}
+            onRefresh={() => void retryQueue()}
+            onPage={setPage}
+            onPageSize={(size) => {
+              setPageSize(size);
+              setPage(0);
+            }}
+            onOpen={(target) => selectTarget(target.participantBookId)}
+          />
 
-          <div className="admin-split">
-            <section className="admin-queue" aria-labelledby="reviewQueueTitle">
-              <div className="admin-queue__head">
-                <h2 id="reviewQueueTitle">
-                  {tab === 'pending' ? '확인 대기' : '확인 완료'}{' '}
-                  <span>{visibleTargets.length}건</span>
-                </h2>
-                <select
-                  aria-label="정렬"
-                  disabled={verifyingId !== null}
-                  value={sortOrder}
-                  onChange={(event) => setSortOrder(event.target.value as QueueSort)}
-                >
-                  <option value="oldest">제출 오래된 순</option>
-                  <option value="newest">최근 제출 순</option>
-                </select>
-              </div>
-              <div className="admin-queue__tools">
-                <input
-                  type="search"
-                  disabled={verifyingId !== null}
-                  value={searchKeyword}
-                  aria-label="서평 확인 대상 검색"
-                  placeholder="참가자, 학번, 책 제목, 저자"
-                  onChange={(event) => setSearchKeyword(event.target.value)}
-                />
-              </div>
-              {renderQueue()}
-            </section>
-
-            <div ref={panelRef} className="admin-reviews__panel">
-              {renderPanel()}
-            </div>
+          <div ref={panelRef} className="admin-reviews__panel review-targets__detail">
+            {renderPanel()}
           </div>
         </div>
       )}
