@@ -6,6 +6,24 @@
   flex: none;
   width: 140px;
 }
+/* 제출 기간: "제출 기간 [시작] ~ [종료]"를 다른 필터 라벨과 같은 모양으로 한 줄에 둡니다. */
+.log-queue__dates {
+  display: inline-flex;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  color: var(--body);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.log-queue__dates legend {
+  float: left;
+  margin-right: 1px;
+  padding: 0;
+}
 .log-queue__table th[data-column='totalReadPages'],
 .log-queue__table td[data-column='totalReadPages'] {
   text-align: right;
@@ -104,6 +122,15 @@
   }
   .log-queue__filters input[type='date'] {
     width: 100%;
+  }
+  .log-queue__dates {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  }
+  .log-queue__dates legend {
+    float: none;
+    grid-column: 1 / -1;
   }
   .log-queue__filters .roster-link {
     align-self: end;

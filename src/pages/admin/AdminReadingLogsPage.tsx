@@ -12,9 +12,11 @@ import ReadingLogReviewPanel from '../../components/admin/readingLogs/ReadingLog
 import { selectEvent } from '../../utils/eventSelection';
 import { resolveAdminQueueEvent } from '../../utils/adminEvent';
 import ReadingLogQueueList from '../../components/admin/readingLogs/ReadingLogQueueList';
+import { DEFAULT_PAGE_SIZE, clampPage } from '../../components/admin/table/pagination';
 import {
   DEFAULT_LOG_SORT,
   INITIAL_LOG_SEARCH,
+  logCourseOptions,
   visibleLogs,
   type LogSearch,
   type LogSort,
@@ -30,7 +32,6 @@ type QueueRequest = {
   linkedId?: string | null;
   focus?: { candidates: number[]; search: LogSearch; pageSize: number };
 };
-const DEFAULT_PAGE_SIZE = 10;
 function ReadingQueue({ event, linkedId }: { event: AdminEvent; linkedId: string | null }) {
   const [request, setRequest] = useState<QueueRequest>(() => ({ status: 'SUBMITTED', linkedId }));
   const [linkedStatus, setLinkedStatus] = useState<Filter>('SUBMITTED');
@@ -118,7 +119,8 @@ function ReadingQueue({ event, linkedId }: { event: AdminEvent; linkedId: string
   }, [logs, loading]);
 
   const rows = useMemo(() => visibleLogs(logs, search), [logs, search]);
-  const currentPage = Math.min(page, Math.max(0, Math.ceil(rows.length / pageSize) - 1));
+  const courseOptions = useMemo(() => logCourseOptions(logs), [logs]);
+  const currentPage = clampPage(page, rows.length, pageSize);
   function select(id: number | null) {
     setSelected(id);
     setActionError('');
@@ -301,7 +303,9 @@ function ReadingQueue({ event, linkedId }: { event: AdminEvent; linkedId: string
         feedback={feedback}
         onFilter={changeFilter}
         onQuery={(query) => updateSearch({ query })}
-        onDate={(date) => updateSearch({ date })}
+        courseOptions={courseOptions}
+        onDates={(patch) => updateSearch(patch)}
+        onCourse={(course) => updateSearch({ course })}
         onSort={sortBy}
         onReset={() => {
           changeFilter('SUBMITTED');
@@ -315,6 +319,12 @@ function ReadingQueue({ event, linkedId }: { event: AdminEvent; linkedId: string
         }}
         onSelect={select}
         onRetry={() => reload({ ...request })}
+        onRefresh={() => {
+          clearChecks();
+          select(null);
+          setFeedback('');
+          reload({ status: filter });
+        }}
         renderDetail={(log) => (
           <ReadingLogReviewPanel
             key={log.readingLogId + '-' + log.updatedAt}

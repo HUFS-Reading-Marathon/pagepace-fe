@@ -6,6 +6,7 @@ import type {
 import { READING_LOG_STATUS_LABELS } from '../../../types/readingLog';
 import { formatKoDateTime24 } from '../../../utils/date';
 import ColumnResizeHandle from '../table/ColumnResizeHandle';
+import TablePagination from '../table/TablePagination';
 import { CHECK_WIDTH, useColumnSizing } from '../table/tableColumns';
 import { useTableCellText } from '../table/useTableCellText';
 import {
@@ -31,7 +32,11 @@ type Props = {
   pageSize: number;
   filter: Filter;
   query: string;
-  date: string;
+  from: string;
+  to: string;
+  course: string;
+  /** 코스 필터 선택지. 비어 있으면 코스 필터를 숨깁니다. */
+  courseOptions?: string[];
   sort: LogSort;
   selected: number | null;
   selectedIds: ReadonlySet<number>;
@@ -44,13 +49,16 @@ type Props = {
   onApproveSelection: () => void;
   onFilter: (value: Filter) => void;
   onQuery: (value: string) => void;
-  onDate: (value: string) => void;
+  onDates: (patch: { from?: string; to?: string }) => void;
+  onCourse?: (value: string) => void;
   onSort: (key: LogSort['column']) => void;
   onReset: () => void;
   onPage: (page: number) => void;
   onPageSize?: (size: number) => void;
   onSelect: (id: number | null) => void;
   onRetry?: () => void;
+  /** 현재 조건으로 서버 목록을 다시 불러옵니다. */
+  onRefresh?: () => void;
   renderDetail: (log: AdminReadingLogResponse) => ReactNode;
 };
 
@@ -61,7 +69,10 @@ export default function ReadingLogQueueList({
   pageSize,
   filter,
   query,
-  date,
+  from,
+  to,
+  course,
+  courseOptions = [],
   sort,
   selected,
   selectedIds,
@@ -74,20 +85,19 @@ export default function ReadingLogQueueList({
   onApproveSelection,
   onFilter,
   onQuery,
-  onDate,
+  onDates,
+  onCourse,
   onSort,
   onReset,
   onPage,
   onPageSize,
   onSelect,
   onRetry,
+  onRefresh,
   renderDetail,
 }: Props) {
-  const pageCount = Math.ceil(total / pageSize);
-  const firstPage = Math.max(0, Math.min(page - 2, pageCount - 5));
-  const pageNumbers = Array.from({ length: Math.min(5, pageCount) }, (_, i) => firstPage + i);
   const start = page * pageSize;
-  const searching = !!(query.trim() || date);
+  const searching = !!(query.trim() || from || to || course);
   const showStatus = filter === 'ALL';
   const columns = visibleLogColumns(showStatus);
   const columnCount = columns.length + 2;
@@ -179,16 +189,44 @@ export default function ReadingLogQueueList({
               ))}
             </select>
           </label>
-          <label>
-            제출일
+          {onCourse && courseOptions.length > 1 && (
+            <label>
+              코스
+              <select
+                aria-label="코스"
+                value={course}
+                disabled={processing}
+                onChange={(e) => onCourse(e.target.value)}
+              >
+                <option value="">전체 코스</option>
+                {courseOptions.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <fieldset className="log-queue__dates">
+            <legend>제출 기간</legend>
             <input
               type="date"
-              aria-label="제출일"
-              value={date}
+              aria-label="제출 기간 시작일"
+              value={from}
+              max={to || undefined}
               disabled={processing}
-              onChange={(e) => onDate(e.target.value)}
+              onChange={(e) => onDates({ from: e.target.value })}
             />
-          </label>
+            <span aria-hidden="true">~</span>
+            <input
+              type="date"
+              aria-label="제출 기간 종료일"
+              value={to}
+              min={from || undefined}
+              disabled={processing}
+              onChange={(e) => onDates({ to: e.target.value })}
+            />
+          </fieldset>
           <button
             type="button"
             className="roster-link"
@@ -197,6 +235,11 @@ export default function ReadingLogQueueList({
           >
             초기화
           </button>
+          {onRefresh && (
+            <button type="button" className="roster-link" disabled={busy} onClick={onRefresh}>
+              새로고침
+            </button>
+          )}
         </div>
         <button
           type="button"
@@ -382,58 +425,15 @@ export default function ReadingLogQueueList({
           </tbody>
         </table>
       </div>
-      <footer className="roster-footer">
-        <span aria-live="polite">
-          {total
-            ? `${(start + 1).toLocaleString()}–${Math.min(total, start + pageSize).toLocaleString()}`
-            : '0'}{' '}
-          / {total.toLocaleString()}건
-        </span>
-        <nav className="roster-pagination" aria-label="일지 페이지">
-          <button
-            type="button"
-            aria-label="이전 페이지"
-            disabled={!page || busy}
-            onClick={() => onPage(page - 1)}
-          >
-            이전
-          </button>
-          {pageNumbers.map((n) => (
-            <button
-              type="button"
-              key={n}
-              aria-label={`${n + 1}페이지`}
-              aria-current={n === page ? 'page' : undefined}
-              disabled={busy}
-              onClick={() => onPage(n)}
-            >
-              {n + 1}
-            </button>
-          ))}
-          <button
-            type="button"
-            aria-label="다음 페이지"
-            disabled={page + 1 >= pageCount || busy}
-            onClick={() => onPage(page + 1)}
-          >
-            다음
-          </button>
-        </nav>
-        {onPageSize && (
-          <select
-            aria-label="페이지당 행 수"
-            value={pageSize}
-            disabled={busy}
-            onChange={(e) => onPageSize(Number(e.target.value))}
-          >
-            {[10, 25, 50].map((size) => (
-              <option key={size} value={size}>
-                {size}건씩 보기
-              </option>
-            ))}
-          </select>
-        )}
-      </footer>
+      <TablePagination
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        busy={busy}
+        label="일지 페이지"
+        onPage={onPage}
+        onPageSize={onPageSize}
+      />
     </section>
   );
 }

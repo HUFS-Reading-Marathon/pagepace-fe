@@ -17,9 +17,27 @@ export type LogSort = {
   column: Exclude<LogColumn, 'number'>;
   direction: 'ascending' | 'descending';
 };
-export type LogSearch = { query: string; date: string; sort: LogSort };
+/** 검색 조건. 제출 기간(from~to)은 제출일(createdAt) 기준이며 양 끝을 포함합니다. */
+export type LogSearch = { query: string; from: string; to: string; course: string; sort: LogSort };
 export const DEFAULT_LOG_SORT: LogSort = { column: 'createdAt', direction: 'ascending' };
-export const INITIAL_LOG_SEARCH: LogSearch = { query: '', date: '', sort: DEFAULT_LOG_SORT };
+export const INITIAL_LOG_SEARCH: LogSearch = {
+  query: '',
+  from: '',
+  to: '',
+  course: '',
+  sort: DEFAULT_LOG_SORT,
+};
+
+export function hasLogFilters({ query, from, to, course }: LogSearch) {
+  return !!(query.trim() || from || to || course);
+}
+
+/** 불러온 일지에 실제로 있는 코스만 코스 필터 선택지로 씁니다. */
+export function logCourseOptions(logs: AdminReadingLogResponse[]) {
+  return [...new Set(logs.map((log) => log.courseName).filter(Boolean))].sort((a, b) =>
+    collator.compare(a, b),
+  );
+}
 export const DETAIL_WIDTH = 80;
 
 const withStatus = Object.keys(LOG_COLUMNS) as LogColumn[];
@@ -87,13 +105,18 @@ function textValue(
   }
 }
 
-export function visibleLogs(logs: AdminReadingLogResponse[], { query, date, sort }: LogSearch) {
+export function visibleLogs(
+  logs: AdminReadingLogResponse[],
+  { query, from, to, course, sort }: LogSearch,
+) {
   const keyword = query.trim().toLocaleLowerCase();
   const direction = sort.direction === 'ascending' ? 1 : -1;
   return logs
     .filter(
       (log) =>
-        (!date || log.createdAt.slice(0, 10) === date) &&
+        (!from || log.createdAt.slice(0, 10) >= from) &&
+        (!to || log.createdAt.slice(0, 10) <= to) &&
+        (!course || log.courseName === course) &&
         (!keyword ||
           [
             log.userName,
