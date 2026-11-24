@@ -1,4 +1,5 @@
 import ColumnResizeHandle from '../table/ColumnResizeHandle';
+import SortHeaderButton from '../table/SortHeaderButton';
 import { useColumnSizing, CHECK_WIDTH } from '../table/tableColumns';
 import { useTableCellText } from '../table/useTableCellText';
 import { MIN_WIDTH, defaultColumnWidths } from './rosterColumns';
@@ -66,20 +67,11 @@ export default function ParticipantTable({
                   {key === 'number' ? (
                     ROSTER_COLUMNS.number
                   ) : (
-                    <button
-                      type="button"
-                      className="roster-sort"
-                      onClick={() => onSort(key)}
-                      title={
-                        ROSTER_COLUMNS[key] +
-                        ' ' +
-                        (direction === 'ascending' ? '내림차순' : '오름차순') +
-                        ' 정렬'
-                      }
-                    >
-                      {ROSTER_COLUMNS[key]}
-                      <span className="sort-mark" aria-hidden="true" />
-                    </button>
+                    <SortHeaderButton
+                      label={ROSTER_COLUMNS[key]}
+                      direction={direction}
+                      onSort={() => onSort(key)}
+                    />
                   )}
                   <ColumnResizeHandle
                     label={ROSTER_COLUMNS[key]}

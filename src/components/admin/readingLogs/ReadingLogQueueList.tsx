@@ -5,6 +5,7 @@ import type {
 import { READING_LOG_STATUS_LABELS } from '../../../types/readingLog';
 import { formatKoDateTime24 } from '../../../utils/date';
 import ColumnResizeHandle from '../table/ColumnResizeHandle';
+import SortHeaderButton from '../table/SortHeaderButton';
 import TablePagination from '../table/TablePagination';
 import { CHECK_WIDTH, useColumnSizing } from '../table/tableColumns';
 import { useTableCellText } from '../table/useTableCellText';
@@ -291,19 +292,12 @@ export default function ReadingLogQueueList({
                     {key === 'number' ? (
                       LOG_COLUMNS[key]
                     ) : (
-                      <button
-                        type="button"
-                        className="roster-sort"
+                      <SortHeaderButton
+                        label={LOG_COLUMNS[key]}
+                        direction={direction}
                         disabled={processing}
-                        title={
-                          LOG_COLUMNS[key] +
-                          (direction === 'ascending' ? ' 내림차순 정렬' : ' 오름차순 정렬')
-                        }
-                        onClick={() => onSort(key)}
-                      >
-                        {LOG_COLUMNS[key]}
-                        <span className="sort-mark" aria-hidden="true" />
-                      </button>
+                        onSort={() => onSort(key)}
+                      />
                     )}
                     <ColumnResizeHandle
                       label={LOG_COLUMNS[key]}
