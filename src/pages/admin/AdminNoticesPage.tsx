@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { getApiErrorMessage } from '../../api/apiClient';
 import {
@@ -11,8 +11,14 @@ import {
   type NoticeColor,
 } from '../../api/noticeApi';
 import { formatKoDateTime24 } from '../../utils/date';
+import { stripNoticeMarker } from '../../utils/noticeContent';
 import NoticeBody from '../../components/notices/NoticeBody';
+import type { NoticeEditorChange } from '../../components/admin/notices/NoticeRichEditor';
+import '../../pages/notices/notices.css';
 import '../../styles/admin-notices.css';
+
+// 편집기(Tiptap)는 작성·수정 화면에서만 불러옵니다.
+const NoticeRichEditor = lazy(() => import('../../components/admin/notices/NoticeRichEditor'));
 
 const NEW_NOTICE: NoticeRequest = {
   title: '',
@@ -21,6 +27,42 @@ const NEW_NOTICE: NoticeRequest = {
   pinned: false,
   visible: false,
 };
+
+const LEAVE_MESSAGE = '저장하지 않은 변경사항이 있습니다. 이 화면을 나갈까요?';
+
+/**
+ * 저장하지 않은 변경이 있으면 새로고침·창 닫기와 화면 안 링크 이동 전에 확인합니다.
+ * (BrowserRouter라 라우터 차단 기능을 쓸 수 없어, 링크 클릭을 캡처 단계에서 확인합니다.)
+ */
+function useLeaveGuard(active: boolean) {
+  useEffect(() => {
+    if (!active) return;
+
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    const onClick = (event: MouseEvent) => {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+        return;
+      }
+      const anchor = (event.target as Element | null)?.closest?.('a[href]');
+      if (!anchor || anchor.getAttribute('target') === '_blank') return;
+      if (anchor.closest('.notice-editor__surface')) return;
+      if (!window.confirm(LEAVE_MESSAGE)) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+
+    window.addEventListener('beforeunload', onBeforeUnload);
+    document.addEventListener('click', onClick, true);
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      document.removeEventListener('click', onClick, true);
+    };
+  }, [active]);
+}
 
 function NoticeEditor({
   notice,
@@ -41,12 +83,27 @@ function NoticeEditor({
         }
       : NEW_NOTICE,
   );
+  const [bodyEmpty, setBodyEmpty] = useState(!notice?.content.trim());
+  const [dirty, setDirty] = useState(false);
+  const [mode, setMode] = useState<'write' | 'preview'>('write');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const lock = useRef(false);
+  useLeaveGuard(dirty && !busy);
+
+  const update = (patch: Partial<NoticeRequest>) => {
+    setForm((current) => ({ ...current, ...patch }));
+    setDirty(true);
+  };
+  const handleBodyChange = ({ content, isEmpty }: NoticeEditorChange) => {
+    setForm((current) => ({ ...current, content }));
+    setBodyEmpty(isEmpty);
+    setDirty(true);
+  };
+
   async function save(visible: boolean) {
     if (lock.current) return;
-    if (!form.title.trim() || !form.content.trim()) {
+    if (!form.title.trim() || bodyEmpty) {
       setError('제목과 내용을 입력해 주세요.');
       return;
     }
@@ -63,6 +120,7 @@ function NoticeEditor({
       const request = { ...form, visible };
       if (notice) await updateAdminNotice(notice.noticeId, request);
       else await createAdminNotice(request);
+      setDirty(false);
       onSaved(visible);
     } catch (e) {
       setError(getApiErrorMessage(e, '공지사항을 저장하지 못했습니다.'));
@@ -75,56 +133,84 @@ function NoticeEditor({
     event.preventDefault();
     void save(notice?.visible ?? false);
   };
+  const color: NoticeColor = form.bodyColor ?? 'DEFAULT';
+
   return (
-    <form className="admin-notices__form" onSubmit={submit}>
-      <label>
-        제목
-        <input
-          required
-          maxLength={200}
-          value={form.title}
-          onChange={(e) => setForm({ ...form, title: e.target.value })}
-        />
-      </label>
-      <label>
-        내용
-        <textarea
-          required
-          rows={9}
-          value={form.content}
-          onChange={(e) => setForm({ ...form, content: e.target.value })}
-        />
-      </label>
-      <label>
-        본문 글자색
-        <select
-          value={form.bodyColor ?? 'DEFAULT'}
-          onChange={(e) => setForm({ ...form, bodyColor: e.target.value as NoticeColor })}
-        >
-          <option value="DEFAULT">기본</option>
-          <option value="NAVY">남색</option>
-          <option value="RED">진한 빨강</option>
-        </select>
-      </label>
-      <div className="admin-notices__checks">
-        <label>
+    <form className="admin-notice-editor" onSubmit={submit}>
+      <div className="admin-notice-editor__head">
+        <label className="admin-notice-editor__title">
+          <span>공지 제목</span>
           <input
-            type="checkbox"
-            checked={form.pinned}
-            onChange={(e) => setForm({ ...form, pinned: e.target.checked })}
-          />{' '}
-          중요 공지
+            required
+            maxLength={200}
+            placeholder="제목을 입력하세요"
+            value={form.title}
+            onChange={(e) => update({ title: e.target.value })}
+          />
         </label>
+        <div className="admin-notice-editor__options">
+          <label className="admin-notice-editor__check">
+            <input
+              type="checkbox"
+              checked={form.pinned}
+              onChange={(e) => update({ pinned: e.target.checked })}
+            />
+            중요 공지
+          </label>
+          <label className="admin-notice-editor__color">
+            <span>본문 글자색</span>
+            <select
+              value={color}
+              onChange={(e) => update({ bodyColor: e.target.value as NoticeColor })}
+            >
+              <option value="DEFAULT">기본</option>
+              <option value="NAVY">남색</option>
+              <option value="RED">진한 빨강</option>
+            </select>
+          </label>
+          <div className="admin-segmented" aria-label="편집·미리보기 전환">
+            <button type="button" aria-pressed={mode === 'write'} onClick={() => setMode('write')}>
+              작성
+            </button>
+            <button
+              type="button"
+              aria-pressed={mode === 'preview'}
+              onClick={() => setMode('preview')}
+            >
+              미리보기
+            </button>
+          </div>
+        </div>
       </div>
-      {(form.title || form.content) && (
-        <section className="admin-notices__preview" aria-label="사용자 화면 미리보기">
-          <h2>미리보기</h2>
+
+      <Suspense
+        fallback={<p className="admin-notice-editor__loading">편집기를 불러오는 중입니다.</p>}
+      >
+        {/* 미리보기 중에도 편집기를 그대로 두어 작성 중인 내용과 커서 위치를 잃지 않습니다. */}
+        <NoticeRichEditor
+          initialContent={notice?.content ?? ''}
+          color={color}
+          hidden={mode === 'preview'}
+          onChange={handleBodyChange}
+        />
+      </Suspense>
+
+      {mode === 'preview' && (
+        <div
+          className="notice-detail-page admin-notice-editor__preview"
+          aria-label="게시 화면 미리보기"
+        >
           <article>
-            <strong>{form.title}</strong>
-            <NoticeBody content={form.content} color={form.bodyColor} />
+            <header>
+              <span>{form.pinned ? '중요 공지' : '공지사항'}</span>
+              <h1>{form.title || '제목 없음'}</h1>
+              <p>{notice?.authorName ?? '작성자'} · 게시 전 미리보기</p>
+            </header>
+            <NoticeBody content={form.content} color={color} />
           </article>
-        </section>
+        </div>
       )}
+
       {error && (
         <p role="alert" className="admin-notices__form-error">
           {error}
@@ -199,7 +285,9 @@ export default function AdminNoticesPage() {
   const filtered = notices.filter(
     (n) =>
       (filter === 'ALL' || (filter === 'visible' ? n.visible : !n.visible)) &&
-      (n.title + ' ' + n.content).toLowerCase().includes(query.trim().toLowerCase()),
+      (n.title + ' ' + stripNoticeMarker(n.content))
+        .toLowerCase()
+        .includes(query.trim().toLowerCase()),
   );
   return (
     <section className="admin-page admin-notices">
@@ -213,7 +301,22 @@ export default function AdminNoticesPage() {
           className="admin-button admin-button--primary"
           to={edit === null ? '?edit=new' : '/admin/notices'}
         >
-          {edit === null ? '새 공지 작성' : '공지 목록으로'}
+          {edit === null ? (
+            <>
+              <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+                <path
+                  d="M7 2v10M2 7h10"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeWidth="1.8"
+                />
+              </svg>
+              새 공지 작성
+            </>
+          ) : (
+            '공지 목록으로'
+          )}
         </Link>
       </header>
       {error && (
