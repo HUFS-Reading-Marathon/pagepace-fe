@@ -5,17 +5,17 @@ import {
   useSearchParams,
   type SetURLSearchParams,
 } from 'react-router-dom';
-import { ApiError, getApiErrorMessage } from '../../api/apiClient';
-import { getAdminEvents } from '../../api/adminEventApi';
+import { ApiError, getApiErrorMessage } from '../../../api/apiClient';
+import { getAdminEvents } from '../../../api/adminEventApi';
 import {
   approveBookRequest,
   getBookRequests,
   rejectBookRequest,
   type BookRequest,
-} from '../../api/bookRequestApi';
-import BookRequestDetail from '../../components/admin/bookRequests/BookRequestDetail';
-import BookRequestProcessPanel from '../../components/admin/bookRequests/BookRequestProcessPanel';
-import BookRequestTable from '../../components/admin/bookRequests/BookRequestTable';
+} from '../../../api/bookRequestApi';
+import BookRequestDetail from './BookRequestDetail';
+import BookRequestProcessPanel from './BookRequestProcessPanel';
+import BookRequestTable from './BookRequestTable';
 import {
   bookRequestCounts,
   INITIAL_BOOK_REQUEST_SEARCH,
@@ -24,14 +24,14 @@ import {
   visibleBookRequests,
   writeBookRequestListState,
   type BookRequestListState,
-} from '../../components/admin/bookRequests/bookRequestList';
-import { clampPage } from '../../components/admin/table/pagination';
-import { nextCandidateId } from '../../components/admin/table/queueNavigation';
-import { nextSort } from '../../components/admin/table/sorting';
-import type { AdminEvent } from '../../types/adminEvent';
-import { resolveAdminQueueEvent } from '../../utils/adminEvent';
-import { selectEvent } from '../../utils/eventSelection';
-import '../../styles/admin-participants.css';
+} from './bookRequestList';
+import { clampPage } from '../table/pagination';
+import { nextCandidateId } from '../table/queueNavigation';
+import { nextSort } from '../table/sorting';
+import type { AdminEvent } from '../../../types/adminEvent';
+import { resolveAdminQueueEvent } from '../../../utils/adminEvent';
+import { selectEvent } from '../../../utils/eventSelection';
+import '../../../styles/admin-participants.css';
 
 type NavigationState = { fromList?: boolean } | null;
 type Feedback = { requestId: number; tone: 'success' | 'warning' | 'error'; text: string };
@@ -400,8 +400,11 @@ function BookRequestQueue({
   );
 }
 
-/** 관리자 도서 확인 요청: 확인 대기 요청 표와 요청별 독립 검토 화면 */
-export default function AdminBookRequestsPage() {
+/**
+ * 관리자 문의·FAQ 관리의 도서 문의 탭: 확인 대기 요청 표와 요청별 독립 검토 화면.
+ * 기존 도서 확인 요청 화면의 업무 로직을 그대로 쓰고, 주소의 view 값(탭)은 건드리지 않습니다.
+ */
+export default function AdminBookRequestsPanel() {
   const [params, setParams] = useSearchParams();
   const [attempt, setAttempt] = useState(0);
   const [events, setEvents] = useState<AdminEvent[]>([]);
@@ -425,9 +428,14 @@ export default function AdminBookRequestsPage() {
   }, [attempt]);
   const event = resolveAdminQueueEvent(events, params.get('eventId'));
   return (
-    <section className="admin-page admin-book-requests">
-      <header className="roster-heading">
-        <h1>도서 확인 요청</h1>
+    <section className="admin-book-requests" aria-labelledby="book-request-tab-title">
+      <div className="roster-heading book-request-tab-heading">
+        <h2 id="book-request-tab-title" className="sr-only">
+          도서 문의
+        </h2>
+        <p className="book-request-tab-lead">
+          도서를 연결하면 최초 요청일과 읽은 쪽수로 독서일지가 생기고, 일지 검토에서 승인합니다.
+        </p>
         <div className="roster-heading-actions">
           <label>
             관리 행사
@@ -435,7 +443,11 @@ export default function AdminBookRequestsPage() {
               value={event?.eventId ?? ''}
               onChange={(e) => {
                 selectEvent('admin', Number(e.target.value));
-                setParams({ eventId: e.target.value });
+                // 행사를 바꾸면 목록 조건과 상세는 초기화하고, 탭(view)은 그대로 둡니다.
+                const next = new URLSearchParams({ eventId: e.target.value });
+                const view = params.get('view');
+                if (view) next.set('view', view);
+                setParams(next);
               }}
             >
               {!event && <option value="">행사 선택</option>}
@@ -447,7 +459,7 @@ export default function AdminBookRequestsPage() {
             </select>
           </label>
         </div>
-      </header>
+      </div>
       {error && (
         <div className="roster-error" role="alert">
           {error}

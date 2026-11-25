@@ -15,7 +15,6 @@ import AdminEventSettingsPage from '../pages/admin/AdminEventSettingsPage';
 import AdminStatusPage from '../pages/admin/AdminStatusPage';
 import AdminRankingPage from '../pages/admin/AdminRankingPage';
 import AdminReviewsPage from '../pages/admin/AdminReviewsPage';
-import AdminBookRequestsPage from '../pages/admin/AdminBookRequestsPage';
 import BookRequestsPage from '../pages/logs/BookRequestsPage';
 import AdminNoticesPage from '../pages/admin/AdminNoticesPage';
 import NoticesPage from '../pages/notices/NoticesPage';
@@ -26,6 +25,7 @@ import AdminContestReportsPage from '../pages/admin/AdminContestReportsPage';
 import InquiryBoard from '../pages/inquiries/InquiryBoard';
 import InquiryWritePage from '../pages/inquiries/InquiryWritePage';
 import UserInquiryBoard from '../pages/inquiries/UserInquiryBoard';
+import { LegacyTabRedirect } from './legacyRedirects';
 import NoticeDetailPage from '../pages/notices/NoticeDetailPage';
 import AccountSettingsPage from '../pages/my/AccountSettingsPage';
 import NotFoundPage from '../pages/error';
@@ -67,7 +67,11 @@ function AppRouter() {
             }
           >
             <Route index element={<AdminOperationsDashboardPage />} />
-            <Route path="book-requests" element={<AdminBookRequestsPage />} />
+            {/* 도서 확인 요청은 문의·FAQ 관리의 도서 문의 탭으로 통합했습니다(행사·요청 번호 등 기존 링크 유지). */}
+            <Route
+              path="book-requests"
+              element={<LegacyTabRedirect to="/admin/inquiries" view="books" />}
+            />
             <Route path="participants" element={<AdminParticipantsPage />} />
             <Route path="logs" element={<AdminReadingLogsPage />} />
             <Route path="event" element={<AdminEventSettingsPage />} />
