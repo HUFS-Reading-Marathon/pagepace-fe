@@ -265,30 +265,18 @@ function MyPage() {
                 </p>
                 <p>
                   {book.completed ? '완독' : '읽는 중'} ·{' '}
+                  {/* 서평은 학생 신고 없이 담당자가 도서관 서평을 확인해 반영합니다. 이전에 학생이 신고한 책만 '확인 대기'로 둡니다. */}
                   {book.reviewVerified
                     ? '서평 확인 완료'
                     : book.reviewCompleted
                       ? '서평 확인 대기'
-                      : '서평 작성 필요'}{' '}
+                      : '서평 확인 전'}{' '}
                   · 인정 거리 {formatPreciseDistance(book.creditedReadPages * METERS_PER_PAGE)}
                 </p>
                 {!hasFinalResults(participation.eventStatus) &&
                   ['APPROVED', 'COMPLETED'].includes(participation.participationStatus) &&
                   book.approvedReadPages > book.creditedReadPages &&
-                  !book.reviewCompleted && (
-                    <BookReviewActions
-                      book={book}
-                      onReported={(result) =>
-                        setReadingBooks((current) =>
-                          current.map((item) =>
-                            item.participantBookId === result.participantBookId
-                              ? { ...item, reviewCompleted: result.reviewCompleted }
-                              : item,
-                          ),
-                        )
-                      }
-                    />
-                  )}
+                  !book.reviewVerified && <BookReviewActions book={book} />}
               </div>
               <dl>
                 <div>

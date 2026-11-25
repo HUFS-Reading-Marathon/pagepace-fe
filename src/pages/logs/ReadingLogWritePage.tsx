@@ -73,7 +73,6 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
     editingLogId ? null : entrySnapshot([]),
   );
   const [books, setBooks] = useState<BookEntry[]>([createBookEntry()]);
-  const [reviewMessage, setReviewMessage] = useState('');
   const [reviewTargets, setReviewTargets] = useState<ReviewTargetBook[]>([]);
   const [currentReadingBook, setCurrentReadingBook] = useState<ParticipantBook | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -203,15 +202,6 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
       }
       return [...current, { ...createBookEntry(), query: selectedBook.title, selectedBook }];
     });
-  };
-
-  const handleReviewComplete = (result: ReviewTargetBook) => {
-    setReviewMessage(
-      `“${result.bookTitle}” 서평 확인을 요청했습니다. 담당자 확인 후 거리가 반영됩니다.`,
-    );
-    setReviewTargets((current) =>
-      current.filter((book) => book.participantBookId !== result.participantBookId),
-    );
   };
 
   const progressRate = participation
@@ -598,7 +588,6 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
           <section className="reading-log-side-card reading-review-aside" id="review-guide">
             <h2>서평 할 일</h2>
             <ReviewGuide />
-            <p role="status">{reviewMessage}</p>
             {guidanceWarning && <p role="status">{guidanceWarning}</p>}
             {participationId && user && (
               <ReviewRecommendations
@@ -611,7 +600,6 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
                 selectedBookIds={books.flatMap((b) =>
                   b.selectedBook ? [b.selectedBook.libraryBookId] : [],
                 )}
-                onReported={handleReviewComplete}
               />
             )}
           </section>

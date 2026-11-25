@@ -15,6 +15,7 @@ import {
   readBookInquiryPrefill,
 } from '../src/pages/inquiries/bookInquiryState';
 import AdminSidebar from '../src/components/admin/AdminSidebar';
+import BookReviewActions from '../src/components/logs/BookReviewActions';
 import { legacyBookRequestTarget, legacyTabSearch } from '../src/routes/legacyTabSearch';
 
 describe('관리자 도서 확인 요청 → 문의·FAQ 관리 도서 문의 탭', () => {
@@ -192,5 +193,28 @@ describe('독서일지 → 도서 문의하기', () => {
     expect(bookSearchInquiryHint({ empty: false, results: [{ pageCount: 320 }] })).toBe('');
     // 검색 오류(결과 없음과 구분)에는 안내하지 않습니다.
     expect(bookSearchInquiryHint({ empty: false, results: [] })).toBe('');
+  });
+});
+
+describe('서평 신고 절차 간소화(PDF 5쪽)', () => {
+  it('도서관 서평 작성 링크와 대체 문구만 보이고 작성 완료 체크박스는 없다', () => {
+    const html = renderToStaticMarkup(
+      <BookReviewActions
+        book={{
+          bookTitle: '밝은 밤',
+          participantBookId: 7,
+          reviewSearchUrl: 'https://lib.example/search?q=bright',
+        }}
+      />,
+    );
+    expect(html).toContain('href="https://lib.example/search?q=bright"');
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('도서관에서 서평 작성');
+    expect(html).toContain(
+      '도서관에 서평을 남겨 주세요. 담당자가 확인하면 이 책의 승인된 독서일지 1쪽당 5m가 반영됩니다.',
+    );
+    expect(html).not.toContain('type="checkbox"');
+    expect(html).not.toContain('서평을 작성했어요');
+    expect(html).not.toContain('작성 사실이 전달');
   });
 });

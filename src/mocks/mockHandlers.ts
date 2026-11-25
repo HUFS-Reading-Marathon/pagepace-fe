@@ -686,6 +686,59 @@ route(
       : fail(404, 'PARTICIPATION_NOT_FOUND', '참가 정보가 없습니다.');
   }),
 );
+/* 사용자: 책별 독서·서평 현황. 서버와 같이 승인 쪽수가 있는 참가 도서만 다루고, 서평 확인(증빙)이 있으면
+ * 승인 쪽수 전체를 거리로 인정합니다. 학생의 작성 신고(reviewSubmittedAt)는 확인 여부와 무관합니다. */
+function myBooks(me: MockUser, url: URL) {
+  const eventId =
+    numberParam(url, 'eventId') ?? db.events.find((item) => item.status === 'IN_PROGRESS')?.eventId;
+  const participation = db.participations.find(
+    (item) => item.userId === me.userId && item.eventId === eventId,
+  );
+  if (!participation) return null;
+  return db.participantBooks
+    .filter((book) => book.participationId === participation.participationId)
+    .map((book) => {
+      const library = libraryBook(book.libraryBookId);
+      const credit = bookCredit(db, book);
+      const reviewVerified = !!credit.evidence;
+      return {
+        participantBookId: book.participantBookId,
+        participationId: book.participationId,
+        libraryBookId: library.libraryBookId,
+        bookTitle: library.title,
+        author: library.author,
+        publisher: library.publisher,
+        isbn: library.isbn,
+        coverImageUrl: mockCoverUrl(library.title),
+        callNo: library.callNo,
+        totalBookPages: library.pageCount,
+        approvedReadPages: credit.approvedPages,
+        remainingPages: Math.max(0, library.pageCount - credit.approvedPages),
+        completed: credit.approvedPages >= library.pageCount,
+        completedAt: null,
+        reviewRequired: credit.approvedPages > 0,
+        reviewSearchUrl: `https://lib.hufs.ac.kr/global/search?query=${encodeURIComponent(library.title)}`,
+        reviewCompleted: reviewVerified || !!book.reviewSubmittedAt,
+        reviewCompletedAt: book.reviewSubmittedAt,
+        reviewVerified,
+        creditedReadPages: credit.creditedPages,
+      };
+    })
+    .filter((book) => book.approvedReadPages > 0);
+}
+route(
+  'GET',
+  /^\/api\/me\/(book-progress|reading-books|review-target-books)$/,
+  requireUser(({ me, url }, [, kind]) => {
+    const books = myBooks(me!, url);
+    if (!books) return fail(404, 'PARTICIPATION_NOT_FOUND', '참가 정보가 없습니다.');
+    if (kind === 'reading-books') return respond(books.filter((book) => !book.completed));
+    // 서평 대상: 승인 쪽수가 있고 서평 확인(또는 이전 신고)이 없는 책(서버 쿼리와 같음)
+    if (kind === 'review-target-books')
+      return respond(books.filter((book) => !book.reviewCompleted));
+    return respond(books);
+  }),
+);
 /** 사용자 독서일지 응답(목록·상세 공통) */
 const toUserLog = (log: MockDb['logs'][number]) => ({
   readingLogId: log.readingLogId,

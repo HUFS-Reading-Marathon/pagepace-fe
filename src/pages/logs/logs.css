@@ -829,25 +829,6 @@
   font-size: 14px;
 }
 
-.review-self-report {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  color: #1d2733;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.5;
-  cursor: pointer;
-}
-
-.review-self-report input {
-  width: 16px;
-  height: 16px;
-  margin: 2px 0 0;
-  flex: none;
-  accent-color: #1f4f82;
-}
-
 .review-intent-actions {
   display: grid;
   gap: 8px;
