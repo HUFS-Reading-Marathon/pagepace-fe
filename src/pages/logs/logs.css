@@ -44,60 +44,55 @@
   font-weight: 600;
 }
 
-/* ===== 나의 서재 ===== */
+/* ===== 나의 서재 =====
+ * 큰 카드 대신 흰 바탕에 섹션 제목과 얇은 구분선만 두고, 책과 독서 기록이 돋보이게 합니다.
+ * 책 카드와 기록 행은 hover에서도 위치·크기가 변하지 않습니다(제목 색·표지 테두리만 바뀜).
+ */
 .my-library-page {
   width: min(1120px, calc(100% - 40px));
+  padding-top: 48px;
 }
 
 .my-library-hero {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 28px;
+  gap: 16px 28px;
+  flex-wrap: wrap;
 }
 
 .my-library-hero h1 {
   margin: 0;
   color: #172838;
-  font-size: clamp(32px, 4vw, 44px);
+  font-size: clamp(30px, 3.6vw, 40px);
   line-height: 1.2;
   letter-spacing: -0.055em;
   font-weight: 700;
 }
 
-.my-library-hero > div > p:last-child {
-  margin: 16px 0 0;
-  color: #536271;
-  font-size: 16px;
-  line-height: 1.7;
-}
-
 .my-library-state {
-  margin-top: 38px;
+  margin-top: 24px;
   padding: 48px 24px;
-  border: 1px solid #d9e2ec;
-  border-radius: 7px;
-  background: #fbfcfe;
+  border-top: 1px solid #dfe7ef;
+  border-bottom: 1px solid #dfe7ef;
   color: #617181;
   text-align: center;
 }
 
+/* 상단 통계: 같은 너비 3칸, 얇은 회색 테두리, 라벨 위·수치 아래 */
 .my-library-summary {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  margin-top: 38px;
-  border: 1px solid #d9e2ec;
-  border-top: 2px solid #1f4f82;
+  margin-top: 24px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid #dfe7ef;
   border-radius: 6px;
   background: #fff;
 }
 
 .my-library-summary > div {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 20px 26px;
+  display: grid;
+  gap: 4px;
+  padding: 14px 20px;
   border-right: 1px solid #e6edf4;
 }
 
@@ -107,186 +102,223 @@
 
 .my-library-summary span {
   color: #657586;
-  font-size: 14px;
-  font-weight: 650;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .my-library-summary strong {
   color: #1f4f82;
-  font-size: 25px;
+  font-size: 26px;
+  line-height: 1.2;
   letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
 }
 
 .my-library-summary small {
   margin-left: 3px;
+  color: #536271;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .my-library-shelves {
   display: grid;
-  gap: 22px;
-  margin-top: 24px;
+  margin-top: 8px;
 }
 
+/* 격자 칸이 책 목록 길이만큼 늘어나지 않게 해 가로 이동이 목록 안에서만 일어나게 합니다. */
+.my-library-shelves > * {
+  min-width: 0;
+}
+
+/* 섹션: 바깥 카드 없이 제목(권수) + 오른쪽 이동·전체 보기 + 목록, 섹션 사이 얇은 선 */
 .my-library-shelf-section,
 .my-library-recent {
-  padding: 28px 30px 30px;
-  border: 1px solid #d9e2ec;
-  border-radius: 7px;
-  background: #fff;
+  padding: 32px 0 8px;
 }
 
-.my-library-shelf-head,
-.my-library-recent-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 22px;
-  margin-bottom: 22px;
+.my-library-shelf-section + .my-library-shelf-section,
+.my-library-recent {
+  border-top: 1px solid #e6edf4;
 }
 
-.my-library-shelf-title {
+.my-library-recent {
+  margin-top: 28px;
+}
+
+.my-library-shelf-head {
   display: flex;
+  margin-bottom: 16px;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 12px 20px;
 }
 
-.my-library-shelf-title h2,
-.my-library-recent-head h2 {
+.my-library-shelf-head h2 {
+  display: flex;
   margin: 0;
+  align-items: baseline;
+  gap: 8px;
   color: #172838;
-  font-size: 23px;
+  font-size: 21px;
   line-height: 1.3;
   letter-spacing: -0.04em;
 }
 
-.my-library-shelf-title > span {
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: #eef5fc;
-  color: #1f4f82;
-  font-size: 12px;
-  font-weight: 750;
+.my-library-shelf-head h2 small {
+  color: #7c8996;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
-.my-library-shelf-head p,
-.my-library-recent-head p {
-  margin: 6px 0 0;
-  color: #7c8996;
-  font-size: 13px;
+.my-library-shelf-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
 }
 
 .my-library-more {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 7px;
-  padding: 5px 0;
+  margin-left: 6px;
+  padding: 6px 2px;
   border: 0;
   background: transparent;
   color: #1f4f82;
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
 }
 
 .my-library-more:hover {
   color: #102f51;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-/* 섹션 카드 안에서 한 번 더 상자를 두지 않고, 책 아래 얇은 선반 선만 남깁니다. */
-.my-library-shelf {
-  position: relative;
-  padding: 4px 0 22px;
+.my-library-nav {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d6e0e9;
+  border-radius: 50%;
+  background: #fff;
+  color: #1f4f82;
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease;
 }
 
-.my-library-shelf::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  bottom: 10px;
-  left: 0;
-  height: 4px;
-  border-radius: 999px;
-  background: #dde5ee;
+.my-library-nav:hover:not(:disabled) {
+  border-color: #9fb3c6;
+  background: #f4f7fa;
 }
 
-.my-library-book-grid {
-  position: relative;
-  z-index: 1;
+.my-library-nav:disabled {
+  color: #b9c5d0;
+  cursor: default;
+}
+
+.my-library-more:focus-visible,
+.my-library-nav:focus-visible,
+.my-library-book:focus-visible,
+.my-library-log-title a:focus-visible {
+  outline: 3px solid rgba(31, 79, 130, 0.25);
+  outline-offset: 2px;
+}
+
+/* 책 목록: 기본은 가로 한 줄(스크롤바는 숨기되 트랙패드·터치·키보드·버튼으로 이동),
+   전체 보기에서는 여러 줄로 펼칩니다. 카드 너비는 고정이라 표지 비율이 달라도 높이가 같습니다. */
+.my-library-books {
+  --book-width: 148px;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 20px;
-  align-items: end;
+  margin: 0;
+  /* 위로 떠오른 표지와 그림자가 가로 스크롤 영역 위·아래에서 잘리지 않도록 여유를 둡니다. */
+  padding: 10px 0 12px;
+  grid-auto-columns: var(--book-width);
+  grid-auto-flow: column;
+  gap: 24px;
+  list-style: none;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.my-library-books::-webkit-scrollbar {
+  display: none;
+}
+
+.my-library-books > li {
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+.my-library-books.is-all {
+  grid-template-columns: repeat(auto-fill, var(--book-width));
+  grid-auto-flow: row;
+  row-gap: 28px;
+  overflow: visible;
 }
 
 .my-library-book {
   display: block;
-  min-width: 0;
-  padding: 10px 10px 18px;
-  border: 1px solid transparent;
-  border-radius: 6px 6px 2px 2px;
+  padding: 2px;
+  border-radius: 4px;
   color: inherit;
-  transition:
-    transform 0.18s ease,
-    border-color 0.18s ease,
-    background 0.18s ease,
-    box-shadow 0.18s ease;
-}
-
-.my-library-book:hover {
-  transform: translateY(-4px);
-  border-color: #d7e2ed;
-  background: #fff;
-  box-shadow: 0 9px 22px rgba(23, 40, 56, 0.08);
 }
 
 .my-library-book-cover {
-  width: min(100%, 118px);
-  aspect-ratio: 0.72;
-  margin: 0 auto;
+  aspect-ratio: 2 / 3;
   overflow: hidden;
   border: 1px solid #d6e0e9;
-  border-radius: 3px 5px 5px 3px;
-  background: #eaf1f8;
-  box-shadow: 4px 6px 12px rgba(23, 40, 56, 0.13);
+  border-radius: 3px;
+  background: #eef2f6;
+  transition:
+    transform 200ms ease-out,
+    box-shadow 200ms ease-out;
 }
 
+/* 표지는 자르거나 늘리지 않고 칸(2:3) 안에 맞춥니다. 비율이 다르면 위아래·좌우에 바탕색이 남습니다. */
 .my-library-book-cover img {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .my-library-cover-fallback {
   display: flex;
   height: 100%;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 13px 10px;
-  background: linear-gradient(145deg, #eaf1f8, #dce7f2);
-  color: #24476b;
+  padding: 14px 12px;
+  background: #e8eef4;
+  color: #2d4a66;
 }
 
 .my-library-cover-fallback strong {
   display: -webkit-box;
   overflow: hidden;
   font-size: 13px;
-  line-height: 1.4;
-  letter-spacing: -0.035em;
+  line-height: 1.45;
+  letter-spacing: -0.03em;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 5;
 }
 
 .my-library-book-info {
-  margin-top: 13px;
+  display: block;
+  margin-top: 10px;
 }
 
 .my-library-book-info > strong,
-.my-library-book-info > span {
+.my-library-book-info > span:not(.my-library-progress) {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -297,17 +329,21 @@
   color: #172838;
   font-size: 14px;
   font-weight: 700;
+  line-height: 1.4;
+  transition: color 150ms ease;
 }
 
-.my-library-book-info > span {
-  margin-top: 5px;
+.my-library-book-info > span:not(.my-library-progress) {
+  margin-top: 1px;
   color: #7c8996;
   font-size: 12px;
+  line-height: 1.4;
 }
 
 .my-library-progress {
+  display: block;
   height: 4px;
-  margin-top: 10px;
+  margin-top: 9px;
   overflow: hidden;
   border-radius: 999px;
   background: #e5ecf3;
@@ -321,103 +357,151 @@
 }
 
 .my-library-book-info small {
-  display: block;
-  margin-top: 6px;
+  display: flex;
+  margin-top: 5px;
+  justify-content: space-between;
+  gap: 6px;
   color: #617181;
   font-size: 12px;
-  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.my-library-book-info small b {
+  color: #1f4f82;
+  font-weight: 700;
+}
+
+/* 완독한 책: 진행 막대 대신 한 줄 정보, 높이는 읽고 있는 책 카드와 같게 맞춥니다. */
+.my-library-book-info .my-library-book-done {
+  margin-top: 13px;
+  padding-top: 5px;
+  color: #1f4f82;
+  font-weight: 650;
+}
+
+/* hover: 표지만 살짝 떠오르고(확대 없음) 아주 옅은 그림자. 제목·저자·진행률 위치는 그대로입니다.
+   터치 기기에서는 hover가 남지 않도록 마우스 등 정밀 포인터에서만 적용합니다. */
+@media (hover: hover) and (pointer: fine) {
+  .my-library-book:hover .my-library-book-cover {
+    box-shadow: 0 6px 14px rgba(23, 40, 56, 0.12);
+    transform: translateY(-5px);
+  }
+
+  .my-library-book:hover .my-library-book-info > strong {
+    color: #1f4f82;
+  }
 }
 
 .my-library-empty {
-  padding: 32px 20px;
-  border: 1px dashed #d7e1eb;
-  border-radius: 6px;
-  background: #fbfcfe;
+  margin: 0;
+  padding: 28px 16px;
+  border-top: 1px solid #e6edf4;
+  border-bottom: 1px solid #e6edf4;
   color: #7c8996;
   font-size: 14px;
   text-align: center;
 }
 
-.my-library-recent {
-  margin-top: 22px;
+/* 최근 독서일지: 컬럼 이름은 위에 한 번만, 행 사이 얇은 선 */
+.my-library-log-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 14px;
 }
 
-.my-library-log-list {
+.my-library-log-table th {
+  padding: 10px 12px;
   border-top: 1px solid #dfe7ef;
+  border-bottom: 1px solid #dfe7ef;
+  color: #7c8996;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
 }
 
-.my-library-log-row {
-  display: grid;
-  grid-template-columns: 78px minmax(0, 1fr) auto 20px;
-  align-items: center;
-  gap: 18px;
-  padding: 17px 4px;
+.my-library-log-table th:nth-child(2) {
+  width: 132px;
+}
+
+.my-library-log-table th:nth-child(3),
+.my-library-log-table th:nth-child(4) {
+  width: 120px;
+  text-align: right;
+}
+
+.my-library-log-table th:nth-child(5) {
+  width: 104px;
+  text-align: center;
+}
+
+.my-library-log-table th:last-child {
+  width: 36px;
+}
+
+.my-library-log-table td {
+  padding: 13px 12px;
   border-bottom: 1px solid #e8eef4;
-  color: inherit;
-  transition: background 0.16s ease;
+  color: #39495a;
 }
 
-.my-library-log-row:hover {
-  background: #f8fbfe;
+.my-library-log-table tbody tr {
+  cursor: pointer;
+  transition: background-color 150ms ease;
 }
 
-.my-library-log-row > div > strong,
-.my-library-log-row > div > span {
+.my-library-log-table tbody tr:hover {
+  background: #f6f9fb;
+}
+
+.my-library-log-title a {
   display: block;
-}
-
-.my-library-log-row > div > strong {
   overflow: hidden;
   color: #172838;
-  font-size: 14px;
-  font-weight: 680;
+  font-weight: 650;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.my-library-log-row > div > span {
-  margin-top: 5px;
+.my-library-log-table tbody tr:hover .my-library-log-title a {
+  color: #1f4f82;
+}
+
+.my-library-log-date,
+.my-library-log-num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.my-library-log-num {
+  text-align: right;
+}
+
+.my-library-log-num small {
   color: #7c8996;
   font-size: 12px;
 }
 
-.my-library-log-row dl {
-  display: flex;
-  gap: 28px;
-  margin: 0;
+.my-library-log-state {
+  text-align: center;
 }
 
-.my-library-log-row dl div {
-  min-width: 82px;
-}
-
-.my-library-log-row dt {
-  color: #8a97a4;
+.my-library-log-state .log-status-badge {
+  min-height: 22px;
+  padding: 0 8px;
+  border-color: transparent;
   font-size: 12px;
 }
 
-.my-library-log-row dd {
-  margin: 4px 0 0;
-  color: #293746;
-  font-size: 13px;
-  font-weight: 650;
-}
-
 .my-library-log-arrow {
-  color: #1f4f82;
-  font-size: 17px;
+  color: #9aa8b5;
+  font-size: 18px;
+  text-align: center;
 }
 
 @media (max-width: 900px) {
-  .my-library-book-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .my-library-log-row {
-    grid-template-columns: 78px minmax(0, 1fr) 18px;
-  }
-
-  .my-library-log-row dl {
+  .my-library-log-table th:nth-child(4),
+  .my-library-log-table td:nth-child(4) {
     display: none;
   }
 }
@@ -425,41 +509,104 @@
 @media (max-width: 600px) {
   .my-library-page {
     width: min(100% - 28px, 1180px);
-    padding-top: 38px;
-  }
-
-  .my-library-hero {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .my-library-summary {
-    grid-template-columns: 1fr;
+    padding-top: 32px;
   }
 
   .my-library-summary > div {
-    padding: 15px 20px;
-    border-right: 0;
-    border-bottom: 1px solid #e6edf4;
+    padding: 12px 12px;
   }
 
-  .my-library-summary > div:last-child {
-    border-bottom: 0;
+  .my-library-summary strong {
+    font-size: 22px;
   }
 
-  .my-library-shelf-section,
-  .my-library-recent {
-    padding: 22px 18px;
+  .my-library-books {
+    --book-width: 120px;
+    gap: 14px;
   }
 
-  .my-library-book-grid {
+  .my-library-books.is-all {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
   }
 
-  .my-library-log-row {
-    grid-template-columns: 78px minmax(0, 1fr) 16px;
-    gap: 10px;
+  .my-library-nav {
+    display: none;
+  }
+
+  /* 휴대폰: 표 머리를 감추고 도서명 → 날짜·독서량·거리 → 상태 순으로 묶어 보여 줍니다. */
+  .my-library-log-table,
+  .my-library-log-table tbody,
+  .my-library-log-table tr {
+    display: block;
+  }
+
+  .my-library-log-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .my-library-log-table tbody {
+    border-top: 1px solid #dfe7ef;
+  }
+
+  .my-library-log-table tr {
+    display: flex;
+    padding: 12px 2px;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 0;
+    border-bottom: 1px solid #e8eef4;
+  }
+
+  .my-library-log-table td {
+    padding: 0;
+    border: 0;
+  }
+
+  .my-library-log-title {
+    flex: 1 1 100%;
+  }
+
+  .my-library-log-date,
+  .my-library-log-num {
+    color: #657586;
+    font-size: 13px;
+    text-align: left;
+  }
+
+  .my-library-log-num::before {
+    content: '·';
+    margin: 0 6px;
+    color: #b0bcc7;
+  }
+
+  .my-library-log-table td:nth-child(4) {
+    display: block;
+  }
+
+  .my-library-log-state {
+    margin-left: auto;
+  }
+
+  .my-library-log-arrow {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .my-library-book-cover,
+  .my-library-book-info > strong,
+  .my-library-nav,
+  .my-library-log-table tbody tr {
+    transition: none;
+  }
+
+  /* 움직임을 줄인 환경에서는 떠오르지 않고 그림자만 보입니다. */
+  .my-library-book:hover .my-library-book-cover {
+    transform: none;
   }
 }
 

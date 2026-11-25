@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { getApiErrorMessage } from '../../api/apiClient';
 import { getCurrentParticipation } from '../../api/participationApi';
 import { getMyReadingLogs } from '../../api/readingLogApi';
@@ -52,11 +52,15 @@ function buildShelfBooks(logs: ReadingLog[]) {
   return [...shelf.values()].sort((a, b) => b.latestReadingDate.localeCompare(a.latestReadingDate));
 }
 
+/** 표지: 실제 이미지가 있으면 이미지만, 없거나 불러오지 못하면 블루그레이 대체 표지(제목)를 보여 줍니다. */
 function BookCover({ book }: { book: ShelfBook }) {
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const url = book.coverImageUrl && book.coverImageUrl !== failedUrl ? book.coverImageUrl : null;
+
   return (
     <div className="my-library-book-cover">
-      {book.coverImageUrl ? (
-        <img src={book.coverImageUrl} alt={`${book.bookTitle} 표지`} />
+      {url ? (
+        <img src={url} alt="" loading="lazy" onError={() => setFailedUrl(url)} />
       ) : (
         <div className="my-library-cover-fallback" aria-hidden="true">
           <strong>{book.bookTitle}</strong>
@@ -66,78 +70,232 @@ function BookCover({ book }: { book: ShelfBook }) {
   );
 }
 
+/** 말줄임으로 잘린 경우에만 전체 내용을 툴팁(title)으로 보여 줍니다. 짧은 글에는 툴팁을 두지 않습니다. */
+function TruncatedText({ as: Tag, text }: { as: 'strong' | 'span'; text: string }) {
+  const ref = useRef<HTMLElement>(null);
+  const [truncated, setTruncated] = useState(false);
+
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const measure = () => setTruncated(element.scrollWidth > element.clientWidth + 1);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [text]);
+
+  return (
+    <Tag ref={ref as never} title={truncated ? text : undefined}>
+      {text}
+    </Tag>
+  );
+}
+
+function BookCard({ book }: { book: ShelfBook }) {
+  const totalPages = Math.max(book.totalBookPages, 1);
+  const progress = Math.min(100, getProgressPercent(book.approvedPages, totalPages));
+  const isCompleted = book.approvedPages >= book.totalBookPages && book.totalBookPages > 0;
+  const byline = book.author || book.publisher || '도서 정보 없음';
+
+  return (
+    <Link to={`/logs/${book.latestLogId}`} className="my-library-book">
+      <BookCover book={book} />
+      <span className="my-library-book-info">
+        <TruncatedText as="strong" text={book.bookTitle} />
+        <TruncatedText as="span" text={byline} />
+        {isCompleted ? (
+          <small className="my-library-book-done">
+            완독 · {book.totalBookPages.toLocaleString()}쪽
+          </small>
+        ) : (
+          <>
+            <span
+              className="my-library-progress"
+              role="img"
+              aria-label={`독서 진행률 ${progress}%`}
+            >
+              <i style={{ width: `${progress}%` }} />
+            </span>
+            <small>
+              {book.approvedPages.toLocaleString()} / {book.totalBookPages.toLocaleString()}쪽
+              <b>{Math.round(progress)}%</b>
+            </small>
+          </>
+        )}
+      </span>
+    </Link>
+  );
+}
+
+/**
+ * 책 선반: 기본은 가로 한 줄(트랙패드·터치·키보드로 이동, 데스크톱은 이전·다음 버튼),
+ * 전체 보기를 누르면 모든 책을 여러 줄로 펼칩니다. 자동 넘김·무한 반복은 하지 않습니다.
+ */
 function BookShelf({
   title,
-  description,
   books,
   emptyMessage,
 }: {
   title: string;
-  description: string;
   books: ShelfBook[];
   emptyMessage: string;
 }) {
+  const headingId = useId();
   const [showAll, setShowAll] = useState(false);
-  const visibleBooks = showAll ? books : books.slice(0, PREVIEW_BOOK_COUNT);
+  const track = useRef<HTMLUListElement>(null);
+  const [edges, setEdges] = useState({ prev: false, next: false });
+
+  // 스크롤 위치에 따라 이전·다음 버튼을 켜고 끕니다(넘칠 것이 없으면 버튼을 숨깁니다).
+  const updateEdges = useCallback(() => {
+    const element = track.current;
+    if (!element) return;
+    const max = element.scrollWidth - element.clientWidth;
+    setEdges({ prev: element.scrollLeft > 2, next: element.scrollLeft < max - 2 });
+  }, []);
+
+  useEffect(() => {
+    const element = track.current;
+    if (!element || showAll) return;
+    updateEdges();
+    const observer = new ResizeObserver(updateEdges);
+    observer.observe(element);
+    element.addEventListener('scroll', updateEdges, { passive: true });
+    return () => {
+      observer.disconnect();
+      element.removeEventListener('scroll', updateEdges);
+    };
+  }, [books.length, showAll, updateEdges]);
+
+  const move = (direction: -1 | 1) => {
+    const element = track.current;
+    if (!element) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    element.scrollBy({
+      left: direction * element.clientWidth * 0.85,
+      behavior: reduce ? 'auto' : 'smooth',
+    });
+  };
+
+  const hasOverflow = !showAll && (edges.prev || edges.next);
 
   return (
-    <section className="my-library-shelf-section">
+    <section className="my-library-shelf-section" aria-labelledby={headingId}>
       <div className="my-library-shelf-head">
-        <div>
-          <div className="my-library-shelf-title">
-            <h2>{title}</h2>
-            <span>{books.length}권</span>
-          </div>
-          <p>{description}</p>
+        <h2 id={headingId}>
+          {title}
+          <small>{books.length.toLocaleString()}권</small>
+        </h2>
+        <div className="my-library-shelf-actions">
+          {hasOverflow && (
+            <>
+              <button
+                type="button"
+                className="my-library-nav"
+                aria-label={`${title} 이전 책`}
+                disabled={!edges.prev}
+                onClick={() => move(-1)}
+              >
+                <span aria-hidden="true">‹</span>
+              </button>
+              <button
+                type="button"
+                className="my-library-nav"
+                aria-label={`${title} 다음 책`}
+                disabled={!edges.next}
+                onClick={() => move(1)}
+              >
+                <span aria-hidden="true">›</span>
+              </button>
+            </>
+          )}
+          {books.length > PREVIEW_BOOK_COUNT && (
+            <button
+              type="button"
+              className="my-library-more"
+              aria-expanded={showAll}
+              onClick={() => setShowAll((current) => !current)}
+            >
+              {showAll ? '접기' : '전체 보기'}
+            </button>
+          )}
         </div>
-        {books.length > PREVIEW_BOOK_COUNT && (
-          <button
-            type="button"
-            className="my-library-more"
-            onClick={() => setShowAll((current) => !current)}
-          >
-            {showAll ? '접기' : '전체보기'} <span aria-hidden="true">{showAll ? '↑' : '→'}</span>
-          </button>
-        )}
       </div>
 
-      {visibleBooks.length === 0 ? (
-        <div className="my-library-empty">{emptyMessage}</div>
+      {books.length === 0 ? (
+        <p className="my-library-empty">{emptyMessage}</p>
       ) : (
-        <div className="my-library-shelf">
-          <div className="my-library-book-grid">
-            {visibleBooks.map((book) => {
-              const totalPages = Math.max(book.totalBookPages, 1);
-              const progress = Math.min(100, getProgressPercent(book.approvedPages, totalPages));
-              const isCompleted =
-                book.approvedPages >= book.totalBookPages && book.totalBookPages > 0;
-
-              return (
-                <Link
-                  key={book.libraryBookId}
-                  to={`/logs/${book.latestLogId}`}
-                  className="my-library-book"
-                >
-                  <BookCover book={book} />
-                  <div className="my-library-book-info">
-                    <strong>{book.bookTitle}</strong>
-                    <span>{book.author || book.publisher || '도서 정보 없음'}</span>
-                    <div className="my-library-progress" aria-label={`독서 진행률 ${progress}%`}>
-                      <i style={{ width: `${progress}%` }} />
-                    </div>
-                    <small>
-                      {isCompleted
-                        ? '완독'
-                        : `${book.approvedPages.toLocaleString()} / ${book.totalBookPages.toLocaleString()}쪽`}
-                    </small>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
+        <ul
+          ref={track}
+          className={showAll ? 'my-library-books is-all' : 'my-library-books'}
+          aria-label={`${title} 목록`}
+        >
+          {books.map((book) => (
+            <li key={book.libraryBookId}>
+              <BookCard book={book} />
+            </li>
+          ))}
+        </ul>
       )}
     </section>
+  );
+}
+
+function RecentLogs({ logs }: { logs: ReadingLog[] }) {
+  const navigate = useNavigate();
+
+  return (
+    <table className="my-library-log-table">
+      <caption className="sr-only">최근 독서일지</caption>
+      <thead>
+        <tr>
+          <th scope="col">도서명</th>
+          <th scope="col">독서일</th>
+          <th scope="col">독서량</th>
+          <th scope="col">예상 환산 거리</th>
+          <th scope="col">상태</th>
+          <th scope="col">
+            <span className="sr-only">상세</span>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {logs.map((log) => {
+          const titles = log.books.map((book) => book.bookTitle).join(', ');
+          const to = `/logs/${log.readingLogId}`;
+          return (
+            // 행 어디를 눌러도 상세로 이동하고, 키보드는 도서명 링크로 이동합니다.
+            <tr key={log.readingLogId} onClick={() => navigate(to)}>
+              <td className="my-library-log-title">
+                <Link to={to} title={titles} onClick={(event) => event.stopPropagation()}>
+                  {titles}
+                </Link>
+              </td>
+              <td className="my-library-log-date">
+                <time dateTime={log.readingDate}>{formatKoDateKey(log.readingDate)}</time>
+              </td>
+              <td className="my-library-log-num">
+                {log.totalReadPages.toLocaleString()}쪽
+                {log.books.length > 1 && <small> · {log.books.length}권</small>}
+              </td>
+              <td className="my-library-log-num">
+                {log.status === 'REJECTED'
+                  ? '반영 안 됨'
+                  : formatPreciseDistance(log.convertedDistanceMeter)}
+              </td>
+              <td className="my-library-log-state">
+                <span className={`log-status-badge status-${log.status}`}>
+                  {READING_LOG_STATUS_LABELS[log.status]}
+                </span>
+              </td>
+              <td className="my-library-log-arrow" aria-hidden="true">
+                ›
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
   );
 }
 
@@ -187,10 +345,7 @@ function MyReadingLogsPage() {
   return (
     <main className="log-page my-library-page">
       <section className="my-library-hero">
-        <div>
-          <h1>나의 서재</h1>
-          <p>읽고 있는 책과 완독한 책, 제출한 독서일지를 모아 봅니다.</p>
-        </div>
+        <h1>나의 서재</h1>
         {canWrite && (
           <Link to="/logs/new" className="log-primary-link">
             독서일지 작성
@@ -231,74 +386,39 @@ function MyReadingLogsPage() {
           <div className="my-library-shelves">
             <BookShelf
               title="읽고 있는 책"
-              description="최근 기록 순으로 표시합니다."
               books={readingBooks}
               emptyMessage="현재 읽고 있는 책이 없습니다."
             />
             <BookShelf
               title="완독한 책"
-              description="인정된 독서 페이지를 기준으로 완독한 책이에요."
               books={completedBooks}
               emptyMessage="아직 완독한 책이 없습니다."
             />
           </div>
 
-          <section className="my-library-recent">
-            <div className="my-library-recent-head">
-              <div>
-                <h2>최근 독서일지</h2>
-              </div>
+          <section className="my-library-recent" aria-labelledby="myLibraryRecentTitle">
+            <div className="my-library-shelf-head">
+              <h2 id="myLibraryRecentTitle">
+                최근 독서일지
+                <small>{logs.length.toLocaleString()}건</small>
+              </h2>
               {logs.length > PREVIEW_LOG_COUNT && (
-                <button
-                  type="button"
-                  className="my-library-more"
-                  onClick={() => setShowAllLogs((current) => !current)}
-                >
-                  {showAllLogs ? '접기' : '전체보기'}
-                </button>
+                <div className="my-library-shelf-actions">
+                  <button
+                    type="button"
+                    className="my-library-more"
+                    aria-expanded={showAllLogs}
+                    onClick={() => setShowAllLogs((current) => !current)}
+                  >
+                    {showAllLogs ? '접기' : '전체 보기'}
+                  </button>
+                </div>
               )}
             </div>
             {visibleLogs.length === 0 ? (
-              <div className="my-library-empty">아직 제출한 독서일지가 없습니다.</div>
+              <p className="my-library-empty">아직 제출한 독서일지가 없습니다.</p>
             ) : (
-              <div className="my-library-log-list">
-                {visibleLogs.map((log) => {
-                  const statusLabel = READING_LOG_STATUS_LABELS[log.status];
-
-                  return (
-                    <Link
-                      key={log.readingLogId}
-                      to={`/logs/${log.readingLogId}`}
-                      className="my-library-log-row"
-                    >
-                      <span className={`log-status-badge status-${log.status}`}>{statusLabel}</span>
-                      <div>
-                        <strong>{log.books.map((book) => book.bookTitle).join(', ')}</strong>
-                        <span>
-                          {formatKoDateKey(log.readingDate)} · {log.books.length}권
-                        </span>
-                      </div>
-                      <dl>
-                        <div>
-                          <dt>읽은 페이지</dt>
-                          <dd>{log.totalReadPages.toLocaleString()}쪽</dd>
-                        </div>
-                        <div>
-                          <dt>예상 환산 거리</dt>
-                          <dd>
-                            {log.status === 'REJECTED'
-                              ? '반영 안 됨'
-                              : formatPreciseDistance(log.convertedDistanceMeter)}
-                          </dd>
-                        </div>
-                      </dl>
-                      <span className="my-library-log-arrow" aria-hidden="true">
-                        →
-                      </span>
-                    </Link>
-                  );
-                })}
-              </div>
+              <RecentLogs logs={visibleLogs} />
             )}
           </section>
         </>
