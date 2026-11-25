@@ -261,9 +261,29 @@ img {
   white-space: nowrap;
 }
 
-.nav-dropdown-menu a:hover,
-.nav-dropdown-menu a[aria-current='page'] {
-  background: rgba(47, 96, 146, 0.05);
+/*
+ * 드롭다운 하위 메뉴: 위 .global-nav a 규칙의 3px 하단선이 상속되므로, 크기는 그대로 두고 색만 항상 투명으로 둡니다.
+ * 주메뉴의 하단 강조선(.global-nav a:hover 등)에는 영향을 주지 않습니다.
+ */
+.global-nav .nav-dropdown-menu a,
+.global-nav .nav-dropdown-menu a:hover,
+.global-nav .nav-dropdown-menu a[aria-current='page'] {
+  border-bottom-color: transparent;
+}
+
+.global-nav .nav-dropdown-menu a {
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.global-nav .nav-dropdown-menu a:hover {
+  background-color: #f4f7fa;
+  color: var(--navy-strong);
+}
+
+.global-nav .nav-dropdown-menu a[aria-current='page'] {
+  background-color: #eaf1f8;
   color: var(--navy-strong);
 }
 
