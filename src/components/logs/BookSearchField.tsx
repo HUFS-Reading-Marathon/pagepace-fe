@@ -2,6 +2,10 @@ import { Link } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import { getApiErrorMessage } from '../../api/apiClient';
 import { searchBooks } from '../../api/bookApi';
+import {
+  bookInquiryWritePath,
+  bookSearchInquiryHint,
+} from '../../pages/inquiries/bookInquiryState';
 import type { BookSearchResult } from '../../types/book';
 import BookCover from './BookCover';
 
@@ -22,6 +26,8 @@ function BookSearchField({ query, selectedBook, onQueryChange, onSelect }: BookS
     query: '',
     results: [] as BookSearchResult[],
     message: '',
+    /** 검색은 성공했지만 결과가 없음(검색 오류와 구분) */
+    empty: false,
   });
   const [loadingQuery, setLoadingQuery] = useState('');
   const requestSequenceRef = useRef(0);
@@ -31,6 +37,8 @@ function BookSearchField({ query, selectedBook, onQueryChange, onSelect }: BookS
       ? normalizedQuery
       : '';
   const waiting = !!searchQuery && loadingQuery === searchQuery;
+  const answered = !selectedBook && !!searchQuery && response.query === searchQuery && !waiting;
+  const inquiryHint = answered ? bookSearchInquiryHint(response) : '';
 
   useEffect(() => {
     if (selectedBook || !searchQuery) {
@@ -48,6 +56,7 @@ function BookSearchField({ query, selectedBook, onQueryChange, onSelect }: BookS
             query: searchQuery,
             results: nextResults,
             message: nextResults.length ? '' : '검색 결과가 없습니다.',
+            empty: !nextResults.length,
           });
         })
         .catch((error: unknown) => {
@@ -56,6 +65,7 @@ function BookSearchField({ query, selectedBook, onQueryChange, onSelect }: BookS
             query: searchQuery,
             results: [],
             message: getApiErrorMessage(error, '도서를 검색하지 못했습니다.'),
+            empty: false,
           });
         })
         .finally(() => {
@@ -102,17 +112,10 @@ function BookSearchField({ query, selectedBook, onQueryChange, onSelect }: BookS
         </div>
       </label>
 
-      {!selectedBook && (
-        <p className="reading-book-search-guide">
-          <Link
-            to={
-              normalizedQuery
-                ? `/book-requests?title=${encodeURIComponent(normalizedQuery)}`
-                : '/book-requests'
-            }
-          >
-            검색되지 않거나 쪽수가 없는 도서 확인 요청
-          </Link>
+      {/* 검색 결과가 없거나 쪽수를 확인할 수 없는 책만 있으면 도서 문의로 안내하고, 입력한 제목·ISBN을 넘깁니다. */}
+      {inquiryHint && (
+        <p className="reading-book-search-guide reading-book-search-inquiry" role="status">
+          {inquiryHint} <Link to={bookInquiryWritePath(normalizedQuery)}>도서 문의하기</Link>
         </p>
       )}
       {!selectedBook && normalizedQuery.length === 1 && (
@@ -128,8 +131,11 @@ function BookSearchField({ query, selectedBook, onQueryChange, onSelect }: BookS
         </div>
       )}
 
-      {!selectedBook && searchQuery && response.query === searchQuery && !waiting && (
-        <div className="reading-book-search-results" role="listbox">
+      {answered && (
+        <div
+          className="reading-book-search-results"
+          role={response.message ? undefined : 'listbox'}
+        >
           {response.message ? (
             <p className="reading-book-search-empty">{response.message}</p>
           ) : (

@@ -91,3 +91,16 @@ export function bookInquiryErrors(form: BookInquiryForm) {
   if (!form.reason) errors.reason = '확인이 필요한 이유를 선택해 주세요.';
   return errors;
 }
+
+/**
+ * 독서일지 도서 검색에서 도서 문의를 안내할지 정합니다. 검색이 성공했는데 결과가 없거나,
+ * 쪽수 정보가 없는(선택할 수 없는) 결과가 있을 때만 안내합니다. 검색 오류는 안내하지 않습니다.
+ */
+export function bookSearchInquiryHint(search: {
+  empty: boolean;
+  results: { pageCount?: number | null }[];
+}) {
+  if (search.empty) return '찾는 책이 검색되지 않나요?';
+  if (search.results.some((result) => !result.pageCount)) return '쪽수를 확인할 수 없는 책인가요?';
+  return '';
+}

@@ -8,6 +8,8 @@ import { handleMockRequest, resetMockDb } from '../src/mocks/mockHandlers';
 import {
   bookInquiryErrors,
   bookInquiryResult,
+  bookInquiryWritePath,
+  bookSearchInquiryHint,
   bookInquiryStatusLabel,
   pageBookInquiries,
   readBookInquiryPrefill,
@@ -165,5 +167,30 @@ describe('목데이터 사용자 도서 문의 API(서버 정책과 같게)', ()
     const publicItems = (await call('/api/inquiries?kind=QUESTION&q=&page=0')).payload.data.items;
     const titles = publicItems.map((item: { title: string }) => item.title);
     for (const request of db.bookRequests) expect(titles).not.toContain(request.title);
+  });
+});
+
+describe('독서일지 → 도서 문의하기', () => {
+  it('검색창의 책 제목은 도서명으로, ISBN은 ISBN 칸으로 넘긴다', () => {
+    expect(bookInquiryWritePath('  긴긴밤 ')).toBe(
+      `/inquiries/books/new?title=${encodeURIComponent('긴긴밤')}`,
+    );
+    expect(bookInquiryWritePath('978-89-546-7715-8')).toBe(
+      '/inquiries/books/new?isbn=978-89-546-7715-8',
+    );
+    expect(bookInquiryWritePath('8954677157')).toBe('/inquiries/books/new?isbn=8954677157');
+    // 숫자로 시작하는 제목은 제목으로 둡니다.
+    expect(bookInquiryWritePath('1984')).toBe('/inquiries/books/new?title=1984');
+    expect(bookInquiryWritePath('')).toBe('/inquiries/books/new');
+  });
+
+  it('검색 결과가 없거나 쪽수를 확인할 수 없는 결과가 있을 때만 도서 문의하기를 안내한다', () => {
+    expect(bookSearchInquiryHint({ empty: true, results: [] })).toContain('검색되지 않나요');
+    expect(
+      bookSearchInquiryHint({ empty: false, results: [{ pageCount: 320 }, { pageCount: null }] }),
+    ).toContain('쪽수를 확인할 수 없는');
+    expect(bookSearchInquiryHint({ empty: false, results: [{ pageCount: 320 }] })).toBe('');
+    // 검색 오류(결과 없음과 구분)에는 안내하지 않습니다.
+    expect(bookSearchInquiryHint({ empty: false, results: [] })).toBe('');
   });
 });

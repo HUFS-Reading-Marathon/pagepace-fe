@@ -204,7 +204,7 @@ function ReadingLogDetailPage() {
           <Link to="/logs" className="reading-detail-action-secondary">
             목록으로 돌아가기
           </Link>
-          {log.bookRequestId && <Link to="/book-requests">도서 확인 요청 내역</Link>}
+          {log.bookRequestId && <Link to="/inquiries?view=books">도서 문의 내역</Link>}
           {log.status !== 'APPROVED' &&
             !log.bookRequestId &&
             participation?.participationId === log.participationId &&

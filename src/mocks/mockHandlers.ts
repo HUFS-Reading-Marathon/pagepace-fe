@@ -686,6 +686,38 @@ route(
       : fail(404, 'PARTICIPATION_NOT_FOUND', '참가 정보가 없습니다.');
   }),
 );
+/** 사용자 독서일지 응답(목록·상세 공통) */
+const toUserLog = (log: MockDb['logs'][number]) => ({
+  readingLogId: log.readingLogId,
+  participationId: log.participationId,
+  readingDate: log.readingDate,
+  totalReadPages: log.books.reduce((sum, book) => sum + book.submittedReadPages, 0),
+  convertedDistanceMeter:
+    log.books.reduce((sum, book) => sum + book.submittedReadPages, 0) * METERS_PER_PAGE,
+  status: log.status,
+  adminComment: log.adminComment,
+  reviewedAt: log.reviewedAt,
+  createdAt: log.createdAt,
+  updatedAt: log.updatedAt,
+  books: log.books.map((book) => {
+    const library = libraryBook(book.libraryBookId);
+    return {
+      readingLogBookId: book.readingLogBookId,
+      displayOrder: book.displayOrder,
+      libraryBookId: library.libraryBookId,
+      bookTitle: library.title,
+      author: library.author,
+      publisher: library.publisher,
+      isbn: library.isbn,
+      // 목데이터 전용 표지(src/mocks/covers/). 없으면 null로 두어 대체 표지가 보입니다.
+      coverImageUrl: mockCoverUrl(library.title),
+      callNo: library.callNo,
+      totalBookPages: library.pageCount,
+      readPages: book.submittedReadPages,
+    };
+  }),
+});
+
 route(
   'GET',
   /^\/api\/participations\/(\d+)\/reading-logs$/,
@@ -694,39 +726,20 @@ route(
     if (!participation || (participation.userId !== me!.userId && me!.role !== 'ADMIN'))
       return notFound('참가 정보');
     return respond(
-      db.logs
-        .filter((log) => log.participationId === participation.participationId)
-        .map((log) => ({
-          readingLogId: log.readingLogId,
-          participationId: log.participationId,
-          readingDate: log.readingDate,
-          totalReadPages: log.books.reduce((sum, book) => sum + book.submittedReadPages, 0),
-          convertedDistanceMeter:
-            log.books.reduce((sum, book) => sum + book.submittedReadPages, 0) * METERS_PER_PAGE,
-          status: log.status,
-          adminComment: log.adminComment,
-          reviewedAt: log.reviewedAt,
-          createdAt: log.createdAt,
-          updatedAt: log.updatedAt,
-          books: log.books.map((book) => {
-            const library = libraryBook(book.libraryBookId);
-            return {
-              readingLogBookId: book.readingLogBookId,
-              displayOrder: book.displayOrder,
-              libraryBookId: library.libraryBookId,
-              bookTitle: library.title,
-              author: library.author,
-              publisher: library.publisher,
-              isbn: library.isbn,
-              // 목데이터 전용 표지(src/mocks/covers/). 없으면 null로 두어 대체 표지가 보입니다.
-              coverImageUrl: mockCoverUrl(library.title),
-              callNo: library.callNo,
-              totalBookPages: library.pageCount,
-              readPages: book.submittedReadPages,
-            };
-          }),
-        })),
+      db.logs.filter((log) => log.participationId === participation.participationId).map(toUserLog),
     );
+  }),
+);
+/* 사용자: 독서일지 한 건(수정 화면). 본인 참가 회차의 일지만 내려 줍니다. */
+route(
+  'GET',
+  /^\/api\/reading-logs\/(\d+)$/,
+  requireUser(({ me }, [, id]) => {
+    const log = db.logs.find((item) => item.readingLogId === Number(id));
+    const participation = log && participationOf(log.participationId);
+    if (!log || !participation || participation.userId !== me!.userId)
+      return fail(404, 'READING_LOG_NOT_FOUND', '독서일지를 찾을 수 없습니다.');
+    return respond(toUserLog(log));
   }),
 );
 

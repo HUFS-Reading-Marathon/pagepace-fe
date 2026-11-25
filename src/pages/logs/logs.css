@@ -1080,8 +1080,31 @@
   cursor: default;
 }
 
-.reading-log-date-field {
-  width: min(100%, 290px);
+/* 독서 날짜: 고르는 입력칸 없이 한 줄로 표시합니다(새 일지는 한국 시간 오늘, 수정은 저장된 날짜). */
+.reading-log-date-display {
+  display: flex;
+  margin: 0;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.reading-log-date-display span {
+  color: #1d2733;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.reading-log-date-display strong {
+  color: #1d2733;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.reading-log-date-display small {
+  color: #7c8996;
+  font-size: 13px;
 }
 
 .reading-log-field {
@@ -1255,6 +1278,18 @@
   margin: 8px 2px 0;
   color: #7c8996;
   font-size: 12px;
+}
+
+/* 검색 결과가 없거나 쪽수를 확인할 수 없을 때의 도서 문의 안내 */
+.reading-book-search-inquiry {
+  font-size: 13px;
+}
+
+.reading-book-search-inquiry a {
+  color: #24476b;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .reading-book-search-results {
@@ -1704,10 +1739,6 @@
 @media (max-width: 720px) {
   .reading-log-card {
     padding: 26px 22px 28px;
-  }
-
-  .reading-log-date-field {
-    width: 100%;
   }
 
   .reading-book-row {
