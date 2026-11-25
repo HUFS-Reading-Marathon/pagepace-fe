@@ -75,12 +75,28 @@ function RankingBoard({
                   </span>
                 )}
                 <strong className="ranking-race-rank" aria-label={`순위 ${ranking.rank}위`}>
-                  {ranking.rank <= 3 && <span aria-hidden="true">★</span>}
-                  {ranking.rank}
+                  {simpleLayout ? (
+                    // 사용자 화면: 모든 순위를 같은 두 자리 숫자로 표시합니다(메달·별 없음).
+                    String(ranking.rank).padStart(2, '0')
+                  ) : (
+                    <>
+                      {ranking.rank <= 3 && <span aria-hidden="true">★</span>}
+                      {ranking.rank}
+                    </>
+                  )}
                 </strong>
                 {!useSimpleLayout && <RankingAvatar name={ranking.name} />}
                 <span>
-                  <b>{ranking.name}</b>
+                  {simpleLayout ? (
+                    <span className="race-name">
+                      <b>{ranking.name}</b>
+                      {ranking.participationId === myParticipationId && (
+                        <small className="race-my-label">(나)</small>
+                      )}
+                    </span>
+                  ) : (
+                    <b>{ranking.name}</b>
+                  )}
                   {showIdentity && <small>{ranking.studentNo}</small>}
                   {winner && (
                     <small>
@@ -93,7 +109,7 @@ function RankingBoard({
                       )}
                     </small>
                   )}
-                  {ranking.participationId === myParticipationId && (
+                  {!simpleLayout && ranking.participationId === myParticipationId && (
                     <span className="race-my-badge">나</span>
                   )}
                 </span>
