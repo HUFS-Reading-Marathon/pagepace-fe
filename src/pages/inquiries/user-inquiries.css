@@ -516,6 +516,140 @@
   border-top: 1px solid var(--line);
 }
 
+/* 도서 문의(도서 확인 요청) 목록: 문의 목록과 같은 줄 모양, 처리 상태와 결과만 더합니다. */
+.inquiry-board__state.is-rejected {
+  color: #a23b3b;
+}
+
+.book-inquiry__event {
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.book-inquiry__facts {
+  display: flex;
+  margin: 0 0 10px;
+  flex-wrap: wrap;
+  gap: 6px 24px;
+  font-size: 14px;
+}
+
+.book-inquiry__facts div {
+  display: flex;
+  gap: 8px;
+}
+
+.book-inquiry__facts dt {
+  color: var(--muted);
+}
+
+.book-inquiry__facts dd {
+  margin: 0;
+  color: #34495c;
+  font-variant-numeric: tabular-nums;
+}
+
+.book-inquiry__result.is-rejected {
+  border-left-color: #e3b9b9;
+  background: #fcf6f6;
+}
+
+.book-inquiry__result.is-rejected h4 {
+  color: #a23b3b;
+}
+
+.book-inquiry__result.is-waiting h4 {
+  color: #8a5b10;
+}
+
+.book-inquiry__log-link {
+  display: inline-block;
+  margin-top: 10px;
+  color: var(--navy-strong);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* 도서 문의 작성: 문의 작성과 같은 960px 단일 열 */
+.book-inquiry-write__intro {
+  margin: 0;
+  color: #536271;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.book-inquiry-write__date {
+  display: flex;
+  padding: 12px 16px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #f7f9fb;
+}
+
+.book-inquiry-write__date span {
+  color: #233343;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.book-inquiry-write__date strong {
+  color: var(--ink);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.book-inquiry-write__date small {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.book-inquiry-write__row {
+  display: grid;
+  grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+  gap: 20px;
+}
+
+.book-inquiry-write__unit {
+  position: relative;
+}
+
+.inquiry-write .book-inquiry-write__unit input {
+  padding-right: 40px;
+}
+
+.book-inquiry-write__unit span {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  color: var(--muted);
+  font-size: 15px;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.book-inquiry-write__reasons {
+  row-gap: 10px;
+}
+
+.inquiry-write textarea.book-inquiry-write__note {
+  height: 120px;
+  min-height: 96px;
+}
+
+.book-inquiry-write__field-error {
+  margin: 0;
+  color: #a23b3b;
+  font-size: 14px;
+}
+
+.inquiry-write input[aria-invalid='true'] {
+  border-color: #d39a9a;
+}
+
 @media (max-width: 560px) {
   .inquiry-write.wrap {
     padding-top: 28px;
@@ -553,6 +687,15 @@
 
   .inquiry-write__actions .btn {
     flex: 1;
+  }
+
+  .book-inquiry-write__row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .book-inquiry-write__reasons {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 

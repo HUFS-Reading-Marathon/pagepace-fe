@@ -829,25 +829,6 @@
   font-size: 14px;
 }
 
-.review-self-report {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  color: #1d2733;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.5;
-  cursor: pointer;
-}
-
-.review-self-report input {
-  width: 16px;
-  height: 16px;
-  margin: 2px 0 0;
-  flex: none;
-  accent-color: #1f4f82;
-}
-
 .review-intent-actions {
   display: grid;
   gap: 8px;
@@ -978,9 +959,8 @@
 
 .reading-log-card {
   margin-top: 34px;
-  padding: 34px 36px 36px;
+  padding: 35px 36px 36px;
   border: 1px solid #d9e2ec;
-  border-top: 2px solid #1f4f82;
   border-radius: 6px;
   background: #ffffff;
 }
@@ -996,9 +976,8 @@
   align-items: center;
   gap: 14px;
   margin-bottom: 24px;
-  padding: 17px 18px;
+  padding: 17px 18px 17px 20px;
   border: 1px solid #cddded;
-  border-left: 3px solid #1f4f82;
   border-radius: 6px;
   background: #f7faff;
 }
@@ -1080,8 +1059,31 @@
   cursor: default;
 }
 
-.reading-log-date-field {
-  width: min(100%, 290px);
+/* 독서 날짜: 고르는 입력칸 없이 한 줄로 표시합니다(새 일지는 한국 시간 오늘, 수정은 저장된 날짜). */
+.reading-log-date-display {
+  display: flex;
+  margin: 0;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.reading-log-date-display span {
+  color: #1d2733;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.reading-log-date-display strong {
+  color: #1d2733;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.reading-log-date-display small {
+  color: #7c8996;
+  font-size: 13px;
 }
 
 .reading-log-field {
@@ -1257,6 +1259,18 @@
   font-size: 12px;
 }
 
+/* 검색 결과가 없거나 쪽수를 확인할 수 없을 때의 도서 문의 안내 */
+.reading-book-search-inquiry {
+  font-size: 13px;
+}
+
+.reading-book-search-inquiry a {
+  color: #24476b;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .reading-book-search-results {
   position: absolute;
   z-index: 20;
@@ -1384,9 +1398,8 @@
   align-items: center;
   gap: 18px;
   margin-top: 15px;
-  padding: 16px;
+  padding: 16px 16px 16px 18px;
   border: 1px solid #d7e4f0;
-  border-left: 3px solid #1f4f82;
   border-radius: 6px;
   background: #f7faff;
 }
@@ -1550,9 +1563,8 @@
   align-items: center;
   gap: 0;
   margin-top: 28px;
-  padding: 0;
+  padding: 0 0 0 2px;
   border: 1px solid #dce6f0;
-  border-left: 3px solid #1f4f82;
   border-radius: 5px;
   background: #f7faff;
   overflow: hidden;
@@ -1703,11 +1715,7 @@
 
 @media (max-width: 720px) {
   .reading-log-card {
-    padding: 26px 22px 28px;
-  }
-
-  .reading-log-date-field {
-    width: 100%;
+    padding: 27px 22px 28px;
   }
 
   .reading-book-row {
@@ -1833,9 +1841,8 @@
 }
 
 .reading-detail-card {
-  padding: 28px 32px 26px;
+  padding: 29px 32px 26px;
   border: 1px solid #d9e2ec;
-  border-top: 2px solid #1f4f82;
   border-radius: 6px;
   background: #ffffff;
 }
@@ -1866,8 +1873,8 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   margin: 0;
+  padding-left: 2px;
   border: 1px solid #dce6f0;
-  border-left: 3px solid #1f4f82;
   border-radius: 5px;
   background: #f7faff;
 }
@@ -2051,9 +2058,8 @@
 
 .reading-detail-comment {
   margin-top: 16px;
-  padding: 15px 18px;
+  padding: 15px 18px 15px 20px;
   border: 1px solid #eadfbe;
-  border-left: 3px solid #b78b32;
   border-radius: 5px;
   background: #fffaf0;
 }
@@ -2134,7 +2140,7 @@
   }
 
   .reading-detail-card {
-    padding: 24px 20px;
+    padding: 25px 20px 24px;
   }
 
   .reading-detail-head {

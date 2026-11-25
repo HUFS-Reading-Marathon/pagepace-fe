@@ -162,13 +162,12 @@ it('그룹 제목은 행 전체가 버튼이고 aria-controls로 메뉴 묶음�
     expect(html).toContain(`id="${panelId}" class="admin-sidebar__panel" data-open="true"`);
   }
   expect(html).not.toContain('inert');
-  // 메뉴 이름·순서는 그대로입니다.
+  // 메뉴 이름·순서는 그대로입니다(도서 확인 요청은 문의·FAQ 관리의 도서 문의 탭으로 통합).
   expect(
     [...html.matchAll(/class="admin-sidebar__link[^"]*"[^>]*>([^<]+)</g)].map((m) => m[1]),
   ).toEqual([
     '운영 현황',
     '참가자 관리',
-    '도서 확인 요청',
     '독서일지 검토',
     '서평 확인',
     '행사/코스 설정',

@@ -23,6 +23,8 @@ import type { MyParticipation } from '../../types/participation';
 import type { ParticipantBook, ReadingLog, ReviewTargetBook } from '../../types/readingLog';
 import { formatPreciseDistance, getProgressPercent, getCreditedPages } from '../../utils/reading';
 import { METERS_PER_PAGE } from '../../constants/reading';
+import { LEAVE_MESSAGE, useLeaveGuard } from '../../hooks/useLeaveGuard';
+import { formatKoDateKey } from '../../utils/date';
 import './logs.css';
 
 type BookEntry = {
@@ -31,6 +33,17 @@ type BookEntry = {
   query: string;
   readPages: string;
 };
+
+/**
+ * 이탈 확인에 쓰는 입력 요약: 선택한 책과 입력한 쪽수만 봅니다. 검색창에 입력만 한 제목은
+ * 도서 문의하기로 그대로 넘겨지므로, 그것만으로는 이탈 확인을 띄우지 않습니다.
+ */
+const entrySnapshot = (books: Pick<BookEntry, 'selectedBook' | 'readPages'>[]) =>
+  JSON.stringify(
+    books
+      .map((book) => [book.selectedBook?.libraryBookId ?? null, book.readPages.trim()])
+      .filter(([libraryBookId, readPages]) => libraryBookId !== null || readPages),
+  );
 
 const createBookEntry = (): BookEntry => ({
   id: Date.now() + Math.random(),
@@ -53,9 +66,13 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
   const today = koreaToday();
   const [participation, setParticipation] = useState<MyParticipation | null>(null);
   const participationId = participation?.participationId;
+  // 독서 날짜는 고를 수 없습니다. 새 일지는 한국 시간 오늘, 수정은 저장된 날짜를 그대로 씁니다.
   const [readingDate, setReadingDate] = useState(today);
+  // 불러온(또는 빈) 입력 상태. 수정 화면은 저장된 일지를 불러온 뒤 정합니다.
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(
+    editingLogId ? null : entrySnapshot([]),
+  );
   const [books, setBooks] = useState<BookEntry[]>([createBookEntry()]);
-  const [reviewMessage, setReviewMessage] = useState('');
   const [reviewTargets, setReviewTargets] = useState<ReviewTargetBook[]>([]);
   const [currentReadingBook, setCurrentReadingBook] = useState<ParticipantBook | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -69,7 +86,7 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
         throw new ApiError('승인된 독서일지는 수정할 수 없습니다.');
       if (editingLog?.bookRequestId)
         throw new ApiError(
-          '도서 확인으로 이관한 일지입니다. 보완은 도서 확인 요청에서 진행해 주세요.',
+          '도서 문의로 만들어진 일지입니다. 보완은 문의 게시판의 도서 문의에서 진행해 주세요.',
         );
       const participation = editingLog
         ? (await getMyParticipations()).find(
@@ -80,6 +97,14 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
       if (!active) return;
       if (editingLog) {
         setReadingDate(editingLog.readingDate);
+        setSavedSnapshot(
+          entrySnapshot(
+            editingLog.books.map((savedBook) => ({
+              selectedBook: { libraryBookId: savedBook.libraryBookId } as BookSearchResult,
+              readPages: String(savedBook.readPages),
+            })),
+          ),
+        );
         setBooks(
           editingLog.books.map((savedBook) => ({
             id: savedBook.readingLogBookId,
@@ -144,6 +169,9 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
     };
   }, [editingLogId]);
 
+  const dirty = savedSnapshot !== null && entrySnapshot(books) !== savedSnapshot;
+  useLeaveGuard(dirty && !isSubmitting, LEAVE_MESSAGE);
+
   const updateBook = (id: number, changes: Partial<BookEntry>) => {
     setBooks((current) => current.map((book) => (book.id === id ? { ...book, ...changes } : book)));
   };
@@ -174,15 +202,6 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
       }
       return [...current, { ...createBookEntry(), query: selectedBook.title, selectedBook }];
     });
-  };
-
-  const handleReviewComplete = (result: ReviewTargetBook) => {
-    setReviewMessage(
-      `“${result.bookTitle}” 서평 확인을 요청했습니다. 담당자 확인 후 거리가 반영됩니다.`,
-    );
-    setReviewTargets((current) =>
-      current.filter((book) => book.participantBookId !== result.participantBookId),
-    );
   };
 
   const progressRate = participation
@@ -270,7 +289,7 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
         <p role={errorMessage ? 'alert' : 'status'}>
           {errorMessage || '참가 회차를 확인하고 있습니다.'}
         </p>
-        <Link to="/logs">나의 서재</Link> <Link to="/book-requests">내 도서 확인 요청</Link>
+        <Link to="/logs">나의 서재</Link> <Link to="/inquiries?view=books">내 도서 문의</Link>
       </main>
     );
   }
@@ -324,23 +343,13 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
               </div>
             )}
             <div className="reading-log-date-section">
-              <label className="reading-log-field reading-log-date-field">
-                <span>
-                  독서 날짜 <em>*</em>
-                </span>
-                <input
-                  type="date"
-                  min={participation?.eventStartDate}
-                  max={
-                    participation && participation.eventEndDate < today
-                      ? participation.eventEndDate
-                      : today
-                  }
-                  value={readingDate}
-                  onChange={(event) => setReadingDate(event.target.value)}
-                  required
-                />
-              </label>
+              <p className="reading-log-date-display">
+                <span>독서 날짜</span>
+                <strong>
+                  <time dateTime={readingDate}>{formatKoDateKey(readingDate)}</time>
+                </strong>
+                <small>{editingLogId ? '처음 기록한 독서일' : '한국 시간 기준 오늘'}</small>
+              </p>
             </div>
 
             <div className="reading-book-list">
@@ -579,7 +588,6 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
           <section className="reading-log-side-card reading-review-aside" id="review-guide">
             <h2>서평 할 일</h2>
             <ReviewGuide />
-            <p role="status">{reviewMessage}</p>
             {guidanceWarning && <p role="status">{guidanceWarning}</p>}
             {participationId && user && (
               <ReviewRecommendations
@@ -592,7 +600,6 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
                 selectedBookIds={books.flatMap((b) =>
                   b.selectedBook ? [b.selectedBook.libraryBookId] : [],
                 )}
-                onReported={handleReviewComplete}
               />
             )}
           </section>

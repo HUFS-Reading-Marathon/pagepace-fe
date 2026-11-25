@@ -25,6 +25,9 @@ import {
 import { addLargeReviewEvent, mockDatasetVariant } from './mockLargeData';
 import { mockCoverUrl } from './mockCovers';
 import { maskName } from '../utils/nameMask';
+import { canSubmitReadingLog, koreaToday } from '../utils/eventSelection';
+import type { BookRequest } from '../api/bookRequestApi';
+import type { MyParticipation } from '../types/participation';
 import {
   EXCEL_TYPE,
   booksReport,
@@ -683,6 +686,92 @@ route(
       : fail(404, 'PARTICIPATION_NOT_FOUND', '참가 정보가 없습니다.');
   }),
 );
+/* 사용자: 책별 독서·서평 현황. 서버와 같이 승인 쪽수가 있는 참가 도서만 다루고, 서평 확인(증빙)이 있으면
+ * 승인 쪽수 전체를 거리로 인정합니다. 학생의 작성 신고(reviewSubmittedAt)는 확인 여부와 무관합니다. */
+function myBooks(me: MockUser, url: URL) {
+  const eventId =
+    numberParam(url, 'eventId') ?? db.events.find((item) => item.status === 'IN_PROGRESS')?.eventId;
+  const participation = db.participations.find(
+    (item) => item.userId === me.userId && item.eventId === eventId,
+  );
+  if (!participation) return null;
+  return db.participantBooks
+    .filter((book) => book.participationId === participation.participationId)
+    .map((book) => {
+      const library = libraryBook(book.libraryBookId);
+      const credit = bookCredit(db, book);
+      const reviewVerified = !!credit.evidence;
+      return {
+        participantBookId: book.participantBookId,
+        participationId: book.participationId,
+        libraryBookId: library.libraryBookId,
+        bookTitle: library.title,
+        author: library.author,
+        publisher: library.publisher,
+        isbn: library.isbn,
+        coverImageUrl: mockCoverUrl(library.title),
+        callNo: library.callNo,
+        totalBookPages: library.pageCount,
+        approvedReadPages: credit.approvedPages,
+        remainingPages: Math.max(0, library.pageCount - credit.approvedPages),
+        completed: credit.approvedPages >= library.pageCount,
+        completedAt: null,
+        reviewRequired: credit.approvedPages > 0,
+        reviewSearchUrl: `https://lib.hufs.ac.kr/global/search?query=${encodeURIComponent(library.title)}`,
+        reviewCompleted: reviewVerified || !!book.reviewSubmittedAt,
+        reviewCompletedAt: book.reviewSubmittedAt,
+        reviewVerified,
+        creditedReadPages: credit.creditedPages,
+      };
+    })
+    .filter((book) => book.approvedReadPages > 0);
+}
+route(
+  'GET',
+  /^\/api\/me\/(book-progress|reading-books|review-target-books)$/,
+  requireUser(({ me, url }, [, kind]) => {
+    const books = myBooks(me!, url);
+    if (!books) return fail(404, 'PARTICIPATION_NOT_FOUND', '참가 정보가 없습니다.');
+    if (kind === 'reading-books') return respond(books.filter((book) => !book.completed));
+    // 서평 대상: 승인 쪽수가 있고 서평 확인(또는 이전 신고)이 없는 책(서버 쿼리와 같음)
+    if (kind === 'review-target-books')
+      return respond(books.filter((book) => !book.reviewCompleted));
+    return respond(books);
+  }),
+);
+/** 사용자 독서일지 응답(목록·상세 공통) */
+const toUserLog = (log: MockDb['logs'][number]) => ({
+  bookRequestId: log.bookRequestId ?? null,
+  readingLogId: log.readingLogId,
+  participationId: log.participationId,
+  readingDate: log.readingDate,
+  totalReadPages: log.books.reduce((sum, book) => sum + book.submittedReadPages, 0),
+  convertedDistanceMeter:
+    log.books.reduce((sum, book) => sum + book.submittedReadPages, 0) * METERS_PER_PAGE,
+  status: log.status,
+  adminComment: log.adminComment,
+  reviewedAt: log.reviewedAt,
+  createdAt: log.createdAt,
+  updatedAt: log.updatedAt,
+  books: log.books.map((book) => {
+    const library = libraryBook(book.libraryBookId);
+    return {
+      readingLogBookId: book.readingLogBookId,
+      displayOrder: book.displayOrder,
+      libraryBookId: library.libraryBookId,
+      bookTitle: library.title,
+      author: library.author,
+      publisher: library.publisher,
+      isbn: library.isbn,
+      // 목데이터 전용 표지(src/mocks/covers/). 없으면 null로 두어 대체 표지가 보입니다.
+      coverImageUrl: mockCoverUrl(library.title),
+      callNo: library.callNo,
+      totalBookPages: library.pageCount,
+      readPages: book.submittedReadPages,
+    };
+  }),
+});
+
 route(
   'GET',
   /^\/api\/participations\/(\d+)\/reading-logs$/,
@@ -691,39 +780,20 @@ route(
     if (!participation || (participation.userId !== me!.userId && me!.role !== 'ADMIN'))
       return notFound('참가 정보');
     return respond(
-      db.logs
-        .filter((log) => log.participationId === participation.participationId)
-        .map((log) => ({
-          readingLogId: log.readingLogId,
-          participationId: log.participationId,
-          readingDate: log.readingDate,
-          totalReadPages: log.books.reduce((sum, book) => sum + book.submittedReadPages, 0),
-          convertedDistanceMeter:
-            log.books.reduce((sum, book) => sum + book.submittedReadPages, 0) * METERS_PER_PAGE,
-          status: log.status,
-          adminComment: log.adminComment,
-          reviewedAt: log.reviewedAt,
-          createdAt: log.createdAt,
-          updatedAt: log.updatedAt,
-          books: log.books.map((book) => {
-            const library = libraryBook(book.libraryBookId);
-            return {
-              readingLogBookId: book.readingLogBookId,
-              displayOrder: book.displayOrder,
-              libraryBookId: library.libraryBookId,
-              bookTitle: library.title,
-              author: library.author,
-              publisher: library.publisher,
-              isbn: library.isbn,
-              // 목데이터 전용 표지(src/mocks/covers/). 없으면 null로 두어 대체 표지가 보입니다.
-              coverImageUrl: mockCoverUrl(library.title),
-              callNo: library.callNo,
-              totalBookPages: library.pageCount,
-              readPages: book.submittedReadPages,
-            };
-          }),
-        })),
+      db.logs.filter((log) => log.participationId === participation.participationId).map(toUserLog),
     );
+  }),
+);
+/* 사용자: 독서일지 한 건(수정 화면). 본인 참가 회차의 일지만 내려 줍니다. */
+route(
+  'GET',
+  /^\/api\/reading-logs\/(\d+)$/,
+  requireUser(({ me }, [, id]) => {
+    const log = db.logs.find((item) => item.readingLogId === Number(id));
+    const participation = log && participationOf(log.participationId);
+    if (!log || !participation || participation.userId !== me!.userId)
+      return fail(404, 'READING_LOG_NOT_FOUND', '독서일지를 찾을 수 없습니다.');
+    return respond(toUserLog(log));
   }),
 );
 
@@ -814,6 +884,125 @@ route(
     };
     db.inquiries.push(item);
     return respond(item);
+  }),
+);
+/* 사용자: 도서 확인 요청(문의 게시판의 도서 문의). 서버와 같이 본인 참가 회차의 요청만 다룹니다. */
+route(
+  'GET',
+  /^\/api\/me\/book-requests$/,
+  requireUser(({ me, url }) => {
+    const participation = db.participations.find(
+      (item) => item.userId === me!.userId && item.eventId === numberParam(url, 'eventId'),
+    );
+    if (!participation)
+      return fail(404, 'PARTICIPATION_NOT_FOUND', '본인의 참가 정보를 찾을 수 없습니다.');
+    return respond(
+      db.bookRequests
+        .filter((item) => item.participationId === participation.participationId)
+        .sort((left, right) => right.id - left.id),
+    );
+  }),
+);
+route(
+  'POST',
+  /^\/api\/me\/book-requests$/,
+  requireUser(({ me, body }) => {
+    const participation = db.participations.find(
+      (item) => item.participationId === Number(body.participationId) && item.userId === me!.userId,
+    );
+    if (!participation)
+      return fail(404, 'PARTICIPATION_NOT_FOUND', '본인의 참가 정보를 찾을 수 없습니다.');
+    const today = koreaToday();
+    const requested = body.readingDate ? String(body.readingDate) : today;
+    if (requested > today)
+      return fail(400, 'READING_DATE_IN_FUTURE', '미래 날짜의 독서일지는 제출할 수 없습니다.');
+    if (requested !== today)
+      return fail(
+        400,
+        'READING_DATE_PASSED',
+        '독서일지는 한국 시간 기준 당일에만 제출할 수 있습니다.',
+      );
+    const my = toMyParticipation(participation);
+    if (!['APPROVED', 'COMPLETED'].includes(my.participationStatus))
+      return fail(
+        400,
+        'PARTICIPATION_NOT_APPROVED',
+        '승인된 참가자만 독서일지를 작성할 수 있습니다.',
+      );
+    if (
+      !canSubmitReadingLog(
+        {
+          ...my,
+          participationStatus: my.participationStatus as MyParticipation['participationStatus'],
+        },
+        today,
+      )
+    )
+      return fail(400, 'READING_LOG_PERIOD_CLOSED', '독서일지 접수기간이 아닙니다.');
+    const title = String(body.title ?? '').trim();
+    const readPages = Number(body.readPages);
+    const reason = String(body.reason ?? '') as BookRequest['reason'];
+    if (
+      !title ||
+      !Number.isInteger(readPages) ||
+      readPages < 1 ||
+      readPages > 400 ||
+      !['NOT_HELD', 'UNKNOWN_PAGES', 'EBOOK'].includes(reason)
+    )
+      return fail(400, 'INVALID_REQUEST', '입력값을 확인해 주세요.');
+    // 서버와 같이 같은 날의 독서일지·도서 확인 요청(반려 제외)은 합계 400쪽, 같은 책은 하루 한 번만 받습니다.
+    const sameDay = db.bookRequests.filter(
+      (item) =>
+        item.participationId === participation.participationId &&
+        item.readingDate === today &&
+        item.status !== 'REJECTED',
+    );
+    const loggedToday = db.logs
+      .filter(
+        (log) =>
+          log.participationId === participation.participationId &&
+          log.readingDate === today &&
+          log.status !== 'REJECTED',
+      )
+      .reduce(
+        (sum, log) => sum + log.books.reduce((pages, book) => pages + book.submittedReadPages, 0),
+        0,
+      );
+    if (sameDay.reduce((sum, item) => sum + item.readPages, loggedToday) + readPages > 400)
+      return fail(
+        400,
+        'DAILY_READ_PAGES_EXCEEDED',
+        '같은 날의 독서일지와 도서 확인 요청은 합계 400쪽까지 접수할 수 있습니다.',
+      );
+    if (sameDay.some((item) => item.title.trim().toLowerCase() === title.toLowerCase()))
+      return fail(
+        409,
+        'BOOK_ALREADY_SUBMITTED_FOR_DAY',
+        '같은 날짜의 일지 또는 도서 확인 요청에 이 책이 이미 있습니다.',
+      );
+    const student = user(participation.userId);
+    const request: BookRequest = {
+      id: Math.max(0, ...db.bookRequests.map((item) => item.id)) + 1,
+      eventId: participation.eventId,
+      participationId: participation.participationId,
+      readingDate: today,
+      readPages,
+      reason,
+      title,
+      author: String(body.author ?? ''),
+      publisher: String(body.publisher ?? ''),
+      isbn: String(body.isbn ?? ''),
+      note: String(body.note ?? ''),
+      status: 'PENDING',
+      createdAt: nowIso(),
+      reviewedAt: null,
+      rejectReason: null,
+      readingLogId: null,
+      studentNo: student.studentNo,
+      participantName: student.name,
+    };
+    db.bookRequests.push(request);
+    return respond(request);
   }),
 );
 route('GET', /^\/api\/books\/search$/, ({ url }) => {
@@ -1490,6 +1679,7 @@ route(
           displayOrder: 0,
         },
       ],
+      bookRequestId: request.id,
     };
     db.logs.push(log);
     request.status = 'LINKED';

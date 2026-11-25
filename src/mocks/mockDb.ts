@@ -81,6 +81,8 @@ export type MockLog = {
   createdAt: string;
   updatedAt: string;
   books: MockLogBook[];
+  /** 도서 확인 요청을 판본에 연결해 만들어진 일지면 그 요청 번호 */
+  bookRequestId?: number | null;
 };
 export type MockParticipantBook = {
   participantBookId: number;
@@ -707,6 +709,7 @@ export function createMockDb(): MockDb {
 
   db.importBatches.push(createImportBatch(db, random));
   db.bookRequests = createBookRequests(db);
+  linkSeededBookRequests(db);
   db.notices = createNotices();
   db.inquiries = createInquiries(db);
   return db;
@@ -967,6 +970,47 @@ function createBookRequests(db: MockDb): BookRequest[] {
           : '',
     };
   });
+}
+
+/**
+ * 서버와 같이, 판본에 연결된(LINKED) 요청은 최초 요청일·읽은 쪽수로 만든 검토 대기 일지와 이어 둡니다.
+ * 검토 대기 일지는 승인 전이라 인정 거리·순위·서평 대상에는 영향을 주지 않습니다.
+ */
+function linkSeededBookRequests(db: MockDb) {
+  for (const request of db.bookRequests.filter((item) => item.status === 'LINKED')) {
+    const libraryBookId = Math.max(0, ...db.library.map((book) => book.libraryBookId)) + 1;
+    db.library.push({
+      libraryBookId,
+      title: request.title,
+      author: request.author,
+      publisher: request.publisher,
+      isbn: request.isbn,
+      pageCount: 320,
+      callNo: '',
+    });
+    const log: MockLog = {
+      readingLogId: (db.seq.log += 1),
+      participationId: request.participationId,
+      readingDate: request.readingDate,
+      status: 'SUBMITTED',
+      memo: request.note || null,
+      adminComment: null,
+      reviewedAt: null,
+      createdAt: request.reviewedAt ?? request.createdAt,
+      updatedAt: request.reviewedAt ?? request.createdAt,
+      books: [
+        {
+          readingLogBookId: (db.seq.logBook += 1),
+          libraryBookId,
+          submittedReadPages: request.readPages,
+          displayOrder: 0,
+        },
+      ],
+      bookRequestId: request.id,
+    };
+    db.logs.push(log);
+    request.readingLogId = log.readingLogId;
+  }
 }
 
 /* ---------- 공지사항 ---------- */

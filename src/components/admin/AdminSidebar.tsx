@@ -19,7 +19,6 @@ const ADMIN_MENUS: readonly AdminMenu[] = [
     path: '/admin/participants',
     group: '참가·기록',
   },
-  { label: '도서 확인 요청', path: '/admin/book-requests', group: '참가·기록' },
   {
     label: '독서일지 검토',
     path: '/admin/logs',
@@ -47,7 +46,13 @@ const ADMIN_MENUS: readonly AdminMenu[] = [
     path: '/admin/notices',
     group: '운영 관리',
   },
-  { label: '문의·FAQ 관리', path: '/admin/inquiries', group: '운영 관리' },
+  {
+    label: '문의·FAQ 관리',
+    path: '/admin/inquiries',
+    group: '운영 관리',
+    // 도서 확인 요청(이전 주소)은 이 메뉴의 도서 문의 탭으로 옮겨졌습니다.
+    relatedPaths: ['/admin/book-requests'],
+  },
   { label: '결과 보고서', path: '/admin/reports', group: '분석' },
   {
     label: '운영 통계',

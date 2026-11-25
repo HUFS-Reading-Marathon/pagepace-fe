@@ -15,7 +15,6 @@ type Props = {
   progress: ParticipantBook[];
   previousBookIds: number[];
   selectedBookIds: number[];
-  onReported: (target: ReviewTargetBook) => void;
 };
 export default function ReviewRecommendations({
   userId,
@@ -24,7 +23,6 @@ export default function ReviewRecommendations({
   progress,
   previousBookIds,
   selectedBookIds,
-  onReported,
 }: Props) {
   const [intents, setIntents] = useState(() => loadReadingIntents(userId, participationId));
   const choose = (id: number, intent?: ReadingIntent) => {
@@ -81,7 +79,7 @@ export default function ReviewRecommendations({
                   ? '완독하셨네요. 읽은 내용을 도서관 서평으로 남겨 보세요.'
                   : `${target.totalBookPages}쪽을 다 읽지 않아도 지금까지 읽은 ${target.approvedReadPages}쪽에 대한 서평을 남길 수 있어요.`}
               </p>
-              <BookReviewActions book={target} onReported={onReported} />
+              <BookReviewActions book={target} />
               {kind === 'paused' && (
                 <button
                   type="button"
@@ -110,7 +108,7 @@ export default function ReviewRecommendations({
                 {target.totalBookPages}쪽 중 승인 {target.approvedReadPages}쪽 · 완독 여부와
                 관계없이 작성 가능
               </p>
-              <BookReviewActions book={target} onReported={onReported} />
+              <BookReviewActions book={target} />
               <button
                 type="button"
                 className="review-intent-reset"

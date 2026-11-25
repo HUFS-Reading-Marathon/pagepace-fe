@@ -38,9 +38,9 @@ const ask = (token: string, title: string, publicEntry: boolean) =>
   });
 
 describe('사용자 문의 게시판 주소 상태', () => {
-  it('처음에는 자주 묻는 질문, 내 문의는 로그인한 일반 사용자에게만 연다', () => {
+  it('처음에는 자주 묻는 질문, 내 문의·도서 문의는 로그인한 일반 사용자에게만 연다', () => {
     expect(userInquiryViews(false)).toEqual(['faq', 'public']);
-    expect(userInquiryViews(true)).toEqual(['faq', 'public', 'mine']);
+    expect(userInquiryViews(true)).toEqual(['faq', 'public', 'mine', 'books']);
     expect(readUserInquiryState(new URLSearchParams(''), ['faq', 'public'])).toEqual({
       view: 'faq',
       query: '',
@@ -48,6 +48,9 @@ describe('사용자 문의 게시판 주소 상태', () => {
     });
     // 비로그인 상태에서 내 문의 주소로 와도 자주 묻는 질문을 보여 줍니다.
     expect(readUserInquiryState(new URLSearchParams('view=mine'), ['faq', 'public']).view).toBe(
+      'faq',
+    );
+    expect(readUserInquiryState(new URLSearchParams('view=books'), ['faq', 'public']).view).toBe(
       'faq',
     );
   });

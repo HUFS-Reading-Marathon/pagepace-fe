@@ -1,16 +1,20 @@
 import type { Inquiry } from '../../api/inquiryApi';
 
-/** 사용자 문의 게시판의 탭. 내 문의는 로그인한 일반 사용자에게만 보입니다. */
-export type UserInquiryView = 'faq' | 'public' | 'mine';
+/**
+ * 사용자 문의 게시판의 탭. 내 문의·도서 문의는 로그인한 일반 사용자에게만 보입니다.
+ * 도서 문의는 일반 문의와 따로 저장되는 도서 확인 요청이라 공개 문의 목록에 섞이지 않습니다.
+ */
+export type UserInquiryView = 'faq' | 'public' | 'mine' | 'books';
 
 export const USER_VIEW_LABELS: Record<UserInquiryView, string> = {
   faq: '자주 묻는 질문',
   public: '공개 문의',
   mine: '내 문의',
+  books: '도서 문의',
 };
 
 export function userInquiryViews(canAsk: boolean): UserInquiryView[] {
-  return canAsk ? ['faq', 'public', 'mine'] : ['faq', 'public'];
+  return canAsk ? ['faq', 'public', 'mine', 'books'] : ['faq', 'public'];
 }
 
 export type UserInquiryState = { view: UserInquiryView; query: string; page: number };

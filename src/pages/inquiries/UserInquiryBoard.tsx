@@ -4,6 +4,7 @@ import { isAdminRole, useAuth } from '../../auth';
 import { getApiErrorMessage } from '../../api/apiClient';
 import { loadInquiries, type Inquiry, type InquiryListing } from '../../api/inquiryApi';
 import UserPageHeader from '../../components/layout/UserPageHeader';
+import UserBookInquiryList from './UserBookInquiryList';
 import { formatKoDateKey } from '../../utils/date';
 import {
   ANSWER_LABELS,
@@ -26,12 +27,14 @@ const SEARCH_PLACEHOLDER: Record<UserInquiryView, string> = {
   faq: '질문 또는 답변 검색',
   public: '제목 또는 내용 검색',
   mine: '제목 또는 내용 검색',
+  books: '도서명 또는 ISBN 검색',
 };
 
 const EMPTY_MESSAGE: Record<UserInquiryView, string> = {
   faq: '등록된 자주 묻는 질문이 없습니다.',
   public: '공개된 문의가 없습니다.',
   mine: '작성한 문의가 없습니다.',
+  books: '접수한 도서 문의가 없습니다.',
 };
 
 function Chevron() {
@@ -147,8 +150,10 @@ export default function UserInquiryBoard() {
   // 로그인 확인 중에는 내 문의 탭 여부가 정해지지 않으므로 기다립니다.
   const ready = !isInitializing;
   const key = JSON.stringify([view, query, page, attempt, user?.userId ?? null]);
+  const books = view === 'books';
   useEffect(() => {
-    if (!ready) return;
+    // 도서 문의 탭은 도서 확인 요청 목록을 따로 불러옵니다(일반 문의 API를 부르지 않음).
+    if (!ready || view === 'books') return;
     let current = true;
     loadInquiries(view, false, query, page)
       .then((rows) => {
@@ -184,6 +189,10 @@ export default function UserInquiryBoard() {
     <Link to="/admin/inquiries" className="btn btn-secondary inquiry-board__action">
       문의 관리
     </Link>
+  ) : books ? (
+    <Link to="/inquiries/books/new" className="btn btn-primary inquiry-board__action">
+      도서 문의 작성
+    </Link>
   ) : (
     // 비로그인이면 작성 화면의 로그인 확인이 로그인 페이지로 보내고, 로그인 뒤 작성 화면으로 돌아옵니다.
     <Link to="/inquiries/new" className="btn btn-primary inquiry-board__action">
@@ -208,7 +217,7 @@ export default function UserInquiryBoard() {
         ))}
       </nav>
 
-      {notice && view === 'mine' && (
+      {notice && (view === 'mine' || books) && (
         <p className="inquiry-board__notice" role="status">
           {notice}
         </p>
@@ -241,67 +250,78 @@ export default function UserInquiryBoard() {
         )}
       </form>
 
-      <div aria-live="polite" aria-busy={!rows && !error}>
-        {error ? (
-          <p className="inquiry-board__message" role="alert">
-            {error}{' '}
-            <button type="button" onClick={() => setAttempt((value) => value + 1)}>
-              다시 불러오기
-            </button>
-          </p>
-        ) : !rows ? (
-          <p className="inquiry-board__message">목록을 불러오는 중입니다.</p>
-        ) : rows.items.length === 0 ? (
-          <p className="inquiry-board__message">
-            {query ? `“${query}”에 해당하는 항목이 없습니다.` : EMPTY_MESSAGE[view]}
-          </p>
-        ) : (
-          <>
-            {view !== 'faq' && (
-              <div className="inquiry-board__columns" aria-hidden="true">
-                <span>제목</span>
-                <span>답변 상태</span>
-              </div>
-            )}
-            <ul
-              className={`inquiry-board__list${view === 'faq' ? ' is-faq' : ''}`}
-              aria-label={USER_VIEW_LABELS[view]}
-            >
-              {rows.items.map((item) =>
-                view === 'faq' ? (
-                  <FaqItem key={item.id} item={item} />
-                ) : (
-                  <QuestionItem key={item.id} item={item} mine={view === 'mine'} />
-                ),
+      {books ? (
+        <UserBookInquiryList query={query} page={page} onPage={(next) => go({ page: next })} />
+      ) : (
+        <div aria-live="polite" aria-busy={!rows && !error}>
+          {error ? (
+            <p className="inquiry-board__message" role="alert">
+              {error}{' '}
+              <button type="button" onClick={() => setAttempt((value) => value + 1)}>
+                다시 불러오기
+              </button>
+            </p>
+          ) : !rows ? (
+            <p className="inquiry-board__message">목록을 불러오는 중입니다.</p>
+          ) : rows.items.length === 0 ? (
+            <p className="inquiry-board__message">
+              {query ? `“${query}”에 해당하는 항목이 없습니다.` : EMPTY_MESSAGE[view]}
+            </p>
+          ) : (
+            <>
+              {view !== 'faq' && (
+                <div className="inquiry-board__columns" aria-hidden="true">
+                  <span>제목</span>
+                  <span>답변 상태</span>
+                </div>
               )}
-            </ul>
-            {rows.pages > 1 && (
-              <nav className="inquiry-board__pages" aria-label={`${USER_VIEW_LABELS[view]} 페이지`}>
-                <button type="button" disabled={page === 0} onClick={() => go({ page: page - 1 })}>
-                  이전
-                </button>
-                {Array.from({ length: rows.pages }, (_, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    aria-current={index === page ? 'page' : undefined}
-                    onClick={() => go({ page: index })}
-                  >
-                    {index + 1}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  disabled={page >= rows.pages - 1}
-                  onClick={() => go({ page: page + 1 })}
+              <ul
+                className={`inquiry-board__list${view === 'faq' ? ' is-faq' : ''}`}
+                aria-label={USER_VIEW_LABELS[view]}
+              >
+                {rows.items.map((item) =>
+                  view === 'faq' ? (
+                    <FaqItem key={item.id} item={item} />
+                  ) : (
+                    <QuestionItem key={item.id} item={item} mine={view === 'mine'} />
+                  ),
+                )}
+              </ul>
+              {rows.pages > 1 && (
+                <nav
+                  className="inquiry-board__pages"
+                  aria-label={`${USER_VIEW_LABELS[view]} 페이지`}
                 >
-                  다음
-                </button>
-              </nav>
-            )}
-          </>
-        )}
-      </div>
+                  <button
+                    type="button"
+                    disabled={page === 0}
+                    onClick={() => go({ page: page - 1 })}
+                  >
+                    이전
+                  </button>
+                  {Array.from({ length: rows.pages }, (_, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      aria-current={index === page ? 'page' : undefined}
+                      onClick={() => go({ page: index })}
+                    >
+                      {index + 1}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    disabled={page >= rows.pages - 1}
+                    onClick={() => go({ page: page + 1 })}
+                  >
+                    다음
+                  </button>
+                </nav>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </main>
   );
 }

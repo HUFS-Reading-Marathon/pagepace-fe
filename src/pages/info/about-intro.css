@@ -1,0 +1,243 @@
+/*
+ * 행사안내의 행사 소개(포스터 + 소개 2열) 스타일. 이 페이지에서만 불러오며 메인페이지에는 쓰이지 않습니다.
+ * 흰 바탕과 기존 글꼴을 그대로 쓰고, 큰 카드의 바깥 테두리는 두지 않습니다.
+ */
+.about-intro {
+  margin-top: 36px;
+}
+
+.about-intro.has-poster {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  align-items: start;
+  gap: 48px;
+}
+
+.about-intro__poster {
+  display: flex;
+  justify-content: center;
+}
+
+/* 불러오는 동안 포스터 자리(2:3)만 잡아 둡니다. */
+.about-intro__poster--reserve {
+  width: 320px;
+  aspect-ratio: 2 / 3;
+}
+
+.about-intro__body {
+  min-width: 0;
+}
+
+.about-intro__body h3 {
+  margin: 0 0 14px;
+  color: var(--navy-strong);
+  font-size: 22px;
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.about-intro__body h3:not(:first-child) {
+  margin-top: 36px;
+}
+
+.about-intro__summary {
+  margin: 0;
+  color: var(--body);
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+.about-intro__description {
+  margin: 16px 0 0;
+  color: #39495a;
+  font-size: 16px;
+  line-height: 1.8;
+  white-space: pre-line;
+}
+
+/* 핵심 수치: 카드 없이 위쪽 가는 선으로만 구분 */
+.about-intro__figures {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 28px 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.about-intro__figures div {
+  padding: 18px 12px 4px 0;
+}
+
+.about-intro__figures dt {
+  color: #1f2f40;
+  font-size: 21px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.045em;
+}
+
+.about-intro__figures dd {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.about-intro__schedule {
+  margin-top: 0;
+}
+
+/* ===== 포스터 ===== */
+
+.about-poster {
+  display: grid;
+  justify-items: center;
+  width: 320px;
+  margin: 0;
+  gap: 12px;
+}
+
+/* 원본 2:3 비율 그대로. 외부 카드·테두리 없이 최소한의 모서리와 은은한 그림자만 */
+.about-poster__frame {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: #eef3f8;
+  box-shadow: 0 8px 22px rgba(15, 37, 58, 0.1);
+  cursor: zoom-in;
+  overflow: hidden;
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease;
+}
+
+.about-poster__frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 3;
+  object-fit: contain;
+}
+
+.about-poster__frame:focus-visible {
+  outline: 3px solid var(--navy-strong);
+  outline-offset: 4px;
+}
+
+/* 마우스를 쓰는 화면에서만 살짝(3px) 위로. 터치 화면에서는 움직이지 않습니다. */
+@media (hover: hover) and (pointer: fine) {
+  .about-poster__frame:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 26px rgba(15, 37, 58, 0.13);
+  }
+}
+
+/* 확대 보기: 화면 안에 원본 전체가 들어오도록 */
+.poster-dialog {
+  width: fit-content;
+  height: fit-content;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  overflow: visible;
+}
+
+.poster-dialog::backdrop {
+  background: rgba(12, 22, 33, 0.78);
+}
+
+.poster-dialog img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100dvh - 80px);
+  aspect-ratio: 2 / 3;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.poster-dialog-close {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 6px;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: none;
+  color: #fff;
+  cursor: pointer;
+}
+
+.poster-dialog-close svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.poster-dialog-close:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-poster__frame {
+    transition: none;
+  }
+
+  .about-poster__frame:hover {
+    transform: none;
+  }
+}
+
+/* 태블릿: 2열을 유지하고 포스터와 간격만 줄입니다. */
+@media (max-width: 960px) {
+  .about-intro.has-poster {
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 32px;
+  }
+
+  .about-poster,
+  .about-intro__poster--reserve {
+    width: 260px;
+  }
+}
+
+/* 모바일: 세로 배치. 포스터를 가운데에 두고 그 아래에 소개를 이어 보여 줍니다. */
+@media (max-width: 720px) {
+  .about-intro.has-poster {
+    display: block;
+  }
+
+  .about-intro__poster {
+    margin-bottom: 28px;
+  }
+
+  .about-poster,
+  .about-intro__poster--reserve {
+    width: min(240px, 68vw);
+  }
+
+  .about-intro__figures {
+    grid-template-columns: 1fr;
+  }
+
+  .about-intro__figures div {
+    padding: 14px 0 12px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .about-intro__figures div:last-child {
+    border-bottom: 0;
+  }
+}

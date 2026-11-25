@@ -22,6 +22,7 @@ import {
 import { QUICK_LINKS, SUMMARY_ITEMS, type MyRecordSummary } from './mainPageContent';
 import { useCurrentEventInfo } from './useCurrentEventInfo';
 import { useScrollReveal } from './useScrollReveal';
+import { posterForRound } from '../info/eventPosters';
 import './MainPage.css';
 
 const NOTICE_PREVIEW_COUNT = 3;
@@ -46,6 +47,34 @@ function handleLibrarySearchSubmit(event: FormEvent<HTMLFormElement>) {
   window.open(buildLibrarySearchUrl(keyword), '_blank', 'noopener,noreferrer');
 }
 
+function LibrarySearch({ compact = false }: { compact?: boolean }) {
+  return (
+    <div
+      className={
+        compact ? 'library-search-card library-search-card--compact' : 'library-search-card'
+      }
+      data-reveal={!compact || undefined}
+    >
+      <label htmlFor="libSearch">도서관 소장자료 검색</label>
+      {!compact && <p>읽을 책을 도서관 소장자료에서 찾아보세요.</p>}
+      <form
+        className="search-row"
+        onSubmit={handleLibrarySearchSubmit}
+        aria-label="도서관 자료 검색"
+      >
+        <input
+          id="libSearch"
+          name="keyword"
+          type="search"
+          placeholder="도서명, 저자, 키워드 검색"
+          autoComplete="off"
+        />
+        <button type="submit">검색</button>
+      </form>
+    </div>
+  );
+}
+
 /** 앱 내부 라우트('/status' 등)면 true. '#courses' 같은 hash와 외부 URL은 <a>로 렌더링합니다. */
 function isRouteHref(link: { href: string; external?: boolean }) {
   return !link.external && link.href.startsWith('/');
@@ -61,6 +90,7 @@ function MainPage() {
   const [lastSubmittedAt, setLastSubmittedAt] = useState('-');
   const [notices, setNotices] = useState<Notice[]>([]);
   const [noticeError, setNoticeError] = useState('');
+  const [failedPoster, setFailedPoster] = useState<string | null>(null);
   const mainRef = useRef<HTMLElement>(null);
   useScrollReveal(mainRef);
 
@@ -102,6 +132,8 @@ function MainPage() {
   }, [isAuthenticated, isInitializing, user?.userId]);
 
   const eventTitle = currentEvent?.title ?? '독서마라톤';
+  const registeredPoster = posterForRound(currentEvent?.roundNo);
+  const poster = registeredPoster?.display === failedPoster ? null : registeredPoster;
   const contactPhone = currentEvent?.contactPhone?.trim() ?? '';
   const contactEmail = currentEvent?.contactEmail?.trim() ?? '';
   // 행사에 등록되지 않은 값은 빈 행으로 두지 않고 숨깁니다.
@@ -249,39 +281,42 @@ function MainPage() {
       </section>
 
       <section className="info-section" aria-label="운영 정보 및 빠른 메뉴">
-        <div className="wrap info-layout">
-          <aside className="summary-card" data-reveal>
-            <div className="summary-head">
-              <h2>운영 정보</h2>
-            </div>
-            <ul className="summary-list">
-              {SUMMARY_ITEMS.map(([label, value]) => (
-                <li key={label}>
-                  <b>{label}</b>
-                  <span>{value}</span>
-                </li>
-              ))}
-            </ul>
-          </aside>
-
-          <div className="library-search-card" data-reveal>
-            <label htmlFor="libSearch">도서관 소장자료 검색</label>
-            <p>읽을 책을 도서관 소장자료에서 찾아보세요.</p>
-            <form
-              className="search-row"
-              onSubmit={handleLibrarySearchSubmit}
-              aria-label="도서관 자료 검색"
-            >
-              <input
-                id="libSearch"
-                name="keyword"
-                type="search"
-                placeholder="도서명, 저자, 키워드 검색"
-                autoComplete="off"
-              />
-              <button type="submit">검색</button>
-            </form>
+        <div className={`wrap info-layout${poster ? ' info-layout--poster' : ''}`}>
+          <div className="info-main-column">
+            <aside className="summary-card" data-reveal>
+              <div className="summary-head">
+                <h2>운영 정보</h2>
+              </div>
+              <ul className="summary-list">
+                {SUMMARY_ITEMS.map(([label, value]) => (
+                  <li key={label}>
+                    <b>{label}</b>
+                    <span>{value}</span>
+                  </li>
+                ))}
+              </ul>
+            </aside>
+            {poster && <LibrarySearch compact />}
           </div>
+
+          {poster ? (
+            <Link
+              className="main-event-poster"
+              to="/about"
+              aria-label={`${eventTitle} 공식 포스터 · 행사안내로 이동`}
+            >
+              <img
+                src={poster.display}
+                width={poster.width}
+                height={poster.height}
+                alt={poster.alt}
+                decoding="async"
+                onError={() => setFailedPoster(poster.display)}
+              />
+            </Link>
+          ) : (
+            <LibrarySearch />
+          )}
         </div>
 
         <div className="wrap quick-grid" aria-label="빠른 메뉴" data-reveal>

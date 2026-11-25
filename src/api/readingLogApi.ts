@@ -78,13 +78,6 @@ export async function getMyReadingBooks(eventId = selectedEventId('personal')) {
   return books ?? [];
 }
 
-export function completeReview(participantBookId: number) {
-  validateId(participantBookId, '도서');
-  return apiRequest<ReviewTargetBook>(`/api/me/review-target-books/${participantBookId}/complete`, {
-    method: 'PATCH',
-  });
-}
-
 export async function getMyBookProgress(eventId = selectedEventId('personal')) {
   return (
     (await apiRequest<ParticipantBook[]>(`/api/me/book-progress${eventQuery(eventId)}`, {
