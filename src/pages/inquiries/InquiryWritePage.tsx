@@ -85,19 +85,22 @@ export default function InquiryWritePage() {
 
         <div className="inquiry-write__field">
           <label htmlFor="inquiryContent">문의 내용</label>
-          <textarea
-            id="inquiryContent"
-            required
-            rows={12}
-            maxLength={CONTENT_MAX}
-            value={content}
-            disabled={busy}
-            aria-describedby="inquiryContentCount"
-            onChange={(event) => setContent(event.target.value)}
-          />
-          <p id="inquiryContentCount" className="inquiry-write__count">
-            {content.length.toLocaleString('ko-KR')} / {CONTENT_MAX.toLocaleString('ko-KR')}자
-          </p>
+          {/* 글자 수는 입력칸 오른쪽 아래 안쪽에 둡니다(입력칸 크기를 바꿔도 따라 움직임). */}
+          <div className="inquiry-write__textarea">
+            <textarea
+              id="inquiryContent"
+              required
+              rows={10}
+              maxLength={CONTENT_MAX}
+              value={content}
+              disabled={busy}
+              aria-describedby="inquiryContentCount"
+              onChange={(event) => setContent(event.target.value)}
+            />
+            <p id="inquiryContentCount" className="inquiry-write__count">
+              {content.length.toLocaleString('ko-KR')} / {CONTENT_MAX.toLocaleString('ko-KR')}자
+            </p>
+          </div>
         </div>
 
         <fieldset className="inquiry-write__field inquiry-write__visibility" disabled={busy}>
