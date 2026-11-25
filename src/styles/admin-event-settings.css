@@ -201,9 +201,9 @@
   gap: 12px;
 }
 
-/* 문의 전화·이메일·오픈채팅 URL을 한 줄에 둡니다. URL이 가장 길어 가장 넓게 배분합니다. */
+/* 문의 전화·이메일을 같은 너비로 한 줄에 둡니다. */
 .admin-event-settings__contact-grid {
-  grid-template-columns: minmax(0, 25fr) minmax(0, 30fr) minmax(0, 45fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 /*
@@ -933,21 +933,6 @@
 }
 
 /*
- * 문의 정보 3열은 카드 안쪽 폭이 약 620px 이상일 때만 둡니다(1024px 화면 ≈ 686px).
- * 사이드바와 본문 여백을 빼면 960px 이하에서 그보다 좁아지므로 전화·이메일 2열, URL은 다음 줄 전체로 둡니다.
- * 700px 이하의 1열 규칙은 아래에 있어 이 규칙보다 우선합니다.
- */
-@media (max-width: 960px) {
-  .admin-event-settings__contact-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .admin-event-settings__url-field {
-    grid-column: 1 / -1;
-  }
-}
-
-/*
  * 데스크톱 관리자 화면(우선순위)에서는 위 %기반 열 폭만으로 가로 스크롤 없이 표시됩니다.
  * 화면이 아주 좁아져 %폭으로도 숫자가 읽기 어려워지는 구간에서만 표를 최소 폭으로
  * 내려놓고 wrapper가 가로 스크롤을 담당하도록 최후의 안전장치를 둡니다.
@@ -995,10 +980,6 @@
   .admin-event-settings__basic-grid,
   .admin-event-settings__contact-grid {
     grid-template-columns: 1fr;
-  }
-
-  .admin-event-settings__url-field {
-    grid-column: auto;
   }
 
   .admin-event-settings__range-mark {
