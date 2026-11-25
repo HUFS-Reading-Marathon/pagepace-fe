@@ -589,11 +589,14 @@ function eventSummary(eventId: number, courseId: number | null) {
   };
 }
 
-function inquiryListing(items: Inquiry[], page: number) {
+/** 서버와 같이 관리자 목록에서만 작성자 이름을 내려 줍니다(사용자 목록은 authorName: null). */
+function inquiryListing(items: Inquiry[], page: number, showAuthor = false) {
   const size = 15;
   const sorted = [...items].sort((left, right) => right.createdAt.localeCompare(left.createdAt));
   return {
-    items: sorted.slice(page * size, page * size + size),
+    items: sorted
+      .slice(page * size, page * size + size)
+      .map((item) => (showAuthor ? item : { ...item, authorName: null })),
     total: sorted.length,
     pages: Math.max(1, Math.ceil(sorted.length / size)),
   };
@@ -769,7 +772,7 @@ route('GET', /^\/api\/inquiries$/, ({ url }) => {
       item.kind === (faq ? 'FAQ' : 'QUESTION') &&
       item.publicEntry &&
       (faq || item.answer) &&
-      (matches(item.title, query) || matches(item.answer, query)),
+      (matches(item.title, query) || matches(item.content, query) || matches(item.answer, query)),
   );
   return respond(inquiryListing(items, Number(url.searchParams.get('page') ?? 0)));
 });
@@ -777,8 +780,12 @@ route(
   'GET',
   /^\/api\/me\/inquiries$/,
   requireUser(({ me, url }) => {
+    const query = url.searchParams.get('q') ?? '';
     const items = db.inquiries.filter(
-      (item) => item.kind === 'QUESTION' && item.authorName === me!.name,
+      (item) =>
+        item.kind === 'QUESTION' &&
+        item.authorName === me!.name &&
+        (matches(item.title, query) || matches(item.content, query) || matches(item.answer, query)),
     );
     return respond(inquiryListing(items, Number(url.searchParams.get('page') ?? 0)));
   }),
@@ -787,6 +794,12 @@ route(
   'POST',
   /^\/api\/me\/inquiries$/,
   requireUser(({ me, body }) => {
+    // 서버와 같이 참가 신청이 승인된 일반 회원만 문의할 수 있습니다.
+    const approved = db.applications.some(
+      (application) => application.userId === me!.userId && application.status === 'APPROVED',
+    );
+    if (me!.role !== 'USER' || !approved)
+      return fail(403, 'APPROVAL_REQUIRED', '참가 신청이 승인된 회원이 문의할 수 있습니다.');
     const item: Inquiry = {
       id: Math.max(0, ...db.inquiries.map((entry) => entry.id)) + 1,
       kind: 'QUESTION',
@@ -1555,7 +1568,7 @@ route(
         (!pending || !item.answer) &&
         (matches(item.title, query) || matches(item.content, query) || matches(item.answer, query)),
     );
-    return respond(inquiryListing(items, Number(url.searchParams.get('page') ?? 0)));
+    return respond(inquiryListing(items, Number(url.searchParams.get('page') ?? 0), true));
   }),
 );
 route(

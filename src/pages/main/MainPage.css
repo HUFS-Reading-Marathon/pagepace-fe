@@ -887,6 +887,35 @@
   text-decoration-color: currentColor;
 }
 
+/* 문의 게시판 바로가기: 흰 바탕·얇은 테두리·네이비 글자, 그림자·이동 효과 없이 배경만 은은하게 바뀝니다. */
+.contact-board-link {
+  display: inline-flex;
+  min-height: 44px;
+  margin-top: 20px;
+  padding: 0 18px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #bfd2e6;
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--navy-strong);
+  font-size: 15px;
+  font-weight: 650;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.contact-board-link:hover {
+  border-color: #a9c2dd;
+  background: var(--blue-10);
+}
+
+.contact-board-link:focus-visible {
+  outline: 3px solid rgba(31, 79, 130, 0.2);
+  outline-offset: 2px;
+}
+
 .cta-band {
   display: flex;
   align-items: center;

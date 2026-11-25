@@ -14,7 +14,7 @@ function Footer() {
           <Link to="/courses">코스</Link>
           <Link to="/guide">참여방법</Link>
           <Link to="/status">대회 현황</Link>
-          <a href="/#contact">문의</a>
+          <Link to="/inquiries">문의</Link>
         </nav>
       </div>
 

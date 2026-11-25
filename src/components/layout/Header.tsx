@@ -12,7 +12,7 @@ type HeaderLink = {
 const TOPBAR_LINKS: HeaderLink[] = [
   { label: '도서관 홈', href: 'https://lib.hufs.ac.kr/global/', external: true },
   { label: '학교 홈페이지', href: 'https://www.hufs.ac.kr/', external: true },
-  { label: '문의', href: '/#contact' },
+  { label: '문의', href: '/inquiries' },
 ];
 
 // 주메뉴는 모두 독립 페이지로 이동합니다(메뉴명·순서는 메인페이지 섹션 순서와 같음).
@@ -87,11 +87,17 @@ function Header() {
           </div>
 
           <nav className="topbar-links" aria-label="상단 유틸리티">
-            {TOPBAR_LINKS.map((link) => (
-              <a key={link.label} href={link.href} {...getExternalLinkAttrs(link)}>
-                {link.label}
-              </a>
-            ))}
+            {TOPBAR_LINKS.map((link) =>
+              link.external ? (
+                <a key={link.label} href={link.href} {...getExternalLinkAttrs(link)}>
+                  {link.label}
+                </a>
+              ) : (
+                <Link key={link.label} to={link.href}>
+                  {link.label}
+                </Link>
+              ),
+            )}
           </nav>
         </div>
       </div>

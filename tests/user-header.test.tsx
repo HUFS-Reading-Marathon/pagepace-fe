@@ -41,9 +41,12 @@ it('현재 경로로 활성 메뉴를 정하고, 공지 상세에서도 공지�
   expect(active('/status')).toEqual(['대회 현황']);
 });
 
-it('상단 문의 링크와 푸터 문의는 기존 /#contact를 유지하고, 푸터 안내 링크는 독립 페이지로 간다', () => {
-  expect(render('/')).toContain('href="/#contact"');
+it('상단 문의 링크와 푸터 문의는 문의 게시판으로, 푸터 안내 링크는 독립 페이지로 간다', () => {
+  const header = render('/');
+  expect(header).toContain('href="/inquiries"');
+  expect(header).not.toContain('href="/#contact"');
   const footer = render('/', <Footer />);
-  for (const href of ['/about', '/courses', '/guide', '/status', '/#contact'])
+  for (const href of ['/about', '/courses', '/guide', '/status', '/inquiries'])
     expect(footer).toContain(`href="${href}"`);
+  expect(footer).not.toContain('href="/#contact"');
 });
