@@ -30,11 +30,16 @@ export function searchNotices(notices: Notice[], query: string) {
 }
 
 /**
- * 중요 공지 표시. 제목에 이미 "[중요]"가 있으면 같은 표시를 두 번 하지 않도록 배지를 생략합니다
- * (서버에 저장된 제목은 바꾸지 않습니다).
+ * 목록 순번: 중요 공지는 "공지", 일반 공지는 최신 글이 가장 큰 번호가 되도록 매깁니다.
+ * 검색·쪽 나누기 전의 전체 공개 목록(정렬된 순서)을 넘겨야 검색·쪽 이동에도 번호가 바뀌지 않습니다.
+ * 목록을 볼 때 위치를 가리키는 보조 정보이며, 공지의 저장값과는 관계없습니다.
  */
-export function showsImportantBadge(notice: Notice) {
-  return notice.pinned && !/^\s*\[중요\]/.test(notice.title);
+export function noticeNumbers(notices: Notice[]) {
+  const regular = notices.filter((notice) => !notice.pinned).length;
+  let seen = 0;
+  return new Map(
+    notices.map((notice) => [notice.noticeId, notice.pinned ? '공지' : String(regular - seen++)]),
+  );
 }
 
 export type NoticeBoardState = { query: string; page: number };

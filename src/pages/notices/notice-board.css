@@ -62,10 +62,31 @@
   text-align: center;
 }
 
+.notice-board__columns,
+.notice-board__list a {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: 16px;
+}
+
+/* 컬럼 이름: 순번 · 제목 (보조 정보로 작게) */
+.notice-board__columns {
+  padding: 10px 16px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.notice-board__columns span:first-child,
+.notice-board__number {
+  text-align: center;
+}
+
 .notice-board__list {
   margin: 0;
   padding: 0;
-  border-top: 1px solid var(--line);
   list-style: none;
 }
 
@@ -73,60 +94,62 @@
   border-bottom: 1px solid var(--line);
 }
 
+/* 중요 공지 행: 아주 옅은 회색 바탕으로만 구분(순번 칸에 "공지") */
 .notice-board__list li[data-pinned] {
-  background: #f7f9fb;
+  background: #f7f8f9;
 }
 
 .notice-board__list a {
-  display: flex;
-  min-height: 60px;
+  min-height: 64px;
   padding: 14px 16px;
   align-items: center;
-  justify-content: space-between;
-  gap: 24px;
   color: #233343;
 }
 
-.notice-board__title {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 10px;
-  font-size: 16px;
-  font-weight: 600;
+/* 순번은 위치를 가리키는 보조 정보라 제목보다 작고 옅게 둡니다(중요 공지는 "공지"). */
+.notice-board__number {
+  color: #8a97a4;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
 }
 
-.notice-board__title > span:last-child {
+.notice-board__list li[data-pinned] .notice-board__number {
+  color: var(--navy-strong);
+  font-weight: 700;
+}
+
+.notice-board__body {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.notice-board__title {
   overflow: hidden;
+  font-size: 16px;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.notice-board__list a:hover .notice-board__title > span:last-child {
+.notice-board__list a:hover .notice-board__title {
   color: var(--navy-strong);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
-.notice-board__badge {
-  display: inline-flex;
-  height: 22px;
-  padding: 0 8px;
-  flex: none;
-  align-items: center;
-  border-radius: 4px;
-  background: var(--blue-20);
-  color: var(--navy-strong);
-  font-size: 12px;
-  font-weight: 700;
+.notice-board__meta {
+  display: flex;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
 }
 
-.notice-board__list time {
-  flex: none;
-  color: var(--muted);
-  font-size: 14px;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+.notice-board__meta > * + *::before {
+  content: '·';
+  margin: 0 6px;
+  color: #b0bcc7;
 }
 
 .notice-board__pages {
@@ -165,15 +188,22 @@
 }
 
 @media (max-width: 560px) {
+  .notice-board__columns,
   .notice-board__list a {
-    min-height: 0;
-    padding: 14px 4px;
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 6px;
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 10px;
+    padding-inline: 4px;
   }
 
-  .notice-board__title > span:last-child {
+  .notice-board__list a {
+    align-items: start;
+  }
+
+  .notice-board__number {
+    padding-top: 2px;
+  }
+
+  .notice-board__title {
     white-space: normal;
   }
 }

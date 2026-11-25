@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import type { Notice } from '../src/api/noticeApi';
 import {
   NOTICE_PAGE_SIZE,
+  noticeNumbers,
   orderNotices,
   readNoticeBoardState,
   searchNotices,
-  showsImportantBadge,
   writeNoticeBoardState,
 } from '../src/pages/notices/noticeBoard';
 
@@ -39,14 +39,6 @@ describe('사용자 공지사항 게시판', () => {
     expect(searchNotices(rows, '없는 제목')).toHaveLength(0);
   });
 
-  it('제목에 이미 [중요]가 있는 중요 공지에는 배지를 겹쳐 붙이지 않고 제목은 그대로 둔다', () => {
-    const marked = notice(1, { pinned: true, title: '[중요] 마감 안내' });
-    expect(showsImportantBadge(marked)).toBe(false);
-    expect(marked.title).toBe('[중요] 마감 안내');
-    expect(showsImportantBadge(notice(2, { pinned: true }))).toBe(true);
-    expect(showsImportantBadge(notice(3))).toBe(false);
-  });
-
   it('10건씩 나누고 검색어·쪽 번호를 주소에 담는다(기본값 생략)', () => {
     expect(NOTICE_PAGE_SIZE).toBe(10);
     const rows = orderNotices(Array.from({ length: 23 }, (_, index) => notice(index + 1)));
@@ -56,5 +48,23 @@ describe('사용자 공지사항 게시판', () => {
     expect(readNoticeBoardState(params)).toEqual({ query: '휴관', page: 2 });
     expect(writeNoticeBoardState({ query: '', page: 0 }).toString()).toBe('');
     expect(readNoticeBoardState(new URLSearchParams('page=-4'))).toEqual({ query: '', page: 0 });
+  });
+
+  it('순번은 중요 공지에 "공지", 일반 공지에는 전체 공개 목록 기준으로 최신 글부터 큰 번호를 매긴다', () => {
+    const all = orderNotices([
+      notice(1, { title: '휴관 안내' }),
+      notice(2, { pinned: true, title: '[중요] 마감 안내' }),
+      notice(3, { title: '서평 안내' }),
+      notice(4, { title: '코스 보상' }),
+    ]);
+    const numbers = noticeNumbers(all);
+    expect(all.map((row) => numbers.get(row.noticeId))).toEqual(['공지', '3', '2', '1']);
+    // 검색해도 같은 글은 같은 번호이고, 제목의 [중요]는 그대로입니다.
+    const found = searchNotices(all, '안내');
+    expect(found.map((row) => [row.title, numbers.get(row.noticeId)])).toEqual([
+      ['[중요] 마감 안내', '공지'],
+      ['서평 안내', '2'],
+      ['휴관 안내', '1'],
+    ]);
   });
 });

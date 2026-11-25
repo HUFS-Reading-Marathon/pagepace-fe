@@ -7,10 +7,10 @@ import { formatKoDateKey } from '../../utils/date';
 import {
   NOTICE_PAGE_SIZE,
   noticeDate,
+  noticeNumbers,
   orderNotices,
   readNoticeBoardState,
   searchNotices,
-  showsImportantBadge,
   writeNoticeBoardState,
   type NoticeLinkState,
 } from './noticeBoard';
@@ -47,6 +47,8 @@ export default function NoticesPage() {
   const pageCount = Math.max(1, Math.ceil(results.length / NOTICE_PAGE_SIZE));
   const currentPage = Math.min(page, pageCount - 1);
   const rows = results.slice(currentPage * NOTICE_PAGE_SIZE, (currentPage + 1) * NOTICE_PAGE_SIZE);
+  // 순번은 검색·쪽 나누기 전의 전체 공개 목록 기준이라, 검색하거나 쪽을 넘겨도 같은 글은 같은 번호입니다.
+  const numbers = noticeNumbers(items ?? []);
   const linkState: NoticeLinkState = { listSearch: location.search };
 
   const go = (next: { query?: string; page?: number }) =>
@@ -115,22 +117,33 @@ export default function NoticesPage() {
         </p>
       ) : (
         <>
+          <div className="notice-board__columns" aria-hidden="true">
+            <span>순번</span>
+            <span>제목</span>
+          </div>
           <ul className="notice-board__list">
-            {rows.map((notice) => (
-              <li key={notice.noticeId} data-pinned={notice.pinned || undefined}>
-                <Link to={`/notices/${notice.noticeId}`} state={linkState}>
-                  <span className="notice-board__title">
-                    {showsImportantBadge(notice) && (
-                      <span className="notice-board__badge">중요</span>
-                    )}
-                    <span>{notice.title}</span>
-                  </span>
-                  <time dateTime={noticeDate(notice)}>
-                    {formatKoDateKey(noticeDate(notice).slice(0, 10))}
-                  </time>
-                </Link>
-              </li>
-            ))}
+            {rows.map((notice) => {
+              const number = numbers.get(notice.noticeId);
+              return (
+                <li key={notice.noticeId} data-pinned={notice.pinned || undefined}>
+                  <Link to={`/notices/${notice.noticeId}`} state={linkState}>
+                    <span className="notice-board__number">
+                      {notice.pinned ? number : <span className="sr-only">번호 </span>}
+                      {!notice.pinned && number}
+                    </span>
+                    <span className="notice-board__body">
+                      <span className="notice-board__title">{notice.title}</span>
+                      <span className="notice-board__meta">
+                        {notice.authorName && <span>{notice.authorName}</span>}
+                        <time dateTime={noticeDate(notice)}>
+                          {formatKoDateKey(noticeDate(notice).slice(0, 10))}
+                        </time>
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
 
           {pageCount > 1 && (
