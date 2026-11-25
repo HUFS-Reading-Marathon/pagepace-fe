@@ -959,9 +959,8 @@
 
 .reading-log-card {
   margin-top: 34px;
-  padding: 34px 36px 36px;
+  padding: 35px 36px 36px;
   border: 1px solid #d9e2ec;
-  border-top: 2px solid #1f4f82;
   border-radius: 6px;
   background: #ffffff;
 }
@@ -977,9 +976,8 @@
   align-items: center;
   gap: 14px;
   margin-bottom: 24px;
-  padding: 17px 18px;
+  padding: 17px 18px 17px 20px;
   border: 1px solid #cddded;
-  border-left: 3px solid #1f4f82;
   border-radius: 6px;
   background: #f7faff;
 }
@@ -1400,9 +1398,8 @@
   align-items: center;
   gap: 18px;
   margin-top: 15px;
-  padding: 16px;
+  padding: 16px 16px 16px 18px;
   border: 1px solid #d7e4f0;
-  border-left: 3px solid #1f4f82;
   border-radius: 6px;
   background: #f7faff;
 }
@@ -1566,9 +1563,8 @@
   align-items: center;
   gap: 0;
   margin-top: 28px;
-  padding: 0;
+  padding: 0 0 0 2px;
   border: 1px solid #dce6f0;
-  border-left: 3px solid #1f4f82;
   border-radius: 5px;
   background: #f7faff;
   overflow: hidden;
@@ -1719,7 +1715,7 @@
 
 @media (max-width: 720px) {
   .reading-log-card {
-    padding: 26px 22px 28px;
+    padding: 27px 22px 28px;
   }
 
   .reading-book-row {
@@ -1845,9 +1841,8 @@
 }
 
 .reading-detail-card {
-  padding: 28px 32px 26px;
+  padding: 29px 32px 26px;
   border: 1px solid #d9e2ec;
-  border-top: 2px solid #1f4f82;
   border-radius: 6px;
   background: #ffffff;
 }
@@ -1878,8 +1873,8 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   margin: 0;
+  padding-left: 2px;
   border: 1px solid #dce6f0;
-  border-left: 3px solid #1f4f82;
   border-radius: 5px;
   background: #f7faff;
 }
@@ -2063,9 +2058,8 @@
 
 .reading-detail-comment {
   margin-top: 16px;
-  padding: 15px 18px;
+  padding: 15px 18px 15px 20px;
   border: 1px solid #eadfbe;
-  border-left: 3px solid #b78b32;
   border-radius: 5px;
   background: #fffaf0;
 }
@@ -2146,7 +2140,7 @@
   }
 
   .reading-detail-card {
-    padding: 24px 20px;
+    padding: 25px 20px 24px;
   }
 
   .reading-detail-head {
