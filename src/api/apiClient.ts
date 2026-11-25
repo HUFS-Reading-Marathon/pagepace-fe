@@ -4,6 +4,7 @@ import {
   getAccessToken,
   saveAccessToken,
 } from '../auth/authStorage';
+import { MOCK_MODE } from '../mocks/mockMode';
 import type { ApiResponse } from '../auth/authTypes';
 
 type ApiRequestOptions = RequestInit & {
@@ -81,6 +82,15 @@ function getHttpErrorMessage(status: number) {
   return '요청을 처리하는 중 오류가 발생했습니다.';
 }
 
+/**
+ * 목데이터 모드(개발 서버 전용)에서는 실제 서버 대신 메모리 목 API가 응답합니다.
+ * 운영 빌드에서는 import.meta.env.DEV가 false라 이 경로와 목 코드가 번들에 포함되지 않습니다.
+ */
+async function sendMockRequest(path: string, init: RequestInit) {
+  const { handleMockRequest } = await import('../mocks/mockHandlers');
+  return handleMockRequest(path, init);
+}
+
 async function requestResponse(
   path: string,
   options: ApiRequestOptions,
@@ -104,11 +114,11 @@ async function requestResponse(
   let response: Response;
 
   try {
-    response = await fetch(path, {
-      ...fetchOptions,
-      headers,
-      credentials: 'include',
-    });
+    const init: RequestInit = { ...fetchOptions, headers, credentials: 'include' };
+    response =
+      import.meta.env.DEV && MOCK_MODE
+        ? await sendMockRequest(path, init)
+        : await fetch(path, init);
   } catch {
     throw new ApiError(
       '서버에 연결할 수 없습니다. 네트워크 상태를 확인해 주세요.',
