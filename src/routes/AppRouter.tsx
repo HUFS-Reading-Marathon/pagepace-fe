@@ -24,6 +24,8 @@ import CoursesPage from '../pages/info/CoursesPage';
 import GuidePage from '../pages/info/GuidePage';
 import AdminContestReportsPage from '../pages/admin/AdminContestReportsPage';
 import InquiryBoard from '../pages/inquiries/InquiryBoard';
+import InquiryWritePage from '../pages/inquiries/InquiryWritePage';
+import UserInquiryBoard from '../pages/inquiries/UserInquiryBoard';
 import NoticeDetailPage from '../pages/notices/NoticeDetailPage';
 import AccountSettingsPage from '../pages/my/AccountSettingsPage';
 import NotFoundPage from '../pages/error';
@@ -80,7 +82,15 @@ function AppRouter() {
 
           <Route element={<UserLayout />}>
             <Route path="/" element={<MainPage />} />
-            <Route path="/inquiries" element={<InquiryBoard />} />
+            <Route path="/inquiries" element={<UserInquiryBoard />} />
+            <Route
+              path="/inquiries/new"
+              element={
+                <ProtectedRoute>
+                  <InquiryWritePage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/courses" element={<CoursesPage />} />
             <Route path="/guide" element={<GuidePage />} />

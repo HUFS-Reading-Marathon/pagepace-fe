@@ -1,11 +1,13 @@
+import { Link } from 'react-router-dom';
 import type { CurrentEvent } from '../../api/eventApi';
 
-/** 문의 및 운영 정보: 행사에 등록된 연락처만 보여 줍니다(메인페이지·행사안내 페이지 공통). */
+/**
+ * 문의 및 운영 정보: 행사에 등록된 연락처와 문의 게시판 바로가기(메인페이지·행사안내 페이지 공통).
+ * 카카오톡 오픈채팅은 더 이상 안내하지 않습니다(서버의 kakaoOpenChatUrl 값은 그대로 둡니다).
+ */
 export default function EventContactCard({ currentEvent }: { currentEvent: CurrentEvent | null }) {
   const contactPhone = currentEvent?.contactPhone?.trim() ?? '';
   const contactEmail = currentEvent?.contactEmail?.trim() ?? '';
-  const kakaoOpenChatUrl = currentEvent?.kakaoOpenChatUrl?.trim() ?? '';
-  const hasKakaoOpenChat = /^https?:\/\//.test(kakaoOpenChatUrl);
 
   return (
     <div className="contact-card">
@@ -24,19 +26,15 @@ export default function EventContactCard({ currentEvent }: { currentEvent: Curre
             <a href={`mailto:${contactEmail}`}>{contactEmail}</a>
           </div>
         )}
-        {hasKakaoOpenChat && (
-          <div className="contact-item">
-            <span>운영 채널</span>
-            <a href={kakaoOpenChatUrl} target="_blank" rel="noopener noreferrer">
-              카카오톡 오픈채팅
-            </a>
-          </div>
-        )}
         <div className="contact-item">
           <span>소속</span>
           <b>글로벌캠퍼스 도서관</b>
         </div>
       </div>
+
+      <Link to="/inquiries" className="contact-board-link">
+        문의 게시판 바로가기 <span aria-hidden="true">→</span>
+      </Link>
     </div>
   );
 }

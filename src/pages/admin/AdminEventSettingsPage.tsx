@@ -1091,7 +1091,7 @@ function AdminEventSettingsPage() {
               </div>
             </div>
 
-            {/* 행사 설명은 관리자 화면에서 입력하지 않지만, 저장된 값은 eventForm에 그대로 두어 저장 시 함께 보냅니다. */}
+            {/* 카카오 오픈채팅 URL은 입력란을 두지 않지만, 저장된 값은 eventForm에 그대로 두어 저장 시 함께 보냅니다(행사 설명과 같음). */}
             <fieldset
               className="admin-event-settings__contact-grid"
               disabled={isEventDetailLoading || fieldsLocked}
@@ -1112,17 +1112,6 @@ function AdminEventSettingsPage() {
                   placeholder="예: library@hufs.ac.kr"
                   value={eventForm.contactEmail}
                   onChange={(event) => handleEventFieldChange('contactEmail', event.target.value)}
-                />
-              </label>
-              <label className="admin-event-settings__url-field">
-                <span>카카오 오픈채팅 URL</span>
-                <input
-                  type="url"
-                  placeholder="예: https://open.kakao.com/o/..."
-                  value={eventForm.kakaoOpenChatUrl}
-                  onChange={(event) =>
-                    handleEventFieldChange('kakaoOpenChatUrl', event.target.value)
-                  }
                 />
               </label>
             </fieldset>
