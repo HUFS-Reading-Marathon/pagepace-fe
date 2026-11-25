@@ -42,8 +42,8 @@
 
 .admin-event-settings__form {
   display: grid;
-  margin-top: 24px;
-  gap: 18px;
+  margin-top: 14px;
+  gap: 14px;
 }
 
 .admin-event-settings__selector {
@@ -68,14 +68,14 @@
 }
 
 .admin-event-settings__selector p {
-  margin: 5px 0 0;
+  margin: 3px 0 0;
   color: var(--body);
   font-size: 12px;
 }
 
 .admin-event-settings__selector-controls {
   display: flex;
-  min-width: min(100%, 460px);
+  min-width: min(100%, 420px);
   align-items: center;
   gap: 10px;
 }
@@ -96,12 +96,11 @@
 .admin-event-settings__editing-context {
   display: flex;
   margin-top: 12px;
-  padding: 15px 18px;
+  padding: 11px 18px;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   border: 1px solid var(--line);
-  border-left: 4px solid var(--navy-strong);
   border-radius: var(--radius);
   background: var(--line-soft);
   flex-wrap: wrap;
@@ -119,7 +118,6 @@
 
 .admin-event-settings__editing-context.is-new {
   border-color: #d4b86e;
-  border-left-color: #a57a19;
   background: #fff9e9;
 }
 
@@ -141,7 +139,7 @@
 
 .admin-event-settings__panel {
   min-width: 0;
-  padding: 22px;
+  padding: 18px 20px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface);
@@ -149,7 +147,7 @@
 
 .admin-event-settings__section-heading {
   display: flex;
-  padding-bottom: 16px;
+  padding-bottom: 12px;
   align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
@@ -165,7 +163,7 @@
 }
 
 .admin-event-settings__section-heading p {
-  margin: 5px 0 0;
+  margin: 3px 0 0;
   color: var(--body);
   font-size: 12px;
   line-height: 1.5;
@@ -185,33 +183,145 @@
   white-space: nowrap;
 }
 
-.admin-event-settings__section-heading > .admin-event-settings__optional {
-  border-color: var(--line);
-  background: var(--line-soft);
-  color: var(--muted);
-}
-
 .admin-event-settings__period-grid {
   display: grid;
-  margin-top: 20px;
+  margin-top: 14px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
+  gap: 16px 20px;
 }
 
 .admin-event-settings__basic-grid,
 .admin-event-settings__contact-grid {
   display: grid;
   min-width: 0;
-  margin: 20px 0 0;
+  margin: 14px 0 0;
   padding: 0;
   border: 0;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: 12px;
 }
 
+/* 문의 전화·이메일·오픈채팅 URL을 한 줄에 둡니다. URL이 가장 길어 가장 넓게 배분합니다. */
+.admin-event-settings__contact-grid {
+  grid-template-columns: minmax(0, 25fr) minmax(0, 30fr) minmax(0, 45fr);
+}
+
+/*
+ * 행사 기본 정보(수정 모드): 행사명(제 [N] 회 독서마라톤) · 운영 상태 · 공개 여부를 한 줄에 두고,
+ * 항목마다 위 라벨 + 42px 높이의 입력 줄로 높이를 맞춥니다. 칸을 억지로 늘리지 않고 좁으면 항목 단위로 줄바꿈합니다.
+ */
 .admin-event-settings__basic-grid {
-  grid-template-columns: minmax(12rem, 2.8fr) minmax(5rem, 0.8fr) minmax(8rem, 1.3fr) auto;
-  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px 40px;
+}
+
+.admin-event-settings__basic-item {
+  min-width: 0;
+}
+
+.admin-event-settings__basic-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--body);
+  font-size: 12px;
+  font-weight: var(--admin-fw-medium);
+}
+
+.admin-event-settings__round-input {
+  display: flex;
+  height: 42px;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: var(--admin-fw-semibold);
+  white-space: nowrap;
+}
+
+.admin-event-settings__basic-grid .admin-event-settings__round-input input[type='number'] {
+  width: 60px;
+  padding: 0 6px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* 좁은 칸에서 숫자가 가려지지 않도록 증감 버튼을 숨깁니다(키보드 위·아래 키는 그대로). */
+.admin-event-settings__round-input input::-webkit-inner-spin-button,
+.admin-event-settings__round-input input::-webkit-outer-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.admin-event-settings__round-input input[aria-invalid='true'] {
+  border-color: #b54848;
+}
+
+.admin-event-settings__title-preview {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.admin-event-settings__title-preview[data-tone='error'] {
+  color: #9f3030;
+}
+
+.admin-event-settings__basic-grid .admin-event-settings__status-select {
+  width: 200px;
+}
+
+.admin-event-settings__basic-grid .admin-event-settings__public-check {
+  display: flex;
+  height: 42px;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.admin-event-settings__basic-grid .admin-event-settings__public-check > span {
+  display: inline;
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: var(--admin-fw-medium);
+}
+
+.admin-event-settings__public-check input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--navy-strong);
+}
+
+/* 행사 기본 정보(조회 모드): 저장된 값을 입력 칸 없이 글자로 보여 줍니다. */
+.admin-event-settings__basic-view {
+  display: flex;
+  margin: 14px 0 0;
+  flex-wrap: wrap;
+  gap: 10px 48px;
+}
+
+.admin-event-settings__basic-view div {
+  min-width: 0;
+}
+
+.admin-event-settings__basic-view dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.admin-event-settings__basic-view dd {
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: var(--admin-fw-semibold);
+  overflow-wrap: anywhere;
 }
 
 .admin-event-settings__basic-grid label,
@@ -272,36 +382,6 @@
   font-weight: var(--admin-fw-medium);
 }
 
-.admin-event-settings__wide-field {
-  grid-column: 1 / -1;
-}
-
-.admin-event-settings__title-field input {
-  max-width: 60ch;
-}
-
-.admin-event-settings__visibility-field {
-  display: flex !important;
-  min-height: 42px;
-  padding: 0 12px;
-  align-items: center;
-  align-self: end;
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius);
-  background: var(--line-soft);
-  gap: 9px;
-}
-
-.admin-event-settings__visibility-field input {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--navy-strong);
-}
-
-.admin-event-settings__visibility-field span {
-  margin: 0 !important;
-}
-
 .admin-event-settings__period-group {
   min-width: 0;
   margin: 0;
@@ -310,14 +390,14 @@
 }
 
 .admin-event-settings__period-group legend {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   color: var(--ink);
   font-size: 13px;
   font-weight: var(--admin-fw-semibold);
 }
 
 .admin-event-settings__period-hint {
-  margin: 8px 0 0;
+  margin: 6px 0 0;
   color: var(--muted);
   font-size: 12px;
 }
@@ -327,7 +407,7 @@
   min-width: 0;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: end;
-  gap: 10px;
+  gap: 8px;
 }
 
 .admin-event-settings__date-range label {
@@ -413,7 +493,7 @@
 }
 
 .admin-event-settings__courses-panel {
-  margin-top: 18px;
+  margin-top: 0;
 }
 
 .admin-event-settings__number-control {
@@ -449,7 +529,7 @@
 
 .admin-event-settings__contact-grid textarea {
   display: block;
-  min-height: 104px;
+  min-height: 88px;
   padding: 11px 12px;
   resize: vertical;
   border-radius: var(--radius);
@@ -458,8 +538,8 @@
 
 .admin-event-settings__form-footer {
   display: flex;
-  min-height: 68px;
-  padding: 14px 18px;
+  min-height: 64px;
+  padding: 11px 20px;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
@@ -471,7 +551,6 @@
 .admin-event-settings__default-courses-notice {
   padding: 18px 20px;
   border: 1px solid var(--line);
-  border-left: 4px solid var(--navy-strong);
   border-radius: var(--radius);
   background: var(--line-soft);
 }
@@ -536,7 +615,7 @@
 .admin-event-settings__course-table-wrapper {
   width: 100%;
   min-width: 0;
-  margin-top: 20px;
+  margin-top: 14px;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -854,6 +933,21 @@
 }
 
 /*
+ * 문의 정보 3열은 카드 안쪽 폭이 약 620px 이상일 때만 둡니다(1024px 화면 ≈ 686px).
+ * 사이드바와 본문 여백을 빼면 960px 이하에서 그보다 좁아지므로 전화·이메일 2열, URL은 다음 줄 전체로 둡니다.
+ * 700px 이하의 1열 규칙은 아래에 있어 이 규칙보다 우선합니다.
+ */
+@media (max-width: 960px) {
+  .admin-event-settings__contact-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-event-settings__url-field {
+    grid-column: 1 / -1;
+  }
+}
+
+/*
  * 데스크톱 관리자 화면(우선순위)에서는 위 %기반 열 폭만으로 가로 스크롤 없이 표시됩니다.
  * 화면이 아주 좁아져 %폭으로도 숫자가 읽기 어려워지는 구간에서만 표를 최소 폭으로
  * 내려놓고 wrapper가 가로 스크롤을 담당하도록 최후의 안전장치를 둡니다.
@@ -878,10 +972,19 @@
     grid-template-columns: 1fr;
   }
 
+  .admin-event-settings__panel {
+    padding: 16px;
+  }
+
   .admin-event-settings__selector,
   .admin-event-settings__selector-controls {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  /* 세로 배치에서는 flex-basis가 높이로 쓰여 제목 아래가 비지 않도록 내용 높이만 차지합니다. */
+  .admin-event-settings__selector > div:first-child {
+    flex: 0 0 auto;
   }
 
   .admin-event-settings__selector-controls {
@@ -894,12 +997,8 @@
     grid-template-columns: 1fr;
   }
 
-  .admin-event-settings__wide-field {
+  .admin-event-settings__url-field {
     grid-column: auto;
-  }
-
-  .admin-event-settings__title-field input {
-    max-width: 100%;
   }
 
   .admin-event-settings__range-mark {

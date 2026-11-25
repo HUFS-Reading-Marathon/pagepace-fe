@@ -243,15 +243,34 @@ export function formatShortDateRange(startDate: string, endDate: string) {
   return `${formatShortDate(startDate)} ~ ${formatShortDate(endDate)}`;
 }
 
-export function validateEventForm(form: EventForm) {
-  if (!form.title.trim()) {
-    return '행사명을 입력해 주세요.';
+/** 회차 입력이 1 이상의 정수(소수점, 부호, 지수 표기 없음)인지 확인합니다. 앞자리 0은 숫자로 읽습니다(07 → 7). */
+export function isValidRoundNo(value: string) {
+  return /^0*[1-9]\d{0,5}$/.test(value.trim());
+}
+
+/** 독서마라톤 행사명은 회차로 정해집니다. 예: 7 → "제7회 독서마라톤" */
+export function eventTitleForRound(roundNo: string | number) {
+  return `제${String(roundNo).trim()}회 독서마라톤`;
+}
+
+/**
+ * @param takenRoundNos 다른 행사가 이미 쓰는 회차. 같은 회차로 저장하지 않게 막습니다.
+ */
+export function validateEventForm(form: EventForm, takenRoundNos: readonly number[] = []) {
+  if (!form.roundNo.trim()) {
+    return '회차를 입력해 주세요.';
   }
 
-  const roundNo = Number(form.roundNo);
+  if (!isValidRoundNo(form.roundNo)) {
+    return '회차는 1 이상의 정수로 입력해 주세요.';
+  }
 
-  if (!Number.isInteger(roundNo) || roundNo <= 0) {
-    return '회차는 0보다 큰 정수여야 합니다.';
+  if (takenRoundNos.includes(Number(form.roundNo))) {
+    return `제${Number(form.roundNo)}회 행사가 이미 있습니다. 다른 회차를 입력해 주세요.`;
+  }
+
+  if (!form.title.trim()) {
+    return '행사명을 확인할 수 없습니다. 회차를 다시 입력해 주세요.';
   }
 
   if (
