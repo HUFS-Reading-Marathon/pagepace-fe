@@ -218,3 +218,26 @@ describe('서평 신고 절차 간소화(PDF 5쪽)', () => {
     expect(html).not.toContain('작성 사실이 전달');
   });
 });
+
+describe('목데이터 시드 일관성', () => {
+  it('판본에 연결된 도서 요청은 같은 날짜·쪽수의 검토 대기 일지와 서로 이어져 있다', () => {
+    const db = createMockDb();
+    const linked = db.bookRequests.filter((item) => item.status === 'LINKED');
+    expect(linked.length).toBeGreaterThan(0);
+    for (const request of linked) {
+      const log = db.logs.find((item) => item.readingLogId === request.readingLogId);
+      expect(log).toBeDefined();
+      expect(log).toMatchObject({
+        bookRequestId: request.id,
+        participationId: request.participationId,
+        readingDate: request.readingDate,
+        status: 'SUBMITTED',
+      });
+      expect(log!.books).toHaveLength(1);
+      expect(log!.books[0].submittedReadPages).toBe(request.readPages);
+    }
+    // 대기·반려 요청에는 일지가 없다
+    for (const request of db.bookRequests.filter((item) => item.status !== 'LINKED'))
+      expect(request.readingLogId).toBeNull();
+  });
+});

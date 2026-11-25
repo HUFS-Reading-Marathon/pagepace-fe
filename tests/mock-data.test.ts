@@ -53,7 +53,8 @@ describe('목데이터 초기 상태', () => {
         6,
     );
     expect(logs.length).toBeGreaterThanOrEqual(60);
-    expect(logs.length).toBeLessThanOrEqual(110);
+    // 상한 110 + 판본 연결된 도서 요청이 만든 검토 대기 일지 1건
+    expect(logs.length).toBeLessThanOrEqual(111);
     expect(new Set(logs.map((log) => log.status))).toEqual(
       new Set(['SUBMITTED', 'APPROVED', 'REJECTED']),
     );

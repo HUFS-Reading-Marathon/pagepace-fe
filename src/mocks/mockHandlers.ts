@@ -741,6 +741,7 @@ route(
 );
 /** 사용자 독서일지 응답(목록·상세 공통) */
 const toUserLog = (log: MockDb['logs'][number]) => ({
+  bookRequestId: log.bookRequestId ?? null,
   readingLogId: log.readingLogId,
   participationId: log.participationId,
   readingDate: log.readingDate,
@@ -1678,6 +1679,7 @@ route(
           displayOrder: 0,
         },
       ],
+      bookRequestId: request.id,
     };
     db.logs.push(log);
     request.status = 'LINKED';
