@@ -25,6 +25,9 @@ import {
 import { addLargeReviewEvent, mockDatasetVariant } from './mockLargeData';
 import { mockCoverUrl } from './mockCovers';
 import { maskName } from '../utils/nameMask';
+import { canSubmitReadingLog, koreaToday } from '../utils/eventSelection';
+import type { BookRequest } from '../api/bookRequestApi';
+import type { MyParticipation } from '../types/participation';
 import {
   EXCEL_TYPE,
   booksReport,
@@ -814,6 +817,125 @@ route(
     };
     db.inquiries.push(item);
     return respond(item);
+  }),
+);
+/* 사용자: 도서 확인 요청(문의 게시판의 도서 문의). 서버와 같이 본인 참가 회차의 요청만 다룹니다. */
+route(
+  'GET',
+  /^\/api\/me\/book-requests$/,
+  requireUser(({ me, url }) => {
+    const participation = db.participations.find(
+      (item) => item.userId === me!.userId && item.eventId === numberParam(url, 'eventId'),
+    );
+    if (!participation)
+      return fail(404, 'PARTICIPATION_NOT_FOUND', '본인의 참가 정보를 찾을 수 없습니다.');
+    return respond(
+      db.bookRequests
+        .filter((item) => item.participationId === participation.participationId)
+        .sort((left, right) => right.id - left.id),
+    );
+  }),
+);
+route(
+  'POST',
+  /^\/api\/me\/book-requests$/,
+  requireUser(({ me, body }) => {
+    const participation = db.participations.find(
+      (item) => item.participationId === Number(body.participationId) && item.userId === me!.userId,
+    );
+    if (!participation)
+      return fail(404, 'PARTICIPATION_NOT_FOUND', '본인의 참가 정보를 찾을 수 없습니다.');
+    const today = koreaToday();
+    const requested = body.readingDate ? String(body.readingDate) : today;
+    if (requested > today)
+      return fail(400, 'READING_DATE_IN_FUTURE', '미래 날짜의 독서일지는 제출할 수 없습니다.');
+    if (requested !== today)
+      return fail(
+        400,
+        'READING_DATE_PASSED',
+        '독서일지는 한국 시간 기준 당일에만 제출할 수 있습니다.',
+      );
+    const my = toMyParticipation(participation);
+    if (!['APPROVED', 'COMPLETED'].includes(my.participationStatus))
+      return fail(
+        400,
+        'PARTICIPATION_NOT_APPROVED',
+        '승인된 참가자만 독서일지를 작성할 수 있습니다.',
+      );
+    if (
+      !canSubmitReadingLog(
+        {
+          ...my,
+          participationStatus: my.participationStatus as MyParticipation['participationStatus'],
+        },
+        today,
+      )
+    )
+      return fail(400, 'READING_LOG_PERIOD_CLOSED', '독서일지 접수기간이 아닙니다.');
+    const title = String(body.title ?? '').trim();
+    const readPages = Number(body.readPages);
+    const reason = String(body.reason ?? '') as BookRequest['reason'];
+    if (
+      !title ||
+      !Number.isInteger(readPages) ||
+      readPages < 1 ||
+      readPages > 400 ||
+      !['NOT_HELD', 'UNKNOWN_PAGES', 'EBOOK'].includes(reason)
+    )
+      return fail(400, 'INVALID_REQUEST', '입력값을 확인해 주세요.');
+    // 서버와 같이 같은 날의 독서일지·도서 확인 요청(반려 제외)은 합계 400쪽, 같은 책은 하루 한 번만 받습니다.
+    const sameDay = db.bookRequests.filter(
+      (item) =>
+        item.participationId === participation.participationId &&
+        item.readingDate === today &&
+        item.status !== 'REJECTED',
+    );
+    const loggedToday = db.logs
+      .filter(
+        (log) =>
+          log.participationId === participation.participationId &&
+          log.readingDate === today &&
+          log.status !== 'REJECTED',
+      )
+      .reduce(
+        (sum, log) => sum + log.books.reduce((pages, book) => pages + book.submittedReadPages, 0),
+        0,
+      );
+    if (sameDay.reduce((sum, item) => sum + item.readPages, loggedToday) + readPages > 400)
+      return fail(
+        400,
+        'DAILY_READ_PAGES_EXCEEDED',
+        '같은 날의 독서일지와 도서 확인 요청은 합계 400쪽까지 접수할 수 있습니다.',
+      );
+    if (sameDay.some((item) => item.title.trim().toLowerCase() === title.toLowerCase()))
+      return fail(
+        409,
+        'BOOK_ALREADY_SUBMITTED_FOR_DAY',
+        '같은 날짜의 일지 또는 도서 확인 요청에 이 책이 이미 있습니다.',
+      );
+    const student = user(participation.userId);
+    const request: BookRequest = {
+      id: Math.max(0, ...db.bookRequests.map((item) => item.id)) + 1,
+      eventId: participation.eventId,
+      participationId: participation.participationId,
+      readingDate: today,
+      readPages,
+      reason,
+      title,
+      author: String(body.author ?? ''),
+      publisher: String(body.publisher ?? ''),
+      isbn: String(body.isbn ?? ''),
+      note: String(body.note ?? ''),
+      status: 'PENDING',
+      createdAt: nowIso(),
+      reviewedAt: null,
+      rejectReason: null,
+      readingLogId: null,
+      studentNo: student.studentNo,
+      participantName: student.name,
+    };
+    db.bookRequests.push(request);
+    return respond(request);
   }),
 );
 route('GET', /^\/api\/books\/search$/, ({ url }) => {

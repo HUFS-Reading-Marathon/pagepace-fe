@@ -15,7 +15,6 @@ import AdminEventSettingsPage from '../pages/admin/AdminEventSettingsPage';
 import AdminStatusPage from '../pages/admin/AdminStatusPage';
 import AdminRankingPage from '../pages/admin/AdminRankingPage';
 import AdminReviewsPage from '../pages/admin/AdminReviewsPage';
-import BookRequestsPage from '../pages/logs/BookRequestsPage';
 import AdminNoticesPage from '../pages/admin/AdminNoticesPage';
 import NoticesPage from '../pages/notices/NoticesPage';
 import AboutPage from '../pages/info/AboutPage';
@@ -25,7 +24,8 @@ import AdminContestReportsPage from '../pages/admin/AdminContestReportsPage';
 import InquiryBoard from '../pages/inquiries/InquiryBoard';
 import InquiryWritePage from '../pages/inquiries/InquiryWritePage';
 import UserInquiryBoard from '../pages/inquiries/UserInquiryBoard';
-import { LegacyTabRedirect } from './legacyRedirects';
+import BookInquiryWritePage from '../pages/inquiries/BookInquiryWritePage';
+import { LegacyBookRequestRedirect, LegacyTabRedirect } from './legacyRedirects';
 import NoticeDetailPage from '../pages/notices/NoticeDetailPage';
 import AccountSettingsPage from '../pages/my/AccountSettingsPage';
 import NotFoundPage from '../pages/error';
@@ -95,6 +95,14 @@ function AppRouter() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/inquiries/books/new"
+              element={
+                <ProtectedRoute>
+                  <BookInquiryWritePage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/courses" element={<CoursesPage />} />
             <Route path="/guide" element={<GuidePage />} />
@@ -104,11 +112,12 @@ function AppRouter() {
             <Route path="/signup" element={<ApplyPage />} />
             <Route path="/apply" element={<ApplyPage />} />
             <Route path="/apply/pending" element={<ApplyPendingPage />} />
+            {/* 도서 확인 요청은 문의 게시판의 도서 문의로 통합했습니다(책 제목·ISBN 전달 유지). */}
             <Route
               path="/book-requests"
               element={
                 <ProtectedRoute>
-                  <BookRequestsPage />
+                  <LegacyBookRequestRedirect />
                 </ProtectedRoute>
               }
             />

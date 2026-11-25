@@ -5,8 +5,17 @@ import { selectEvent, selectedEventId } from '../../utils/eventSelection';
 import type { MyParticipation } from '../../types/participation';
 import { useAuth } from '../../auth';
 
-/** 회차 선택이 의미 있는 화면: 나의 현황, 나의 서재, 독서일지 작성 (상세·수정·계정 설정 제외) */
-const SELECTOR_PATHS = ['/my', '/logs', '/logs/new', '/book-requests'];
+/**
+ * 회차 선택이 의미 있는 화면: 나의 현황, 나의 서재, 독서일지 작성, 도서 문의 작성·목록
+ * (상세·수정·계정 설정 제외)
+ */
+const SELECTOR_PATHS = ['/my', '/logs', '/logs/new', '/inquiries/books/new'];
+
+function showsSelector(pathname: string, search: string) {
+  if (SELECTOR_PATHS.includes(pathname)) return true;
+  // 문의 게시판은 도서 문의 탭에서만 회차별 내역을 봅니다.
+  return pathname === '/inquiries' && new URLSearchParams(search).get('view') === 'books';
+}
 
 /** 현재 공개 행사로 볼 수 있는 상태. 이 상태의 참가 1건뿐이면 '현재 공개 행사'와 같은 대상이라 선택이 필요 없습니다. */
 const CURRENT_EVENT_STATUSES = ['APPLICATION_OPEN', 'APPLICATION_CLOSED', 'IN_PROGRESS'];
@@ -32,7 +41,7 @@ function shouldShowSelector(items: MyParticipation[], selectedId: number | undef
 
 export default function PersonalEventSelector() {
   const { isAuthenticated, user } = useAuth();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const [items, setItems] = useState<MyParticipation[]>([]);
   const [error, setError] = useState('');
   useEffect(() => {
@@ -53,7 +62,7 @@ export default function PersonalEventSelector() {
     };
   }, [isAuthenticated, user?.userId]);
   const selectedId = selectedEventId('personal');
-  if (!isAuthenticated || !SELECTOR_PATHS.includes(pathname)) return null;
+  if (!isAuthenticated || !showsSelector(pathname, search)) return null;
   if (!error && !shouldShowSelector(items, selectedId)) return null;
   return (
     <div className="wrap personal-event-selector">
