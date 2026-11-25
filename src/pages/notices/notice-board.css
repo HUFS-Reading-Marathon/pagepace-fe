@@ -1,0 +1,220 @@
+/* 사용자 공지사항 게시판 */
+.notice-board__count {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.notice-board__count b {
+  color: var(--navy-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.notice-board__search {
+  display: flex;
+  margin: 20px 0 16px;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.notice-board__search input {
+  width: min(100%, 360px);
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+}
+
+.notice-board__search input:focus-visible {
+  border-color: var(--navy);
+  outline: 3px solid rgba(31, 79, 130, 0.15);
+}
+
+.notice-board__search .btn {
+  min-height: 44px;
+}
+
+.notice-board__reset,
+.notice-board__message button {
+  padding: 4px;
+  border: 0;
+  background: none;
+  color: var(--navy-strong);
+  font: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.notice-board__message {
+  margin: 0;
+  padding: 40px 16px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 15px;
+  text-align: center;
+}
+
+.notice-board__columns,
+.notice-board__list a {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: 16px;
+}
+
+/* 컬럼 이름: 순번 · 제목 (보조 정보로 작게) */
+.notice-board__columns {
+  padding: 10px 16px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.notice-board__columns span:first-child,
+.notice-board__number {
+  text-align: center;
+}
+
+.notice-board__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notice-board__list li {
+  border-bottom: 1px solid var(--line);
+}
+
+/* 중요 공지 행: 아주 옅은 회색 바탕으로만 구분(순번 칸에 "공지") */
+.notice-board__list li[data-pinned] {
+  background: #f7f8f9;
+}
+
+.notice-board__list a {
+  min-height: 64px;
+  padding: 14px 16px;
+  align-items: center;
+  color: #233343;
+}
+
+/* 순번은 위치를 가리키는 보조 정보라 제목보다 작고 옅게 둡니다(중요 공지는 "공지"). */
+.notice-board__number {
+  color: #8a97a4;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.notice-board__list li[data-pinned] .notice-board__number {
+  color: var(--navy-strong);
+  font-weight: 700;
+}
+
+.notice-board__body {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.notice-board__title {
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notice-board__list a:hover .notice-board__title {
+  color: var(--navy-strong);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.notice-board__meta {
+  display: flex;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.notice-board__meta > * + *::before {
+  content: '·';
+  margin: 0 6px;
+  color: #b0bcc7;
+}
+
+.notice-board__pages {
+  display: flex;
+  margin-top: 24px;
+  justify-content: center;
+  gap: 4px;
+}
+
+.notice-board__pages button {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--body);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.notice-board__pages button:hover:not(:disabled) {
+  border-color: var(--line);
+}
+
+.notice-board__pages button[aria-current='page'] {
+  border-color: var(--navy-strong);
+  color: var(--navy-strong);
+  font-weight: 700;
+}
+
+.notice-board__pages button:disabled {
+  color: #b5c0ca;
+  cursor: default;
+}
+
+@media (max-width: 560px) {
+  .notice-board__columns,
+  .notice-board__list a {
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 10px;
+    padding-inline: 4px;
+  }
+
+  .notice-board__list a {
+    align-items: start;
+  }
+
+  .notice-board__number {
+    padding-top: 2px;
+  }
+
+  .notice-board__title {
+    white-space: normal;
+  }
+}
+
+/* 공지 상세: 불러오는 중·찾을 수 없음 안내 */
+.notice-detail-page__message {
+  margin: 24px 0 0;
+  padding: 48px 16px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 15px;
+  text-align: center;
+}

@@ -11,3 +11,60 @@
 .notice-body[data-color='RED'] {
   color: #8e2a37;
 }
+
+/*
+ * 서식 공지(Markdown). 공지 편집기의 입력 영역도 같은 클래스를 써서 작성 화면과 게시 화면이 같게 보입니다.
+ * 문단 하나가 한 줄이고 빈 문단은 빈 줄로 보여, 예전 일반 텍스트 공지와 줄 간격이 같습니다.
+ * 제목·목록·인용문의 글자색은 본문 전체 글자색을 그대로 따릅니다.
+ */
+.notice-body--rich {
+  white-space: normal;
+}
+.notice-body--rich :is(p, h2, h3, li, blockquote) {
+  white-space: pre-wrap;
+}
+.notice-body--rich p {
+  margin: 0;
+}
+.notice-body--rich p:empty {
+  min-height: 1.8em;
+}
+.notice-body--rich h2,
+.notice-body--rich h3 {
+  margin: 0.9em 0 0.3em;
+  color: inherit;
+  font-weight: 700;
+  line-height: 1.45;
+  letter-spacing: -0.02em;
+}
+.notice-body--rich h2 {
+  font-size: 20px;
+}
+.notice-body--rich h3 {
+  font-size: 17px;
+}
+.notice-body--rich > :first-child {
+  margin-top: 0;
+}
+.notice-body--rich ul,
+.notice-body--rich ol {
+  margin: 0.2em 0;
+  padding-left: 1.5em;
+}
+.notice-body--rich li > p {
+  margin: 0;
+}
+.notice-body--rich blockquote {
+  margin: 0.4em 0;
+  padding: 0 0 0 14px;
+  border-left: 3px solid var(--line);
+}
+.notice-body--rich strong {
+  font-weight: 700;
+}
+.notice-body--rich a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}

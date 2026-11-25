@@ -7,6 +7,8 @@ type Props = {
   onSubmit: (reason: string) => Promise<boolean>;
   onSuccess: () => void;
   onBack: () => void;
+  /** 반려 사유를 입력하는 중인지 알립니다. 다른 일지로 옮길 때 입력 손실을 막는 데 씁니다. */
+  onDirtyChange?: (dirty: boolean) => void;
 };
 
 export default function ReadingLogRejectForm({
@@ -15,6 +17,7 @@ export default function ReadingLogRejectForm({
   onSubmit,
   onSuccess,
   onBack,
+  onDirtyChange,
 }: Props) {
   const id = useId();
   const input = useRef<HTMLTextAreaElement>(null);
@@ -27,6 +30,12 @@ export default function ReadingLogRejectForm({
   useEffect(() => {
     input.current?.focus();
   }, []);
+
+  const dirty = reason.trim().length > 0;
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
+  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

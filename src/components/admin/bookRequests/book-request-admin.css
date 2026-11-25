@@ -1,0 +1,338 @@
+/* 도서 확인 요청 목록: 독서일지 검토·서평 개별 확인 표(roster-table)와 같은 모양 */
+.book-request-list {
+  margin-top: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.book-request-list__table {
+  width: 100%;
+  min-width: 980px;
+}
+
+.book-request-list__table td[data-column='participantName'] {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.book-request-list__table :is(th, td)[data-column='readPages'] {
+  text-align: right;
+}
+
+.book-request-list__table td[data-column='createdAt'] {
+  color: #46596c;
+  font-size: 13px;
+}
+
+.book-request-list__table td[data-column='status'] {
+  color: #72511e;
+  font-size: 13px;
+}
+
+.book-request-list__table td[data-column='status'][data-status='LINKED'] {
+  color: var(--green);
+}
+
+.book-request-list__table td[data-column='status'][data-status='REJECTED'] {
+  color: #9f3030;
+}
+
+.book-request-list__table :is(th, td)[data-column='action'] {
+  text-align: center;
+}
+
+.book-request-list__table tbody tr[data-recent] td {
+  background: #f3f7fa;
+}
+
+.book-request-list__open {
+  display: inline-flex;
+  min-width: 64px;
+  min-height: 28px;
+  padding: 2px 8px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #c4d1dd;
+  border-radius: 4px;
+  background: #fff;
+  color: var(--navy-strong);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.book-request-list__open:hover:not(:disabled) {
+  border-color: #7e9cb6;
+  background: #eef4f9;
+}
+
+.book-request-list__open:focus-visible {
+  outline: 3px solid rgba(31, 79, 130, 0.2);
+  outline-offset: 2px;
+}
+
+/* 상세 화면: 독서일지 상세(log-detail)의 이동 막대·머리·정보 칸을 그대로 쓰고 구획 제목만 더합니다. */
+.book-request-detail .log-detail__status[data-status='LINKED'] {
+  background: rgba(61, 121, 105, 0.1);
+  color: var(--green);
+}
+
+.book-request-detail .log-detail__status[data-status='REJECTED'] {
+  background: rgba(159, 48, 48, 0.07);
+  color: #9f3030;
+}
+
+.book-request-detail__section,
+.book-request-process__block {
+  margin-top: 16px;
+}
+
+.book-request-detail__section h3,
+.book-request-process__block h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: var(--admin-fw-semibold);
+}
+
+.book-request-detail__section .log-detail__info {
+  margin-top: 8px;
+}
+
+.book-request-detail .log-detail__info [data-wide] {
+  grid-column: 1 / -1;
+}
+
+.book-request-detail__text {
+  margin: 8px 0 0;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--body);
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.book-request-detail__link {
+  margin: 12px 0 0;
+  font-size: 13px;
+}
+
+.book-request-detail__link a {
+  color: var(--navy-strong);
+  font-weight: var(--admin-fw-semibold);
+}
+
+/* 처리 영역: 소장 서지 확인 → 판본·총쪽수 → 이관, 그 아래 반려 */
+.book-request-process {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+
+.book-request-process input[type='search'],
+.book-request-process input[type='number'],
+.book-request-process textarea {
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+}
+
+.book-request-process textarea {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 76px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.book-request-process :is(input, textarea):focus-visible {
+  border-color: var(--navy);
+  outline: 3px solid rgba(31, 79, 130, 0.15);
+  outline-offset: 0;
+}
+
+.book-request-process :is(input, textarea):disabled {
+  background: var(--line-soft);
+  color: var(--muted);
+}
+
+.book-request-process .admin-button {
+  min-height: 36px;
+  padding: 4px 14px;
+}
+
+.book-request-process__search,
+.book-request-process__row {
+  display: flex;
+  margin-top: 8px;
+  gap: 8px;
+}
+
+.book-request-process__search input {
+  flex: 1 1 auto;
+}
+
+.book-request-process__search .admin-button {
+  flex: 0 0 auto;
+  min-width: 112px;
+}
+
+.book-request-process__row input {
+  width: 120px;
+  font-variant-numeric: tabular-nums;
+}
+
+.book-request-process__message,
+.book-request-process__hint {
+  margin: 8px 0 0;
+  color: var(--body);
+  font-size: 13px;
+}
+
+.book-request-process__hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.book-request-process__message[data-tone='error'],
+.book-request-process__hint[data-tone='error'] {
+  color: #9f3030;
+}
+
+.book-request-process__results {
+  display: grid;
+  margin: 10px 0 0;
+  padding: 0;
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.book-request-process__results legend {
+  float: left;
+  width: 100%;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.book-request-process__results legend small {
+  margin-left: 4px;
+  font-size: 12px;
+}
+
+.book-request-process__results label {
+  display: grid;
+  padding: 8px 12px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid var(--line-soft);
+  cursor: pointer;
+}
+
+.book-request-process__results legend + label {
+  border-top: 0;
+}
+
+.book-request-process__results label:hover {
+  background: #f6f9fb;
+}
+
+.book-request-process__results label[data-selected] {
+  background: var(--blue-10);
+}
+
+.book-request-process__results input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--navy-strong);
+}
+
+.book-request-process__results label > span:nth-of-type(1) {
+  display: grid;
+  min-width: 0;
+}
+
+.book-request-process__results strong {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: var(--admin-fw-semibold);
+  overflow-wrap: anywhere;
+}
+
+.book-request-process__results label > span:nth-of-type(1) > span {
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.book-request-process__meta {
+  display: grid;
+  color: var(--body);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.book-request-process__meta small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.book-request-process__approve {
+  margin-top: 12px;
+}
+
+.book-request-process__approve > label {
+  color: var(--body);
+  font-size: 13px;
+  font-weight: var(--admin-fw-medium);
+}
+
+.book-request-process__actions {
+  display: flex;
+  margin-top: 8px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.book-request-process__actions .book-request-process__hint {
+  margin: 0;
+}
+
+@media (max-width: 700px) {
+  .book-request-process__search,
+  .book-request-process__row {
+    flex-wrap: wrap;
+  }
+
+  .book-request-process__search .admin-button,
+  .book-request-process__row .admin-button {
+    flex: 1 1 100%;
+  }
+
+  .book-request-process__row input {
+    flex: 1 1 100%;
+    width: auto;
+  }
+}

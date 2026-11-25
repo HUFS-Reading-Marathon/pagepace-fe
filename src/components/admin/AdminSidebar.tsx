@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { matchPath, NavLink, useLocation } from 'react-router-dom';
 
 type AdminMenu = {
@@ -69,8 +69,34 @@ const INITIAL_OPEN_GROUPS = ADMIN_MENUS.reduce(
   {} as Record<AdminMenuGroup, boolean>,
 );
 
-function AdminSidebar() {
+/** 메뉴 순서를 그대로 둔 채 그룹별로 묶습니다. */
+const ADMIN_MENU_GROUPS = ADMIN_MENUS.reduce<{ group: AdminMenuGroup; menus: AdminMenu[] }[]>(
+  (groups, menu) => {
+    const last = groups[groups.length - 1];
+    if (last?.group === menu.group) {
+      last.menus.push(menu);
+    } else {
+      groups.push({ group: menu.group, menus: [menu] });
+    }
+    return groups;
+  },
+  [],
+);
+
+type AdminSidebarProps = {
+  id?: string;
+  /** 데스크톱에서 사이드바를 접은 상태. 접히면 안의 링크에 포커스가 가지 않도록 inert로 둡니다. */
+  hidden?: boolean;
+  /**
+   * 그룹을 접을 수 있는 세로 사이드바인지. 휴대폰 폭의 가로 메뉴에서는 그룹 제목이 없으므로
+   * 모든 메뉴를 보이고 접힌 그룹도 inert로 두지 않습니다.
+   */
+  collapsibleGroups?: boolean;
+};
+
+function AdminSidebar({ id, hidden = false, collapsibleGroups = true }: AdminSidebarProps) {
   const { pathname } = useLocation();
+  const panelIdPrefix = useId();
   const [openGroups, setOpenGroups] = useState(INITIAL_OPEN_GROUPS);
   const activeGroup = ADMIN_MENUS.find((menu) => isMenuActive(menu, pathname))?.group;
 
@@ -86,63 +112,72 @@ function AdminSidebar() {
   };
 
   return (
-    <aside className="admin-sidebar">
-      <nav aria-label="관리자 메뉴">
+    <aside id={id} className="admin-sidebar" inert={hidden}>
+      <nav className="admin-sidebar__inner" aria-label="관리자 메뉴">
         <ul className="admin-sidebar__menu">
-          {ADMIN_MENUS.map((menu, index) => {
-            const isGroupStart = index === 0 || ADMIN_MENUS[index - 1].group !== menu.group;
-            const isGroupOpen = openGroups[menu.group] || activeGroup === menu.group;
+          {ADMIN_MENU_GROUPS.map(({ group, menus }, groupIndex) => {
+            const isGroupOpen = openGroups[group] || activeGroup === group;
+            const panelId = `${panelIdPrefix}group-${groupIndex}`;
 
             return (
-              <li
-                className="admin-sidebar__item"
-                key={menu.path}
-                hidden={!isGroupOpen && !isGroupStart}
-              >
-                {isGroupStart && (
-                  <button
-                    type="button"
-                    className="admin-sidebar__group"
-                    aria-expanded={isGroupOpen}
-                    onClick={() => toggleGroup(menu.group)}
+              <li className="admin-sidebar__section" key={group}>
+                <button
+                  type="button"
+                  className="admin-sidebar__group"
+                  aria-expanded={isGroupOpen}
+                  aria-controls={panelId}
+                  onClick={() => toggleGroup(group)}
+                >
+                  <span>{group}</span>
+                  <svg
+                    className="admin-sidebar__group-chevron"
+                    width="11"
+                    height="11"
+                    viewBox="0 0 12 12"
+                    aria-hidden="true"
                   >
-                    <span>{menu.group}</span>
-                    <svg
-                      className="admin-sidebar__group-chevron"
-                      width="11"
-                      height="11"
-                      viewBox="0 0 12 12"
-                      aria-hidden="true"
-                    >
-                      <path
-                        d="m3 4.5 3 3 3-3"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="1.5"
-                      />
-                    </svg>
-                  </button>
-                )}
-                {isGroupOpen && (
-                  <NavLink
-                    to={menu.path}
-                    end={menu.path === '/admin'}
-                    className={({ isActive }) =>
-                      [
-                        'admin-sidebar__link',
-                        isActive || isMenuActive(menu, pathname)
-                          ? 'admin-sidebar__link--active'
-                          : '',
-                      ]
-                        .filter(Boolean)
-                        .join(' ')
-                    }
-                  >
-                    {menu.label}
-                  </NavLink>
-                )}
+                    <path
+                      d="m3 4.5 3 3 3-3"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.5"
+                    />
+                  </svg>
+                </button>
+                {/* 닫힌 그룹도 DOM에 두고 높이(grid 0fr↔1fr)와 투명도로 접어, 아래 그룹이 부드럽게 따라 움직입니다. */}
+                <div
+                  id={panelId}
+                  className="admin-sidebar__panel"
+                  data-open={isGroupOpen || undefined}
+                  inert={collapsibleGroups && !isGroupOpen}
+                >
+                  <div className="admin-sidebar__panel-inner">
+                    <ul className="admin-sidebar__links">
+                      {menus.map((menu) => (
+                        <li className="admin-sidebar__item" key={menu.path}>
+                          <NavLink
+                            to={menu.path}
+                            end={menu.path === '/admin'}
+                            className={({ isActive }) =>
+                              [
+                                'admin-sidebar__link',
+                                isActive || isMenuActive(menu, pathname)
+                                  ? 'admin-sidebar__link--active'
+                                  : '',
+                              ]
+                                .filter(Boolean)
+                                .join(' ')
+                            }
+                          >
+                            {menu.label}
+                          </NavLink>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
               </li>
             );
           })}

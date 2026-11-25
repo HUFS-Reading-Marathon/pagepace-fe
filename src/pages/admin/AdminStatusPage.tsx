@@ -7,16 +7,9 @@ import { getApiErrorMessage } from '../../api/apiClient';
 import { getAdminEventCourses, getAdminEvents } from '../../api/adminEventApi';
 import { getAdminReadingLogs } from '../../api/adminReadingLogApi';
 import StatusCourseSummary from '../../components/admin/status/StatusCourseSummary';
-import StatusFilters from '../../components/admin/status/StatusFilters';
 import StatusPublishPanel from '../../components/admin/status/StatusPublishPanel';
-import StatusTable from '../../components/admin/status/StatusTable';
 import type { AdminCourse, AdminEvent, EventStatus } from '../../types/adminEvent';
 import type { AdminReadingLogResponse } from '../../types/adminReadingLogApi';
-import type {
-  AdminCompetitionCourseFilter,
-  AdminCompetitionSortOption,
-  StatusActivityFilter,
-} from '../../types/adminStatus';
 import {
   buildAdminCompetitionRows,
   sortCompetitionStandings,
@@ -84,11 +77,6 @@ function AdminStatusPage() {
   const [isDataLoading, setIsDataLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState('');
-  const [completionFilter, setCompletionFilter] = useState('ALL');
-  const [searchKeyword, setSearchKeyword] = useState('');
-  const [courseFilter, setCourseFilter] = useState<AdminCompetitionCourseFilter>('ALL');
-  const [activityFilter, setActivityFilter] = useState<StatusActivityFilter>('ALL');
-  const [sortOption, setSortOption] = useState<AdminCompetitionSortOption>('distance-desc');
   const initialEventsRequestRef = useRef<Promise<AdminEvent[]> | null>(null);
   const dataRequestRef = useRef<{
     eventId: number;
@@ -205,35 +193,17 @@ function AdminStatusPage() {
     () => getAdminCompetitionCourseSummaries(rows, competitionData?.courses ?? []),
     [competitionData?.courses, rows],
   );
-  const filteredParticipants = useMemo(() => {
-    const normalizedKeyword = searchKeyword.trim().toLowerCase();
-
-    const matches = rows.filter((participant) => {
-      const matchesKeyword =
-        !normalizedKeyword ||
-        participant.name.toLowerCase().includes(normalizedKeyword) ||
-        participant.studentNumber.toLowerCase().includes(normalizedKeyword);
-      const matchesCourse = courseFilter === 'ALL' || participant.courseId === courseFilter;
-      const matchesActivity =
-        activityFilter === 'ALL' ||
-        (activityFilter === 'active'
-          ? participant.dailyIncreasePages > 0
-          : participant.dailyIncreasePages === 0);
-
-      return (
-        matchesKeyword &&
-        matchesCourse &&
-        matchesActivity &&
-        (completionFilter === 'ALL' || participant.completionStatus === completionFilter)
-      );
-    });
-    return sortCompetitionStandings(
-      matches,
-      sortOption,
-      (row) => row.cumulativeDistanceMeters,
-      (row) => row.cumulativePages,
-    );
-  }, [activityFilter, completionFilter, courseFilter, rows, searchKeyword, sortOption]);
+  // CSV는 선택한 행사·기준 날짜의 전체 참가자를 인정 거리 높은 순으로 내보냅니다.
+  const exportRows = useMemo(
+    () =>
+      sortCompetitionStandings(
+        rows,
+        'distance-desc',
+        (row) => row.cumulativeDistanceMeters,
+        (row) => row.cumulativePages,
+      ),
+    [rows],
+  );
 
   const handleEventSelection = (value: string) => {
     const eventId = Number(value);
@@ -248,11 +218,6 @@ function AdminStatusPage() {
     setIsDataLoading(true);
     setError(null);
     setFeedbackMessage('');
-    setSearchKeyword('');
-    setCourseFilter('ALL');
-    setActivityFilter('ALL');
-    setCompletionFilter('ALL');
-    setSortOption('distance-desc');
     setSelectedDate(getDefaultSelectedDate(nextEvent));
     setSelectedEventId(eventId);
   };
@@ -288,14 +253,6 @@ function AdminStatusPage() {
         setIsDataLoading(false);
       }
     }
-  };
-
-  const handleResetFilters = () => {
-    setSearchKeyword('');
-    setCourseFilter('ALL');
-    setActivityFilter('ALL');
-    setCompletionFilter('ALL');
-    setSortOption('distance-desc');
   };
 
   const eventPeriodLabel = selectedEvent
@@ -350,9 +307,7 @@ function AdminStatusPage() {
 
       <AdminPageTabs label="대회 현황·랭킹 화면" tabs={COMPETITION_TABS} />
 
-      {competitionData && !error && <StatusCourseSummary summaries={courseSummaries} />}
-      <div className="admin-status__table-toolbar">
-        <h2>참가자별 현황</h2>
+      <div className="admin-status__toolbar">
         <StatusPublishPanel
           lastCalculatedAt={competitionData?.fetchedAt ?? null}
           isRefreshing={isDataLoading}
@@ -375,7 +330,7 @@ function AdminStatusPage() {
                 '완주 상태',
                 '완주일',
               ],
-              ...filteredParticipants.map((p, index) => [
+              ...exportRows.map((p, index) => [
                 index + 1,
                 p.name,
                 p.studentNumber,
@@ -391,29 +346,24 @@ function AdminStatusPage() {
         />
       </div>
 
-      <StatusFilters
-        completionFilter={completionFilter}
-        onCompletionFilterChange={setCompletionFilter}
-        searchKeyword={searchKeyword}
-        courseFilter={courseFilter}
-        courses={competitionData?.courses ?? []}
-        activityFilter={activityFilter}
-        sortOption={sortOption}
-        resultCount={filteredParticipants.length}
-        totalCount={rows.length}
-        onSearchKeywordChange={setSearchKeyword}
-        onCourseFilterChange={setCourseFilter}
-        onActivityFilterChange={setActivityFilter}
-        onSortOptionChange={setSortOption}
-        onReset={handleResetFilters}
-      />
-
-      <StatusTable
-        participants={filteredParticipants}
-        hasParticipants={rows.length > 0}
-        isLoading={isEventsLoading || isDataLoading}
-        error={error}
-      />
+      {error ? (
+        <div className="admin-status__empty" role="alert">
+          {error}
+        </div>
+      ) : competitionData ? (
+        <>
+          <StatusCourseSummary summaries={courseSummaries} />
+          {rows.length === 0 && (
+            <div className="admin-status__empty">집계할 참가자가 없습니다.</div>
+          )}
+        </>
+      ) : (
+        (isEventsLoading || isDataLoading) && (
+          <div className="admin-status__empty" role="status">
+            대회 현황을 집계하는 중입니다.
+          </div>
+        )
+      )}
 
       <div className="admin-status__feedback" role="status" aria-live="polite">
         {feedbackMessage}

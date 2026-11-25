@@ -2,10 +2,18 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { expect, it, vi } from 'vitest';
 import ReadingLogQueueList from '../src/components/admin/readingLogs/ReadingLogQueueList';
+import TablePagination from '../src/components/admin/table/TablePagination';
+import {
+  DEFAULT_PAGE_SIZE,
+  PAGE_SIZE_OPTIONS,
+  clampPage,
+} from '../src/components/admin/table/pagination';
 import {
   DEFAULT_LOG_SORT,
   INITIAL_LOG_SEARCH,
+  hasLogFilters,
   logColumnWidths,
+  logCourseOptions,
   visibleLogColumns,
   visibleLogs,
   type LogSort,
@@ -45,9 +53,10 @@ function list(filter: 'ALL' | 'SUBMITTED') {
       pageSize={10}
       filter={filter}
       query=""
-      date=""
+      from=""
+      to=""
+      course=""
       sort={DEFAULT_LOG_SORT}
-      selected={null}
       selectedIds={new Set([17, 18])}
       loading={false}
       processing={false}
@@ -58,12 +67,11 @@ function list(filter: 'ALL' | 'SUBMITTED') {
       onApproveSelection={vi.fn()}
       onFilter={vi.fn()}
       onQuery={vi.fn()}
-      onDate={vi.fn()}
+      onDates={vi.fn()}
       onSort={vi.fn()}
       onReset={vi.fn()}
       onPage={vi.fn()}
-      onSelect={vi.fn()}
-      renderDetail={() => null}
+      onOpen={vi.fn()}
     />,
   );
 }
@@ -83,12 +91,14 @@ it('제출일만 보여 주고 순번·이름·학번 다음에 제출일과 도
     '도서명',
     '저자',
     '쪽수',
-    '상세',
+    '검토',
   ]);
   expect(html).toContain('11번 김도서 2026-11-23 제출 일지 선택');
   expect(html).not.toContain(submitted.readingDate);
   expect(html).toMatch(/<td[^>]*data-column="userName"[^>]*><span>김도서<\/span>/);
-  expect(html).toContain('aria-label="11번 김도서 일지 자세히"');
+  // 행 안에서 펼치지 않고 독립 상세 화면을 여는 버튼을 둔다
+  expect(html).toContain('aria-label="11번 김도서 일지 검토하기"');
+  expect(html).not.toContain('aria-expanded');
   expect(html).toContain('role="separator"');
   expect(html).toContain('aria-label="도서명 열 너비"');
 });
@@ -138,4 +148,101 @@ it('넓은 화면의 여유 폭을 나누고, 한 열을 직접 조절해도 체
     expect(resized.bookTitle).toBe(widths.bookTitle - 30);
     expect(total(resized)).toBe(viewport);
   }
+});
+
+it('제출 기간(양 끝 포함)과 코스로 거르고, 불러온 일지에 있는 코스만 선택지로 쓴다', () => {
+  const day = (id: number, createdAt: string, courseName = '단축') => ({
+    ...submitted,
+    readingLogId: id,
+    createdAt,
+    courseName,
+  });
+  const logs = [
+    day(1, '2026-11-01T09:00:00'),
+    day(2, '2026-11-02T23:59:59', '풀'),
+    day(3, '2026-11-03T00:00:00'),
+    day(4, '2026-11-04T10:00:00', '풀'),
+  ];
+  const ids = (patch: Partial<typeof INITIAL_LOG_SEARCH>) =>
+    visibleLogs(logs, { ...INITIAL_LOG_SEARCH, ...patch }).map((log) => log.readingLogId);
+  expect(ids({ from: '2026-11-02', to: '2026-11-03' })).toEqual([2, 3]);
+  expect(ids({ from: '2026-11-03' })).toEqual([3, 4]);
+  expect(ids({ to: '2026-11-01' })).toEqual([1]);
+  expect(ids({ course: '풀' })).toEqual([2, 4]);
+  expect(ids({ course: '풀', from: '2026-11-03' })).toEqual([4]);
+  expect(logCourseOptions(logs)).toEqual(['단축', '풀']);
+  expect(hasLogFilters(INITIAL_LOG_SEARCH)).toBe(false);
+  expect(hasLogFilters({ ...INITIAL_LOG_SEARCH, course: '풀' })).toBe(true);
+});
+
+it('기본 정렬은 제출 오래된 순이고 같은 제출 시각은 일지 번호로 고정한다', () => {
+  const same = '2026-11-02T10:00:00';
+  const logs = [30, 10, 20].map((id) => ({ ...submitted, readingLogId: id, createdAt: same }));
+  const older = { ...submitted, readingLogId: 99, createdAt: '2026-11-01T10:00:00' };
+  expect(visibleLogs([...logs, older], INITIAL_LOG_SEARCH).map((log) => log.readingLogId)).toEqual([
+    99, 10, 20, 30,
+  ]);
+});
+
+it('페이지는 기본 20건이고 10·20·50건을 고를 수 있으며 현재 범위와 전체 건수를 보여 준다', () => {
+  expect(DEFAULT_PAGE_SIZE).toBe(20);
+  expect(PAGE_SIZE_OPTIONS).toEqual([10, 20, 50]);
+  // 처리로 행이 줄어 마지막 페이지가 비면 남은 마지막 페이지로 보정한다
+  expect(clampPage(6, 120, 20)).toBe(5);
+  expect(clampPage(6, 121, 20)).toBe(6);
+  expect(clampPage(3, 0, 20)).toBe(0);
+  const html = renderToStaticMarkup(
+    <TablePagination
+      total={125}
+      page={6}
+      pageSize={20}
+      label="일지 페이지"
+      onPage={vi.fn()}
+      onPageSize={vi.fn()}
+    />,
+  );
+  expect(html).toContain('121–125 / 125건');
+  expect(html).toMatch(/aria-label="7페이지" aria-current="page"/);
+  expect(html).toMatch(/aria-label="다음 페이지" disabled=""/);
+  for (const size of [10, 20, 50]) expect(html).toContain(`<option value="${size}"`);
+});
+
+it('검색 영역에 코스·제출 기간·초기화·새로고침을 함께 둔다', () => {
+  const html = renderToStaticMarkup(
+    <ReadingLogQueueList
+      rows={[submitted]}
+      total={1}
+      page={0}
+      pageSize={20}
+      filter="SUBMITTED"
+      query=""
+      from="2026-11-01"
+      to="2026-11-30"
+      course=""
+      courseOptions={['단축', '풀']}
+      sort={DEFAULT_LOG_SORT}
+      selectedIds={new Set()}
+      loading={false}
+      processing={false}
+      error=""
+      feedback=""
+      canSelect={() => true}
+      onSelectionChange={vi.fn()}
+      onApproveSelection={vi.fn()}
+      onFilter={vi.fn()}
+      onQuery={vi.fn()}
+      onDates={vi.fn()}
+      onCourse={vi.fn()}
+      onSort={vi.fn()}
+      onReset={vi.fn()}
+      onPage={vi.fn()}
+      onOpen={vi.fn()}
+      onRefresh={vi.fn()}
+    />,
+  );
+  expect(html).toMatch(/<option value=""[^>]*>전체 코스<\/option>/);
+  expect(html).toContain('aria-label="제출 기간 시작일"');
+  expect(html).toMatch(/aria-label="제출 기간 종료일" min="2026-11-01"/);
+  expect(html).toContain('>새로고침</button>');
+  expect(html).toContain('검색 결과 <b>1</b>건');
 });

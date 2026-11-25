@@ -1,0 +1,189 @@
+/* 독서일지 상세 검토 화면: 목록과 겹치지 않는 한 화면에 이동 막대 → 기본 정보 → 도서별 검토 → 처리 버튼 */
+.log-detail {
+  max-width: 1080px;
+  margin-top: 16px;
+}
+
+.log-detail__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.log-detail__bar .admin-button {
+  min-height: 34px;
+  padding: 4px 12px;
+}
+
+.log-detail__step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.log-detail__position {
+  margin-right: 4px;
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.log-detail__head {
+  display: flex;
+  margin-top: 16px;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.log-detail__head h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: var(--admin-fw-bold);
+}
+
+.log-detail__head h2:focus {
+  outline: none;
+}
+
+.log-detail__head h2:focus-visible {
+  outline: 3px solid rgba(31, 79, 130, 0.2);
+  outline-offset: 2px;
+}
+
+.log-detail__head small {
+  margin-left: 8px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: var(--admin-fw-medium);
+}
+
+.log-detail__status {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--blue-20);
+  color: var(--navy-strong);
+  font-size: 12px;
+  font-weight: var(--admin-fw-semibold);
+}
+
+.log-detail__status[data-status='APPROVED'] {
+  background: rgba(61, 121, 105, 0.1);
+  color: var(--green);
+}
+
+.log-detail__status[data-status='REJECTED'] {
+  background: rgba(159, 48, 48, 0.07);
+  color: #9f3030;
+}
+
+.log-detail__info {
+  display: grid;
+  margin: 12px 0 0;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px 20px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.log-detail__info div {
+  min-width: 0;
+}
+
+.log-detail__info dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.log-detail__info dd {
+  margin: 2px 0 0;
+  color: var(--ink);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.log-detail__info dd small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.log-detail__note,
+.log-detail__message {
+  margin: 12px 0 0;
+  color: var(--body);
+  font-size: 13px;
+}
+
+.log-detail__message {
+  padding: 24px 0;
+  text-align: center;
+}
+
+.log-detail .log-review {
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.log-detail__feedback {
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: var(--blue-10);
+  color: var(--body);
+  font-size: 13px;
+}
+
+.log-detail__feedback--error {
+  background: #fbf2f2;
+  color: #9f3030;
+}
+
+.log-detail__feedback--warning {
+  background: #fdf7e9;
+  color: #7a5710;
+}
+
+.log-detail__auto {
+  display: inline-flex;
+  margin-top: 10px;
+  align-items: center;
+  gap: 6px;
+  color: var(--body);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.log-detail__auto input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--navy-strong);
+}
+
+.log-detail__feedback--success {
+  background: #f0f7f2;
+  color: #24683f;
+}
+
+@media (max-width: 700px) {
+  .log-detail__bar {
+    align-items: stretch;
+  }
+
+  .log-detail__step {
+    width: 100%;
+  }
+
+  .log-detail__step .admin-button {
+    flex: 1;
+  }
+}

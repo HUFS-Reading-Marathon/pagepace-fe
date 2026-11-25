@@ -14,6 +14,8 @@ import { selectEvent, selectedEventId } from '../../utils/eventSelection';
 import { getMyParticipations, getCurrentParticipation } from '../../api/participationApi';
 import { getRankings, type Ranking } from '../../api/rankingApi';
 import RankingBoard from '../../components/ranking/RankingBoard';
+import { formatKoDateTime24 } from '../../utils/date';
+import { maskPublicRankings } from '../../utils/nameMask';
 import { formatPreciseDistance, getCreditedPages } from '../../utils/reading';
 import './status.css';
 
@@ -77,8 +79,21 @@ async function resolveStatusEvent(isAuthenticated: boolean): Promise<CurrentEven
   return getCurrentEvent();
 }
 
-function formatUpdatedAt(date: Date) {
-  return new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+/** 수치와 단위를 한 덩어리로 둡니다(줄바꿈 시 단위만 떨어지지 않게). */
+function Figure({ value, unit }: { value: string; unit?: string }) {
+  return (
+    <span className="status-figure">
+      {value}
+      {unit && <small>{unit}</small>}
+    </span>
+  );
+}
+
+/** 거리 표시("22.00km", "780m")를 수치와 단위로 나눕니다. */
+function splitDistance(meters: number) {
+  const text = formatPreciseDistance(meters);
+  const match = text.match(/^([\d.,]+)\s*(\D+)$/);
+  return match ? { value: match[1], unit: match[2] } : { value: text, unit: undefined };
 }
 
 function MarathonStatusPage() {
@@ -226,93 +241,101 @@ function MarathonStatusPage() {
   const isReady = loadState === 'ready';
   const isLoading = loadState === 'initial' || loadState === 'refreshing';
 
-  const summaryItems: [string, string, string][] = [
-    [
-      '총 참가자',
-      isReady ? `${summary?.participantCount ?? 0}명` : '—',
-      '선택한 코스 기준 · 기록이 없는 참가자 포함',
-    ],
-    [
-      '완주자',
-      isReady ? `${summary?.completedCount ?? 0}명` : '—',
-      '코스 목표 거리를 달성한 참가자',
-    ],
-    [
-      '최고 누적 거리',
-      isReady ? formatPreciseDistance(summary?.maxDistanceMeter ?? 0) : '—',
-      '일지 승인과 서평 확인이 완료된 거리',
-    ],
-  ];
+  const isMine = isAuthenticated && !!user && mine?.owner === user.userId;
+  // 다른 참가자의 이름은 가리고 학번은 지웁니다. 본인 행은 인증된 사용자의 참가 ID로 찾아 본인 이름을 보여 줍니다.
+  const displayedRankings = maskPublicRankings(
+    rankings,
+    isMine && mine?.participationId && user
+      ? { participationId: mine.participationId, name: user.name }
+      : undefined,
+  );
+  const maxDistance = splitDistance(summary?.maxDistanceMeter ?? 0);
+  const myDistance = splitDistance(mine?.distance ?? 0);
 
   return (
     <main className="page-container marathon-status">
-      <section className="page-section" aria-labelledby="statusPageTitle">
-        <h1 id="statusPageTitle">대회 현황</h1>
-        <p className="page-description">
-          독서일지가 승인되면 승인 쪽수가 늘고, 서평까지 확인되면 해당 분량이 거리로 인정됩니다.
-        </p>
-        <p className="status-privacy">
-          ※ 개인정보 보호를 위해 이름은 마스킹하고 학번은 공개하지 않습니다.
-          {updatedAt && (
-            <>
-              {' '}
-              ·{' '}
-              <time dateTime={updatedAt.toISOString()}>업데이트 {formatUpdatedAt(updatedAt)}</time>
-            </>
-          )}
-        </p>
-      </section>
-
-      {events.length > 0 && (
-        <div className="status-course-filter">
-          <label htmlFor="statusEventFilter">행사</label>
-          <select
-            id="statusEventFilter"
-            value={event?.eventId ?? ''}
-            disabled={isLoading}
-            onChange={(e) => {
-              const id = Number(e.target.value);
-              selectEvent('public', id);
-              setChosenEventId(id);
-              setMine(null);
-              setLoadState('initial');
-            }}
-          >
-            {events.map((item) => (
-              <option key={item.eventId} value={item.eventId}>
-                {getEventDisplayTitle(item)}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-      {isAuthenticated && user && mine?.owner === user.userId && mine.participationId && (
-        <section className="page-section" aria-label="내 순위">
-          <h2>내 순위</h2>
-          <p>
-            참가 코스 {mine.rank ? `${mine.rank}위` : '순위 집계 전'} · 일지 승인{' '}
-            {mine.pages.toLocaleString()}쪽 · 거리 인정{' '}
-            {getCreditedPages(mine.distance).toLocaleString()}쪽 · 인정 거리{' '}
-            {formatPreciseDistance(mine.distance)}
+      <header className="status-head">
+        <div>
+          <h1 id="statusPageTitle">대회 현황</h1>
+          <p className="status-head__desc">
+            독서일지 승인 및 서평 확인 결과에 따라 인정 거리가 반영됩니다.
           </p>
+        </div>
+        {events.length > 0 && (
+          <div className="status-head__side">
+            <div className="status-course-filter">
+              <label htmlFor="statusEventFilter">행사</label>
+              <select
+                id="statusEventFilter"
+                value={event?.eventId ?? ''}
+                disabled={isLoading}
+                onChange={(e) => {
+                  const id = Number(e.target.value);
+                  selectEvent('public', id);
+                  setChosenEventId(id);
+                  setMine(null);
+                  setLoadState('initial');
+                }}
+              >
+                {events.map((item) => (
+                  <option key={item.eventId} value={item.eventId}>
+                    {getEventDisplayTitle(item)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {updatedAt && (
+              // 서버가 집계 시각을 주지 않아, 화면이 서버에서 최신 순위를 받아 온 시각을 보여 줍니다.
+              <p className="status-updated">
+                <time dateTime={updatedAt.toISOString()}>
+                  {formatKoDateTime24(updatedAt.toISOString())} 기준
+                </time>
+              </p>
+            )}
+          </div>
+        )}
+      </header>
+
+      {isMine && mine?.participationId && (
+        <section className="status-mine" aria-labelledby="statusMineTitle">
+          <h2 id="statusMineTitle">내 순위</h2>
+          <dl className="status-stats">
+            <div>
+              <dt>참가 코스 순위</dt>
+              <dd>
+                {mine.rank ? <Figure value={mine.rank.toLocaleString()} unit="위" /> : '집계 전'}
+              </dd>
+            </div>
+            <div>
+              <dt>일지 승인 쪽수</dt>
+              <dd>
+                <Figure value={mine.pages.toLocaleString()} unit="쪽" />
+              </dd>
+            </div>
+            <div>
+              <dt>거리 인정 쪽수</dt>
+              <dd>
+                <Figure value={getCreditedPages(mine.distance).toLocaleString()} unit="쪽" />
+              </dd>
+            </div>
+            <div>
+              <dt>인정 거리</dt>
+              <dd>
+                <Figure value={myDistance.value} unit={myDistance.unit} />
+              </dd>
+            </div>
+          </dl>
         </section>
       )}
-      {isAuthenticated && personalError && <p role="status">{personalError}</p>}
-      <section className="status-grid" aria-label="현황 요약">
-        {summaryItems.map(([label, value, description]) => (
-          <article className="status-card" key={label}>
-            <span>{label}</span>
-            <strong>{value}</strong>
-            <p>{description}</p>
-          </article>
-        ))}
-      </section>
+      {isAuthenticated && personalError && (
+        <p className="status-note" role="status">
+          {personalError}
+        </p>
+      )}
 
       <section className="status-ranking-section" aria-labelledby="statusRankingTitle">
         <div className="section-row">
-          <div>
-            <h2 id="statusRankingTitle">참가자 현황</h2>
-          </div>
+          <h2 id="statusRankingTitle">참가자 현황</h2>
           <div className="status-course-filter">
             <label htmlFor={COURSE_FILTER_ID}>코스</label>
             <select
@@ -335,6 +358,26 @@ function MarathonStatusPage() {
           </div>
         </div>
 
+        {/* 선택한 코스 기준의 참고 통계(기록이 없는 참가자 포함, 완주자는 코스 목표 거리 달성, 거리는 일지 승인과 서평 확인을 마친 거리) */}
+        <dl className="status-totals" aria-describedby="statusTotalsNote">
+          <div>
+            <dt>총 참가자</dt>
+            <dd>{isReady ? `${(summary?.participantCount ?? 0).toLocaleString()}명` : '—'}</dd>
+          </div>
+          <div>
+            <dt>완주자</dt>
+            <dd>{isReady ? `${(summary?.completedCount ?? 0).toLocaleString()}명` : '—'}</dd>
+          </div>
+          <div>
+            <dt>최고 누적 거리</dt>
+            <dd>{isReady ? `${maxDistance.value}${maxDistance.unit ?? ''}` : '—'}</dd>
+          </div>
+        </dl>
+        <p id="statusTotalsNote" className="sr-only">
+          선택한 코스 기준이며 기록이 없는 참가자를 포함합니다. 완주자는 코스 목표 거리를 달성한
+          참가자, 최고 누적 거리는 일지 승인과 서평 확인을 마친 거리입니다.
+        </p>
+
         <div aria-live="polite" aria-busy={isLoading}>
           {isLoading ? (
             <div className="ranking-empty">대회 현황을 불러오고 있습니다.</div>
@@ -344,14 +387,10 @@ function MarathonStatusPage() {
             <div className="ranking-empty is-error">{errorMessage}</div>
           ) : (
             <RankingBoard
-              rankings={rankings}
+              rankings={displayedRankings}
               eventStatus={event?.status}
               simpleLayout
-              myParticipationId={
-                isAuthenticated && user && mine?.owner === user.userId
-                  ? mine.participationId
-                  : undefined
-              }
+              myParticipationId={isMine ? mine?.participationId : undefined}
             />
           )}
         </div>

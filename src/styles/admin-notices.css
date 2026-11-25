@@ -19,8 +19,7 @@
   gap: 18px;
 }
 
-.admin-notices__list,
-.admin-notices__form {
+.admin-notices__list {
   padding: 22px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -38,7 +37,7 @@
   font-size: 13px;
 }
 
-.admin-notices h2 {
+.admin-notices__list > header h2 {
   margin: 0;
   color: var(--ink);
   font-size: 17px;
@@ -75,12 +74,6 @@
   justify-content: space-between;
   gap: 12px;
   border-bottom: 1px solid var(--line-soft);
-  border-left: 3px solid transparent;
-}
-
-.admin-notices__list article.is-editing {
-  border-left-color: var(--navy-strong);
-  background: var(--blue-20);
 }
 
 .admin-notices__list article > div:first-child {
@@ -150,138 +143,11 @@
   background: var(--blue-10);
 }
 
-.admin-notices__form {
-  position: sticky;
-  top: 98px;
-  display: grid;
-  gap: 14px;
-}
-
-.admin-notices__form-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.admin-notices__form-head span {
-  color: var(--navy-strong);
-  font-size: 12px;
-  font-weight: var(--admin-fw-semibold);
-}
-
-.admin-notices__state {
-  flex: 0 0 auto;
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: var(--line-soft);
-  color: var(--body);
-  font-size: 12px;
-  font-style: normal;
-  font-weight: var(--admin-fw-semibold);
-}
-
-.admin-notices__state.is-visible {
-  background: rgba(61, 121, 105, 0.1);
-  color: var(--green);
-}
-
-.admin-notices__form label {
-  display: grid;
-  gap: 6px;
-  color: var(--body);
-  font-size: 13px;
-  font-weight: var(--admin-fw-medium);
-}
-
-.admin-notices__form input:not([type='checkbox']),
-.admin-notices__form textarea {
-  width: 100%;
-  padding: 11px 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  font: inherit;
-}
-
-.admin-notices__checks label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.admin-notices__checks small {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: var(--admin-fw-regular);
-}
-
-.admin-notices__preview > span {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.admin-notices__preview > div {
-  display: grid;
-  margin-top: 6px;
-  padding: 12px 14px;
-  gap: 4px;
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius);
-  background: var(--blue-10);
-}
-
-.admin-notices__preview em {
-  width: max-content;
-  padding: 1px 7px;
-  border-radius: 999px;
-  background: var(--navy-strong);
-  color: #fff;
-  font-size: 11px;
-  font-style: normal;
-}
-
-.admin-notices__preview strong {
-  color: var(--ink);
-  font-size: 14px;
-}
-
-.admin-notices__preview p {
-  display: -webkit-box;
-  margin: 0;
-  overflow: hidden;
-  color: var(--body);
-  font-size: 12px;
-  white-space: pre-line;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-}
-
-.admin-notices__target {
-  margin: 0;
-  color: var(--muted);
-  font-size: 12px;
-}
-
 .admin-notices__form-error {
   margin: 0;
   color: #9f3030;
   font-size: 12px;
   font-weight: var(--admin-fw-medium);
-}
-
-.admin-notices__confirm {
-  display: grid;
-  padding: 12px 14px;
-  gap: 10px;
-  border: 1px solid rgba(190, 119, 43, 0.3);
-  border-radius: var(--radius);
-  background: rgba(211, 144, 69, 0.08);
-}
-
-.admin-notices__confirm p {
-  margin: 0;
-  color: #714719;
-  font-size: 13px;
 }
 
 .admin-notices__actions {
@@ -299,22 +165,245 @@
   color: #a24444;
 }
 
-@media (max-width: 1100px) {
-  .admin-notices__layout {
-    grid-template-columns: 1fr;
-  }
-
-  .admin-notices__form {
-    position: static;
-  }
-}
-
-.admin-notices__preview article {
+/* 공지 작성·수정 화면: 제목·설정 한 줄, 편집기, 저장 버튼 순서의 단일 영역 */
+.admin-notice-editor {
+  display: grid;
+  margin-top: 4px;
+  padding: 18px 20px;
+  gap: 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 18px;
   background: var(--surface);
 }
-.admin-notices__preview .notice-body {
-  margin-top: 12px;
+
+/* 긴 주소 같은 끊기지 않는 글자가 편집 영역 폭을 화면 밖으로 늘리지 않게 합니다. */
+.admin-notice-editor > * {
+  min-width: 0;
+}
+
+.admin-notice-editor__head {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-notice-editor__title {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-notice-editor__title > span,
+.admin-notice-editor__color > span {
+  color: var(--body);
+  font-size: 12px;
+  font-weight: var(--admin-fw-medium);
+}
+
+.admin-notice-editor__title input {
+  width: 100%;
+  height: 46px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--ink);
+  font: inherit;
+  font-size: 18px;
+  font-weight: var(--admin-fw-semibold);
+}
+
+.admin-notice-editor__options {
+  display: flex;
+  align-items: center;
+  gap: 10px 18px;
+  flex-wrap: wrap;
+}
+
+.admin-notice-editor__check,
+.admin-notice-editor__color {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--body);
+  font-size: 13px;
+  font-weight: var(--admin-fw-medium);
+}
+
+.admin-notice-editor__check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--navy-strong);
+}
+
+.admin-notice-editor__color select {
+  height: 34px;
+  padding: 0 32px 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background-color: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+
+.admin-notice-editor__options .admin-segmented {
+  margin-left: auto;
+}
+
+.admin-notice-editor__title input:focus-visible,
+.admin-notice-editor__color select:focus-visible {
+  outline: none;
+  border-color: var(--navy-strong);
+  box-shadow: 0 0 0 3px rgba(31, 79, 130, 0.12);
+}
+
+.admin-notice-editor__loading {
+  margin: 0;
+  padding: 40px 12px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* 게시 화면과 같은 마크업·폭(최대 900px)으로 보여 줘 줄바꿈 위치까지 같게 합니다. */
+.admin-notice-editor__preview.notice-detail-page {
+  width: min(900px, 100%);
+  margin: 0;
+  padding: 0;
+}
+
+.admin-notice-editor__preview.notice-detail-page > article {
+  margin-top: 0;
+}
+
+/* 본문 편집기: 작은 툴바와 넓은 입력 영역. 입력 영역은 게시 화면과 같은 .notice-body 서식을 씁니다. */
+.notice-editor {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.notice-editor[hidden] {
+  display: none;
+}
+
+.notice-editor:focus-within {
+  border-color: #9fb4c9;
+}
+
+.notice-editor__toolbar {
+  display: flex;
+  padding: 6px 8px;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.notice-editor__tool {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--body);
+  cursor: pointer;
+}
+
+.notice-editor__tool:hover:not(:disabled) {
+  background: var(--blue-10);
+  color: var(--navy-strong);
+}
+
+.notice-editor__tool[aria-pressed='true'] {
+  background: var(--blue-20);
+  color: var(--navy-strong);
+}
+
+.notice-editor__tool:disabled {
+  color: #b9c4cf;
+  cursor: default;
+}
+
+.notice-editor__tool:focus-visible {
+  outline: 2px solid rgba(31, 79, 130, 0.35);
+  outline-offset: 1px;
+}
+
+.notice-editor__tool-text {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.notice-editor__divider {
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background: var(--line);
+}
+
+.notice-editor__link {
+  display: flex;
+  padding: 8px;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.notice-editor__link input {
+  min-width: 0;
+  height: 34px;
+  flex: 1 1 240px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 13px;
+}
+
+.notice-editor__link-error {
+  margin: 0;
+  flex-basis: 100%;
+  color: #9f3030;
+  font-size: 12px;
+}
+
+.notice-editor__surface {
+  padding: 14px 16px;
+}
+
+.notice-editor__surface .ProseMirror {
+  min-height: 320px;
+  outline: none;
+  /* ProseMirror 기본값(break-word) 대신 게시 화면과 같은 줄바꿈 규칙을 씁니다. */
+  overflow-wrap: anywhere;
+}
+
+.notice-editor__surface .ProseMirror > :first-child {
+  margin-top: 0;
+}
+
+.notice-editor__surface .ProseMirror p.is-editor-empty:first-child::before {
+  height: 0;
+  float: left;
+  color: var(--muted);
+  content: attr(data-placeholder);
+  pointer-events: none;
+}
+
+@media (max-width: 700px) {
+  .admin-notice-editor {
+    padding: 14px;
+  }
+
+  .admin-notice-editor__options .admin-segmented {
+    margin-left: 0;
+  }
+
+  .notice-editor__surface .ProseMirror {
+    min-height: 240px;
+  }
 }

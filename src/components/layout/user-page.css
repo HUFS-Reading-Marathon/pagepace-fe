@@ -1,0 +1,36 @@
+/* 사용자 독립 페이지 공통: 기존 .wrap 너비, 흰 바탕, 제목 아래 얇은 구분선 */
+.user-page {
+  padding: 48px 0 88px;
+}
+
+.user-page__head {
+  display: flex;
+  padding-bottom: 18px;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 24px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--line);
+}
+
+.user-page__head h1 {
+  margin: 0;
+  color: #172838;
+  font-size: clamp(28px, 3.4vw, 38px);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.05em;
+}
+
+.user-page__description {
+  margin: 10px 0 0;
+  color: #536271;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+@media (max-width: 560px) {
+  .user-page {
+    padding: 32px 0 64px;
+  }
+}

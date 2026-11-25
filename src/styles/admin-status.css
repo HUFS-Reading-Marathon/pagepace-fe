@@ -27,17 +27,14 @@
   gap: 6px;
 }
 
-.admin-status__date-control label,
-.admin-status__field label {
+.admin-status__date-control label {
   color: var(--body);
   font-size: 12px;
   font-weight: var(--admin-fw-medium);
 }
 
 .admin-status__date-control input,
-.admin-status__date-control select,
-.admin-status__field input,
-.admin-status__field select {
+.admin-status__date-control select {
   width: 100%;
   min-width: 0;
   height: 42px;
@@ -52,9 +49,7 @@
 }
 
 .admin-status__date-control input:focus,
-.admin-status__date-control select:focus,
-.admin-status__field input:focus,
-.admin-status__field select:focus {
+.admin-status__date-control select:focus {
   border-color: var(--navy-strong);
   box-shadow: 0 0 0 3px rgba(31, 79, 130, 0.08);
 }
@@ -64,73 +59,8 @@
   font-size: 11px;
 }
 
-.admin-status__summary {
-  display: grid;
-  margin: 24px 0 0;
-  padding: 0;
-  grid-template-columns: repeat(6, minmax(110px, 1fr));
-  gap: 1px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--line);
-  overflow: hidden;
-}
-
-.admin-status__summary div {
-  min-width: 0;
-  padding: 14px 13px;
-  background: var(--surface);
-  text-align: center;
-}
-
-.admin-status__summary dt {
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.35;
-}
-
-.admin-status__summary dd {
-  margin: 5px 0 0;
-  color: var(--navy-strong);
-  font-size: 17px;
-  font-weight: var(--admin-fw-bold);
-  line-height: 1.25;
-  white-space: nowrap;
-}
-
-.admin-status__policy {
-  display: flex;
-  margin-top: 18px;
-  padding: 12px 16px;
-  align-items: center;
-  gap: 10px 18px;
-  border-left: 3px solid var(--blue-30);
-  border-radius: 0 var(--radius) var(--radius) 0;
-  background: var(--line-soft);
-  color: var(--body);
-  font-size: 12px;
-  flex-wrap: wrap;
-}
-
-.admin-status__policy strong {
-  color: var(--navy-strong);
-  font-size: 13px;
-}
-
-.admin-status__policy span {
-  position: relative;
-}
-
-.admin-status__policy span + span::before {
-  position: absolute;
-  left: -10px;
-  color: var(--line);
-  content: '·';
-}
-
 .admin-status__publish-panel,
-.admin-status__course-summary,
-.admin-status__filters {
+.admin-status__course-summary {
   margin-top: 20px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -263,21 +193,21 @@
   line-height: 1.45;
 }
 
-.admin-status__table-toolbar,
 .admin-status__actions {
   display: flex;
   align-items: center;
   gap: 8px 16px;
   flex-wrap: wrap;
 }
-.admin-status__table-toolbar {
-  margin-top: 24px;
+/* 공개 상태·새로고침·CSV 다운로드 줄: 바로 아래 코스별 요약과 붙여 한 영역으로 읽히게 둡니다. */
+.admin-status__toolbar {
+  margin-top: 20px;
+}
+.admin-status__toolbar .admin-status__actions {
   justify-content: space-between;
 }
-.admin-status__table-toolbar h2 {
-  margin: 0;
-  color: var(--ink);
-  font-size: 17px;
+.admin-status__toolbar + .admin-status__course-summary {
+  margin-top: 10px;
 }
 .admin-status__course-summary .admin-status__section-heading {
   align-items: center;
@@ -288,14 +218,6 @@
 }
 .admin-status__course-summary-wrapper :is(th, td) {
   padding-block: 7px;
-}
-.admin-status__table-toolbar + .admin-status__filters {
-  margin-top: 8px;
-  padding: 12px 14px;
-}
-.admin-status__table-toolbar + .admin-status__filters .admin-status__filter-footer {
-  margin-top: 8px;
-  padding-top: 8px;
 }
 .admin-status__actions p {
   margin: 0;
@@ -312,8 +234,7 @@
 }
 
 .admin-status__actions button,
-.admin-status__actions a,
-.admin-status__filter-footer button {
+.admin-status__actions a {
   display: inline-flex;
   min-height: 38px;
   padding: 7px 13px;
@@ -331,8 +252,7 @@
 }
 
 .admin-status__actions button:hover,
-.admin-status__actions a:hover,
-.admin-status__filter-footer button:hover {
+.admin-status__actions a:hover {
   border-color: var(--navy);
   color: var(--navy-strong);
 }
@@ -365,37 +285,10 @@
   font-weight: var(--admin-fw-medium);
 }
 
-.admin-status__course-summary-wrapper,
-.admin-status__table-wrapper {
+.admin-status__course-summary-wrapper {
   width: 100%;
   min-width: 0;
   overflow-x: auto;
-}
-
-.admin-status__completion {
-  display: inline-flex;
-  min-height: 25px;
-  padding: 4px 8px;
-  align-items: center;
-  gap: 5px;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: var(--admin-fw-semibold);
-  line-height: 1.2;
-  white-space: nowrap;
-}
-
-.admin-status__completion small {
-  padding-left: 5px;
-  border-left: 1px solid rgba(61, 121, 105, 0.28);
-  font-size: 9px;
-}
-
-.admin-status__completion--progress {
-  border-color: rgba(56, 103, 150, 0.2);
-  background: var(--blue-10);
-  color: var(--navy-strong);
 }
 
 .admin-status__empty {
@@ -456,136 +349,12 @@
   padding-inline: 0;
 }
 
-.admin-status__filters {
-  padding: 20px;
-}
-
-.admin-status__filter-grid {
-  display: grid;
-  grid-template-columns:
-    minmax(160px, 1.4fr)
-    repeat(4, minmax(110px, 1fr));
-  gap: 13px;
-}
-
-.admin-status__field {
-  display: grid;
-  min-width: 0;
-  gap: 6px;
-}
-
-.admin-status__field input::placeholder {
-  color: var(--muted);
-}
-
-.admin-status__filter-footer {
-  display: flex;
-  margin-top: 16px;
-  padding-top: 16px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  border-top: 1px solid var(--line-soft);
-}
-
-.admin-status__filter-footer p {
-  margin: 0;
-  color: var(--body);
-  font-size: 13px;
-}
-
-.admin-status__filter-footer strong {
-  color: var(--navy-strong);
-  font-size: 15px;
-}
-
-.admin-status__table-wrapper {
-  margin-top: 14px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
-}
-
-.admin-status__table {
-  width: 100%;
-  min-width: 1120px;
-  border-collapse: collapse;
-  color: var(--body);
-  font-size: 13px;
-}
-
-.admin-status__table th,
-.admin-status__table td {
-  padding: 10px 9px;
-  border-bottom: 1px solid var(--line-soft);
-  text-align: left;
-  vertical-align: middle;
-}
-
-.admin-status__table th {
-  background: var(--line-soft);
-  color: var(--ink);
-  font-size: 12px;
-  font-weight: var(--admin-fw-semibold);
-  white-space: nowrap;
-}
-
-.admin-status__table tbody tr:hover {
-  background: rgba(238, 245, 252, 0.45);
-}
-
-.admin-status__table tbody tr:last-child td {
-  border-bottom: 0;
-}
-
-.admin-status__name {
-  color: var(--ink);
-  font-weight: var(--admin-fw-medium);
-}
-
-.admin-status__nowrap,
-.admin-status__number,
-.admin-status__increase {
-  white-space: nowrap;
-}
-
-.admin-status__number {
-  text-align: right;
-}
-
-.admin-status__increase {
-  color: var(--navy-strong);
-  font-weight: var(--admin-fw-regular);
-}
-
-.admin-status__last-progress {
-  min-width: 128px;
-  line-height: 1.45;
-}
-
 .admin-status__date-control input:focus-visible,
 .admin-status__date-control select:focus-visible,
-.admin-status__field input:focus-visible,
-.admin-status__field select:focus-visible,
 .admin-status__visibility-settings input:focus-visible,
-.admin-status__actions button:focus-visible,
-.admin-status__filter-footer button:focus-visible {
+.admin-status__actions button:focus-visible {
   outline: 3px solid rgba(31, 79, 130, 0.18);
   outline-offset: 2px;
-}
-
-@media (max-width: 1050px) {
-  .admin-status__summary {
-    grid-template-columns: repeat(3, minmax(120px, 1fr));
-  }
-
-  .admin-status__filter-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .admin-status__field--search {
-    grid-column: 1 / -1;
-  }
 }
 
 @media (max-width: 1024px) {
@@ -613,37 +382,20 @@
     width: 100%;
   }
 
-  .admin-status__summary,
-  .admin-status__filter-grid,
   .admin-status__publish-meta {
     grid-template-columns: 1fr;
   }
 
-  .admin-status__policy {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .admin-status__policy span + span::before {
-    content: none;
-  }
-
-  .admin-status__actions > div,
-  .admin-status__filter-footer {
+  .admin-status__actions > div {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .admin-status__actions button,
-  .admin-status__filter-footer button {
+  .admin-status__actions button {
     width: 100%;
   }
 }
 
-.admin-status__table .admin-status__ordinal {
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
 .admin-status__feedback:empty {
   display: none;
 }

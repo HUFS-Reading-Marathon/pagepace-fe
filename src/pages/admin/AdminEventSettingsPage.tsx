@@ -38,6 +38,8 @@ import {
   EMPTY_COURSE_FORM,
   EMPTY_EVENT_FORM,
   describeEventCountdown,
+  eventTitleForRound,
+  isValidRoundNo,
   formatDateLabel,
   formatShortDateRange,
   getCourseFormChanges,
@@ -157,6 +159,15 @@ function AdminEventSettingsPage() {
   // 기존 행사를 보는 중에는 "설정 수정"을 눌러야 입력이 열립니다. 새 행사 작성 중에는
   // 아직 저장된 값이 없으므로 곧바로 입력할 수 있습니다.
   const fieldsLocked = !isCreatingEvent && !isEditMode;
+  // 회차 입력 아래 안내: 잘못된 회차이거나, 저장된 행사명이 "제N회 독서마라톤" 형식과 다를 때만 보여 줍니다.
+  const roundNote =
+    eventForm.roundNo !== '' && !isValidRoundNo(eventForm.roundNo)
+      ? { error: true, text: '회차는 1 이상의 정수로 입력해 주세요.' }
+      : eventForm.title &&
+          isValidRoundNo(eventForm.roundNo) &&
+          eventForm.title !== eventTitleForRound(Number(eventForm.roundNo))
+        ? { error: false, text: `저장된 행사명: ${eventForm.title}` }
+        : null;
   const coursesLocked = !isCreatingEvent && !isEditMode;
   const isCoursesDirty = JSON.stringify(courseForms) !== JSON.stringify(savedCourseForms);
 
@@ -360,6 +371,19 @@ function AdminEventSettingsPage() {
     setEventForm((current) => ({ ...current, [field]: value }));
   };
 
+  /**
+   * 회차를 바꾸면 행사명을 "제N회 독서마라톤"으로 함께 바꿉니다. 회차를 건드리지 않으면 서버에 저장된
+   * 행사명을 그대로 두어, 화면에 들어오거나 다른 값만 고쳐 저장해도 행사명이 바뀌지 않습니다.
+   */
+  const handleRoundChange = (value: string) => {
+    clearFeedback();
+    setEventForm((current) => ({
+      ...current,
+      roundNo: value,
+      title: isValidRoundNo(value) ? eventTitleForRound(Number(value)) : current.title,
+    }));
+  };
+
   const handleEventSelection = (value: string) => {
     const eventId = Number(value);
 
@@ -426,7 +450,12 @@ function AdminEventSettingsPage() {
       return;
     }
 
-    const validationMessage = validateEventForm(eventForm);
+    const validationMessage = validateEventForm(
+      eventForm,
+      events
+        .filter((event) => isCreatingEvent || event.eventId !== selectedEventId)
+        .map((event) => event.roundNo),
+    );
 
     if (validationMessage) {
       showError(validationMessage);
@@ -748,6 +777,8 @@ function AdminEventSettingsPage() {
   };
 
   const editingEvent = events.find((event) => event.eventId === selectedEventId) ?? null;
+  // 조회 모드의 기본 정보는 서버에 저장된 행사 값을 그대로 보여 줍니다.
+  const basicView = editingEvent ?? eventForm;
 
   return (
     <section className="admin-page admin-event-settings">
@@ -788,7 +819,7 @@ function AdminEventSettingsPage() {
             {events.length === 0 && <option value="">등록된 행사 없음</option>}
             {events.map((event) => (
               <option key={event.eventId} value={event.eventId}>
-                {event.roundNo}회 · {event.title} · {EVENT_STATUS_LABELS[event.status]}
+                {event.title} · {EVENT_STATUS_LABELS[event.status]}
               </option>
             ))}
           </select>
@@ -812,11 +843,7 @@ function AdminEventSettingsPage() {
             <span>
               {isCreatingEvent ? '새 행사 작성 중' : fieldsLocked ? '조회 모드' : '수정 모드'}
             </span>
-            <strong>
-              {isCreatingEvent
-                ? '아직 저장되지 않은 새 행사'
-                : `${editingEvent?.roundNo}회 · ${editingEvent?.title}`}
-            </strong>
+            <strong>{isCreatingEvent ? '아직 저장되지 않은 새 행사' : editingEvent?.title}</strong>
             <small>
               {isCreatingEvent
                 ? '저장하기 전까지 기존 행사에는 영향을 주지 않습니다.'
@@ -866,65 +893,107 @@ function AdminEventSettingsPage() {
             <div className="admin-event-settings__section-heading">
               <div>
                 <h2 id="eventBasicTitle">{isCreatingEvent ? '새 행사 정보' : '행사 기본 정보'}</h2>
-                <p>행사명, 회차, 운영 상태와 공개 여부를 설정합니다.</p>
               </div>
               <span>필수</span>
             </div>
 
-            <fieldset
-              className="admin-event-settings__basic-grid"
-              disabled={isEventDetailLoading || fieldsLocked}
-            >
-              <label className="admin-event-settings__title-field">
-                <span>행사명</span>
-                <input
-                  type="text"
-                  required
-                  placeholder="예: 제7회 독서마라톤"
-                  value={eventForm.title}
-                  onChange={(event) => handleEventFieldChange('title', event.target.value)}
-                />
-              </label>
+            {fieldsLocked ? (
+              // 조회 모드: 서버에 저장된 값을 글자로 보여 주고, "설정 수정"을 눌러야 입력 칸으로 바뀝니다.
+              <dl className="admin-event-settings__basic-view" aria-busy={isEventDetailLoading}>
+                <div>
+                  <dt>행사명</dt>
+                  <dd>{basicView.title || '—'}</dd>
+                </div>
+                <div>
+                  <dt>운영 상태</dt>
+                  <dd>{EVENT_STATUS_LABELS[basicView.status]}</dd>
+                </div>
+                <div>
+                  <dt>공개 여부</dt>
+                  <dd>{basicView.publicVisible ? '공개' : '비공개'}</dd>
+                </div>
+              </dl>
+            ) : (
+              <fieldset
+                className="admin-event-settings__basic-grid"
+                disabled={isEventDetailLoading}
+              >
+                <div className="admin-event-settings__basic-item">
+                  <span className="admin-event-settings__basic-label" id="eventTitleLabel">
+                    행사명
+                  </span>
+                  <div className="admin-event-settings__round-input">
+                    <span aria-hidden="true">제</span>
+                    <input
+                      id="eventRoundNo"
+                      type="number"
+                      inputMode="numeric"
+                      min="1"
+                      step="1"
+                      required
+                      aria-label="행사 회차"
+                      aria-describedby={
+                        roundNote ? 'eventTitleLabel eventTitlePreview' : 'eventTitleLabel'
+                      }
+                      aria-invalid={
+                        eventForm.roundNo !== '' && !isValidRoundNo(eventForm.roundNo)
+                          ? true
+                          : undefined
+                      }
+                      value={eventForm.roundNo}
+                      onChange={(event) => handleRoundChange(event.target.value)}
+                    />
+                    <span aria-hidden="true">회 독서마라톤</span>
+                  </div>
+                  {roundNote && (
+                    <p
+                      id="eventTitlePreview"
+                      className="admin-event-settings__title-preview"
+                      data-tone={roundNote.error ? 'error' : undefined}
+                    >
+                      {roundNote.text}
+                    </p>
+                  )}
+                </div>
 
-              <label>
-                <span>회차</span>
-                <input
-                  type="number"
-                  min="1"
-                  step="1"
-                  required
-                  value={eventForm.roundNo}
-                  onChange={(event) => handleEventFieldChange('roundNo', event.target.value)}
-                />
-              </label>
+                <div className="admin-event-settings__basic-item">
+                  <label className="admin-event-settings__basic-label" htmlFor="eventStatus">
+                    운영 상태
+                  </label>
+                  <select
+                    id="eventStatus"
+                    className="admin-event-settings__status-select"
+                    value={eventForm.status}
+                    onChange={(event) =>
+                      handleEventFieldChange('status', event.target.value as EventStatus)
+                    }
+                  >
+                    {EVENT_STATUSES.map((status) => (
+                      <option key={status} value={status}>
+                        {EVENT_STATUS_LABELS[status]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <label>
-                <span>운영 상태</span>
-                <select
-                  value={eventForm.status}
-                  onChange={(event) =>
-                    handleEventFieldChange('status', event.target.value as EventStatus)
-                  }
-                >
-                  {EVENT_STATUSES.map((status) => (
-                    <option key={status} value={status}>
-                      {EVENT_STATUS_LABELS[status]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="admin-event-settings__visibility-field">
-                <input
-                  type="checkbox"
-                  checked={eventForm.publicVisible}
-                  onChange={(event) =>
-                    handleEventFieldChange('publicVisible', event.target.checked)
-                  }
-                />
-                <span>사용자 화면에 공개</span>
-              </label>
-            </fieldset>
+                <div className="admin-event-settings__basic-item">
+                  <span className="admin-event-settings__basic-label" id="eventPublicLabel">
+                    공개 여부
+                  </span>
+                  <label className="admin-event-settings__public-check">
+                    <input
+                      type="checkbox"
+                      aria-describedby="eventPublicLabel"
+                      checked={eventForm.publicVisible}
+                      onChange={(event) =>
+                        handleEventFieldChange('publicVisible', event.target.checked)
+                      }
+                    />
+                    <span>사용자 화면에 공개</span>
+                  </label>
+                </div>
+              </fieldset>
+            )}
           </section>
 
           <section className="admin-event-settings__panel" aria-labelledby="eventPeriodTitle">
@@ -1018,12 +1087,11 @@ function AdminEventSettingsPage() {
           <section className="admin-event-settings__panel" aria-labelledby="eventContactTitle">
             <div className="admin-event-settings__section-heading">
               <div>
-                <h2 id="eventContactTitle">행사 안내</h2>
-                <p>행사 설명과 문의 채널을 설정합니다.</p>
+                <h2 id="eventContactTitle">문의 채널 설정</h2>
               </div>
-              <span className="admin-event-settings__optional">선택</span>
             </div>
 
+            {/* 행사 설명은 관리자 화면에서 입력하지 않지만, 저장된 값은 eventForm에 그대로 두어 저장 시 함께 보냅니다. */}
             <fieldset
               className="admin-event-settings__contact-grid"
               disabled={isEventDetailLoading || fieldsLocked}
@@ -1046,7 +1114,7 @@ function AdminEventSettingsPage() {
                   onChange={(event) => handleEventFieldChange('contactEmail', event.target.value)}
                 />
               </label>
-              <label className="admin-event-settings__wide-field">
+              <label className="admin-event-settings__url-field">
                 <span>카카오 오픈채팅 URL</span>
                 <input
                   type="url"
@@ -1055,15 +1123,6 @@ function AdminEventSettingsPage() {
                   onChange={(event) =>
                     handleEventFieldChange('kakaoOpenChatUrl', event.target.value)
                   }
-                />
-              </label>
-              <label className="admin-event-settings__wide-field">
-                <span>행사 설명</span>
-                <textarea
-                  rows={4}
-                  placeholder="예: 참가 대상, 완주 기준, 유의사항 등을 안내해 주세요."
-                  value={eventForm.description}
-                  onChange={(event) => handleEventFieldChange('description', event.target.value)}
                 />
               </label>
             </fieldset>
@@ -1345,9 +1404,7 @@ function AdminEventSettingsPage() {
       </p>
       {pendingChanges && (
         <EventChangeReviewDialog
-          eventLabel={
-            editingEvent ? `${editingEvent.roundNo}회 · ${editingEvent.title}` : '선택한 행사'
-          }
+          eventLabel={editingEvent ? editingEvent.title : '선택한 행사'}
           changes={pendingChanges}
           isSaving={isSavingEvent}
           onCancel={() => setPendingChanges(null)}

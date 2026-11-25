@@ -176,6 +176,7 @@ export default function ReadingLogReviewPanel({
   readOnly = false,
   onApprove,
   onReject,
+  onRejectDraftChange,
 }: {
   log: AdminReadingLogResponse;
   disabled: boolean;
@@ -183,6 +184,7 @@ export default function ReadingLogReviewPanel({
   readOnly?: boolean;
   onApprove: () => Promise<boolean>;
   onReject: (reason: string) => Promise<boolean>;
+  onRejectDraftChange?: (dirty: boolean) => void;
 }) {
   const [rejecting, setRejecting] = useState(false);
   const rejectButton = useRef<HTMLButtonElement>(null);
@@ -245,6 +247,7 @@ export default function ReadingLogReviewPanel({
             isProcessing={disabled}
             onSubmit={onReject}
             onSuccess={() => setRejecting(false)}
+            onDirtyChange={onRejectDraftChange}
             onBack={() => {
               setRejecting(false);
               requestAnimationFrame(() => rejectButton.current?.focus({ preventScroll: true }));

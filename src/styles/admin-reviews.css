@@ -113,7 +113,6 @@
   align-items: end;
   gap: 14px 24px;
   border: 1px solid var(--line);
-  border-top: 3px solid var(--navy-deep);
   border-radius: var(--radius);
   background: var(--surface);
 }
@@ -1058,7 +1057,6 @@
   max-height: calc(100vh - 48px);
   flex-direction: column;
   border: 1px solid var(--line);
-  border-top: 3px solid var(--navy-deep);
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: var(--shadow);

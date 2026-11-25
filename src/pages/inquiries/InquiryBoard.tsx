@@ -14,6 +14,8 @@ import {
   type InquiryListing,
 } from '../../api/inquiryApi';
 import { formatKoDateKey } from '../../utils/date';
+import SortHeaderButton from '../../components/admin/table/SortHeaderButton';
+import InquiryAnswerEditor from './InquiryAnswerEditor';
 import '../../styles/admin-participants.css';
 import './inquiries.css';
 
@@ -251,7 +253,14 @@ export default function InquiryBoard({ admin = false }: { admin?: boolean }) {
         ))}
       </nav>
       {status && <p role="status">{status}</p>}
-      {editor ? (
+      {editor?.type === 'answer' && editor.item ? (
+        <InquiryAnswerEditor
+          key={'answer' + editor.item.id}
+          item={editor.item}
+          saved={saved}
+          close={() => setEditor(null)}
+        />
+      ) : editor ? (
         <InquiryEditor
           key={editor.type + String(editor.item?.id ?? '')}
           editor={editor}
@@ -277,18 +286,6 @@ export default function InquiryBoard({ admin = false }: { admin?: boolean }) {
               placeholder="질문 또는 답변 검색"
             />
             <button className="btn btn-secondary">검색</button>
-            {admin && (
-              <label className="qa-order">
-                정렬
-                <select
-                  value={oldestFirst ? 'oldest' : 'newest'}
-                  onChange={(e) => change(view, 0, q, e.target.value === 'oldest')}
-                >
-                  <option value="oldest">오래된 순</option>
-                  <option value="newest">최신순</option>
-                </select>
-              </label>
-            )}
             {q && (
               <button type="button" className="btn btn-secondary" onClick={() => change(view)}>
                 초기화
@@ -296,8 +293,11 @@ export default function InquiryBoard({ admin = false }: { admin?: boolean }) {
             )}
           </form>
           {error ? (
-            <p role="alert">
-              {error} <button onClick={() => setTick((t) => t + 1)}>다시 불러오기</button>
+            <p role="alert" className="qa-load-error">
+              {error}{' '}
+              <button type="button" className="qa-retry" onClick={() => setTick((t) => t + 1)}>
+                다시 불러오기
+              </button>
             </p>
           ) : !rows ? (
             <p role="status">불러오는 중…</p>
@@ -323,8 +323,17 @@ export default function InquiryBoard({ admin = false }: { admin?: boolean }) {
                             작성자
                           </th>
                         )}
-                        <th scope="col" className="qa-date">
-                          등록일
+                        {/* 서버 목록은 페이지 단위라 등록일(최신순·오래된 순)만 전체 정렬할 수 있습니다. */}
+                        <th
+                          scope="col"
+                          className="qa-date"
+                          aria-sort={oldestFirst ? 'ascending' : 'descending'}
+                        >
+                          <SortHeaderButton
+                            label="등록일"
+                            direction={oldestFirst ? 'ascending' : 'descending'}
+                            onSort={() => change(view, 0, q, !oldestFirst)}
+                          />
                         </th>
                         <th scope="col" className="qa-visible">
                           공개 여부

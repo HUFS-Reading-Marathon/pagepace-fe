@@ -1,4 +1,3 @@
-import { Fragment, type ReactNode } from 'react';
 import type {
   AdminReadingLogResponse,
   AdminReadingLogStatus,
@@ -6,6 +5,8 @@ import type {
 import { READING_LOG_STATUS_LABELS } from '../../../types/readingLog';
 import { formatKoDateTime24 } from '../../../utils/date';
 import ColumnResizeHandle from '../table/ColumnResizeHandle';
+import SortHeaderButton from '../table/SortHeaderButton';
+import TablePagination from '../table/TablePagination';
 import { CHECK_WIDTH, useColumnSizing } from '../table/tableColumns';
 import { useTableCellText } from '../table/useTableCellText';
 import {
@@ -31,9 +32,14 @@ type Props = {
   pageSize: number;
   filter: Filter;
   query: string;
-  date: string;
+  from: string;
+  to: string;
+  course: string;
+  /** 코스 필터 선택지. 비어 있으면 코스 필터를 숨깁니다. */
+  courseOptions?: string[];
   sort: LogSort;
-  selected: number | null;
+  /** 상세 화면에서 돌아왔을 때 표시할 행 */
+  recent?: number | null;
   selectedIds: ReadonlySet<number>;
   loading: boolean;
   processing: boolean;
@@ -44,14 +50,17 @@ type Props = {
   onApproveSelection: () => void;
   onFilter: (value: Filter) => void;
   onQuery: (value: string) => void;
-  onDate: (value: string) => void;
+  onDates: (patch: { from?: string; to?: string }) => void;
+  onCourse?: (value: string) => void;
   onSort: (key: LogSort['column']) => void;
   onReset: () => void;
   onPage: (page: number) => void;
   onPageSize?: (size: number) => void;
-  onSelect: (id: number | null) => void;
+  /** 일지 상세 검토 화면을 엽니다. */
+  onOpen: (id: number) => void;
   onRetry?: () => void;
-  renderDetail: (log: AdminReadingLogResponse) => ReactNode;
+  /** 현재 조건으로 서버 목록을 다시 불러옵니다. */
+  onRefresh?: () => void;
 };
 
 export default function ReadingLogQueueList({
@@ -61,9 +70,12 @@ export default function ReadingLogQueueList({
   pageSize,
   filter,
   query,
-  date,
+  from,
+  to,
+  course,
+  courseOptions = [],
   sort,
-  selected,
+  recent = null,
   selectedIds,
   loading,
   processing,
@@ -74,20 +86,18 @@ export default function ReadingLogQueueList({
   onApproveSelection,
   onFilter,
   onQuery,
-  onDate,
+  onDates,
+  onCourse,
   onSort,
   onReset,
   onPage,
   onPageSize,
-  onSelect,
+  onOpen,
   onRetry,
-  renderDetail,
+  onRefresh,
 }: Props) {
-  const pageCount = Math.ceil(total / pageSize);
-  const firstPage = Math.max(0, Math.min(page - 2, pageCount - 5));
-  const pageNumbers = Array.from({ length: Math.min(5, pageCount) }, (_, i) => firstPage + i);
   const start = page * pageSize;
-  const searching = !!(query.trim() || date);
+  const searching = !!(query.trim() || from || to || course);
   const showStatus = filter === 'ALL';
   const columns = visibleLogColumns(showStatus);
   const columnCount = columns.length + 2;
@@ -179,16 +189,44 @@ export default function ReadingLogQueueList({
               ))}
             </select>
           </label>
-          <label>
-            제출일
+          {onCourse && courseOptions.length > 1 && (
+            <label>
+              코스
+              <select
+                aria-label="코스"
+                value={course}
+                disabled={processing}
+                onChange={(e) => onCourse(e.target.value)}
+              >
+                <option value="">전체 코스</option>
+                {courseOptions.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <fieldset className="log-queue__dates">
+            <legend>제출 기간</legend>
             <input
               type="date"
-              aria-label="제출일"
-              value={date}
+              aria-label="제출 기간 시작일"
+              value={from}
+              max={to || undefined}
               disabled={processing}
-              onChange={(e) => onDate(e.target.value)}
+              onChange={(e) => onDates({ from: e.target.value })}
             />
-          </label>
+            <span aria-hidden="true">~</span>
+            <input
+              type="date"
+              aria-label="제출 기간 종료일"
+              value={to}
+              min={from || undefined}
+              disabled={processing}
+              onChange={(e) => onDates({ to: e.target.value })}
+            />
+          </fieldset>
           <button
             type="button"
             className="roster-link"
@@ -197,6 +235,11 @@ export default function ReadingLogQueueList({
           >
             초기화
           </button>
+          {onRefresh && (
+            <button type="button" className="roster-link" disabled={busy} onClick={onRefresh}>
+              새로고침
+            </button>
+          )}
         </div>
         <button
           type="button"
@@ -249,19 +292,12 @@ export default function ReadingLogQueueList({
                     {key === 'number' ? (
                       LOG_COLUMNS[key]
                     ) : (
-                      <button
-                        type="button"
-                        className="roster-sort"
+                      <SortHeaderButton
+                        label={LOG_COLUMNS[key]}
+                        direction={direction}
                         disabled={processing}
-                        title={
-                          LOG_COLUMNS[key] +
-                          (direction === 'ascending' ? ' 내림차순 정렬' : ' 오름차순 정렬')
-                        }
-                        onClick={() => onSort(key)}
-                      >
-                        {LOG_COLUMNS[key]}
-                        <span className="sort-mark" aria-hidden="true" />
-                      </button>
+                        onSort={() => onSort(key)}
+                      />
                     )}
                     <ColumnResizeHandle
                       label={LOG_COLUMNS[key]}
@@ -274,7 +310,7 @@ export default function ReadingLogQueueList({
                 );
               })}
               <th scope="col" className="log-queue__disclosure">
-                상세
+                검토
               </th>
             </tr>
           </thead>
@@ -296,11 +332,9 @@ export default function ReadingLogQueueList({
             ) : (
               rows.map((log, i) => {
                 const id = log.readingLogId;
-                const open = selected === id;
                 const submittedDate = log.createdAt.slice(0, 10);
                 const book = log.books[0]?.bookTitle || '도서 미등록';
                 const more = log.books.length > 1 ? ` 외 ${log.books.length - 1}권` : '';
-                const detailId = `log-review-detail-${id}`;
                 const values: Record<LogColumn, string> = {
                   number: String(start + i + 1),
                   userName: log.userName,
@@ -314,126 +348,72 @@ export default function ReadingLogQueueList({
                 const eligible = canSelect(log);
                 const checked = eligible && selectedIds.has(id);
                 return (
-                  <Fragment key={id}>
-                    <tr
-                      className="log-queue__row"
-                      data-selected={checked || undefined}
-                      data-open={open || undefined}
-                    >
-                      <td className="roster-check">
-                        <input
-                          type="checkbox"
-                          aria-label={`${start + i + 1}번 ${log.userName} ${submittedDate} 제출 일지 선택, ${book}${more}`}
-                          checked={checked}
-                          disabled={busy || !eligible}
-                          onChange={(e) => check([id], e.target.checked)}
-                        />
-                      </td>
-                      {columns.map((key) => {
-                        const value = values[key];
-                        const display = fitText ? fitText(key, value, widths[key]) : value;
-                        return (
-                          <td
-                            key={key}
-                            data-column={key}
-                            data-status={key === 'status' ? log.status : undefined}
-                            title={
-                              key === 'createdAt'
-                                ? formatKoDateTime24(log.createdAt)
-                                : value || undefined
-                            }
-                            aria-label={display !== value ? value : undefined}
-                          >
-                            {key === 'createdAt' ? (
-                              <time dateTime={log.createdAt}>{display}</time>
-                            ) : (
-                              <span>{display || '—'}</span>
-                            )}
-                          </td>
-                        );
-                      })}
-                      <td className="log-queue__disclosure">
-                        <button
-                          type="button"
-                          id={`log-review-row-${id}`}
-                          className="log-queue__toggle"
-                          aria-label={`${start + i + 1}번 ${log.userName} 일지 ${open ? '접기' : '자세히'}`}
-                          aria-expanded={open}
-                          aria-controls={open ? detailId : undefined}
-                          disabled={processing}
-                          onClick={() => onSelect(open ? null : id)}
+                  <tr
+                    key={id}
+                    className="log-queue__row"
+                    data-selected={checked || undefined}
+                    data-recent={recent === id || undefined}
+                  >
+                    <td className="roster-check">
+                      <input
+                        type="checkbox"
+                        aria-label={`${start + i + 1}번 ${log.userName} ${submittedDate} 제출 일지 선택, ${book}${more}`}
+                        checked={checked}
+                        disabled={busy || !eligible}
+                        onChange={(e) => check([id], e.target.checked)}
+                      />
+                    </td>
+                    {columns.map((key) => {
+                      const value = values[key];
+                      const display = fitText ? fitText(key, value, widths[key]) : value;
+                      return (
+                        <td
+                          key={key}
+                          data-column={key}
+                          data-status={key === 'status' ? log.status : undefined}
+                          title={
+                            key === 'createdAt'
+                              ? formatKoDateTime24(log.createdAt)
+                              : value || undefined
+                          }
+                          aria-label={display !== value ? value : undefined}
                         >
-                          {open ? '접기' : '자세히'}
-                          <span aria-hidden="true" />
-                        </button>
-                      </td>
-                    </tr>
-                    {open && (
-                      <tr className="log-queue__detail-row">
-                        <td colSpan={columnCount} className="log-queue__detail" id={detailId}>
-                          <div className="log-queue__detail-content">{renderDetail(log)}</div>
+                          {key === 'createdAt' ? (
+                            <time dateTime={log.createdAt}>{display}</time>
+                          ) : (
+                            <span>{display || '—'}</span>
+                          )}
                         </td>
-                      </tr>
-                    )}
-                  </Fragment>
+                      );
+                    })}
+                    <td className="log-queue__disclosure">
+                      <button
+                        type="button"
+                        id={`log-review-row-${id}`}
+                        className="log-queue__open"
+                        aria-label={`${start + i + 1}번 ${log.userName} 일지 ${log.status === 'SUBMITTED' ? '검토하기' : '상세 보기'}`}
+                        disabled={processing}
+                        onClick={() => onOpen(id)}
+                      >
+                        {log.status === 'SUBMITTED' ? '검토하기' : '상세 보기'}
+                      </button>
+                    </td>
+                  </tr>
                 );
               })
             )}
           </tbody>
         </table>
       </div>
-      <footer className="roster-footer">
-        <span aria-live="polite">
-          {total
-            ? `${(start + 1).toLocaleString()}–${Math.min(total, start + pageSize).toLocaleString()}`
-            : '0'}{' '}
-          / {total.toLocaleString()}건
-        </span>
-        <nav className="roster-pagination" aria-label="일지 페이지">
-          <button
-            type="button"
-            aria-label="이전 페이지"
-            disabled={!page || busy}
-            onClick={() => onPage(page - 1)}
-          >
-            이전
-          </button>
-          {pageNumbers.map((n) => (
-            <button
-              type="button"
-              key={n}
-              aria-label={`${n + 1}페이지`}
-              aria-current={n === page ? 'page' : undefined}
-              disabled={busy}
-              onClick={() => onPage(n)}
-            >
-              {n + 1}
-            </button>
-          ))}
-          <button
-            type="button"
-            aria-label="다음 페이지"
-            disabled={page + 1 >= pageCount || busy}
-            onClick={() => onPage(page + 1)}
-          >
-            다음
-          </button>
-        </nav>
-        {onPageSize && (
-          <select
-            aria-label="페이지당 행 수"
-            value={pageSize}
-            disabled={busy}
-            onChange={(e) => onPageSize(Number(e.target.value))}
-          >
-            {[10, 25, 50].map((size) => (
-              <option key={size} value={size}>
-                {size}건씩 보기
-              </option>
-            ))}
-          </select>
-        )}
-      </footer>
+      <TablePagination
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        busy={busy}
+        label="일지 페이지"
+        onPage={onPage}
+        onPageSize={onPageSize}
+      />
     </section>
   );
 }

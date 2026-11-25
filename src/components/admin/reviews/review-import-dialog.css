@@ -1,0 +1,283 @@
+/* 엑셀 대조: 본문 전체 너비 표 + 대형 상세 창(모달) */
+.admin-review-import__list--full {
+  margin-top: 12px;
+}
+
+/* 상세 패널이 옆에 없으므로 표는 내부 스크롤 없이 페이지와 함께 흐르고, 좁은 화면에서만 가로로 스크롤합니다. */
+.admin-review-import__list--full .admin-review-table__wrapper {
+  max-height: none;
+  min-height: 0;
+}
+
+.admin-review-import__list--full .roster-footer {
+  display: flex;
+  padding-inline: 12px;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid var(--line-soft);
+  border-bottom: 0;
+}
+
+/* 정렬 중인 컬럼: 참가자 관리 표(roster-table)와 같은 네이비 글자·옅은 배경 */
+.admin-review-table th[aria-sort] {
+  background: #e4ebf1;
+  color: #103f6a;
+}
+
+.admin-review-table th .roster-sort {
+  min-height: 0;
+  text-align: inherit;
+}
+
+.admin-review-table__open {
+  width: 92px;
+  text-align: center !important;
+}
+
+.admin-review-table__open-button {
+  display: inline-flex;
+  min-width: 64px;
+  min-height: 28px;
+  padding: 2px 8px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #c4d1dd;
+  border-radius: 4px;
+  background: #fff;
+  color: var(--navy-strong);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.admin-review-table__open-button:hover {
+  border-color: #7e9cb6;
+  background: #eef4f9;
+}
+
+.admin-review-table__open-button:focus-visible {
+  outline: 3px solid rgba(31, 79, 130, 0.2);
+  outline-offset: 2px;
+}
+
+.admin-review-import__bulk p small {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 12px;
+}
+
+/* 상세 창: 위 고정(제목·위치·이전·다음·닫기) · 가운데 스크롤 · 아래 고정(원문 확인·반영) */
+.admin-review-dialog {
+  width: min(1080px, calc(100vw - 48px));
+  max-width: none;
+  height: min(90dvh, 1000px);
+  max-height: none;
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--body);
+}
+
+.admin-review-dialog[open] {
+  display: flex;
+  animation: admin-review-dialog-in 150ms ease-out;
+}
+
+.admin-review-dialog::backdrop {
+  background: rgba(15, 29, 46, 0.38);
+  animation: admin-review-dialog-fade 150ms ease-out;
+}
+
+@keyframes admin-review-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes admin-review-dialog-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.admin-review-dialog__form {
+  display: flex;
+  width: 100%;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.admin-review-dialog__head {
+  display: flex;
+  padding: 14px 20px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-review-dialog__head h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: var(--admin-fw-bold);
+}
+
+.admin-review-dialog__head h2:focus {
+  outline: none;
+}
+
+.admin-review-dialog__head h2:focus-visible {
+  outline: 3px solid rgba(31, 79, 130, 0.2);
+  outline-offset: 2px;
+}
+
+.admin-review-dialog__nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-review-dialog__nav .admin-button {
+  min-height: 34px;
+  padding: 4px 12px;
+}
+
+.admin-review-dialog__position {
+  margin-right: 4px;
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-review-dialog__close {
+  margin-left: 6px;
+}
+
+.admin-review-dialog__body {
+  min-height: 0;
+  padding: 16px 20px 20px;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.admin-review-dialog__who {
+  display: flex;
+  margin-bottom: 14px;
+  align-items: center;
+  gap: 6px 12px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+
+.admin-review-dialog__who strong {
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: var(--admin-fw-bold);
+}
+
+.admin-review-dialog__who span {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-review-dialog__out,
+.admin-review-dialog__feedback {
+  margin: 0 0 14px;
+  font-size: 13px;
+}
+
+.admin-review-dialog__out {
+  color: var(--body);
+}
+
+/* 넓은 창에서는 원문을 길게 읽을 수 있도록 원문 높이 제한을 늘립니다. */
+.admin-review-dialog .admin-review-detail__content {
+  max-height: min(48dvh, 520px);
+}
+
+.admin-review-dialog__foot {
+  display: flex;
+  padding: 12px 20px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px 16px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.admin-review-dialog__check,
+.admin-review-dialog__auto {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--body);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.admin-review-dialog__check strong {
+  margin-right: 4px;
+  color: var(--ink);
+  font-weight: var(--admin-fw-semibold);
+}
+
+.admin-review-dialog__check input,
+.admin-review-dialog__auto input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: var(--navy-strong);
+}
+
+.admin-review-dialog__hint {
+  margin: 0 auto 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.admin-review-dialog__foot .admin-button--primary {
+  min-width: 128px;
+}
+
+@media (max-width: 700px) {
+  .admin-review-dialog {
+    width: calc(100vw - 16px);
+    height: calc(100dvh - 16px);
+  }
+
+  .admin-review-dialog__head,
+  .admin-review-dialog__body,
+  .admin-review-dialog__foot {
+    padding-inline: 14px;
+  }
+
+  .admin-review-dialog__nav {
+    width: 100%;
+  }
+
+  .admin-review-dialog__nav .admin-button {
+    flex: 1;
+  }
+
+  .admin-review-dialog__foot .admin-button--primary {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-review-dialog[open],
+  .admin-review-dialog::backdrop {
+    animation: none;
+  }
+}

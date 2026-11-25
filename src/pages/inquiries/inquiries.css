@@ -96,7 +96,8 @@
 }
 .qa-answer {
   padding: 14px;
-  border-left: 3px solid var(--navy-strong);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
   background: white;
 }
 .qa-answer p {
@@ -126,22 +127,6 @@
 }
 .admin-page.qa-board .qa-search input {
   flex: 0 1 32rem;
-}
-.qa-order {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-inline-start: auto;
-  color: var(--body);
-  font-size: 14px;
-}
-.qa-order select {
-  padding: 7px 28px 7px 10px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background-color: white;
-  color: var(--ink);
-  font: inherit;
 }
 .qa-admin-table {
   width: 100%;
@@ -182,4 +167,150 @@
 }
 .qa-admin-table tbody tr:not([data-locked]) {
   cursor: default;
+}
+
+/* 목록을 불러오지 못했을 때의 안내와 다시 불러오기 버튼: 같은 줄, 좁은 화면에서는 자연스럽게 줄바꿈 */
+.qa-load-error {
+  display: flex;
+  margin: 16px 0;
+  align-items: center;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+  color: var(--body);
+  font-size: 14px;
+}
+.qa-retry {
+  display: inline-flex;
+  min-height: 36px;
+  padding: 0 16px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--navy-strong);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+.qa-retry:hover {
+  border-color: #b9cadb;
+  background: var(--blue-10);
+}
+.qa-retry:focus-visible {
+  outline: 3px solid rgba(31, 79, 130, 0.2);
+  outline-offset: 2px;
+}
+
+/* 관리자 문의 답변 화면: 공지 작성 화면처럼 흰 바탕 한 장 안에 문의 → 구분선 → 답변 작성 */
+.qa-reply {
+  max-width: 1000px;
+}
+.qa-reply__back.admin-button {
+  min-height: 34px;
+  padding: 4px 12px;
+}
+.qa-reply__sheet {
+  margin-top: 12px;
+  padding: 22px 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.qa-reply__head h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: var(--admin-fw-bold);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.qa-reply__meta {
+  display: flex;
+  margin: 8px 0 0;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.qa-reply__status {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #fdf3e2;
+  color: #7a5710;
+  font-size: 12px;
+  font-weight: var(--admin-fw-semibold);
+}
+.qa-reply__status[data-answered] {
+  background: rgba(61, 121, 105, 0.1);
+  color: var(--green);
+}
+.qa-reply__question {
+  margin-top: 16px;
+  padding: 16px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  color: var(--body);
+  font-size: 15px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.qa-reply__form {
+  margin-top: 16px;
+}
+.qa-reply__form label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: var(--admin-fw-semibold);
+}
+.qa-reply__form textarea {
+  display: block;
+  width: 100%;
+  min-height: 160px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.7;
+  resize: vertical;
+}
+.qa-reply__form textarea:focus-visible {
+  border-color: var(--navy);
+  outline: 3px solid rgba(31, 79, 130, 0.15);
+  outline-offset: 0;
+}
+.qa-reply__form textarea:disabled {
+  background: var(--line-soft);
+}
+.qa-reply__error {
+  margin: 8px 0 0;
+  color: #9f3030;
+  font-size: 13px;
+}
+.qa-reply__actions {
+  display: flex;
+  margin-top: 14px;
+  justify-content: flex-end;
+  gap: 8px;
+}
+@media (max-width: 700px) {
+  .qa-reply__sheet {
+    padding: 18px 16px;
+  }
+  .qa-reply__actions .admin-button {
+    flex: 1;
+  }
 }

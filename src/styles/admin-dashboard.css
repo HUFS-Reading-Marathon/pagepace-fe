@@ -108,7 +108,6 @@
   align-items: center;
   gap: 24px;
   border: 1px solid var(--line);
-  border-left: 3px solid var(--navy-strong);
   border-radius: var(--radius);
   background: var(--surface);
 }
@@ -279,30 +278,6 @@
 
 .admin-dashboard__metric:hover {
   border-color: var(--blue-30);
-}
-
-.admin-dashboard__metric::before {
-  position: absolute;
-  inset: 0 0 auto;
-  height: 3px;
-  background: var(--navy-strong);
-  content: '';
-}
-
-.admin-dashboard__metric--green::before {
-  background: var(--green);
-}
-
-.admin-dashboard__metric--blue::before {
-  background: var(--navy);
-}
-
-.admin-dashboard__metric--gold::before {
-  background: var(--gold);
-}
-
-.admin-dashboard__metric--teal::before {
-  background: #467d7a;
 }
 
 .admin-dashboard__metric-heading {

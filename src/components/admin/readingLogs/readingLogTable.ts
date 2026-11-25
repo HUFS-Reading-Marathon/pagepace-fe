@@ -17,9 +17,27 @@ export type LogSort = {
   column: Exclude<LogColumn, 'number'>;
   direction: 'ascending' | 'descending';
 };
-export type LogSearch = { query: string; date: string; sort: LogSort };
+/** 검색 조건. 제출 기간(from~to)은 제출일(createdAt) 기준이며 양 끝을 포함합니다. */
+export type LogSearch = { query: string; from: string; to: string; course: string; sort: LogSort };
 export const DEFAULT_LOG_SORT: LogSort = { column: 'createdAt', direction: 'ascending' };
-export const INITIAL_LOG_SEARCH: LogSearch = { query: '', date: '', sort: DEFAULT_LOG_SORT };
+export const INITIAL_LOG_SEARCH: LogSearch = {
+  query: '',
+  from: '',
+  to: '',
+  course: '',
+  sort: DEFAULT_LOG_SORT,
+};
+
+export function hasLogFilters({ query, from, to, course }: LogSearch) {
+  return !!(query.trim() || from || to || course);
+}
+
+/** 불러온 일지에 실제로 있는 코스만 코스 필터 선택지로 씁니다. */
+export function logCourseOptions(logs: AdminReadingLogResponse[]) {
+  return [...new Set(logs.map((log) => log.courseName).filter(Boolean))].sort((a, b) =>
+    collator.compare(a, b),
+  );
+}
 export const DETAIL_WIDTH = 80;
 
 const withStatus = Object.keys(LOG_COLUMNS) as LogColumn[];
@@ -72,6 +90,7 @@ export function logColumnWidths(
 }
 
 const collator = new Intl.Collator('ko-KR', { numeric: true, sensitivity: 'base' });
+const LOG_STATUS_ORDER: AdminReadingLogResponse['status'][] = ['SUBMITTED', 'APPROVED', 'REJECTED'];
 function textValue(
   log: AdminReadingLogResponse,
   column: Exclude<LogSort['column'], 'totalReadPages'>,
@@ -87,13 +106,18 @@ function textValue(
   }
 }
 
-export function visibleLogs(logs: AdminReadingLogResponse[], { query, date, sort }: LogSearch) {
+export function visibleLogs(
+  logs: AdminReadingLogResponse[],
+  { query, from, to, course, sort }: LogSearch,
+) {
   const keyword = query.trim().toLocaleLowerCase();
   const direction = sort.direction === 'ascending' ? 1 : -1;
   return logs
     .filter(
       (log) =>
-        (!date || log.createdAt.slice(0, 10) === date) &&
+        (!from || log.createdAt.slice(0, 10) >= from) &&
+        (!to || log.createdAt.slice(0, 10) <= to) &&
+        (!course || log.courseName === course) &&
         (!keyword ||
           [
             log.userName,
@@ -112,6 +136,9 @@ export function visibleLogs(logs: AdminReadingLogResponse[], { query, date, sort
       let comparison: number;
       if (sort.column === 'totalReadPages') {
         comparison = a.totalReadPages - b.totalReadPages;
+      } else if (sort.column === 'status') {
+        // 상태는 업무 순서(검토 대기 → 승인 → 반려)로 정렬합니다.
+        comparison = LOG_STATUS_ORDER.indexOf(a.status) - LOG_STATUS_ORDER.indexOf(b.status);
       } else {
         const left = textValue(a, sort.column);
         const right = textValue(b, sort.column);
@@ -125,4 +152,25 @@ export function visibleLogs(logs: AdminReadingLogResponse[], { query, date, sort
         a.readingLogId - b.readingLogId
       );
     });
+}
+
+/**
+ * 처리한 일지 다음에 볼 대기 일지 후보: 보던 순서로 뒤쪽을 먼저, 그다음 앞쪽을 가까운 순으로 봅니다.
+ * 최신 목록에 남아 있는 첫 후보로 이동하고, 후보가 모두 처리됐으면 최신 목록의 첫 일지로 갑니다.
+ */
+export function nextPendingLog(
+  before: AdminReadingLogResponse[],
+  processedId: number,
+  after: AdminReadingLogResponse[],
+) {
+  const index = before.findIndex((row) => row.readingLogId === processedId);
+  const candidates =
+    index < 0 ? [] : [...before.slice(index + 1), ...before.slice(0, index).reverse()];
+  const remaining = new Set(after.map((row) => row.readingLogId));
+  remaining.delete(processedId);
+  return (
+    candidates.find((row) => remaining.has(row.readingLogId))?.readingLogId ??
+    after.find((row) => row.readingLogId !== processedId)?.readingLogId ??
+    null
+  );
 }
