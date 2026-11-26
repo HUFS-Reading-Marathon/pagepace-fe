@@ -1,3 +1,4 @@
+import { LEAVE_MESSAGE, useLeaveGuard } from '../../hooks/useLeaveGuard';
 import { reorderAdminCourses } from '../../api/adminEventApi';
 import { preferredAdminEvent } from '../../utils/eventSelection';
 import { useAdminEventState } from '../../hooks/useAdminEventState';
@@ -14,7 +15,6 @@ import {
   createAdminCourse,
   createAdminEvent,
   deleteAdminCourse,
-  deleteAdminEvent,
   getAdminEvent,
   getAdminEventCourses,
   getAdminEvents,
@@ -72,27 +72,26 @@ function chooseEventId(events: AdminEvent[], preferredEventId?: number) {
 }
 
 function toCourseFormEntries(courses: AdminCourse[]): CourseFormEntry[] {
-  return courses.map((course) => ({
-    courseId: course.courseId,
-    form: toCourseForm(course),
-  }));
+  return courses
+    .filter((course) => course.active !== false)
+    .map((course) => ({
+      courseId: course.courseId,
+      form: toCourseForm(course),
+    }));
 }
 
-/**
- * 수정 모드에서 코스를 추가·삭제한 뒤 목록을 다시 불러올 때, 아직 저장하지 않은 다른 코스의
- * 편집값과 순서를 유지합니다. 서버에서 사라진 코스는 빼고, 새로 생긴 코스는 뒤에 붙입니다.
- */
-function mergeLocalCourseEdits(
-  localForms: CourseFormEntry[],
-  serverForms: CourseFormEntry[],
-): CourseFormEntry[] {
-  const serverCourseIds = new Set(serverForms.map((course) => course.courseId));
-  const localCourseIds = new Set(localForms.map((course) => course.courseId));
+function eventDraftValue(form: EventForm) {
+  const { status, ...values } = toEventRequest(form);
+  return JSON.stringify({ ...values, finalize: status === 'FINALIZED' });
+}
 
-  return [
-    ...localForms.filter((course) => serverCourseIds.has(course.courseId)),
-    ...serverForms.filter((course) => !localCourseIds.has(course.courseId)),
-  ];
+function courseDraftValue(courses: CourseFormEntry[]) {
+  return JSON.stringify(
+    courses.map(({ courseId, form }) => ({
+      courseId,
+      ...toCourseRequest(form),
+    })),
+  );
 }
 
 function AdminEventSettingsPage() {
@@ -107,9 +106,8 @@ function AdminEventSettingsPage() {
   const [isEventDetailLoading, setIsEventDetailLoading] = useState(false);
   const [isCoursesLoading, setIsCoursesLoading] = useState(false);
   const [isSavingEvent, setIsSavingEvent] = useState(false);
-  const [isDeletingEvent, setIsDeletingEvent] = useState(false);
-  const [isCreatingCourse, setIsCreatingCourse] = useState(false);
-  const [deletingCourseId, setDeletingCourseId] = useState<number | null>(null);
+  const [contactOpen, setContactOpen] = useState(true);
+  const [coursesOpen, setCoursesOpen] = useState(true);
   const [pageError, setPageError] = useState('');
   const [courseError, setCourseError] = useState('');
   const [feedbackMessage, setFeedbackMessage] = useState('');
@@ -123,6 +121,8 @@ function AdminEventSettingsPage() {
   const [draggedCourseId, setDraggedCourseId] = useState<number | null>(null);
   const [pendingChanges, setPendingChanges] = useState<FormChange[] | null>(null);
 
+  const saveLock = useRef(false);
+  const nextCourseId = useRef(-1);
   const initialEventsRequestRef = useRef<Promise<AdminEvent[]> | null>(null);
   const detailRequestRef = useRef<{
     eventId: number;
@@ -169,7 +169,24 @@ function AdminEventSettingsPage() {
         ? { error: false, text: `저장된 행사명: ${eventForm.title}` }
         : null;
   const coursesLocked = !isCreatingEvent && !isEditMode;
-  const isCoursesDirty = JSON.stringify(courseForms) !== JSON.stringify(savedCourseForms);
+  const isCoursesDirty = courseDraftValue(courseForms) !== courseDraftValue(savedCourseForms);
+  const isNewCourseDirty =
+    isAddingCourse &&
+    JSON.stringify(toCourseRequest(newCourseForm)) !==
+      JSON.stringify(
+        toCourseRequest({
+          ...EMPTY_COURSE_FORM,
+          displayOrder: String(courseForms.length + 1),
+        }),
+      );
+  const hasUnsavedChanges = isCreatingEvent
+    ? eventDraftValue(eventForm) !== eventDraftValue(EMPTY_EVENT_FORM)
+    : isEditMode &&
+      (eventDraftValue(eventForm) !== eventDraftValue(eventFormSnapshot ?? eventForm) ||
+        isCoursesDirty ||
+        isNewCourseDirty);
+  useLeaveGuard(hasUnsavedChanges && !isSavingEvent);
+  const canDiscardChanges = () => !hasUnsavedChanges || window.confirm(LEAVE_MESSAGE);
 
   const clearFeedback = () => {
     setFeedbackMessage('');
@@ -179,6 +196,8 @@ function AdminEventSettingsPage() {
   const showError = (message: string) => {
     setFeedbackMessage(message);
     setFeedbackIsError(true);
+    setContactOpen(true);
+    setCoursesOpen(true);
   };
 
   const showSuccess = (message: string) => {
@@ -224,16 +243,14 @@ function AdminEventSettingsPage() {
     }
   };
 
-  const refreshCourses = async (eventId: number, keepLocalEdits = false) => {
+  const refreshCourses = async (eventId: number) => {
     setIsCoursesLoading(true);
 
     try {
       const courses = await getAdminEventCourses(eventId);
       const nextCourseForms = toCourseFormEntries(courses);
 
-      setCourseForms((current) =>
-        keepLocalEdits ? mergeLocalCourseEdits(current, nextCourseForms) : nextCourseForms,
-      );
+      setCourseForms(nextCourseForms);
       setSavedCourseForms(nextCourseForms);
       setCourseError('');
     } finally {
@@ -346,6 +363,7 @@ function AdminEventSettingsPage() {
       .catch((error: unknown) => {
         if (isActive) {
           setCourseError(getApiErrorMessage(error, '코스 목록을 불러오지 못했습니다.'));
+          setCoursesOpen(true);
         }
       })
       .finally(() => {
@@ -385,6 +403,7 @@ function AdminEventSettingsPage() {
   };
 
   const handleEventSelection = (value: string) => {
+    if (!canDiscardChanges()) return;
     const eventId = Number(value);
 
     if (!Number.isInteger(eventId) || eventId <= 0) {
@@ -403,6 +422,7 @@ function AdminEventSettingsPage() {
   };
 
   const handleCreateEventStart = () => {
+    if (!canDiscardChanges()) return;
     clearFeedback();
     setPageError('');
     setCourseError('');
@@ -418,6 +438,7 @@ function AdminEventSettingsPage() {
   };
 
   const handleCreateEventCancel = () => {
+    if (!canDiscardChanges()) return;
     clearFeedback();
     applyEvents(events);
   };
@@ -429,6 +450,7 @@ function AdminEventSettingsPage() {
   };
 
   const handleCancelEditMode = () => {
+    if (!canDiscardChanges()) return;
     clearFeedback();
     setIsAddingCourse(false);
 
@@ -446,10 +468,13 @@ function AdminEventSettingsPage() {
   const handleEventSubmit = async (submitEvent: FormEvent<HTMLFormElement>) => {
     submitEvent.preventDefault();
 
-    if (isSavingEvent) {
+    if (saveLock.current || !hasUnsavedChanges || fieldsLocked) {
       return;
     }
 
+    const coursesToSave = isNewCourseDirty
+      ? [...courseForms, { courseId: nextCourseId.current, form: newCourseForm }]
+      : courseForms;
     const validationMessage = validateEventForm(
       eventForm,
       events
@@ -464,7 +489,7 @@ function AdminEventSettingsPage() {
 
     if (!isCreatingEvent) {
       // 코스 필드/순서 변경도 이 저장 한 번에 함께 반영되므로, 코스 쪽 검증도 먼저 확인합니다.
-      for (const course of courseForms) {
+      for (const course of coursesToSave) {
         const courseValidationMessage = validateCourseForm(course.form);
 
         if (courseValidationMessage) {
@@ -475,10 +500,17 @@ function AdminEventSettingsPage() {
     }
 
     if (!isCreatingEvent) {
+      if (isNewCourseDirty) {
+        nextCourseId.current -= 1;
+        setCourseForms(coursesToSave);
+        setIsAddingCourse(false);
+      }
       // 기존 행사는 저장 전에 기존 값과 변경 값을 비교해 보여 주고, 확인을 받은 뒤 저장합니다.
       const changes = [
-        ...getEventFormChanges(eventFormSnapshot ?? eventForm, eventForm),
-        ...getCourseFormChanges(savedCourseForms, courseForms),
+        ...getEventFormChanges(eventFormSnapshot ?? eventForm, eventForm).filter(
+          (change) => change.label !== '운영 상태' || eventForm.status === 'FINALIZED',
+        ),
+        ...getCourseFormChanges(savedCourseForms, coursesToSave),
       ];
 
       if (changes.length === 0) {
@@ -494,6 +526,8 @@ function AdminEventSettingsPage() {
   };
 
   const saveEventSettings = async () => {
+    if (saveLock.current || !hasUnsavedChanges) return;
+    saveLock.current = true;
     setIsSavingEvent(true);
     clearFeedback();
 
@@ -534,13 +568,13 @@ function AdminEventSettingsPage() {
         if (nextEventId !== null) {
           const latestEvent = await getAdminEvent(nextEventId);
           setEventForm(toEventForm(latestEvent));
+          setEventFormSnapshot(toEventForm(latestEvent));
         }
 
         showSuccess('행사와 기본 코스 3개가 성공적으로 생성되었습니다.');
       } else if (selectedEventId !== null) {
-        let updatedEvent;
         try {
-          updatedEvent = await updateAdminEvent(selectedEventId, request);
+          await updateAdminEvent(selectedEventId, request);
         } catch (error) {
           if (!(error instanceof ApiError) || error.code !== 'EVENT_CHANGE_CONFIRMATION_REQUIRED')
             throw error;
@@ -555,45 +589,60 @@ function AdminEventSettingsPage() {
             )
           )
             return;
-          updatedEvent = await updateAdminEvent(selectedEventId, {
+          await updateAdminEvent(selectedEventId, {
             ...request,
             confirmStructuralChange: true,
           });
         }
-        await refreshEvents(selectedEventId);
-
-        if (updatedEvent) {
-          setEventForm(toEventForm(updatedEvent));
-        } else {
-          const latestEvent = await getAdminEvent(selectedEventId);
-          setEventForm(toEventForm(latestEvent));
-        }
+        const latestEvent = await getAdminEvent(selectedEventId);
+        const latestForm = toEventForm(latestEvent);
+        setEventForm(latestForm);
+        setEventFormSnapshot(latestForm);
+        setEvents((current) =>
+          current.map((event) => (event.eventId === latestEvent.eventId ? latestEvent : event)),
+        );
 
         if (isCoursesDirty) {
-          try {
-            await Promise.all(
-              courseForms.map((course) =>
-                updateAdminCourse(course.courseId, toCourseRequest(course.form)),
-              ),
+          const persistedIds: number[] = [];
+          for (const saved of savedCourseForms) {
+            if (courseForms.some((course) => course.courseId === saved.courseId)) continue;
+            await deleteAdminCourse(saved.courseId);
+            setSavedCourseForms((current) =>
+              current.filter((course) => course.courseId !== saved.courseId),
             );
-            await reorderAdminCourses(
-              selectedEventId,
-              courseForms.map((course) => course.courseId),
-            );
-            await refreshCourses(selectedEventId);
-            showSuccess('행사 설정과 코스 내용이 모두 저장되었습니다.');
-          } catch (courseSaveError: unknown) {
-            showError(
-              getApiErrorMessage(
-                courseSaveError,
-                '행사 설정은 저장되었지만 코스 내용 저장에는 실패했습니다. 다시 시도해 주세요.',
-              ),
-            );
-            return;
           }
-        } else {
-          showSuccess('행사 설정이 성공적으로 저장되었습니다.');
+          for (const course of courseForms) {
+            const saved = savedCourseForms.find((item) => item.courseId === course.courseId);
+            if (saved && courseDraftValue([saved]) === courseDraftValue([course])) {
+              persistedIds.push(course.courseId);
+              continue;
+            }
+            const result =
+              course.courseId < 0
+                ? await createAdminCourse(selectedEventId, toCourseRequest(course.form))
+                : await updateAdminCourse(course.courseId, toCourseRequest(course.form));
+            if (!result) throw new ApiError('저장된 코스 정보를 확인하지 못했습니다.');
+            const persisted = { courseId: result.courseId, form: toCourseForm(result) };
+            persistedIds.push(result.courseId);
+            setCourseForms((current) =>
+              current.map((item) => (item.courseId === course.courseId ? persisted : item)),
+            );
+            setSavedCourseForms((current) => [
+              ...current.filter((item) => item.courseId !== persisted.courseId),
+              persisted,
+            ]);
+          }
+          // 관리자 조회에는 비활성 코스도 포함되며, 서버는 모든 코스 ID를 요구합니다.
+          const allCourses = await getAdminEventCourses(selectedEventId);
+          await reorderAdminCourses(selectedEventId, [
+            ...persistedIds,
+            ...allCourses
+              .filter((course) => !persistedIds.includes(course.courseId))
+              .map((course) => course.courseId),
+          ]);
         }
+        await refreshCourses(selectedEventId);
+        showSuccess('행사 설정과 코스 내용이 모두 저장되었습니다.');
 
         setIsAddingCourse(false);
         setIsEditMode(false);
@@ -601,37 +650,9 @@ function AdminEventSettingsPage() {
     } catch (error: unknown) {
       showError(getApiErrorMessage(error, '행사 설정을 저장하지 못했습니다.'));
     } finally {
+      saveLock.current = false;
       setIsSavingEvent(false);
       setPendingChanges(null);
-    }
-  };
-
-  const handleEventDelete = async () => {
-    if (selectedEventId === null || isDeletingEvent) {
-      return;
-    }
-
-    const selectedEvent = events.find((event) => event.eventId === selectedEventId);
-    const confirmed = window.confirm(
-      `“${selectedEvent?.title ?? '선택한 행사'}”를 보관하시겠습니까? 공개 화면에서 제외되며 기존 참가 기록은 유지됩니다.`,
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    setIsDeletingEvent(true);
-    clearFeedback();
-
-    try {
-      await deleteAdminEvent(selectedEventId, true);
-      await refreshEvents();
-      setCourseForms([]);
-      showSuccess('행사를 보관하고 공개를 해제했습니다.');
-    } catch (error: unknown) {
-      showError(getApiErrorMessage(error, '행사를 삭제하지 못했습니다.'));
-    } finally {
-      setIsDeletingEvent(false);
     }
   };
 
@@ -646,32 +667,17 @@ function AdminEventSettingsPage() {
     );
   };
 
-  const handleCreateCourse = async () => {
-    if (selectedEventId === null || isCreatingCourse) {
-      return;
-    }
-
+  const handleCreateCourse = () => {
+    if (selectedEventId === null || saveLock.current) return;
     const validationMessage = validateCourseForm(newCourseForm);
-
     if (validationMessage) {
       showError(validationMessage);
       return;
     }
-
-    setIsCreatingCourse(true);
-    clearFeedback();
-
-    try {
-      await createAdminCourse(selectedEventId, toCourseRequest(newCourseForm));
-      await refreshCourses(selectedEventId, true);
-      setNewCourseForm({ ...EMPTY_COURSE_FORM, displayOrder: String(courseForms.length + 1) });
-      setIsAddingCourse(false);
-      showSuccess('코스가 생성되었습니다.');
-    } catch (error: unknown) {
-      showError(getApiErrorMessage(error, '코스를 생성하지 못했습니다.'));
-    } finally {
-      setIsCreatingCourse(false);
-    }
+    const courseId = nextCourseId.current--;
+    setCourseForms((current) => [...current, { courseId, form: { ...newCourseForm } }]);
+    setIsAddingCourse(false);
+    showSuccess('코스가 추가되었습니다. 변경사항 저장을 눌러 반영해 주세요.');
   };
 
   // 새 코스 입력 행은 행사 설정 <form> 안에 있어, input에서 Enter를 누르면 행사 전체 저장이
@@ -682,29 +688,14 @@ function AdminEventSettingsPage() {
     }
   };
 
-  const handleCourseDelete = async (courseId: number, courseName: string) => {
-    if (selectedEventId === null || deletingCourseId !== null) {
-      return;
-    }
-
+  const handleCourseDelete = (courseId: number, courseName: string) => {
     if (
-      !window.confirm(`“${courseName}” 코스를 삭제하시겠습니까? 삭제한 코스는 복구할 수 없습니다.`)
-    ) {
+      saveLock.current ||
+      !window.confirm(`“${courseName}” 코스를 삭제할까요? 변경사항 저장 시 반영됩니다.`)
+    )
       return;
-    }
-
-    setDeletingCourseId(courseId);
     clearFeedback();
-
-    try {
-      await deleteAdminCourse(courseId);
-      await refreshCourses(selectedEventId, true);
-      showSuccess('코스가 삭제되었습니다.');
-    } catch (error: unknown) {
-      showError(getApiErrorMessage(error, '코스를 삭제하지 못했습니다.'));
-    } finally {
-      setDeletingCourseId(null);
-    }
+    setCourseForms((current) => current.filter((course) => course.courseId !== courseId));
   };
 
   // 코스 표시 순서 drag: 로컬 상태만 바꾸고, "변경사항 저장"을 눌러야 서버에 반영됩니다.
@@ -826,7 +817,7 @@ function AdminEventSettingsPage() {
           <button
             type="button"
             className="admin-event-settings__secondary-button"
-            disabled={isSavingEvent || isDeletingEvent}
+            disabled={isSavingEvent}
             onClick={handleCreateEventStart}
           >
             새 행사
@@ -835,34 +826,46 @@ function AdminEventSettingsPage() {
       </section>
 
       {(editingEvent || isCreatingEvent) && (
-        <div
-          className={`admin-event-settings__editing-context ${isCreatingEvent ? 'is-new' : ''}`}
-          aria-live="polite"
-        >
-          <div className="admin-event-settings__editing-context-info">
-            <span>
-              {isCreatingEvent ? '새 행사 작성 중' : fieldsLocked ? '조회 모드' : '수정 모드'}
-            </span>
-            <strong>{isCreatingEvent ? '아직 저장되지 않은 새 행사' : editingEvent?.title}</strong>
-            <small>
-              {isCreatingEvent
-                ? '저장하기 전까지 기존 행사에는 영향을 주지 않습니다.'
-                : fieldsLocked
-                  ? '값을 바꾸려면 "설정 수정"을 누르세요.'
-                  : `${EVENT_STATUS_LABELS[editingEvent!.status]} · 행사와 아래 코스는 모두 이 행사에만 적용됩니다.`}
-            </small>
+        <div className={`admin-event-settings__action-bar${!fieldsLocked ? ' is-editing' : ''}`}>
+          <div className="admin-event-settings__action-title">
+            <strong>{isCreatingEvent ? '새 행사' : editingEvent?.title}</strong>
+            <EventStatusIndicator status={isCreatingEvent ? null : editingEvent!.status} />
           </div>
-
-          {!isCreatingEvent && fieldsLocked && (
-            <button
-              type="button"
-              className="admin-event-settings__save-button admin-event-settings__edit-entry-button"
-              disabled={isEventDetailLoading || selectedEventId === null}
-              onClick={handleEnterEditMode}
-            >
-              설정 수정
-            </button>
-          )}
+          <div className="admin-event-settings__event-actions">
+            {fieldsLocked ? (
+              <button
+                type="button"
+                className="admin-event-settings__save-button"
+                disabled={isEventDetailLoading || selectedEventId === null}
+                onClick={handleEnterEditMode}
+              >
+                설정 수정
+              </button>
+            ) : (
+              <>
+                {(!isCreatingEvent || events.length > 0) && (
+                  <button
+                    type="button"
+                    className="admin-event-settings__secondary-button"
+                    disabled={isSavingEvent}
+                    onClick={isCreatingEvent ? handleCreateEventCancel : handleCancelEditMode}
+                  >
+                    취소
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  form="admin-event-settings-form"
+                  className="admin-event-settings__save-button"
+                  disabled={
+                    isSavingEvent || isEventDetailLoading || isCoursesLoading || !hasUnsavedChanges
+                  }
+                >
+                  {isSavingEvent ? '저장 중…' : isCreatingEvent ? '행사 생성' : '변경사항 저장'}
+                </button>
+              </>
+            )}
+          </div>
         </div>
       )}
 
@@ -888,7 +891,18 @@ function AdminEventSettingsPage() {
           </button>
         </div>
       ) : (
-        <form className="admin-event-settings__form" noValidate onSubmit={handleEventSubmit}>
+        <form
+          id="admin-event-settings-form"
+          inert={isSavingEvent}
+          aria-busy={isSavingEvent}
+          className="admin-event-settings__form"
+          noValidate
+          onSubmit={handleEventSubmit}
+          onInvalidCapture={(event) => {
+            if ((event.target as HTMLElement).closest('#event-contact-panel')) setContactOpen(true);
+            if ((event.target as HTMLElement).closest('#event-courses-panel')) setCoursesOpen(true);
+          }}
+        >
           <section className="admin-event-settings__panel" aria-labelledby="eventBasicTitle">
             <div className="admin-event-settings__section-heading">
               <div>
@@ -1094,12 +1108,17 @@ function AdminEventSettingsPage() {
             </div>
           </section>
 
-          <section className="admin-event-settings__panel" aria-labelledby="eventContactTitle">
-            <div className="admin-event-settings__section-heading">
+          <details
+            id="event-contact-panel"
+            className="admin-event-settings__panel admin-event-settings__disclosure"
+            open={contactOpen}
+            onToggle={(event) => setContactOpen(event.currentTarget.open)}
+          >
+            <summary className="admin-event-settings__section-heading">
               <div>
                 <h2 id="eventContactTitle">문의 채널 설정</h2>
               </div>
-            </div>
+            </summary>
 
             {/* 카카오 오픈채팅 URL은 입력란을 두지 않지만, 저장된 값은 eventForm에 그대로 두어 저장 시 함께 보냅니다(행사 설명과 같음). */}
             <fieldset
@@ -1125,7 +1144,7 @@ function AdminEventSettingsPage() {
                 />
               </label>
             </fieldset>
-          </section>
+          </details>
 
           {isCreatingEvent && (
             <div className="admin-event-settings__default-courses-notice">
@@ -1143,13 +1162,17 @@ function AdminEventSettingsPage() {
           )}
 
           {!isCreatingEvent && selectedEventId !== null && (
-            <section
-              className="admin-event-settings__panel admin-event-settings__courses-panel"
-              aria-labelledby="courseStandardsTitle"
+            <details
+              id="event-courses-panel"
+              className="admin-event-settings__panel admin-event-settings__courses-panel admin-event-settings__disclosure"
+              open={coursesOpen}
+              onToggle={(event) => setCoursesOpen(event.currentTarget.open)}
             >
+              <summary className="admin-event-settings__section-heading">
+                <h2 id="courseStandardsTitle">{editingEvent?.title} 코스 기준·보상 설정</h2>
+              </summary>
               <div className="admin-event-settings__section-heading">
                 <div>
-                  <h2 id="courseStandardsTitle">{editingEvent?.title} 코스 기준·보상 설정</h2>
                   <p>
                     아래 변경사항은 현재 선택된 {editingEvent?.roundNo}회 행사에만 적용되며, 코스
                     내용과 순서는 "변경사항 저장"을 눌러야 반영됩니다.
@@ -1159,7 +1182,7 @@ function AdminEventSettingsPage() {
                   <button
                     type="button"
                     className="admin-event-settings__secondary-button"
-                    disabled={isCoursesLoading || isCreatingCourse}
+                    disabled={isCoursesLoading || isSavingEvent}
                     onClick={() => {
                       clearFeedback();
                       setNewCourseForm({
@@ -1285,10 +1308,10 @@ function AdminEventSettingsPage() {
                                   <button
                                     type="button"
                                     className="admin-event-settings__danger-button"
-                                    disabled={deletingCourseId !== null}
+                                    disabled={isSavingEvent}
                                     onClick={() => handleCourseDelete(courseId, form.name)}
                                   >
-                                    {deletingCourseId === courseId ? '삭제 중…' : '삭제'}
+                                    삭제
                                   </button>
                                 )}
                               </td>
@@ -1317,7 +1340,7 @@ function AdminEventSettingsPage() {
                                 <button
                                   type="button"
                                   className="admin-event-settings__secondary-button"
-                                  disabled={isCreatingCourse}
+                                  disabled={isSavingEvent}
                                   onClick={() => setIsAddingCourse(false)}
                                 >
                                   취소
@@ -1325,10 +1348,10 @@ function AdminEventSettingsPage() {
                                 <button
                                   type="button"
                                   className="admin-event-settings__save-button"
-                                  disabled={isCreatingCourse}
+                                  disabled={isSavingEvent}
                                   onClick={handleCreateCourse}
                                 >
-                                  {isCreatingCourse ? '생성 중…' : '코스 생성'}
+                                  코스 추가
                                 </button>
                               </td>
                             </tr>
@@ -1339,53 +1362,8 @@ function AdminEventSettingsPage() {
                   )}
                 </>
               )}
-            </section>
+            </details>
           )}
-
-          <div className="admin-event-settings__form-footer">
-            <div className="admin-event-settings__event-actions">
-              {!isCreatingEvent && selectedEventId !== null && !fieldsLocked && (
-                <button
-                  type="button"
-                  className="admin-event-settings__secondary-button"
-                  disabled={isSavingEvent}
-                  onClick={handleCancelEditMode}
-                >
-                  취소
-                </button>
-              )}
-              {!isCreatingEvent && selectedEventId !== null && (
-                <button
-                  type="button"
-                  className="admin-event-settings__danger-button"
-                  disabled={isDeletingEvent || isSavingEvent}
-                  onClick={handleEventDelete}
-                >
-                  {isDeletingEvent ? '보관 중…' : '행사 보관'}
-                </button>
-              )}
-              {isCreatingEvent && events.length > 0 && (
-                <button
-                  type="button"
-                  className="admin-event-settings__secondary-button"
-                  disabled={isSavingEvent}
-                  onClick={handleCreateEventCancel}
-                >
-                  취소
-                </button>
-              )}
-            </div>
-
-            {(isCreatingEvent || !fieldsLocked) && (
-              <button
-                type="submit"
-                className="admin-event-settings__save-button"
-                disabled={isSavingEvent || isEventDetailLoading}
-              >
-                {isSavingEvent ? '저장 중…' : isCreatingEvent ? '행사 생성' : '변경사항 저장'}
-              </button>
-            )}
-          </div>
         </form>
       )}
 

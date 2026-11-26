@@ -61,14 +61,6 @@ export async function updateAdminEvent(eventId: number, request: UpdateEventRequ
   return apiRequest<AdminEvent>(`${ADMIN_EVENTS_PATH}/${eventId}`, jsonOptions('PATCH', request));
 }
 
-export async function deleteAdminEvent(eventId: number, confirmed = false) {
-  validateId(eventId, '행사');
-
-  await apiRequest<null>(`${ADMIN_EVENTS_PATH}/${eventId}?confirmed=${confirmed}`, {
-    method: 'DELETE',
-  });
-}
-
 export async function getAdminEventCourses(eventId: number) {
   validateId(eventId, '행사');
 

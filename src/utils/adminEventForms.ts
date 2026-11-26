@@ -449,11 +449,18 @@ export function getCourseFormChanges(
   before: ReadonlyArray<{ courseId: number; form: CourseForm }>,
   after: ReadonlyArray<{ courseId: number; form: CourseForm }>,
 ): FormChange[] {
-  return after.flatMap(({ courseId, form }) => {
+  const changed = after.flatMap(({ courseId, form }) => {
     const saved = before.find((course) => course.courseId === courseId)?.form;
 
     if (!saved) {
-      return [];
+      return [
+        {
+          scope: form.name || '코스',
+          label: '코스 추가',
+          before: '없음',
+          after: form.name || '새 코스',
+        },
+      ];
     }
 
     return (Object.keys(COURSE_FIELD_LABELS) as (keyof CourseForm)[])
@@ -469,4 +476,15 @@ export function getCourseFormChanges(
             : undefined,
       }));
   });
+  return [
+    ...changed,
+    ...before
+      .filter((course) => !after.some((item) => item.courseId === course.courseId))
+      .map((course) => ({
+        scope: course.form.name || '코스',
+        label: '코스 삭제',
+        before: course.form.name || '코스',
+        after: '삭제',
+      })),
+  ];
 }

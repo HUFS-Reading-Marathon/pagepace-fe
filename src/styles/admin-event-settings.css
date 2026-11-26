@@ -1179,3 +1179,84 @@
     margin-inline: 16px;
   }
 }
+
+.admin-event-settings__action-bar {
+  display: flex;
+  min-width: 0;
+  margin-block: 18px;
+  padding: 14px 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.admin-event-settings__action-bar.is-editing {
+  position: sticky;
+  top: var(--admin-header-height, 45px);
+  z-index: 20;
+}
+
+.admin-event-settings__action-title {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.admin-event-settings__action-title > strong {
+  color: var(--navy-deep);
+  font-size: 16px;
+}
+
+.admin-event-settings__action-title .admin-event-status__line {
+  margin: 0;
+}
+
+.admin-event-settings__action-title .admin-event-status__note {
+  display: none;
+}
+
+.admin-event-settings__disclosure > summary {
+  margin-bottom: 0;
+  cursor: pointer;
+  list-style: none;
+}
+
+.admin-event-settings__disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-event-settings__disclosure > summary::after {
+  content: '⌄';
+  margin-left: auto;
+  color: var(--navy-strong);
+}
+
+.admin-event-settings__disclosure[open] > summary {
+  margin-bottom: 18px;
+}
+
+.admin-event-settings__disclosure[open] > summary::after {
+  content: '⌃';
+}
+
+.admin-event-settings__disclosure > summary:focus-visible {
+  outline: 2px solid var(--navy-strong);
+  outline-offset: 4px;
+}
+
+@media (max-width: 700px) {
+  .admin-event-settings__action-bar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .admin-event-settings__action-bar .admin-event-settings__event-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
