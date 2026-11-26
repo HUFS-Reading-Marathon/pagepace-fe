@@ -1,3 +1,4 @@
+import ContentSkeleton from '../../components/layout/ContentSkeleton';
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { getApiErrorMessage } from '../../api/apiClient';
@@ -87,7 +88,8 @@ function NoticeEditor({
   const [dirty, setDirty] = useState(false);
   const [mode, setMode] = useState<'write' | 'preview'>('write');
   const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [publishing, setPublishing] = useState<boolean | null>(null);
+  const busy = publishing !== null;
   const lock = useRef(false);
   useLeaveGuard(dirty && !busy);
 
@@ -113,7 +115,7 @@ function NoticeEditor({
       !window.confirm('공지사항을 게시할까요? 모든 방문자가 볼 수 있습니다.')
     )
       return;
-    setBusy(true);
+    setPublishing(visible);
     lock.current = true;
     setError('');
     try {
@@ -126,7 +128,7 @@ function NoticeEditor({
       setError(getApiErrorMessage(e, '공지사항을 저장하지 못했습니다.'));
     } finally {
       lock.current = false;
-      setBusy(false);
+      setPublishing(null);
     }
   }
   const submit = (event: FormEvent) => {
@@ -220,18 +222,20 @@ function NoticeEditor({
         <button
           type="button"
           className="admin-button"
+          aria-busy={publishing === false}
           disabled={busy}
           onClick={() => void save(false)}
         >
-          {notice?.visible ? '비공개로 전환' : '비공개로 저장'}
+          {publishing === false ? '저장 중…' : notice?.visible ? '비공개로 전환' : '비공개로 저장'}
         </button>
         <button
           type="button"
           className="admin-button admin-button--primary"
+          aria-busy={publishing === true}
           disabled={busy}
           onClick={() => void save(true)}
         >
-          {notice?.visible ? '변경사항 게시' : '게시하기'}
+          {publishing === true ? '게시 중…' : notice?.visible ? '변경사항 게시' : '게시하기'}
         </button>
       </div>
     </form>
@@ -241,6 +245,8 @@ type NoticeFilter = 'ALL' | 'visible' | 'hidden';
 export default function AdminNoticesPage() {
   const [params, setParams] = useSearchParams();
   const edit = params.get('edit');
+  const [deleting, setDeleting] = useState<number | null>(null);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -253,6 +259,7 @@ export default function AdminNoticesPage() {
     getAdminNotices()
       .then((all) => {
         if (active) {
+          setHasLoaded(true);
           setNotices(all);
           setError('');
         }
@@ -272,13 +279,17 @@ export default function AdminNoticesPage() {
     setVersion((v) => v + 1);
   }
   async function remove(item: Notice) {
-    if (!window.confirm('“' + item.title + '” 공지를 삭제할까요?')) return;
+    if (loading || deleting !== null || !window.confirm('“' + item.title + '” 공지를 삭제할까요?'))
+      return;
     try {
+      setDeleting(item.noticeId);
       await deleteAdminNotice(item.noticeId);
       refresh();
       setFeedback('공지를 삭제했습니다.');
     } catch (e) {
       setError(getApiErrorMessage(e, '공지를 삭제하지 못했습니다.'));
+    } finally {
+      setDeleting(null);
     }
   }
   const editing = notices.find((n) => String(n.noticeId) === edit);
@@ -341,11 +352,13 @@ export default function AdminNoticesPage() {
                 setFeedback(visible ? '공지를 게시했습니다.' : '비공개로 저장했습니다.');
               }}
             />
+          ) : loading ? (
+            <ContentSkeleton variant="form" label="공지를 불러오는 중입니다." />
           ) : (
-            <p role="status">{loading ? '불러오는 중입니다.' : '찾을 수 없는 공지입니다.'}</p>
+            <p role="status">찾을 수 없는 공지입니다.</p>
           )
         ) : (
-          <section className="admin-notices__list">
+          <section className="admin-notices__list" aria-busy={loading}>
             <header>
               <h2>등록된 공지</h2>
               <span>{filtered.length}건</span>
@@ -377,8 +390,8 @@ export default function AdminNoticesPage() {
                 onChange={(e) => setQuery(e.target.value)}
               />
             </div>
-            {loading ? (
-              <p className="admin-notices__empty">불러오는 중입니다.</p>
+            {loading && !hasLoaded ? (
+              <ContentSkeleton variant="list" label="공지를 불러오는 중입니다." />
             ) : filtered.length ? (
               filtered.map((n) => (
                 <article key={n.noticeId} className={n.visible ? '' : 'is-hidden'}>
@@ -396,8 +409,13 @@ export default function AdminNoticesPage() {
                   <div>
                     {n.visible && <Link to={'/notices/' + n.noticeId}>게시 화면</Link>}
                     <Link to={'?edit=' + n.noticeId}>수정</Link>
-                    <button type="button" onClick={() => void remove(n)}>
-                      삭제
+                    <button
+                      type="button"
+                      disabled={loading || deleting !== null}
+                      aria-busy={deleting === n.noticeId}
+                      onClick={() => void remove(n)}
+                    >
+                      {deleting === n.noticeId ? '삭제 중…' : '삭제'}
                     </button>
                   </div>
                 </article>

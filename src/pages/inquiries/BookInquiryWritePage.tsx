@@ -1,3 +1,4 @@
+import ContentSkeleton from '../../components/layout/ContentSkeleton';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { isAdminRole, useAuth } from '../../auth';
@@ -147,7 +148,7 @@ export default function BookInquiryWritePage() {
       <UserPageHeader title="도서 문의 작성" />
 
       {!loaded ? (
-        <p className="inquiry-board__message">참가 정보를 확인하는 중입니다.</p>
+        <ContentSkeleton variant="form" label="참가 정보를 확인하는 중입니다." />
       ) : loaded.error ? (
         <p className="inquiry-board__message" role="alert">
           {loaded.error}{' '}

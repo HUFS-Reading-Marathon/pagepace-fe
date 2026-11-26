@@ -1,3 +1,4 @@
+import ContentSkeleton from '../../layout/ContentSkeleton';
 import ColumnResizeHandle from '../table/ColumnResizeHandle';
 import SortHeaderButton from '../table/SortHeaderButton';
 import { useColumnSizing, CHECK_WIDTH } from '../table/tableColumns';
@@ -21,6 +22,7 @@ type Props = {
   sort: RosterSort;
   onSort: (column: RosterSort['column']) => void;
   busy: boolean;
+  initialLoading?: boolean;
   message: string;
 };
 
@@ -32,6 +34,7 @@ export default function ParticipantTable({
   sort,
   onSort,
   busy,
+  initialLoading,
   message,
 }: Props) {
   const { container, viewport, custom, resize, resetWidth } = useColumnSizing<RosterColumn>();
@@ -89,7 +92,7 @@ export default function ParticipantTable({
           {message ? (
             <tr>
               <td colSpan={columns.length + 1} className="roster-empty">
-                {message}
+                {initialLoading ? <ContentSkeleton variant="table" label={message} /> : message}
               </td>
             </tr>
           ) : (

@@ -1,3 +1,4 @@
+import ContentSkeleton from '../../components/layout/ContentSkeleton';
 import { useEffect, useRef, useState } from 'react';
 import { getApiErrorMessage } from '../../api/apiClient';
 import { useAuth } from '../../auth';
@@ -105,6 +106,7 @@ function MarathonStatusPage() {
   const [summary, setSummary] = useState<EventSummary | null>(null);
   const [mine, setMine] = useState<{
     owner: number;
+    eventId: number;
     participationId?: number;
     rank?: number;
     distance: number;
@@ -193,6 +195,7 @@ function MarathonStatusPage() {
         if (!active) return;
         setMine({
           owner: user.userId,
+          eventId: event.eventId,
           participationId: participation?.participationId,
           rank: courseRankings.find((row) => row.participationId === participation?.participationId)
             ?.rank,
@@ -238,10 +241,11 @@ function MarathonStatusPage() {
     }
   };
 
-  const isReady = loadState === 'ready';
+  const isReady = loadState === 'ready' || loadState === 'refreshing';
   const isLoading = loadState === 'initial' || loadState === 'refreshing';
 
-  const isMine = isAuthenticated && !!user && mine?.owner === user.userId;
+  const isMine =
+    isAuthenticated && !!user && mine?.owner === user.userId && mine.eventId === event?.eventId;
   // 다른 참가자의 이름은 가리고 학번은 지웁니다. 본인 행은 인증된 사용자의 참가 ID로 찾아 본인 이름을 보여 줍니다.
   const displayedRankings = maskPublicRankings(
     rankings,
@@ -267,13 +271,18 @@ function MarathonStatusPage() {
               <label htmlFor="statusEventFilter">행사</label>
               <select
                 id="statusEventFilter"
-                value={event?.eventId ?? ''}
+                value={event?.eventId ?? chosenEventId ?? ''}
                 disabled={isLoading}
                 onChange={(e) => {
                   const id = Number(e.target.value);
                   selectEvent('public', id);
                   setChosenEventId(id);
                   setMine(null);
+                  setPersonalError('');
+                  setEvent(null);
+                  setUpdatedAt(null);
+                  setCourses([]);
+                  setSelectedCourseId(undefined);
                   setLoadState('initial');
                 }}
               >
@@ -341,7 +350,7 @@ function MarathonStatusPage() {
             <select
               id={COURSE_FILTER_ID}
               value={selectedCourseId ?? ''}
-              disabled={!event}
+              disabled={!event || loadState === 'initial'}
               onChange={(changeEvent) =>
                 void handleCourseChange(
                   changeEvent.target.value ? Number(changeEvent.target.value) : undefined,
@@ -379,8 +388,8 @@ function MarathonStatusPage() {
         </p>
 
         <div aria-live="polite" aria-busy={isLoading}>
-          {isLoading ? (
-            <div className="ranking-empty">대회 현황을 불러오고 있습니다.</div>
+          {loadState === 'initial' ? (
+            <ContentSkeleton variant="table" label="대회 현황을 불러오고 있습니다." />
           ) : loadState === 'empty' ? (
             <div className="ranking-empty">공개된 대회 현황이 없습니다.</div>
           ) : loadState === 'error' ? (

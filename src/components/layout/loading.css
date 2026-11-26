@@ -1,0 +1,91 @@
+/* 본문이 마운트될 때만 적용해 검색·쪽 변경 시에는 다시 시작하지 않습니다. */
+@media (prefers-reduced-motion: no-preference) {
+  #root > main,
+  .admin-layout__main > section {
+    animation: pagepace-content-enter 180ms ease-out;
+  }
+}
+
+@keyframes pagepace-content-enter {
+  from {
+    opacity: 0.84;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.content-skeleton {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding-block: 1rem;
+}
+
+.content-skeleton__layout {
+  display: grid;
+  gap: 1rem;
+  /* 빠르게 완료되는 요청도 자리는 확보하고 시각적 표시만 지연합니다. */
+  animation: skeleton-appear 1ms 160ms backwards;
+}
+
+.content-skeleton__layout > div {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.content-skeleton__layout i {
+  display: block;
+  min-width: 0;
+  height: 100%;
+  border-radius: 4px;
+  background-color: #e7edf2;
+}
+
+.content-skeleton__row {
+  height: 2.5rem;
+}
+.content-skeleton__columns {
+  height: 1.75rem;
+  grid-template-columns: 1fr 3fr 1fr;
+}
+.content-skeleton__metrics {
+  height: 5rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.content-skeleton__heading {
+  height: 2rem;
+  width: 54%;
+}
+.content-skeleton__block {
+  height: 6rem;
+}
+.content-skeleton__field {
+  height: 3rem;
+}
+.content-skeleton__action {
+  height: 2.5rem;
+  width: min(9rem, 40%);
+  justify-self: end;
+}
+
+@keyframes skeleton-appear {
+  from {
+    visibility: hidden;
+  }
+  to {
+    visibility: visible;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .content-skeleton__layout i {
+    animation: skeleton-pulse 1.6s ease-in-out 160ms infinite alternate;
+  }
+}
+
+@keyframes skeleton-pulse {
+  to {
+    opacity: 0.58;
+  }
+}

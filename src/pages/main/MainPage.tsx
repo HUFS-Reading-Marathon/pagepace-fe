@@ -1,3 +1,4 @@
+import ContentSkeleton from '../../components/layout/ContentSkeleton';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth';
@@ -85,7 +86,9 @@ function MainPage() {
   const { user, isAuthenticated, isInitializing } = useAuth();
   const displayName = user?.name || '참가자';
   const { currentEvent, eventCourses, eventError } = useCurrentEventInfo();
-  const [myParticipation, setMyParticipation] = useState<MyParticipation | null>(null);
+  const owner = user?.userId;
+  const [record, setRecord] = useState<{ owner: number; participation: MyParticipation | null }>();
+  const myParticipation = record && record.owner === owner ? record.participation : null;
   const [approvedLogs, setApprovedLogs] = useState(0);
   const [lastSubmittedAt, setLastSubmittedAt] = useState('-');
   const [notices, setNotices] = useState<Notice[]>([]);
@@ -109,12 +112,14 @@ function MainPage() {
   }, []);
 
   useEffect(() => {
-    if (isInitializing || !isAuthenticated) return;
+    if (isInitializing || !isAuthenticated || owner === undefined) return;
     let active = true;
     getCurrentParticipation()
       .then(async (participation) => {
         if (!active) return;
-        setMyParticipation(participation);
+        setRecord({ owner, participation });
+        setApprovedLogs(0);
+        setLastSubmittedAt('-');
         const logs = await getMyReadingLogs(participation.participationId);
         if (!active) return;
         setApprovedLogs(logs.filter((log) => log.status === 'APPROVED').length);
@@ -125,11 +130,16 @@ function MainPage() {
           })(),
         );
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (active)
+          setRecord((current) =>
+            current?.owner === owner ? current : { owner, participation: null },
+          );
+      });
     return () => {
       active = false;
     };
-  }, [isAuthenticated, isInitializing, user?.userId]);
+  }, [isAuthenticated, isInitializing, owner]);
 
   const eventTitle = currentEvent?.title ?? '독서마라톤';
   const registeredPoster = posterForRound(currentEvent?.roundNo);
@@ -267,7 +277,14 @@ function MainPage() {
             className="hero-visual"
             aria-label={showMyRecord ? '나의 독서마라톤 기록' : '독서마라톤 운영 정보'}
           >
-            {showMyRecord ? (
+            {isInitializing || (isAuthenticated && record?.owner !== owner) ? (
+              <div className="status-board">
+                <ContentSkeleton
+                  variant="stats"
+                  label="나의 독서마라톤 기록을 확인하고 있습니다."
+                />
+              </div>
+            ) : showMyRecord ? (
               <MyRecordDashboard record={myRecord} />
             ) : (
               <EventStatusBoard

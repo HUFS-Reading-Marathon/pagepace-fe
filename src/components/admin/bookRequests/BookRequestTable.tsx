@@ -1,3 +1,4 @@
+import ContentSkeleton from '../../layout/ContentSkeleton';
 import type { BookRequest } from '../../../api/bookRequestApi';
 import { formatKoDateTime24 } from '../../../utils/date';
 import SortHeaderButton from '../table/SortHeaderButton';
@@ -189,7 +190,7 @@ export default function BookRequestTable({
             {loading || !rows.length ? (
               <tr data-locked="">
                 <td colSpan={COLUMNS.length} className="roster-empty">
-                  {emptyText}
+                  {loading ? <ContentSkeleton variant="table" label={emptyText} /> : emptyText}
                 </td>
               </tr>
             ) : (

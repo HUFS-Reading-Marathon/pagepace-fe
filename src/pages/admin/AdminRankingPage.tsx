@@ -1,3 +1,4 @@
+import ContentSkeleton from '../../components/layout/ContentSkeleton';
 import { preferredAdminEvent } from '../../utils/eventSelection';
 import { useAdminEventState } from '../../hooks/useAdminEventState';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -25,6 +26,7 @@ function AdminRankingPage() {
   const [courseId, setCourseId] = useState<number | undefined>();
   const [sort, setSort] = useState<AdminCompetitionSortOption>('distance-desc');
   const [rankings, setRankings] = useState<Ranking[]>([]);
+  const [hasResult, setHasResult] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -56,15 +58,16 @@ function AdminRankingPage() {
         setCourseId(undefined);
         setSort('distance-desc');
         setRankings(nextRankings);
+        setHasResult(true);
         setError('');
       })
       .catch((requestError: unknown) => {
-        if (active) {
+        if (active && sequence.current === request) {
           setError(getApiErrorMessage(requestError, RANKING_ERROR_MESSAGE));
         }
       })
       .finally(() => {
-        if (active) {
+        if (active && sequence.current === request) {
           setIsLoading(false);
         }
       });
@@ -103,6 +106,7 @@ function AdminRankingPage() {
       ),
     [rankings, sort],
   );
+  const initialLoading = isLoading && !hasResult;
   const leaders = rankings.filter((row) => row.rank === 1);
 
   const selectedEvent = events.find((event) => event.eventId === eventId);
@@ -121,11 +125,11 @@ function AdminRankingPage() {
             · 최고 인정 거리
           </span>
           <strong>
-            {isLoading || error || !leaders.length
+            {initialLoading || error || !leaders.length
               ? '—'
               : formatStatusDistance(leaders[0].distance)}
           </strong>
-          {!isLoading && !error && leaders.length > 0 && (
+          {!initialLoading && !error && leaders.length > 0 && (
             <small>
               {leaders.length === 1 ? `1위 ${leaders[0].name}` : `공동 1위 ${leaders.length}명`}
             </small>
@@ -142,6 +146,8 @@ function AdminRankingPage() {
               ++sequence.current;
               setCourses([]);
               setRankings([]);
+              setCourseId(undefined);
+              setHasResult(false);
               setIsLoading(true);
               setEventId(Number(event.target.value));
             }}
@@ -189,12 +195,23 @@ function AdminRankingPage() {
           </span>
         </div>
       </section>
-      {isLoading ? (
-        <div className="ranking-empty">랭킹을 집계하고 있습니다.</div>
-      ) : error ? (
-        <div className="ranking-empty is-error">{error}</div>
+      {initialLoading ? (
+        <ContentSkeleton variant="table" label="랭킹을 집계하고 있습니다." />
       ) : (
-        <RankingBoard rankings={orderedRankings} eventStatus={selectedEvent?.status} showIdentity />
+        <>
+          {error && (
+            <div className="ranking-empty is-error" role="alert">
+              {error}
+            </div>
+          )}
+          {hasResult && (
+            <RankingBoard
+              rankings={orderedRankings}
+              eventStatus={selectedEvent?.status}
+              showIdentity
+            />
+          )}
+        </>
       )}
     </section>
   );

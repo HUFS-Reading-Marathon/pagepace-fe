@@ -1,3 +1,4 @@
+import ContentSkeleton from '../../components/layout/ContentSkeleton';
 import { useEffect, useId, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getApiErrorMessage } from '../../api/apiClient';
@@ -154,7 +155,7 @@ export default function UserBookInquiryList({
           </button>
         </p>
       ) : !listing || !current?.data ? (
-        <p className="inquiry-board__message">도서 문의 내역을 불러오는 중입니다.</p>
+        <ContentSkeleton variant="list" label="도서 문의 내역을 불러오는 중입니다." />
       ) : (
         <>
           <p className="book-inquiry__event">{current.data.eventTitle}</p>
