@@ -1,7 +1,30 @@
+/*
+ * 문의·FAQ 관리의 도서 문의 탭 머리: 탭 줄 바로 아래에 안내 문구(왼쪽)와 관리 행사 선택(오른쪽)을 한 줄로.
+ * 탭 줄에 이미 아래 선이 있으므로 .roster-heading의 아래 선·여백은 쓰지 않습니다.
+ */
+.book-request-tab-heading {
+  margin-bottom: 14px;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.book-request-tab-lead {
+  max-width: 640px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 /* 도서 확인 요청 목록: 독서일지 검토·서평 개별 확인 표(roster-table)와 같은 모양 */
 .book-request-list {
-  margin-top: 12px;
+  margin-top: 0;
   font-variant-numeric: tabular-nums;
+}
+
+/* 표 위의 굵은(2px) 줄 대신 머리 칸과 같은 가는 선 */
+.book-request-list .roster-scroll {
+  border-top: 1px solid #cbd3dd;
 }
 
 .book-request-list__table {

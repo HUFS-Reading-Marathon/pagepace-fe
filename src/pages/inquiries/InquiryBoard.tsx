@@ -224,6 +224,7 @@ export default function InquiryBoard({ admin = false }: { admin?: boolean }) {
   }
   const Section = admin ? 'section' : 'main';
   const books = admin && view === 'books';
+  const faq = admin && view === 'faq';
   return (
     <Section
       id={admin ? undefined : 'main'}
@@ -232,7 +233,7 @@ export default function InquiryBoard({ admin = false }: { admin?: boolean }) {
         books
           ? 'admin-page qa-board-books'
           : admin
-            ? 'admin-page qa-board'
+            ? `admin-page qa-board${faq ? ' qa-board--faq' : ''}`
             : 'wrap qa-board qa-public'
       }
     >
@@ -240,36 +241,28 @@ export default function InquiryBoard({ admin = false }: { admin?: boolean }) {
         <div>
           <h1>{admin ? '문의·FAQ 관리' : '문의 게시판'}</h1>
         </div>
-        {admin
-          ? view === 'faq' && (
-              <button
-                className="btn btn-primary"
-                onClick={() => setEditor({ type: 'faq', item: null })}
-              >
-                자주 묻는 질문 작성
-              </button>
-            )
-          : !isInitializing &&
-            (user && !isAdminRole(user.role) ? (
-              <button
-                className="btn btn-primary"
-                onClick={() => setEditor({ type: 'ask', item: null })}
-              >
-                문의 작성
-              </button>
-            ) : user ? (
-              <Link to="/admin/inquiries" className="btn btn-secondary">
-                문의 관리
-              </Link>
-            ) : (
-              <Link
-                to="/login"
-                state={{ from: '/inquiries?view=mine' }}
-                className="btn btn-secondary"
-              >
-                로그인 후 문의
-              </Link>
-            ))}
+        {!admin &&
+          !isInitializing &&
+          (user && !isAdminRole(user.role) ? (
+            <button
+              className="btn btn-primary"
+              onClick={() => setEditor({ type: 'ask', item: null })}
+            >
+              문의 작성
+            </button>
+          ) : user ? (
+            <Link to="/admin/inquiries" className="btn btn-secondary">
+              문의 관리
+            </Link>
+          ) : (
+            <Link
+              to="/login"
+              state={{ from: '/inquiries?view=mine' }}
+              className="btn btn-secondary"
+            >
+              로그인 후 문의
+            </Link>
+          ))}
       </header>
       <nav className="qa-tabs" aria-label="문의 목록 선택">
         {tabs.map((t) => (
@@ -278,6 +271,15 @@ export default function InquiryBoard({ admin = false }: { admin?: boolean }) {
           </button>
         ))}
       </nav>
+      {faq && (
+        <p className="qa-faq-info">
+          <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+            <circle cx="10" cy="10" r="7.25" />
+            <path d="M10 9v5M10 6v.2" />
+          </svg>
+          공개로 설정한 자주 묻는 질문은 사용자 문의 게시판에 표시됩니다.
+        </p>
+      )}
       {books ? (
         <AdminBookRequestsPanel />
       ) : (
@@ -307,18 +309,44 @@ export default function InquiryBoard({ admin = false }: { admin?: boolean }) {
                   change(view, 0, String(new FormData(e.currentTarget).get('q') ?? '').trim());
                 }}
               >
-                <input
-                  type="search"
-                  aria-label="질문 또는 답변 검색"
-                  name="q"
-                  maxLength={160}
-                  defaultValue={q}
-                  placeholder="질문 또는 답변 검색"
-                />
+                {faq ? (
+                  <div className="qa-faq-search">
+                    <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                      <circle cx="8.5" cy="8.5" r="5.5" />
+                      <path d="m13 13 4 4" />
+                    </svg>
+                    <input
+                      type="search"
+                      aria-label="질문 또는 답변 검색"
+                      name="q"
+                      maxLength={160}
+                      defaultValue={q}
+                      placeholder="질문 또는 답변 검색"
+                    />
+                  </div>
+                ) : (
+                  <input
+                    type="search"
+                    aria-label="질문 또는 답변 검색"
+                    name="q"
+                    maxLength={160}
+                    defaultValue={q}
+                    placeholder="질문 또는 답변 검색"
+                  />
+                )}
                 <button className="btn btn-secondary">검색</button>
                 {q && (
                   <button type="button" className="btn btn-secondary" onClick={() => change(view)}>
                     초기화
+                  </button>
+                )}
+                {faq && (
+                  <button
+                    type="button"
+                    className="admin-button admin-button--primary qa-faq-register"
+                    onClick={() => setEditor({ type: 'faq', item: null })}
+                  >
+                    + FAQ 등록
                   </button>
                 )}
               </form>
@@ -389,11 +417,21 @@ export default function InquiryBoard({ admin = false }: { admin?: boolean }) {
                           {rows.items.length === 0 && (
                             <tr>
                               <td className="roster-empty" colSpan={view === 'faq' ? 5 : 7}>
-                                {q
-                                  ? '검색 결과가 없습니다.'
-                                  : view === 'pending'
-                                    ? '처리 전 문의가 없습니다.'
-                                    : '등록된 항목이 없습니다.'}
+                                {faq && !q ? (
+                                  <div className="qa-faq-empty">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                      <path d="M5 4.5h14v12H9l-4 3zM8 8.5h8M8 12h5" />
+                                    </svg>
+                                    <strong>등록된 자주 묻는 질문이 없습니다.</strong>
+                                    <p>FAQ를 등록해 자주 받는 질문과 답변을 안내해 주세요.</p>
+                                  </div>
+                                ) : q ? (
+                                  '검색 결과가 없습니다.'
+                                ) : view === 'pending' ? (
+                                  '처리 전 문의가 없습니다.'
+                                ) : (
+                                  '등록된 항목이 없습니다.'
+                                )}
                               </td>
                             </tr>
                           )}

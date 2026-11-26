@@ -21,18 +21,20 @@
   font-weight: var(--admin-fw-medium);
 }
 
-.admin-dashboard__header-meta strong {
-  color: var(--body);
+.admin-dashboard__header-meta .admin-dashboard__updated {
+  color: #687b8d;
   font-size: 12px;
   font-weight: var(--admin-fw-regular);
   line-height: 1.4;
+  white-space: nowrap;
 }
 
 .admin-dashboard__header-meta-row {
   display: flex;
   align-items: center;
+  justify-self: end;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 4px;
 }
 
 .admin-dashboard__event-select {
@@ -43,7 +45,6 @@
 
 .admin-dashboard__event-select select {
   width: min(100%, 360px);
-  /* 옆 새로고침 버튼(32px)과 높이를 맞춥니다. */
   height: 32px;
   padding: 5px 28px 5px 9px;
   border: 1px solid var(--line);
@@ -62,23 +63,24 @@
 
 .admin-dashboard__refresh {
   display: inline-grid;
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   padding: 0;
   place-items: center;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
+  border: 0;
+  border-radius: 4px;
+  background: none;
   color: var(--navy-strong);
   cursor: pointer;
-  transition:
-    border-color 180ms ease,
-    background-color 180ms ease;
+  transition: color 180ms ease;
 }
 
-.admin-dashboard__refresh:hover {
-  border-color: var(--blue-30);
-  background: var(--blue-10);
+.admin-dashboard__refresh:hover:not(:disabled) {
+  color: var(--navy-dark);
+}
+
+.admin-dashboard__refresh:disabled {
+  cursor: default;
 }
 
 .admin-dashboard__refresh:focus-visible {
@@ -87,8 +89,8 @@
 }
 
 .admin-dashboard__refresh-icon {
-  width: 17px;
-  height: 17px;
+  width: 14px;
+  height: 14px;
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
@@ -266,18 +268,35 @@
   background: var(--surface);
 }
 
+/* 요약 카드 전체가 링크: 기존 톤은 유지하고, 마우스 화면에서만 아주 미세하게 떠오릅니다. */
 .admin-dashboard__metric {
   position: relative;
   display: flex;
-  min-height: 198px;
+  min-height: 164px;
   padding: 21px 20px 19px;
   flex-direction: column;
   overflow: hidden;
-  transition: border-color 180ms ease;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform 200ms ease-out,
+    box-shadow 200ms ease-out,
+    border-color 200ms ease-out;
 }
 
-.admin-dashboard__metric:hover {
+@media (hover: hover) and (pointer: fine) {
+  .admin-dashboard__metric:hover {
+    border-color: var(--blue-30);
+    box-shadow: 0 6px 16px rgba(15, 37, 58, 0.06);
+    transform: translateY(-4px);
+  }
+}
+
+.admin-dashboard__metric:focus-visible {
   border-color: var(--blue-30);
+  outline: 3px solid rgba(31, 79, 130, 0.2);
+  outline-offset: 2px;
 }
 
 .admin-dashboard__metric-heading {
@@ -302,13 +321,13 @@
 }
 
 .admin-dashboard__metric-icon svg {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 1.7;
+  stroke-width: 1.6;
 }
 
 .admin-dashboard__metric--green .admin-dashboard__metric-icon {
@@ -348,7 +367,7 @@
 }
 
 .admin-dashboard__metric-description {
-  margin: 7px 0 16px;
+  margin: 7px 0 0;
   color: var(--muted);
   font-size: 12px;
   font-weight: var(--admin-fw-regular);
@@ -389,6 +408,12 @@
   min-height: 0;
   padding: 22px;
   flex-direction: column;
+}
+
+/* 최근 독서 활동·완주 현황: 상하 여백을 줄여 두 카드를 낮고 같은 높이로 맞춥니다. */
+.admin-dashboard__trend,
+.admin-dashboard__course-progress {
+  padding-block: 18px;
 }
 
 .admin-dashboard__card-header {
@@ -436,6 +461,30 @@
   background: var(--line-soft);
 }
 
+.admin-dashboard__sliding-pill {
+  position: relative;
+  isolation: isolate;
+}
+
+.admin-dashboard__pill-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  visibility: hidden;
+  border-radius: 4px;
+  background: var(--surface);
+  box-shadow: 0 1px 4px rgba(26, 72, 115, 0.09);
+  pointer-events: none;
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-dashboard__pill-indicator {
+    transition: none;
+  }
+}
+
 .admin-dashboard__trend-controls button {
   min-height: 29px;
   padding: 4px 9px;
@@ -454,21 +503,19 @@
 }
 
 .admin-dashboard__trend-controls button[aria-pressed='true'] {
-  background: var(--surface);
   color: var(--navy-strong);
-  box-shadow: 0 1px 4px rgba(26, 72, 115, 0.09);
 }
 
 .admin-dashboard__trend-figure {
   position: relative;
   min-width: 0;
-  margin: 14px 0 0;
+  margin: 10px 0 0;
 }
 
 .admin-dashboard__trend-figure svg {
   display: block;
   width: 100%;
-  min-height: 236px;
+  min-height: 190px;
   overflow: visible;
 }
 
@@ -505,8 +552,8 @@
 
 .admin-dashboard__trend-figure figcaption {
   display: flex;
-  margin-top: 4px;
-  padding-top: 12px;
+  margin-top: 2px;
+  padding-top: 10px;
   align-items: center;
   justify-content: flex-start;
   gap: 5px;
@@ -520,68 +567,106 @@
   color: var(--navy-strong);
 }
 
-.admin-dashboard__chart-empty {
+/* 완주 현황: 도넛 + 코스별 슬림 프로그레스바 (장식 없이 네이비 단색, 연한 블루그레이 트랙) */
+.admin-dashboard__course-progress .admin-dashboard__card-header {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.admin-dashboard__donut {
+  position: relative;
+  width: 146px;
+  height: 146px;
+  /* 남는 높이는 도넛 위와 코스 목록 아래로 나눠, 옆 카드와 높이가 달라도 가운데에 모입니다. */
+  margin: auto auto 14px;
+}
+
+.admin-dashboard__donut svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  fill: none;
+  stroke-width: 11;
+}
+
+.admin-dashboard__donut-track {
+  stroke: #e6edf5;
+}
+
+.admin-dashboard__donut-value {
+  stroke: var(--navy-strong);
+  stroke-linecap: round;
+}
+
+.admin-dashboard__donut-center {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  padding: 7px 10px;
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--muted);
-  font-size: 11px;
-  transform: translate(-50%, -50%);
-  white-space: nowrap;
-}
-
-.admin-dashboard__course-list {
-  display: grid;
-  margin: 18px 0 22px;
-  gap: 20px;
-}
-
-.admin-dashboard__course-item {
-  display: grid;
-  gap: 9px;
-}
-
-.admin-dashboard__course-heading {
+  inset: 0;
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.admin-dashboard__donut-center strong {
+  color: var(--navy-deep);
+  font-size: 32px;
+  font-weight: var(--admin-fw-bold);
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-dashboard__donut-center span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.admin-dashboard__course-rates {
+  display: grid;
+  margin: 0 0 auto;
+  padding: 0;
+  gap: 12px;
+  list-style: none;
+}
+
+.admin-dashboard__course-rates li {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-dashboard__course-rates li > div:first-child {
+  display: flex;
+  align-items: baseline;
   justify-content: space-between;
   gap: 12px;
 }
 
-.admin-dashboard__course-heading > strong {
+.admin-dashboard__course-rates li > div:first-child span {
   color: var(--ink);
   font-size: 13px;
 }
 
-.admin-dashboard__course-heading > div {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 7px;
-}
-
-.admin-dashboard__course-heading > div > strong {
+.admin-dashboard__course-rates li > div:first-child strong {
   color: var(--navy-strong);
   font-size: 12px;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-.admin-dashboard__course-heading > div > span {
-  color: var(--muted);
-  font-size: 10px;
-  text-align: right;
-  white-space: nowrap;
+.admin-dashboard__course-bar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e6edf5;
 }
 
-.admin-dashboard__progress-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 44px;
-  align-items: center;
-  gap: 10px;
+.admin-dashboard__course-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--navy-strong);
 }
 
 .admin-dashboard__progress-row progress,
@@ -599,22 +684,6 @@
 .admin-dashboard__affiliation-list progress::-webkit-progress-bar {
   border-radius: 999px;
   background: var(--line-soft);
-}
-
-.admin-dashboard__progress-row progress::-webkit-progress-value {
-  border-radius: 999px;
-  background: var(--green);
-}
-
-.admin-dashboard__progress-row progress::-moz-progress-bar {
-  border-radius: 999px;
-  background: var(--green);
-}
-
-.admin-dashboard__progress-row > strong {
-  color: var(--navy-strong);
-  font-size: 11px;
-  text-align: right;
 }
 
 .admin-dashboard__affiliation-figure {
@@ -688,6 +757,86 @@
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface);
+}
+
+/* 빈 상태: 작은 라인 아이콘 + 제목 + 설명. 테두리·중첩 카드 없이 네이비·블루그레이로 */
+.admin-dashboard__empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--muted);
+}
+
+.admin-dashboard__empty-icon {
+  display: inline-grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--blue-10);
+  color: var(--navy-strong);
+}
+
+.admin-dashboard__empty-icon svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+}
+
+.admin-dashboard__empty-state strong {
+  display: block;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: var(--admin-fw-semibold);
+  line-height: 1.4;
+}
+
+.admin-dashboard__empty-state p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* 화면 상단: 가로 한 줄 */
+.admin-dashboard__empty-state--page {
+  justify-content: flex-start;
+  margin-top: 20px;
+  padding: 14px 18px;
+  border-radius: var(--radius);
+  background: var(--blue-10);
+}
+
+.admin-dashboard__empty-state--page .admin-dashboard__empty-icon {
+  background: var(--surface);
+}
+
+/* 카드 안: 남는 높이의 가운데에 세로로(카드 높이 유지) */
+.admin-dashboard__empty-state--trend,
+.admin-dashboard__empty-state--affiliation {
+  min-height: 160px;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  text-align: center;
+}
+
+.admin-dashboard__course-rates .admin-dashboard__course-none {
+  color: var(--muted);
+  font-weight: var(--admin-fw-regular);
+}
+
+.admin-dashboard__course-none-note {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
 }
 
 .admin-dashboard__enter {
@@ -860,7 +1009,7 @@
   }
 
   .admin-dashboard__metric {
-    min-height: 188px;
+    min-height: 152px;
     padding: 19px 18px 17px;
   }
 
@@ -879,11 +1028,15 @@
   }
 
   .admin-dashboard__trend-figure svg {
-    min-height: 200px;
+    min-height: 165px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .admin-dashboard__metric:hover {
+    transform: none;
+  }
+
   .admin-dashboard__enter,
   .admin-dashboard__trend-point rect,
   .admin-dashboard__affiliation-list progress::-webkit-progress-value,

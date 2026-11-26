@@ -1048,6 +1048,8 @@ route(
   requireAdmin(({ body }) => {
     const event = {
       ...(body as unknown as AdminEvent),
+      // 서버와 같이 운영 상태는 요청 값을 따르지 않습니다(보관 요청만 반영, 그 밖에는 준비에서 시작).
+      status: body.status === 'ARCHIVED' ? ('ARCHIVED' as const) : ('READY' as const),
       eventId: (db.seq.event += 1),
       createdAt: nowIso(),
       updatedAt: nowIso(),
@@ -1082,9 +1084,11 @@ route(
   requireAdmin(({ body }, [, id]) => {
     const event = eventOf(Number(id));
     if (!event) return notFound('행사');
-    const { confirmStructuralChange: _confirm, ...changes } = body;
+    const { confirmStructuralChange: _confirm, status, ...changes } = body;
     void _confirm;
     Object.assign(event, changes, { updatedAt: nowIso() });
+    // 서버와 같이 최종 확정·보관 요청만 상태를 바꿉니다(나머지 상태는 기간에 따라 서버가 정함).
+    if (status === 'FINALIZED' || status === 'ARCHIVED') event.status = status;
     return respond(event);
   }),
 );

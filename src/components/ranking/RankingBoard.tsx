@@ -63,7 +63,7 @@ function RankingBoard({
           return (
             <article
               key={ranking.participationId}
-              className={`${ranking.participationId === myParticipationId ? 'race-row-mine' : ''} ${completed ? 'is-completed' : ''} ${ranking.rank <= 3 ? `is-top-rank is-rank-${ranking.rank}` : ''}`}
+              className={`${ranking.participationId === myParticipationId ? 'race-row-mine' : ''} ${completed ? 'is-completed' : ''} ${simpleLayout && ranking.rank <= 3 ? 'is-top-rank' : ''}`}
             >
               <div
                 className={`ranking-race-person ${useSimpleLayout ? 'ranking-race-person--simple' : ''}`}
@@ -75,15 +75,8 @@ function RankingBoard({
                   </span>
                 )}
                 <strong className="ranking-race-rank" aria-label={`순위 ${ranking.rank}위`}>
-                  {simpleLayout ? (
-                    // 사용자 화면: 모든 순위를 같은 두 자리 숫자로 표시합니다(메달·별 없음).
-                    String(ranking.rank).padStart(2, '0')
-                  ) : (
-                    <>
-                      {ranking.rank <= 3 && <span aria-hidden="true">★</span>}
-                      {ranking.rank}
-                    </>
-                  )}
+                  {/* 메달·별 장식 없이 순위 숫자만 표시합니다(관리자: 순위, 사용자: 두 자리 숫자). */}
+                  {simpleLayout ? String(ranking.rank).padStart(2, '0') : ranking.rank}
                 </strong>
                 {!useSimpleLayout && <RankingAvatar name={ranking.name} />}
                 <span>

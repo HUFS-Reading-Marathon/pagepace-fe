@@ -14,6 +14,7 @@ import {
 import { formatKoDateTime24 } from '../../utils/date';
 import { stripNoticeMarker } from '../../utils/noticeContent';
 import NoticeBody from '../../components/notices/NoticeBody';
+import SlidingSegmented from '../../components/admin/common/SlidingSegmented';
 import type { NoticeEditorChange } from '../../components/admin/notices/NoticeRichEditor';
 import '../../pages/notices/notices.css';
 import '../../styles/admin-notices.css';
@@ -242,6 +243,12 @@ function NoticeEditor({
   );
 }
 type NoticeFilter = 'ALL' | 'visible' | 'hidden';
+
+const FILTER_OPTIONS: ReadonlyArray<{ value: NoticeFilter; label: string }> = [
+  { value: 'ALL', label: '전체' },
+  { value: 'visible', label: '게시 중' },
+  { value: 'hidden', label: '비공개' },
+];
 export default function AdminNoticesPage() {
   const [params, setParams] = useSearchParams();
   const edit = params.get('edit');
@@ -364,31 +371,31 @@ export default function AdminNoticesPage() {
               <span>{filtered.length}건</span>
             </header>
             <div className="admin-notices__tools">
-              <div className="admin-segmented" aria-label="게시 상태 필터">
-                {(
-                  [
-                    ['ALL', '전체'],
-                    ['visible', '게시 중'],
-                    ['hidden', '비공개'],
-                  ] as const
-                ).map(([key, label]) => (
-                  <button
-                    type="button"
-                    key={key}
-                    aria-pressed={filter === key}
-                    onClick={() => setFilter(key)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <input
-                type="search"
-                aria-label="공지 검색"
-                placeholder="제목 또는 내용 검색"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
+              <SlidingSegmented
+                label="게시 상태 필터"
+                options={FILTER_OPTIONS}
+                value={filter}
+                onChange={setFilter}
               />
+              <label className="admin-notices__search">
+                <svg
+                  viewBox="0 0 20 20"
+                  width="16"
+                  height="16"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <circle cx="9" cy="9" r="5.5" />
+                  <path d="m13.2 13.2 3.8 3.8" />
+                </svg>
+                <input
+                  type="search"
+                  aria-label="공지 검색"
+                  placeholder="제목 또는 내용 검색"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              </label>
             </div>
             {loading && !hasLoaded ? (
               <ContentSkeleton variant="list" label="공지를 불러오는 중입니다." />

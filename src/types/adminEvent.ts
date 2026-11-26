@@ -22,6 +22,16 @@ export const EVENT_STATUS_LABELS: Record<EventStatus, string> = {
   ARCHIVED: '보관',
 };
 
+/**
+ * 서버가 일정에 따라 자동으로 정하는 상태가 아닌, 관리자가 직접 다루는 상태(작성 중·최종 확정·보관).
+ * 나머지 상태는 한국 시간 기준 행사 기간에 따라 서버가 자동으로 정합니다.
+ */
+const MANUAL_EVENT_STATUSES: readonly EventStatus[] = ['DRAFT', 'FINALIZED', 'ARCHIVED'];
+
+export function isManualEventStatus(status: EventStatus) {
+  return MANUAL_EVENT_STATUSES.includes(status);
+}
+
 /** 서버 행사 상태 값을 화면 표시용 라벨로 바꿉니다. 알 수 없는 값이면 undefined를 돌려줍니다. */
 export function getEventStatusLabel(status: string | null | undefined) {
   return status && status in EVENT_STATUS_LABELS
@@ -47,7 +57,13 @@ export type AdminEvent = {
   updatedAt?: string;
 };
 
-export type CreateEventRequest = Omit<AdminEvent, 'eventId' | 'createdAt' | 'updatedAt'>;
+export type CreateEventRequest = Omit<
+  AdminEvent,
+  'eventId' | 'createdAt' | 'updatedAt' | 'status'
+> & {
+  /** 서버가 기간으로 정하므로 보통 보내지 않습니다. 최종 확정·보관 요청일 때만 보냅니다. */
+  status?: EventStatus;
+};
 
 export type UpdateEventRequest = CreateEventRequest & { confirmStructuralChange?: boolean };
 

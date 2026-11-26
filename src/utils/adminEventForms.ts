@@ -301,7 +301,8 @@ export function toEventRequest(form: EventForm): CreateEventRequest {
     applicationEndDate: form.applicationEndDate,
     eventStartDate: form.eventStartDate,
     eventEndDate: form.eventEndDate,
-    status: form.status,
+    // 운영 상태는 서버가 행사 기간으로 정합니다. 관리자가 직접 요청하는 최종 확정·보관만 보냅니다.
+    ...(form.status === 'FINALIZED' || form.status === 'ARCHIVED' ? { status: form.status } : {}),
     description: form.description.trim(),
     contactPhone: form.contactPhone.trim(),
     contactEmail: form.contactEmail.trim(),
@@ -448,11 +449,18 @@ export function getCourseFormChanges(
   before: ReadonlyArray<{ courseId: number; form: CourseForm }>,
   after: ReadonlyArray<{ courseId: number; form: CourseForm }>,
 ): FormChange[] {
-  return after.flatMap(({ courseId, form }) => {
+  const changed = after.flatMap(({ courseId, form }) => {
     const saved = before.find((course) => course.courseId === courseId)?.form;
 
     if (!saved) {
-      return [];
+      return [
+        {
+          scope: form.name || '코스',
+          label: '코스 추가',
+          before: '없음',
+          after: form.name || '새 코스',
+        },
+      ];
     }
 
     return (Object.keys(COURSE_FIELD_LABELS) as (keyof CourseForm)[])
@@ -468,4 +476,15 @@ export function getCourseFormChanges(
             : undefined,
       }));
   });
+  return [
+    ...changed,
+    ...before
+      .filter((course) => !after.some((item) => item.courseId === course.courseId))
+      .map((course) => ({
+        scope: course.form.name || '코스',
+        label: '코스 삭제',
+        before: course.form.name || '코스',
+        after: '삭제',
+      })),
+  ];
 }
