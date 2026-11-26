@@ -417,25 +417,6 @@
   color: #1f4f82;
   font-size: 16px !important;
 }
-.ranking-race-rank > span {
-  position: absolute;
-  top: -7px;
-  color: #c69a31;
-  font-size: 8px;
-}
-.is-rank-1 .ranking-race-rank {
-  background: #c69a31;
-  color: #fff;
-  box-shadow: 0 3px 8px rgba(145, 104, 20, 0.2);
-}
-.is-rank-2 .ranking-race-rank {
-  background: #7f91a2;
-  color: #fff;
-}
-.is-rank-3 .ranking-race-rank {
-  background: #a87352;
-  color: #fff;
-}
 .ranking-race-track.is-distance {
   height: 26px;
   border-top: 1px solid #d7e0e8;
