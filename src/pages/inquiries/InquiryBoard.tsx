@@ -1,3 +1,4 @@
+import ContentSkeleton from '../../components/layout/ContentSkeleton';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth, isAdminRole } from '../../auth';
@@ -141,8 +142,14 @@ export default function InquiryBoard({ admin = false }: { admin?: boolean }) {
   const [editor, setEditor] = useState<Editor | null>(null);
   const [tick, setTick] = useState(0);
   const [status, setStatus] = useState('');
-  const [removing, setRemoving] = useState(false);
-  const [result, setResult] = useState<{ key: string; rows?: InquiryListing; error?: string }>();
+  const [removing, setRemoving] = useState<number | null>(null);
+  const [result, setResult] = useState<{
+    scope: string;
+    key: string;
+    rows?: InquiryListing;
+    error?: string;
+  }>();
+  const scope = JSON.stringify([view, user?.userId, user?.role, admin]);
   const key = JSON.stringify([admin, view, page, q, oldestFirst, tick, user?.userId]);
   useEffect(() => {
     // 도서 문의 탭은 자체 목록(행사별 도서 확인 요청)을 불러옵니다.
@@ -163,17 +170,22 @@ export default function InquiryBoard({ admin = false }: { admin?: boolean }) {
           );
           return;
         }
-        setResult({ key, rows });
+        setResult({ scope, key, rows });
       })
       .catch((err) => {
         if (current)
-          setResult({ key, error: getApiErrorMessage(err, '목록을 불러오지 못했습니다.') });
+          setResult((previous) => ({
+            scope,
+            key,
+            rows: previous?.scope === scope ? previous.rows : undefined,
+            error: getApiErrorMessage(err, '목록을 불러오지 못했습니다.'),
+          }));
       });
     return () => {
       current = false;
     };
-  }, [admin, view, q, page, oldestFirst, key, setParams]);
-  const rows = result?.key === key ? result.rows : undefined;
+  }, [admin, view, q, page, oldestFirst, key, scope, setParams]);
+  const rows = !isInitializing && result?.scope === scope ? result.rows : undefined;
   const error = result?.key === key ? result.error : undefined;
   function change(
     next: TabView,
@@ -197,8 +209,8 @@ export default function InquiryBoard({ admin = false }: { admin?: boolean }) {
     setStatus(message);
   }
   async function remove(item: Inquiry) {
-    if (removing || !window.confirm('자주 묻는 질문을 삭제할까요?')) return;
-    setRemoving(true);
+    if (removing !== null || !window.confirm('자주 묻는 질문을 삭제할까요?')) return;
+    setRemoving(item.id);
     try {
       await deleteFaq(item);
       change('faq', 0, q);
@@ -207,7 +219,7 @@ export default function InquiryBoard({ admin = false }: { admin?: boolean }) {
     } catch (err) {
       setStatus(getApiErrorMessage(err, '삭제하지 못했습니다.'));
     } finally {
-      setRemoving(false);
+      setRemoving(null);
     }
   }
   const Section = admin ? 'section' : 'main';
@@ -310,15 +322,19 @@ export default function InquiryBoard({ admin = false }: { admin?: boolean }) {
                   </button>
                 )}
               </form>
-              {error ? (
+              {error && (
                 <p role="alert" className="qa-load-error">
                   {error}{' '}
                   <button type="button" className="qa-retry" onClick={() => setTick((t) => t + 1)}>
                     다시 불러오기
                   </button>
                 </p>
-              ) : !rows ? (
-                <p role="status">불러오는 중…</p>
+              )}
+              {!rows && error ? null : !rows ? (
+                <ContentSkeleton
+                  variant={admin ? 'table' : 'list'}
+                  label="목록을 불러오는 중입니다."
+                />
               ) : (
                 <>
                   {admin ? (
@@ -328,7 +344,10 @@ export default function InquiryBoard({ admin = false }: { admin?: boolean }) {
                       aria-label={tabLabel[view]}
                       tabIndex={0}
                     >
-                      <table className="roster-table qa-admin-table">
+                      <table
+                        className="roster-table qa-admin-table"
+                        aria-busy={result?.key !== key}
+                      >
                         <caption className="sr-only">{tabLabel[view]}</caption>
                         <thead>
                           <tr>
@@ -402,6 +421,7 @@ export default function InquiryBoard({ admin = false }: { admin?: boolean }) {
                                 <button
                                   type="button"
                                   className="qa-row-action"
+                                  disabled={!!error || result?.key !== key}
                                   onClick={() =>
                                     setEditor({
                                       type: item.kind === 'FAQ' ? 'faq' : 'answer',
@@ -419,10 +439,11 @@ export default function InquiryBoard({ admin = false }: { admin?: boolean }) {
                                   <button
                                     type="button"
                                     className="qa-row-action"
-                                    disabled={removing}
+                                    aria-busy={removing === item.id}
+                                    disabled={removing !== null || result?.key !== key}
                                     onClick={() => void remove(item)}
                                   >
-                                    삭제
+                                    {removing === item.id ? '삭제 중…' : '삭제'}
                                   </button>
                                 )}
                               </td>

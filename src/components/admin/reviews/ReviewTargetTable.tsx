@@ -1,3 +1,4 @@
+import ContentSkeleton from '../../layout/ContentSkeleton';
 import type { AdminReviewTarget } from '../../../api/adminReadingLogApi';
 import { formatKoDateTime24 } from '../../../utils/date';
 import SortHeaderButton from '../table/SortHeaderButton';
@@ -186,7 +187,7 @@ export default function ReviewTargetTable({
             {loading || !rows.length ? (
               <tr data-locked="">
                 <td colSpan={COLUMNS.length} className="roster-empty">
-                  {emptyText}
+                  {loading ? <ContentSkeleton variant="table" label={emptyText} /> : emptyText}
                 </td>
               </tr>
             ) : (

@@ -1,3 +1,4 @@
+import ContentSkeleton from '../../components/layout/ContentSkeleton';
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { ApiError, getApiErrorMessage } from '../../api/apiClient';
@@ -66,9 +67,7 @@ function NoticeDetailPage() {
           <NoticeBody content={notice.content} color={notice.bodyColor} />
         </article>
       ) : (
-        <p className="notice-detail-page__message" role="status">
-          공지사항을 불러오고 있습니다.
-        </p>
+        <ContentSkeleton variant="detail" label="공지사항을 불러오고 있습니다." />
       )}
     </main>
   );

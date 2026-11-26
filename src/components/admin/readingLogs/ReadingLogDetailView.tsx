@@ -1,3 +1,4 @@
+import ContentSkeleton from '../../layout/ContentSkeleton';
 import { useEffect, useRef, type ReactNode } from 'react';
 import type { AdminReadingLogResponse } from '../../../types/adminReadingLogApi';
 import { READING_LOG_STATUS_LABELS } from '../../../types/readingLog';
@@ -80,9 +81,11 @@ export default function ReadingLogDetailView({
         <p className="log-detail__message" role="alert">
           {error}
         </p>
+      ) : !log && loading ? (
+        <ContentSkeleton variant="detail" label="일지를 불러오는 중입니다." />
       ) : !log ? (
         <p className="log-detail__message" role="status">
-          {loading ? '일지를 불러오는 중입니다.' : '일지를 찾을 수 없습니다.'}
+          일지를 찾을 수 없습니다.
         </p>
       ) : (
         <>

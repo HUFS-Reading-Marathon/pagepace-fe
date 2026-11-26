@@ -1,3 +1,4 @@
+import ContentSkeleton from '../../layout/ContentSkeleton';
 import type {
   AdminReadingLogResponse,
   AdminReadingLogStatus,
@@ -261,7 +262,7 @@ export default function ReadingLogQueueList({
           ref={table}
           style={{ width: tableWidth }}
           className="roster-table log-queue__table"
-          aria-busy={loading}
+          aria-busy={busy}
         >
           <caption className="sr-only">독서일지 목록</caption>
           <colgroup>
@@ -315,18 +316,20 @@ export default function ReadingLogQueueList({
             </tr>
           </thead>
           <tbody>
-            {loading || !!error || !rows.length ? (
+            {loading || !rows.length ? (
               <tr>
                 <td colSpan={columnCount} className="roster-empty">
-                  {loading
-                    ? '일지를 불러오는 중입니다.'
-                    : error
-                      ? '독서일지를 불러오지 못했습니다.'
-                      : searching
-                        ? '조건에 맞는 일지가 없습니다.'
-                        : filter === 'SUBMITTED'
-                          ? '검토 대기 중인 일지가 없습니다.'
-                          : '조회할 독서일지가 없습니다.'}
+                  {loading ? (
+                    <ContentSkeleton variant="table" label="일지를 불러오는 중입니다." />
+                  ) : error ? (
+                    '독서일지를 불러오지 못했습니다.'
+                  ) : searching ? (
+                    '조건에 맞는 일지가 없습니다.'
+                  ) : filter === 'SUBMITTED' ? (
+                    '검토 대기 중인 일지가 없습니다.'
+                  ) : (
+                    '조회할 독서일지가 없습니다.'
+                  )}
                 </td>
               </tr>
             ) : (

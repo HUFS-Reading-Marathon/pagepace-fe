@@ -159,10 +159,7 @@ function ReadingQueue({
     };
   }, [event.eventId, filter, listKey, linking]);
 
-  const rows = useMemo(
-    () => (sameFilter ? visibleLogs(logs, search) : []),
-    [sameFilter, logs, search],
-  );
+  const rows = useMemo(() => visibleLogs(logs, search), [logs, search]);
   const courseOptions = useMemo(() => logCourseOptions(logs), [logs]);
   const currentPage = clampPage(list.page, rows.length, pageSize);
   const pageRows = rows.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
@@ -540,7 +537,7 @@ function ReadingQueue({
         canSelect={canSelect}
         onApproveSelection={() => void approveChecked()}
         onPageSize={(size) => setList(() => ({ pageSize: size, page: 0 }))}
-        loading={loading && !rows.length}
+        loading={loading && loaded.status === null}
         processing={processing || loading}
         error={error}
         feedback={feedback}

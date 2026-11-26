@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import PersonalEventSelector from '../components/layout/PersonalEventSelector';
 import { selectedEventId } from '../utils/eventSelection';
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import AdminLayout from '../layouts/AdminLayout';
 import Header from '../components/layout/Header';
 import ScrollToTopOnNavigate from '../components/layout/ScrollToTopOnNavigate';
@@ -33,7 +33,7 @@ import MainPage from '../pages/main';
 import MyPage from '../pages/my';
 import { MyReadingLogsPage, ReadingLogDetailPage, ReadingLogWritePage } from '../pages/logs';
 import MarathonStatusPage from '../pages/status';
-import { AuthProvider } from '../auth';
+import { AuthProvider, useAuth } from '../auth';
 import ProtectedRoute from './ProtectedRoute';
 
 const subscribeEvent = (listener: () => void) => {
@@ -41,13 +41,25 @@ const subscribeEvent = (listener: () => void) => {
   return () => window.removeEventListener('pagepace:event-selection', listener);
 };
 function UserLayout() {
+  const { user } = useAuth();
+  const { pathname } = useLocation();
   const eventId = useSyncExternalStore(subscribeEvent, () => selectedEventId('personal'));
+  // 참가 회차를 사용하는 본문만 회차 변경 시 새로 조회합니다.
+  const personalPage = [
+    '/',
+    '/my',
+    '/logs',
+    '/logs/new',
+    '/inquiries',
+    '/inquiries/books/new',
+    '/status',
+  ].includes(pathname);
   return (
     <>
       <ScrollToTopOnNavigate />
       <Header />
-      <PersonalEventSelector />
-      <Outlet key={eventId ?? 'current'} />
+      <PersonalEventSelector key={user?.userId} />
+      <Outlet key={personalPage ? (eventId ?? 'current') : 'current'} />
       <Footer />
     </>
   );

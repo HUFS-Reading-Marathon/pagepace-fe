@@ -1,3 +1,4 @@
+import ContentSkeleton from '../../components/layout/ContentSkeleton';
 import { downloadCsv } from '../../utils/csv';
 import { preferredAdminEvent } from '../../utils/eventSelection';
 import { useAdminEventState } from '../../hooks/useAdminEventState';
@@ -245,7 +246,6 @@ function AdminStatusPage() {
       setFeedbackMessage('선택한 행사의 서버 데이터를 다시 조회했습니다.');
     } catch (requestError: unknown) {
       if (requestSequenceRef.current === sequence) {
-        setCompetitionData(null);
         setError(getApiErrorMessage(requestError, LOAD_ERROR_MESSAGE));
       }
     } finally {
@@ -346,11 +346,12 @@ function AdminStatusPage() {
         />
       </div>
 
-      {error ? (
+      {error && (
         <div className="admin-status__empty" role="alert">
           {error}
         </div>
-      ) : competitionData ? (
+      )}
+      {competitionData ? (
         <>
           <StatusCourseSummary summaries={courseSummaries} />
           {rows.length === 0 && (
@@ -359,9 +360,7 @@ function AdminStatusPage() {
         </>
       ) : (
         (isEventsLoading || isDataLoading) && (
-          <div className="admin-status__empty" role="status">
-            대회 현황을 집계하는 중입니다.
-          </div>
+          <ContentSkeleton variant="stats" label="대회 현황을 집계하는 중입니다." />
         )
       )}
 

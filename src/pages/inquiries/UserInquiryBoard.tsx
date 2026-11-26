@@ -1,3 +1,4 @@
+import ContentSkeleton from '../../components/layout/ContentSkeleton';
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { isAdminRole, useAuth } from '../../auth';
@@ -144,11 +145,17 @@ export default function UserInquiryBoard() {
   const views = userInquiryViews(canAsk);
   const { view, query, page } = readUserInquiryState(params, views);
   const [attempt, setAttempt] = useState(0);
-  const [result, setResult] = useState<{ key: string; rows?: InquiryListing; error?: string }>();
+  const [result, setResult] = useState<{
+    scope: string;
+    key: string;
+    rows?: InquiryListing;
+    error?: string;
+  }>();
   const notice = (location.state as InquiryBoardLinkState)?.notice;
 
   // 로그인 확인 중에는 내 문의 탭 여부가 정해지지 않으므로 기다립니다.
   const ready = !isInitializing;
+  const scope = JSON.stringify([view, user?.userId, user?.role]);
   const key = JSON.stringify([view, query, page, attempt, user?.userId ?? null]);
   const books = view === 'books';
   useEffect(() => {
@@ -165,18 +172,23 @@ export default function UserInquiryBoard() {
           });
           return;
         }
-        setResult({ key, rows });
+        setResult({ scope, key, rows });
       })
       .catch((error) => {
         if (current)
-          setResult({ key, error: getApiErrorMessage(error, '목록을 불러오지 못했습니다.') });
+          setResult((previous) => ({
+            scope,
+            key,
+            rows: previous?.scope === scope ? previous.rows : undefined,
+            error: getApiErrorMessage(error, '목록을 불러오지 못했습니다.'),
+          }));
       });
     return () => {
       current = false;
     };
-  }, [ready, view, query, page, key, setParams]);
+  }, [ready, view, query, page, key, scope, setParams]);
 
-  const rows = result?.key === key ? result.rows : undefined;
+  const rows = !isInitializing && result?.scope === scope ? result.rows : undefined;
   const error = result?.key === key ? result.error : undefined;
 
   const go = (next: Partial<UserInquiryState>) => {
@@ -251,18 +263,24 @@ export default function UserInquiryBoard() {
       </form>
 
       {books ? (
-        <UserBookInquiryList query={query} page={page} onPage={(next) => go({ page: next })} />
+        <UserBookInquiryList
+          key={user?.userId}
+          query={query}
+          page={page}
+          onPage={(next) => go({ page: next })}
+        />
       ) : (
-        <div aria-live="polite" aria-busy={!rows && !error}>
-          {error ? (
+        <div aria-live="polite" aria-busy={result?.key !== key}>
+          {error && (
             <p className="inquiry-board__message" role="alert">
               {error}{' '}
               <button type="button" onClick={() => setAttempt((value) => value + 1)}>
                 다시 불러오기
               </button>
             </p>
-          ) : !rows ? (
-            <p className="inquiry-board__message">목록을 불러오는 중입니다.</p>
+          )}
+          {!rows && error ? null : !rows ? (
+            <ContentSkeleton variant="list" label="목록을 불러오는 중입니다." />
           ) : rows.items.length === 0 ? (
             <p className="inquiry-board__message">
               {query ? `“${query}”에 해당하는 항목이 없습니다.` : EMPTY_MESSAGE[view]}

@@ -1,39 +1,29 @@
 export default function ReviewGuide() {
   return (
-    <details className="review-guide">
-      <summary>서평은 도서관 홈페이지에서 작성해요</summary>
-      <p>
-        이 행사 사이트의 로그인과 도서관 로그인은 별개입니다. 외부 사이트에서 작성한 내용은 자동으로
-        가져오지 않습니다.
-      </p>
-      <ol>
-        <li>
-          <strong>도서관으로 이동</strong>
-          <span>책의 ‘도서관에서 서평 작성’ 버튼을 누르면 새 탭이 열립니다.</span>
-        </li>
-        <li>
-          <strong>도서관 로그인 후 작성</strong>
-          <span>해당 도서를 찾아 상세 화면에서 서평을 작성하고 저장하세요.</span>
-        </li>
-        <li>
-          <strong>따로 알리지 않아도 돼요</strong>
-          <span>
-            도서관에 저장한 서평은 담당자가 도서관 기록으로 확인합니다. 이 화면에서 작성 사실을
-            알리는 절차는 없습니다.
-          </span>
-        </li>
-        <li>
-          <strong>도서관 담당자 확인</strong>
-          <span>
-            담당자가 이 책의 서평을 한 번 확인하면 지금까지 승인한 쪽수와 이후 일지 승인분이 모두
-            거리로 반영됩니다.
-          </span>
-        </li>
-      </ol>
-      <p>
-        완독하지 않아도 읽은 분량에 대한 서평을 작성할 수 있습니다. 서평 확인을 기다리는 동안에도
-        다음 독서일지를 제출할 수 있습니다.
-      </p>
-    </details>
+    <>
+      <a
+        className="review-library-link"
+        href="https://lib.hufs.ac.kr/global/"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="도서관 홈페이지 바로가기 (새 탭)"
+      >
+        도서관 홈페이지 바로가기 ↗
+      </a>
+      <details className="review-guide">
+        <summary>서평 작성 방법</summary>
+        <ol>
+          <li>도서관 홈페이지에 로그인합니다.</li>
+          <li>해당 도서의 상세 페이지에서 서평을 작성합니다.</li>
+          <li>담당자가 서평을 확인하면 승인된 독서량이 거리로 반영됩니다.</li>
+        </ol>
+        <p>PagePace와 도서관 홈페이지의 로그인은 별개입니다.</p>
+        <ul>
+          <li>완독 전에도 서평을 작성할 수 있습니다.</li>
+          <li>서평 확인을 기다리는 동안에도 독서일지를 제출할 수 있습니다.</li>
+          <li>서평 작성 사실을 별도로 알릴 필요는 없습니다.</li>
+        </ul>
+      </details>
+    </>
   );
 }

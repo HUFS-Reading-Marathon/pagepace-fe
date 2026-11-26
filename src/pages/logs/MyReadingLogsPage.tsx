@@ -1,3 +1,4 @@
+import ContentSkeleton from '../../components/layout/ContentSkeleton';
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getApiErrorMessage } from '../../api/apiClient';
@@ -311,7 +312,8 @@ function MyReadingLogsPage() {
 
     getCurrentParticipation()
       .then((participation) => {
-        if (isActive) setCanWrite(canSubmitReadingLog(participation));
+        if (!isActive) return [];
+        setCanWrite(canSubmitReadingLog(participation));
         return getMyReadingLogs(participation.participationId);
       })
       .then((nextLogs) => {
@@ -354,7 +356,7 @@ function MyReadingLogsPage() {
       </section>
 
       {isLoading ? (
-        <div className="my-library-state">나의 서재를 불러오고 있습니다.</div>
+        <ContentSkeleton variant="stats" label="나의 서재를 불러오고 있습니다." />
       ) : errorMessage ? (
         <div className="my-library-state reading-log-error">{errorMessage}</div>
       ) : (

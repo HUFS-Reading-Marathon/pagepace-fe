@@ -1,3 +1,4 @@
+import ContentSkeleton from '../../components/layout/ContentSkeleton';
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { getApiErrorMessage } from '../../api/apiClient';
@@ -108,9 +109,7 @@ export default function NoticesPage() {
           </button>
         </p>
       ) : !items ? (
-        <p className="notice-board__message" role="status">
-          공지사항을 불러오는 중입니다.
-        </p>
+        <ContentSkeleton variant="list" label="공지사항을 불러오는 중입니다." />
       ) : results.length === 0 ? (
         <p className="notice-board__message" role="status">
           {query ? `“${query}”에 해당하는 공지사항이 없습니다.` : '등록된 공지사항이 없습니다.'}

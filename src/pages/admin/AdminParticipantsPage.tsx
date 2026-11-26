@@ -39,6 +39,7 @@ function Registry({
   const [rows, setRows] = useState<RosterRow[]>([]);
   const [courses, setCourses] = useState<AdminCourse[]>([]);
   const [refresh, setRefresh] = useState(0);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [message, setMessage] = useState('');
@@ -69,6 +70,7 @@ function Registry({
       .then(([entries, options]) => {
         if (current) {
           setRows(entries);
+          setHasLoaded(true);
           setCourses(options);
           setLoadError('');
         }
@@ -296,10 +298,11 @@ function Registry({
           busy={!ready}
           sort={sort}
           onSort={changeSort}
+          initialLoading={loading && !hasLoaded}
           message={
-            loading
+            loading && !hasLoaded
               ? '명단을 불러오는 중입니다.'
-              : loadError
+              : loadError && !hasLoaded
                 ? '명단을 불러오지 못했습니다.'
                 : !filtered.length
                   ? rows.length

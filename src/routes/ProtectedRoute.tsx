@@ -1,4 +1,5 @@
-import type { PropsWithChildren } from 'react';
+import ContentSkeleton from '../components/layout/ContentSkeleton';
+import { Fragment, type PropsWithChildren } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { isAdminRole, useAuth } from '../auth';
 
@@ -11,7 +12,14 @@ function ProtectedRoute({ adminOnly = false, children }: ProtectedRouteProps) {
   const location = useLocation();
 
   if (isInitializing) {
-    return <main className="page-container">사용자 정보를 확인하고 있습니다.</main>;
+    return (
+      <main className="page-container">
+        <ContentSkeleton
+          variant={adminOnly ? 'table' : 'detail'}
+          label="사용자 정보를 확인하고 있습니다."
+        />
+      </main>
+    );
   }
 
   if (!isAuthenticated) {
@@ -28,7 +36,7 @@ function ProtectedRoute({ adminOnly = false, children }: ProtectedRouteProps) {
     return <Navigate to="/" replace />;
   }
 
-  return children;
+  return <Fragment key={user?.userId}>{children}</Fragment>;
 }
 
 export default ProtectedRoute;

@@ -165,10 +165,45 @@ export async function downloadExcel(path: string, options: RequestInit = {}) {
   };
 }
 
+// 동일한 조회가 진행 중인 동안만 공유합니다. 저장 전후에 시작한 조회는 서로 독립적입니다.
+const pendingReads = new Map<string, Promise<unknown>>();
+
 export async function apiRequest<T>(
   path: string,
   options: ApiRequestOptions = {},
 ): Promise<T | null> {
+  if ((options.method ?? 'GET') !== 'GET') {
+    pendingReads.clear();
+    try {
+      return await requestJson<T>(path, options);
+    } finally {
+      pendingReads.clear();
+    }
+  }
+
+  // 개별 중단 신호나 사용자 지정 헤더 등의 요청 옵션은 호출자가 소유합니다.
+  if (Object.keys(options).some((name) => !['method', 'skipAuth', 'skipRefresh'].includes(name))) {
+    return requestJson<T>(path, options);
+  }
+  const key = JSON.stringify([
+    path,
+    !!options.skipAuth,
+    !!options.skipRefresh,
+    options.skipAuth ? null : getAccessToken(),
+  ]);
+  const pending = pendingReads.get(key);
+  if (pending) return structuredClone(await pending) as T | null;
+
+  const request = requestJson<T>(path, options);
+  pendingReads.set(key, request);
+  try {
+    return await request;
+  } finally {
+    if (pendingReads.get(key) === request) pendingReads.delete(key);
+  }
+}
+
+async function requestJson<T>(path: string, options: ApiRequestOptions = {}): Promise<T | null> {
   const response = await requestResponse(path, options, 'application/json');
   const payload = await parseApiResponse<T>(response);
   if (!response.ok || !payload?.success) {

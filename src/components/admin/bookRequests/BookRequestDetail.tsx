@@ -1,3 +1,4 @@
+import ContentSkeleton from '../../layout/ContentSkeleton';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { REQUEST_REASON_LABELS, type BookRequest } from '../../../api/bookRequestApi';
@@ -78,9 +79,11 @@ export default function BookRequestDetail({
         <p className="log-detail__message" role="alert">
           {error}
         </p>
+      ) : !request && loading ? (
+        <ContentSkeleton variant="detail" label="요청을 불러오는 중입니다." />
       ) : !request ? (
         <p className="log-detail__message" role="status">
-          {loading ? '요청을 불러오는 중입니다.' : '요청을 찾을 수 없습니다.'}
+          요청을 찾을 수 없습니다.
         </p>
       ) : (
         <>

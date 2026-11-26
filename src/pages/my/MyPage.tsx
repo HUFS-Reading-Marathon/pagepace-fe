@@ -1,3 +1,4 @@
+import ContentSkeleton from '../../components/layout/ContentSkeleton';
 import { useEffect, useState, type CSSProperties } from 'react';
 import BookReviewActions from '../../components/logs/BookReviewActions';
 import { METERS_PER_PAGE } from '../../constants/reading';
@@ -28,11 +29,14 @@ function MyPage() {
   const [isApplicationOpen, setIsApplicationOpen] = useState(false);
   const [isProgressStarted, setIsProgressStarted] = useState(false);
 
+  const [attempt, setAttempt] = useState(0);
+
   useEffect(() => {
     let isActive = true;
 
     getCurrentParticipation()
       .then(async (nextParticipation) => {
+        if (!isActive) return;
         const [nextLogs, nextReadingBooks] = await Promise.all([
           getMyReadingLogs(nextParticipation.participationId),
           getMyBookProgress(nextParticipation.eventId),
@@ -64,7 +68,7 @@ function MyPage() {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [attempt]);
 
   useEffect(() => {
     const frameId = requestAnimationFrame(() => setIsProgressStarted(true));
@@ -79,6 +83,7 @@ function MyPage() {
           {isLoading && <p role="status">나의 현황을 불러오고 있습니다.</p>}
         </section>
 
+        {isLoading && <ContentSkeleton variant="stats" />}
         {!isLoading && isParticipationMissing && (
           <section className="my-empty" aria-labelledby="my-empty-title">
             <h2 id="my-empty-title">이 행사의 참가 정보가 없습니다.</h2>
@@ -105,7 +110,11 @@ function MyPage() {
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={() => window.location.reload()}
+                onClick={() => {
+                  setIsLoading(true);
+                  setErrorMessage('');
+                  setAttempt((value) => value + 1);
+                }}
               >
                 다시 시도
               </button>

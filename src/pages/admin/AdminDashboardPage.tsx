@@ -1,3 +1,4 @@
+import ContentSkeleton from '../../components/layout/ContentSkeleton';
 import { getAdminParticipations, type AdminParticipation } from '../../api/adminParticipationApi';
 import {
   buildAdminCompetitionRows,
@@ -226,7 +227,6 @@ function AdminDashboardPage() {
       if (requestSequenceRef.current === sequence) {
         const message = getApiErrorMessage(error, LOAD_ERROR_MESSAGE);
 
-        setDashboardData(null);
         setPageError(message);
         setRefreshAnnouncement(`새로고침에 실패했습니다. ${message}`);
       }
@@ -318,10 +318,8 @@ function AdminDashboardPage() {
         </div>
       )}
 
-      {isDataLoading && (
-        <div className="admin-dashboard__empty admin-dashboard__empty--page" role="status">
-          선택한 행사의 운영 데이터를 불러오는 중입니다.
-        </div>
+      {(isEventsLoading || isDataLoading) && !dashboardData && (
+        <ContentSkeleton variant="stats" label="선택한 행사의 운영 데이터를 불러오는 중입니다." />
       )}
 
       {hasNoEvents && (
@@ -337,7 +335,7 @@ function AdminDashboardPage() {
       )}
 
       {/* 행사가 없으면 빈 지표 카드·차트 대신 위 안내만 보여 줍니다. */}
-      {!hasNoEvents && (
+      {dashboardData && (
         <>
           <DashboardEventOverview
             event={selectedEvent}
