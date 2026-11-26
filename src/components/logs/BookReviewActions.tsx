@@ -10,7 +10,13 @@ export const REVIEW_GUIDE_TEXT =
  * 도서관 서평 작성 링크와 안내. 서평 반영은 담당자가 도서관 서평(개별 확인·솔라스 엑셀 대조)을
  * 확인해 처리하므로, 학생이 작성 사실을 따로 알리는 단계(서평 완료 신고 API)는 쓰지 않습니다.
  */
-export default function BookReviewActions({ book }: { book: ReviewBook }) {
+export default function BookReviewActions({
+  book,
+  showGuide = true,
+}: {
+  book: ReviewBook;
+  showGuide?: boolean;
+}) {
   return (
     <div className="review-actions">
       {book.reviewSearchUrl && (
@@ -24,7 +30,7 @@ export default function BookReviewActions({ book }: { book: ReviewBook }) {
           도서관에서 서평 작성 ↗
         </a>
       )}
-      <small>{REVIEW_GUIDE_TEXT}</small>
+      {showGuide && <small>{REVIEW_GUIDE_TEXT}</small>}
     </div>
   );
 }

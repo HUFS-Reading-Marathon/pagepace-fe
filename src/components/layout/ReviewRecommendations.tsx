@@ -46,11 +46,6 @@ export default function ReviewRecommendations({
   const optional = groups.filter((g) => g.kind === 'optional');
   return (
     <>
-      <p className="ux-form-note">
-        같은 책에 쓴 여러 일지는 한 권으로 모입니다. 서평을 한 번 확인하면 이후 승인된 쪽수도
-        자동으로 거리에 반영됩니다. 서평을 아직 쓰지 않았거나 확인을 기다리는 중이어도 다른
-        독서일지는 제출할 수 있습니다.
-      </p>
       {recommendations.map(({ target, kind }) => (
         <article className="review-suggestion" key={target.participantBookId}>
           <strong>{target.bookTitle}</strong>
@@ -79,7 +74,7 @@ export default function ReviewRecommendations({
                   ? '완독하셨네요. 읽은 내용을 도서관 서평으로 남겨 보세요.'
                   : `${target.totalBookPages}쪽을 다 읽지 않아도 지금까지 읽은 ${target.approvedReadPages}쪽에 대한 서평을 남길 수 있어요.`}
               </p>
-              <BookReviewActions book={target} />
+              <BookReviewActions book={target} showGuide={false} />
               {kind === 'paused' && (
                 <button
                   type="button"
@@ -93,11 +88,7 @@ export default function ReviewRecommendations({
           )}
         </article>
       ))}
-      {!recommendations.length && (
-        <p className="ux-muted">
-          지금 추천할 서평이 없습니다. 읽는 중인 책도 원할 때 서평을 작성할 수 있습니다.
-        </p>
-      )}
+      {!recommendations.length && <p className="ux-muted">지금 추천할 서평이 없습니다.</p>}
       {!!optional.length && (
         <details className="review-optional">
           <summary>읽는 중인 책도 서평 쓰기 ({optional.length}권)</summary>
@@ -108,7 +99,7 @@ export default function ReviewRecommendations({
                 {target.totalBookPages}쪽 중 승인 {target.approvedReadPages}쪽 · 완독 여부와
                 관계없이 작성 가능
               </p>
-              <BookReviewActions book={target} />
+              <BookReviewActions book={target} showGuide={false} />
               <button
                 type="button"
                 className="review-intent-reset"
