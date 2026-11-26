@@ -1,0 +1,21 @@
+.user-page-transition {
+  display: contents;
+}
+
+.user-page-transition__snapshot {
+  position: fixed;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+.user-page-transition__snapshot * {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* 본문을 감싸도 인증 화면과 footer 사이의 기존 여백을 유지합니다. */
+.user-page-transition:has(> main.auth-page) + .site-footer {
+  margin-top: 0 !important;
+}
