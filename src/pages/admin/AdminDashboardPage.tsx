@@ -14,6 +14,7 @@ import { getAdminEventCourses, getAdminEvents } from '../../api/adminEventApi';
 import { getAdminReadingLogs } from '../../api/adminReadingLogApi';
 import DashboardAffiliationChart from '../../components/admin/dashboard/DashboardAffiliationChart';
 import DashboardCourseCompletion from '../../components/admin/dashboard/DashboardCourseCompletion';
+import DashboardEmptyState from '../../components/admin/dashboard/DashboardEmptyState';
 import DashboardEventOverview from '../../components/admin/dashboard/DashboardEventOverview';
 import DashboardMetricCard from '../../components/admin/dashboard/DashboardMetricCard';
 import DashboardReadingTrend from '../../components/admin/dashboard/DashboardReadingTrend';
@@ -22,7 +23,7 @@ import type { AdminCourse, AdminEvent, EventStatus } from '../../types/adminEven
 import type { AdminReadingLogResponse } from '../../types/adminReadingLogApi';
 import { getAffiliationDistribution, getDashboardAnalytics } from '../../utils/dashboardAnalytics';
 import { chooseEventIdByStatus } from '../../utils/adminEvent';
-import { formatKoDateTime } from '../../utils/date';
+import { formatKoDateTime, formatKoDateTime24 } from '../../utils/date';
 import '../../styles/admin-dashboard.css';
 
 type DashboardData = {
@@ -190,7 +191,7 @@ function AdminDashboardPage() {
       ? (analytics.approvedApplications.length / analytics.totalApplicants) * 100
       : 0;
   const latestDataLabel = dashboardData
-    ? formatKoDateTime(dashboardData.fetchedAt.toISOString())
+    ? formatKoDateTime24(dashboardData.fetchedAt.toISOString())
     : isDataLoading
       ? '불러오는 중'
       : '반영 데이터 없음';
@@ -275,9 +276,8 @@ function AdminDashboardPage() {
               ))}
             </select>
           </label>
-          <span>최근 반영</span>
           <div className="admin-dashboard__header-meta-row">
-            <strong>{latestDataLabel}</strong>
+            <span className="admin-dashboard__updated">최근 반영 {latestDataLabel}</span>
             <button
               type="button"
               className="admin-dashboard__refresh"
@@ -329,9 +329,7 @@ function AdminDashboardPage() {
       )}
 
       {hasNoOperationData && (
-        <div className="admin-dashboard__empty admin-dashboard__empty--page">
-          선택한 행사에 아직 집계할 운영 데이터가 없습니다.
-        </div>
+        <DashboardEmptyState kind="page" eventStatus={selectedEvent?.status} />
       )}
 
       {/* 행사가 없으면 빈 지표 카드·차트 대신 위 안내만 보여 줍니다. */}
@@ -409,6 +407,7 @@ function AdminDashboardPage() {
             <DashboardReadingTrend
               logs={dashboardData?.logs ?? []}
               now={dashboardData?.fetchedAt ?? new Date()}
+              eventStatus={selectedEvent?.status}
             />
             <DashboardCourseCompletion
               summaries={
@@ -424,6 +423,8 @@ function AdminDashboardPage() {
                     )
                   : []
               }
+              animationKey={dashboardData.fetchedAt.getTime()}
+              eventStatus={selectedEvent?.status}
             />
           </div>
 
@@ -435,6 +436,7 @@ function AdminDashboardPage() {
                 ) ?? [],
               )}
               participantCount={dashboardData?.summary.participantCount ?? 0}
+              eventStatus={selectedEvent?.status}
             />
           </div>
         </>
