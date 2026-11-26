@@ -1,3 +1,4 @@
+import UserPageTransition from '../components/layout/UserPageTransition';
 import { useSyncExternalStore } from 'react';
 import PersonalEventSelector from '../components/layout/PersonalEventSelector';
 import { selectedEventId } from '../utils/eventSelection';
@@ -41,7 +42,7 @@ const subscribeEvent = (listener: () => void) => {
   return () => window.removeEventListener('pagepace:event-selection', listener);
 };
 function UserLayout() {
-  const { user } = useAuth();
+  const { user, isAuthenticated, isInitializing } = useAuth();
   const { pathname } = useLocation();
   const eventId = useSyncExternalStore(subscribeEvent, () => selectedEventId('personal'));
   // 참가 회차를 사용하는 본문만 회차 변경 시 새로 조회합니다.
@@ -59,7 +60,19 @@ function UserLayout() {
       <ScrollToTopOnNavigate />
       <Header />
       <PersonalEventSelector key={user?.userId} />
-      <Outlet key={personalPage ? (eventId ?? 'current') : 'current'} />
+      <UserPageTransition
+        pathname={pathname}
+        identity={JSON.stringify([
+          user?.userId,
+          user?.role,
+          user?.status,
+          isAuthenticated,
+          isInitializing,
+          eventId,
+        ])}
+      >
+        <Outlet key={personalPage ? (eventId ?? 'current') : 'current'} />
+      </UserPageTransition>
       <Footer />
     </>
   );

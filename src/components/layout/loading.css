@@ -1,6 +1,5 @@
-/* 본문이 마운트될 때만 적용해 검색·쪽 변경 시에는 다시 시작하지 않습니다. */
+/* 관리자 본문의 기존 전환 효과. 사용자 전환은 UserPageTransition에서 처리합니다. */
 @media (prefers-reduced-motion: no-preference) {
-  #root > main,
   .admin-layout__main > section {
     animation: pagepace-content-enter 180ms ease-out;
   }
