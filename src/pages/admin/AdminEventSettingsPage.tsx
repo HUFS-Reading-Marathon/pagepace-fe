@@ -25,13 +25,13 @@ import { ApiError, getApiErrorMessage } from '../../api/apiClient';
 import CourseFormFields from '../../components/admin/eventSettings/CourseFormFields';
 import EventChangeReviewDialog from '../../components/admin/eventSettings/EventChangeReviewDialog';
 import {
-  EVENT_STATUSES,
   EVENT_STATUS_LABELS,
   getEventStatusLabel,
   type AdminCourse,
   type AdminEvent,
   type EventStatus,
 } from '../../types/adminEvent';
+import EventStatusIndicator from '../../components/admin/eventSettings/EventStatusIndicator';
 import { chooseEventIdByStatus, findPreviousEvent } from '../../utils/adminEvent';
 import {
   COURSE_PRESETS,
@@ -551,7 +551,7 @@ function AdminEventSettingsPage() {
             visible === undefined ? '-' : visible ? '공개' : '비공개';
           if (
             !window.confirm(
-              `참가자가 있는 행사입니다. 아래 변경은 접수와 공개 화면에 영향을 줍니다.\n신청기간: ${previous?.applicationStartDate}~${previous?.applicationEndDate} → ${request.applicationStartDate}~${request.applicationEndDate}\n독서일지 접수기간: ${previous?.eventStartDate}~${previous?.eventEndDate} → ${request.eventStartDate}~${request.eventEndDate}\n상태: ${statusLabel(previous?.status)} → ${statusLabel(request.status)}\n공개: ${visibleLabel(previous?.publicVisible)} → ${visibleLabel(request.publicVisible)}\n변경을 확정할까요?`,
+              `참가자가 있는 행사입니다. 아래 변경은 접수와 공개 화면에 영향을 줍니다.\n신청기간: ${previous?.applicationStartDate}~${previous?.applicationEndDate} → ${request.applicationStartDate}~${request.applicationEndDate}\n독서일지 접수기간: ${previous?.eventStartDate}~${previous?.eventEndDate} → ${request.eventStartDate}~${request.eventEndDate}${request.status ? `\n상태: ${statusLabel(previous?.status)} → ${statusLabel(request.status)}` : ''}\n공개: ${visibleLabel(previous?.publicVisible)} → ${visibleLabel(request.publicVisible)}\n변경을 확정할까요?`,
             )
           )
             return;
@@ -906,7 +906,9 @@ function AdminEventSettingsPage() {
                 </div>
                 <div>
                   <dt>운영 상태</dt>
-                  <dd>{EVENT_STATUS_LABELS[basicView.status]}</dd>
+                  <dd>
+                    <EventStatusIndicator status={isCreatingEvent ? null : basicView.status} />
+                  </dd>
                 </div>
                 <div>
                   <dt>공개 여부</dt>
@@ -957,23 +959,31 @@ function AdminEventSettingsPage() {
                 </div>
 
                 <div className="admin-event-settings__basic-item">
-                  <label className="admin-event-settings__basic-label" htmlFor="eventStatus">
-                    운영 상태
-                  </label>
-                  <select
-                    id="eventStatus"
-                    className="admin-event-settings__status-select"
-                    value={eventForm.status}
-                    onChange={(event) =>
-                      handleEventFieldChange('status', event.target.value as EventStatus)
-                    }
-                  >
-                    {EVENT_STATUSES.map((status) => (
-                      <option key={status} value={status}>
-                        {EVENT_STATUS_LABELS[status]}
-                      </option>
-                    ))}
-                  </select>
+                  <span className="admin-event-settings__basic-label">운영 상태</span>
+                  <EventStatusIndicator status={isCreatingEvent ? null : editingEvent!.status} />
+                  {/* 종료된 행사만 관리자가 직접 최종 확정할 수 있습니다(저장할 때 서버가 확인·확정). */}
+                  {!isCreatingEvent && editingEvent!.status === 'ENDED' && (
+                    <p className="admin-event-status__action">
+                      {eventForm.status === 'FINALIZED' ? (
+                        <>
+                          <span>저장하면 최종 확정됩니다. 확정 후에는 되돌릴 수 없습니다.</span>
+                          <button
+                            type="button"
+                            onClick={() => handleEventFieldChange('status', 'ENDED')}
+                          >
+                            취소
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleEventFieldChange('status', 'FINALIZED')}
+                        >
+                          최종 확정
+                        </button>
+                      )}
+                    </p>
+                  )}
                 </div>
 
                 <div className="admin-event-settings__basic-item">

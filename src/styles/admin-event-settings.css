@@ -270,8 +270,74 @@
   color: #9f3030;
 }
 
-.admin-event-settings__basic-grid .admin-event-settings__status-select {
-  width: 200px;
+/* 운영 상태: 표시등 + 상태명. 배지·배경·테두리 없이 */
+.admin-event-status__line {
+  display: flex;
+  min-height: 42px;
+  margin: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-event-status__line strong {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: var(--admin-fw-semibold);
+}
+
+.admin-event-status__line small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* 표시등은 메인페이지 상태 표시등과 같은 크기·후광 */
+.admin-event-status__dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #aab4bf;
+}
+
+.admin-event-status__dot.is-green {
+  background: #22a06b;
+  box-shadow: 0 0 0 4px rgba(34, 160, 107, 0.14);
+}
+
+.admin-event-status__dot.is-blue {
+  background: #2f6fb0;
+  box-shadow: 0 0 0 4px rgba(47, 111, 176, 0.14);
+}
+
+.admin-event-status__note {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.admin-event-status__action {
+  display: flex;
+  margin: 8px 0 0;
+  align-items: center;
+  gap: 10px;
+  color: var(--body);
+  font-size: 12px;
+}
+
+.admin-event-status__action button {
+  padding: 2px 4px;
+  border: 0;
+  background: none;
+  color: var(--navy-strong);
+  font: inherit;
+  font-size: 12px;
+  font-weight: var(--admin-fw-semibold);
+  cursor: pointer;
+}
+
+.admin-event-status__action button:hover {
+  text-decoration: underline;
 }
 
 .admin-event-settings__basic-grid .admin-event-settings__public-check {

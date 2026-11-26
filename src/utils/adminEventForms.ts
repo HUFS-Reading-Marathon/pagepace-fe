@@ -301,7 +301,8 @@ export function toEventRequest(form: EventForm): CreateEventRequest {
     applicationEndDate: form.applicationEndDate,
     eventStartDate: form.eventStartDate,
     eventEndDate: form.eventEndDate,
-    status: form.status,
+    // 운영 상태는 서버가 행사 기간으로 정합니다. 관리자가 직접 요청하는 최종 확정·보관만 보냅니다.
+    ...(form.status === 'FINALIZED' || form.status === 'ARCHIVED' ? { status: form.status } : {}),
     description: form.description.trim(),
     contactPhone: form.contactPhone.trim(),
     contactEmail: form.contactEmail.trim(),
