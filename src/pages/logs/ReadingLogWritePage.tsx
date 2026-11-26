@@ -1,9 +1,10 @@
+import ContentSkeleton from '../../components/layout/ContentSkeleton';
 import { useAuth } from '../../auth';
 import ReviewRecommendations from '../../components/layout/ReviewRecommendations';
 import { previousReadingBookIds } from '../../utils/reviewRecommendations';
 import ReviewGuide from '../../components/layout/ReviewGuide';
-import { canSubmitReadingLog, koreaToday } from '../../utils/eventSelection';
-import { type FormEvent, useEffect, useState } from 'react';
+import { canSubmitReadingLog, hasFinalResults, koreaToday } from '../../utils/eventSelection';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '../../api/apiClient';
 import BookCover from '../../components/logs/BookCover';
@@ -62,6 +63,7 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
   const [previousLogs, setPreviousLogs] = useState<ReadingLog[]>([]);
   const [guidanceWarning, setGuidanceWarning] = useState('');
   const navigate = useNavigate();
+  const mounted = useRef(false);
 
   const today = koreaToday();
   const [participation, setParticipation] = useState<MyParticipation | null>(null);
@@ -75,11 +77,15 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
   const [books, setBooks] = useState<BookEntry[]>([createBookEntry()]);
   const [reviewTargets, setReviewTargets] = useState<ReviewTargetBook[]>([]);
   const [currentReadingBook, setCurrentReadingBook] = useState<ParticipantBook | null>(null);
+  const submitting = useRef(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  // 같은 날 이미 제출한 일지가 있어 제출이 거절된 경우(log는 찾은 기존 일지, 못 찾으면 null)
+  const [duplicate, setDuplicate] = useState<{ log: ReadingLog | null } | null>(null);
 
   useEffect(() => {
     let active = true;
+    mounted.current = true;
     (async () => {
       const editingLog = editingLogId ? await getMyReadingLog(editingLogId) : null;
       if (editingLog?.status === 'APPROVED')
@@ -166,6 +172,7 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
       });
     return () => {
       active = false;
+      mounted.current = false;
     };
   }, [editingLogId]);
 
@@ -224,6 +231,7 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (submitting.current) return;
 
     if (!participation || !canSubmitReadingLog(participation)) {
       setErrorMessage('이 회차의 독서일지를 접수할 수 없습니다.');
@@ -239,8 +247,10 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
     }
 
     try {
+      submitting.current = true;
       setIsSubmitting(true);
       setErrorMessage('');
+      setDuplicate(null);
       const request = {
         readingDate,
         books: books.map((book) => ({
@@ -259,12 +269,26 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
         ? await updateReadingLog(editingLogId, request)
         : await createReadingLog(participationId, request);
 
-      if (saved) navigate(`/logs/${saved.readingLogId}`);
+      if (saved && mounted.current) navigate(`/logs/${saved.readingLogId}`);
     } catch (error) {
-      setErrorMessage(
-        error instanceof ApiError ? error.message : '독서일지를 저장하지 못했습니다.',
-      );
+      if (
+        !editingLogId &&
+        error instanceof ApiError &&
+        error.code === 'READING_LOG_ALREADY_EXISTS'
+      ) {
+        // 같은 날의 기존 일지를 찾아 수정 안내에 씁니다. 불러오지 못하면 이미 가진 목록으로 찾습니다.
+        const sameDay = (log: ReadingLog) => log.readingDate === readingDate;
+        const existing = await getMyReadingLogs(participationId)
+          .then((logs) => logs.find(sameDay) ?? null)
+          .catch(() => previousLogs.find(sameDay) ?? null);
+        if (mounted.current) setDuplicate({ log: existing });
+      } else {
+        setErrorMessage(
+          error instanceof ApiError ? error.message : '독서일지를 저장하지 못했습니다.',
+        );
+      }
     } finally {
+      submitting.current = false;
       setIsSubmitting(false);
     }
   };
@@ -282,13 +306,29 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
       </main>
     );
   }
+  if (!participation && !errorMessage) {
+    return (
+      <main className="page-container reading-log-write">
+        <section className="page-section">
+          <h1>{editingLogId ? '독서일지 수정' : '독서일지 작성'}</h1>
+          <p className="page-description">도서를 검색해 선택하고, 오늘 읽은 쪽수를 입력하세요.</p>
+        </section>
+        <div className="reading-workspace reading-log-write-layout">
+          <section className="reading-log-card reading-log-write-main">
+            <ContentSkeleton variant="form" label="참가 회차를 확인하고 있습니다." />
+          </section>
+          <aside className="reading-log-card">
+            <ContentSkeleton variant="stats" label="참가 현황을 불러오고 있습니다." />
+          </aside>
+        </div>
+      </main>
+    );
+  }
   if (!participation) {
     return (
       <main className="page-container">
         <h1>{editingLogId ? '독서일지 수정' : '독서일지 작성'}</h1>
-        <p role={errorMessage ? 'alert' : 'status'}>
-          {errorMessage || '참가 회차를 확인하고 있습니다.'}
-        </p>
+        <p role="alert">{errorMessage}</p>
         <Link to="/logs">나의 서재</Link> <Link to="/inquiries?view=books">내 도서 문의</Link>
       </main>
     );
@@ -348,7 +388,7 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
                 <strong>
                   <time dateTime={readingDate}>{formatKoDateKey(readingDate)}</time>
                 </strong>
-                <small>{editingLogId ? '처음 기록한 독서일' : '한국 시간 기준 오늘'}</small>
+                {editingLogId && <small>처음 기록한 독서일</small>}
               </p>
             </div>
 
@@ -523,6 +563,47 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
               </p>
             </div>
 
+            {duplicate && (
+              // 중복 제출 안내: 서버·입력 오류(빨간색)와 구분되는 차분한 안내 영역
+              <div className="reading-log-duplicate" role="alert">
+                <svg
+                  viewBox="0 0 16 16"
+                  width="16"
+                  height="16"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <circle cx="8" cy="8" r="6.5" />
+                  <path d="M8 7.2v3.6M8 4.9v.2" />
+                </svg>
+                <div>
+                  <strong>오늘 작성한 독서일지가 이미 있습니다.</strong>
+                  {/* 기존 일지를 수정할 수 있는 상태일 때만 수정 안내를 보여 줍니다(상세 화면의 수정 조건과 같음). */}
+                  {(() => {
+                    const editable =
+                      !!duplicate.log &&
+                      duplicate.log.status !== 'APPROVED' &&
+                      !duplicate.log.bookRequestId &&
+                      !hasFinalResults(participation.eventStatus) &&
+                      canSubmitReadingLog(participation);
+                    return (
+                      <>
+                        <p>
+                          독서일지는 하루에 한 번만 제출할 수 있습니다.
+                          {editable && ' 추가 독서 기록은 기존 일지를 수정해 주세요.'}
+                        </p>
+                        {editable && duplicate.log && (
+                          <Link to={`/logs/${duplicate.log.readingLogId}/edit`}>
+                            기존 일지 수정하기 →
+                          </Link>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
+
             <div className="reading-log-actions">
               <div className="reading-log-action-message">
                 {errorMessage ? (
@@ -532,13 +613,18 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
                   </p>
                 ) : null}
               </div>
-              <button className="reading-log-submit" type="submit" disabled={isSubmitting}>
+              <button
+                className="reading-log-submit"
+                type="submit"
+                aria-busy={isSubmitting}
+                disabled={isSubmitting || !!duplicate}
+              >
                 {isSubmitting ? '저장 중...' : editingLogId ? '독서일지 수정' : '독서일지 제출'}
               </button>
             </div>
           </form>
         </section>
-        <aside className="reading-log-write-aside" aria-label="나의 기록과 서평 할 일">
+        <aside className="reading-log-write-aside" aria-label="나의 기록과 서평 작성 안내">
           {participation && (
             <section className="reading-log-side-card">
               <div className="reading-log-side-head">
@@ -586,7 +672,7 @@ function ReadingLogEditor({ editingLogId }: { editingLogId: number | null }) {
           )}
 
           <section className="reading-log-side-card reading-review-aside" id="review-guide">
-            <h2>서평 할 일</h2>
+            <h2>서평 작성 안내</h2>
             <ReviewGuide />
             {guidanceWarning && <p role="status">{guidanceWarning}</p>}
             {participationId && user && (
