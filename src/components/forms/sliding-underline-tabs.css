@@ -1,0 +1,62 @@
+.sliding-underline-tabs {
+  position: relative;
+  display: flex;
+  gap: 24px;
+  margin-block: 26px 32px;
+  border-bottom: 1px solid var(--line);
+}
+
+.sliding-underline-tabs button {
+  display: inline-grid;
+  padding: 12px 2px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--body);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sliding-underline-tabs button::before {
+  content: attr(data-label);
+  grid-area: 1 / 1;
+  visibility: hidden;
+  font-weight: 700;
+}
+
+.sliding-underline-tabs button > span {
+  grid-area: 1 / 1;
+}
+
+.sliding-underline-tabs button[aria-selected='true'] {
+  color: var(--navy-strong);
+  font-weight: 700;
+}
+
+.sliding-underline-tabs button:focus-visible {
+  outline: 2px solid var(--navy-strong);
+  outline-offset: 3px;
+}
+
+.sliding-underline-tabs__indicator {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  visibility: hidden;
+  background: var(--navy-strong);
+  pointer-events: none;
+  transition:
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    width 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sliding-underline-tabs button,
+  .sliding-underline-tabs__indicator {
+    transition: none;
+  }
+}

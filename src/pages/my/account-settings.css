@@ -1,91 +1,161 @@
 .account-page {
-  width: min(980px, calc(100% - 40px));
+  --apply-field-height: 48px;
+  --apply-field-radius: 8px;
+  --apply-field-line: #d1d5db;
+  --apply-tint: #f3f7fc;
+  --apply-focus-ring: 0 0 0 3px rgba(31, 79, 130, 0.12);
+  width: min(680px, calc(100% - 40px));
   margin: auto;
   padding: 52px 0 80px;
 }
+
 .account-page h1 {
-  margin: 0 0 12px;
+  margin: 0;
   color: #172838;
   font-size: clamp(32px, 4vw, 44px);
   line-height: 1.2;
   letter-spacing: -0.055em;
   font-weight: 700;
 }
-.account-grid {
+
+.account-form,
+.account-fields {
   display: grid;
-  margin-top: 30px;
-  grid-template-columns: 1.2fr 0.8fr;
-  gap: 18px;
+  min-width: 0;
+  gap: 24px;
 }
-.account-grid form {
+
+.account-fields,
+.account-affiliation {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.account-field {
   display: grid;
-  padding: 28px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  background: #fff;
-  gap: 15px;
-}
-.account-grid h2 {
-  margin: 0 0 5px;
-  color: #172838;
-}
-/* 제목 바로 아래 설명은 제목에 붙여 첫 입력 항목과의 간격을 줄입니다. */
-.account-grid form > p {
-  margin: -8px 0 0;
-  color: #6b7280;
-  font-size: 13.5px;
-}
-/* 입력 라벨·입력창은 참가신청 폼과 같은 규격(라벨 13.5px/500, 입력 15px/400, 높이 48px, 둥글기 8px)을 씁니다. */
-.account-grid label,
-.account-grid .account-field {
-  display: grid;
+  min-width: 0;
   gap: 8px;
   color: #4b5563;
   font-size: 13.5px;
   font-weight: 500;
   line-height: 1.5;
 }
-.account-grid input,
-.account-grid select {
+
+.account-affiliation legend {
+  margin-bottom: 8px;
+  padding: 0;
+  color: #4b5563;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.account-page input:not([type='radio']),
+.account-page select {
   width: 100%;
   min-width: 0;
   height: 48px;
   padding: 0 16px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  background-color: #fff;
+  border: 1px solid var(--apply-field-line);
+  border-radius: var(--apply-field-radius);
+  background: #fff;
   color: #111827;
   font: inherit;
   font-size: 15px;
   font-weight: 400;
   transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    border-color 150ms ease,
+    box-shadow 150ms ease;
 }
-.account-grid input:focus,
-.account-grid select:focus {
+
+.account-page input:not([type='radio']):focus,
+.account-page select:focus,
+.account-email:focus-within,
+.account-password:focus-within {
   outline: none;
   border-color: var(--navy-strong);
-  box-shadow: 0 0 0 3px rgba(31, 79, 130, 0.12);
+  box-shadow: var(--apply-focus-ring);
 }
-.account-grid input::placeholder {
-  color: #9ca3af;
-}
-.account-grid input:disabled,
-.account-grid select:disabled {
-  background-color: #f9fafb;
-  color: #9ca3af;
+
+.account-page input:disabled,
+.account-page select:disabled {
+  background: #f9fafb;
+  color: #64748b;
   cursor: not-allowed;
 }
-/* 이메일 + 인증 코드 발송, 인증 코드 + 확인처럼 입력창 옆에 보조 버튼을 두는 행 */
+
+.account-page input[readonly] {
+  background: #f5f7f9;
+  color: var(--body);
+}
+
+.account-page input[type='radio']:disabled + span {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .account-inline {
   display: flex;
   min-width: 0;
   gap: 8px;
 }
-.account-inline input {
+
+.account-inline > input,
+.account-email {
   flex: 1;
 }
+
+.account-email,
+.account-password {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  border: 1px solid var(--apply-field-line);
+  border-radius: var(--apply-field-radius);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.account-page .account-email input,
+.account-page .account-password input {
+  flex: 1;
+  height: 46px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.account-email > span {
+  padding-right: 16px;
+  flex: 0 0 auto;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.account-password-toggle {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  margin-right: 1px;
+  padding: 0;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--body);
+  cursor: pointer;
+}
+
+.account-password-toggle svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
 .account-button {
   display: inline-flex;
   min-height: 48px;
@@ -96,86 +166,104 @@
   border: 1px solid var(--navy-strong);
   border-radius: 8px;
   font: inherit;
-  font-size: 14.5px;
+  font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease;
 }
-.account-button:focus-visible {
-  outline: 3px solid rgba(31, 79, 130, 0.2);
-  outline-offset: 2px;
+
+.account-button--primary {
+  background: var(--navy-strong);
+  color: #fff;
 }
-.account-button:disabled {
+
+.account-button--primary:hover:not(:disabled) {
+  background: var(--navy-dark);
+}
+
+.account-button--outline {
+  background: #fff;
+  color: var(--navy-strong);
+}
+
+.account-button--outline:hover:not(:disabled) {
+  background: var(--blue-10);
+}
+
+.account-button:disabled,
+.account-fields:disabled .account-button {
   border-color: #cbd5e1;
   background: #f1f5f9;
   color: #64748b;
   cursor: not-allowed;
 }
-.account-button--primary {
-  background: var(--navy-strong);
-  color: #fff;
+
+.account-form > .account-button {
+  min-width: 160px;
+  margin-top: 4px;
+  justify-self: end;
 }
-.account-button--primary:hover:not(:disabled) {
-  border-color: #163a60;
-  background: #163a60;
+
+.account-text-button {
+  padding: 0;
+  border: 0;
+  justify-self: start;
+  background: none;
+  color: var(--navy-strong);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
 }
-.account-button--primary:disabled {
-  border-color: #94a3b8;
-  background: #94a3b8;
-  color: #fff;
+
+.account-page button:focus-visible {
+  outline: 2px solid var(--navy-strong);
+  outline-offset: 3px;
 }
-.account-button--outline {
-  min-width: 112px;
-  background: #fff;
+
+.account-help,
+.account-message {
+  margin: 0;
+  color: var(--body);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.account-message[role='alert'] {
+  color: #b91c1c;
+}
+.account-message[role='status'] {
   color: var(--navy-strong);
 }
-.account-button--outline:hover:not(:disabled) {
-  background: #f3f7fb;
-}
-/* 정보 저장·비밀번호 변경: 카드 전체 폭 대신 오른쪽 정렬된 고정 폭 버튼 */
-.account-grid form > .account-button {
-  justify-self: end;
-  width: 190px;
-  margin-top: 8px;
-  font-size: 15.5px;
-}
-/* 인증 코드 발송·확인 버튼: 가장 긴 문구('인증 코드 발송') 기준 폭으로 맞춰
-   '발송 중...'·'확인 중...'에도 크기가 같고 두 입력창의 오른쪽 끝이 나란합니다. */
-.account-inline .account-button {
-  min-width: calc(5.9em + 32px);
-}
-.account-message {
-  margin-top: 20px;
-  padding: 12px;
-  border: 1px solid #cddded;
-  background: #f7faff;
-  color: #1f4f82;
-}
-.account-grid form:nth-child(2) {
-  align-self: start;
-}
-@media (max-width: 720px) {
-  .account-grid {
-    grid-template-columns: 1fr;
-  }
-}
+
 @media (max-width: 560px) {
-  .account-grid form > .account-button {
-    justify-self: stretch;
-    width: 100%;
+  .account-page {
+    padding-top: 36px;
   }
-}
-/* 아주 좁은 화면: 입력창이 지나치게 좁아지지 않도록 보조 버튼을 다음 줄 전체 폭으로 내립니다. */
-@media (max-width: 360px) {
+  .account-page .apply-segments {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .account-inline {
     flex-wrap: wrap;
   }
-
-  .account-inline .account-button {
+  .account-inline > .account-email {
+    flex-basis: 100%;
+  }
+  .account-inline > .account-button {
+    margin-left: auto;
+  }
+  .account-form > .account-button {
     width: 100%;
+    justify-self: stretch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-page input,
+  .account-page select,
+  .account-email,
+  .account-password {
+    transition: none;
   }
 }
