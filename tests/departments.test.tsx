@@ -20,6 +20,7 @@ import ApplyPage from '../src/pages/auth/ApplyPage';
 import AccountSettingsPage from '../src/pages/my/AccountSettingsPage';
 
 const LEGACY_DEPARTMENT = '아랍어통번역학과';
+const accountFixture = vi.hoisted(() => ({ affiliationType: 'UNDERGRADUATE' }));
 
 // 계정 설정 화면이 서버에서 받아 온 기존 소속을 가진 상태를 정적 렌더링으로 재현한다.
 vi.mock('react', async (importOriginal) => {
@@ -29,7 +30,11 @@ vi.mock('react', async (importOriginal) => {
     useState: ((initial: unknown) =>
       actual.useState(
         initial && typeof initial === 'object' && 'department' in initial
-          ? { ...initial, department: LEGACY_DEPARTMENT }
+          ? {
+              ...initial,
+              department: LEGACY_DEPARTMENT,
+              affiliationType: accountFixture.affiliationType,
+            }
           : initial,
       )) as typeof actual.useState,
   };
@@ -176,17 +181,27 @@ describe('학과 선택 화면', () => {
     expect(html).toContain('<option value="교원" selected="">교원</option>');
   });
 
-  it('계정 설정 화면은 목록에 없는 기존 저장 학과명을 그대로 선택된 상태로 보여준다', () => {
-    const html = renderToStaticMarkup(
-      <MemoryRouter>
-        <AccountSettingsPage />
-      </MemoryRouter>,
-    );
-    expect(html).toContain(`<option value="${LEGACY_COLLEGE_KEY}" selected="">기존 소속</option>`);
-    expect(html).toContain(
-      `<option value="${LEGACY_DEPARTMENT}" selected="">${LEGACY_DEPARTMENT}</option>`,
-    );
-    expect(html).toContain('<option value="자연과학대학">자연과학대학</option>');
-    expect(html).toContain(`<option value="${GENERAL_GROUP.label}">`);
-  });
+  it.each(['UNDERGRADUATE', 'GRADUATE', 'PROFESSOR', 'STAFF', 'OTHER'])(
+    '계정 설정은 기존 소속을 보존하고 %s에 맞는 소속 선택지를 보여준다',
+    (affiliationType) => {
+      accountFixture.affiliationType = affiliationType;
+      const html = renderToStaticMarkup(
+        <MemoryRouter>
+          <AccountSettingsPage />
+        </MemoryRouter>,
+      );
+      expect(html).toContain(
+        `<option value="${LEGACY_COLLEGE_KEY}" selected="">기존 소속</option>`,
+      );
+      expect(html).toContain(
+        `<option value="${LEGACY_DEPARTMENT}" selected="">${LEGACY_DEPARTMENT}</option>`,
+      );
+      expect(html).toContain('<option value="자연과학대학">자연과학대학</option>');
+      if (affiliationType === 'UNDERGRADUATE') {
+        expect(html).not.toContain(`<option value="${GENERAL_GROUP.label}">`);
+      } else {
+        expect(html).toContain(`<option value="${GENERAL_GROUP.label}">`);
+      }
+    },
+  );
 });
